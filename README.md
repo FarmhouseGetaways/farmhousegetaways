@@ -21,29 +21,45 @@ update, and it scores near-perfect on speed and SEO out of the box.
 
 ## Deploy
 
-1. Create a repo at `github.com/FarmhouseGetaways/farmhousegetaways-site`
-2. Upload these files to it
-3. At netlify.com, sign in with GitHub, "Add new site" → "Import an existing project" → pick the repo
-4. Leave the build command empty. Publish directory: `.`
-5. Deploy
+The site is live and deploys from this repo:
+`github.com/FarmhouseGetaways/farmhousegetaways`.
 
-Every push to the repo redeploys the site automatically.
+Netlify is already connected to it. `netlify.toml` sets `publish = "."` with no
+build command, so the files ship exactly as they are in the repo.
 
-## Before it goes live
+**Every commit to `main` triggers a Netlify build.** Depending on your Netlify
+settings you may still need to click **Publish** on the deploy.
 
-- [ ] Replace the photo frames with real photos (each frame says what to shoot)
-- [ ] Paste the Lodgify **booking box** code into both property pages — search the
-      files for `LODGIFY BOOKING BOX GOES HERE`. Use the booking box, not the
-      search bar; the search bar sends guests off-site.
-- [ ] Confirm Mountain Retreat's real sleeping capacity — currently written as 10
-- [ ] Check every number on the boards against reality
-- [ ] Turn on form notifications in Netlify → Forms so inquiries reach your inbox
-- [ ] Point the domain only after all of the above
+### The one rule: never drag files onto Netlify
+
+Do not drag a folder or zip onto the Netlify drop area, and do not upload files
+through the Netlify UI. A dragged deploy bypasses the repo entirely, so the live
+site and `main` drift apart — and the next commit silently reverts whatever was
+dropped. That has cost real work more than once.
+
+The repo is the source of truth. Changes go in as commits, or they don't go in.
+
+## Making changes
+
+- **Small copy edits** — edit the file on github.com and commit, or commit from a
+  clone. Netlify picks it up.
+- **Anything larger** — work on a branch and open a pull request, so the diff is
+  reviewable before it reaches `main` and therefore the live site.
+
+## Still open
+
+- [ ] Confirm form notifications are on in Netlify → Forms so inquiries reach the inbox
+- [ ] Check the numbers on the property boards against reality (Red Barn Ranch is
+      written as sleeping twenty)
+
+Photos and Lodgify booking boxes are done — every frame has been replaced with a
+real image, and both property pages render a live `lodgify-book-now-box`.
 
 ## Photos
 
-Drop them in `/images/` and swap each `<div class="frame">…</div>` for an
-`<img>`. Every frame contains a note describing exactly what the shot should be.
+Live photos are in `/images/` and referenced with plain `<img>` tags. Keep the
+`width`/`height` attributes when swapping an image so the page does not shift
+while loading, and keep `loading="lazy"` on anything below the fold.
 
 ## Forms
 
