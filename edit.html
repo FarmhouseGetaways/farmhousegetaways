@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Edit mode — Farmhouse Getaways</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    display:flex;flex-direction:column;
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#2b2b2b;color:#fff;overflow:hidden;
+  }
+
+  /* ---------- top bar ---------- */
+  #bar{
+    flex:0 0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 16px;background:#1f2a24;border-bottom:1px solid #3c4b42;
+  }
+  #bar .brand{font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:11px;color:#9BD9AE;white-space:nowrap}
+  select{
+    font:inherit;padding:7px 10px;border-radius:6px;border:1px solid #4a5b51;
+    background:#2c3a33;color:#fff;min-width:190px;
+  }
+  button{
+    font:inherit;font-weight:600;padding:8px 14px;border-radius:999px;
+    border:1px solid transparent;cursor:pointer;white-space:nowrap;
+  }
+  .b-toggle{background:#35835C;color:#fff}
+  .b-toggle[data-on="false"]{background:#4a5b51;color:#cfd8d2}
+  .b-ghost{background:transparent;color:#cfd8d2;border-color:#4a5b51}
+  .b-ghost:hover{background:#2c3a33;color:#fff}
+  .b-save{background:#A85C68;color:#fff}
+  .b-save[data-busy="true"]{background:#6b4048;cursor:wait}
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    max-width:min(680px,92vw);padding:14px 20px;border-radius:10px;
+    font-size:13px;line-height:1.5;box-shadow:0 14px 34px rgba(0,0,0,.45);z-index:50;
+  }
+  #toast[hidden]{display:none}
+  #picker{display:none}
+  #toast.good{background:#2b5c42;color:#dff3e6;border:1px solid #4a8a67}
+  #toast.bad{background:#5c2b33;color:#f6dde1;border:1px solid #8a4a56}
+  .b-save:hover{background:#fff;color:#1f2a24}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #count{
+    font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px;
+    background:#2c3a33;border:1px solid #4a5b51;white-space:nowrap;
+  }
+  #count[data-dirty="true"]{background:#A85C68;border-color:#A85C68}
+  .spacer{flex:1}
+
+  #hint{
+    flex:0 0 auto;padding:7px 16px;background:#152019;color:#9fb3a6;
+    font-size:12px;border-bottom:1px solid #3c4b42;
+  }
+  #hint b{color:#9BD9AE}
+
+  /* ---------- the site ---------- */
+  #stage{flex:1;position:relative;background:#fff;min-height:0}
+  iframe{width:100%;height:100%;border:0;display:block}
+  #loading{
+    position:absolute;inset:0;display:grid;place-content:center;
+    background:#fff;color:#7a8a80;font-size:13px;
+  }
+  #loading[hidden]{display:none}
+
+  /* ---------- review drawer ---------- */
+  #review{
+    position:fixed;inset:auto 0 0 0;max-height:62vh;overflow:auto;
+    background:#1f2a24;border-top:2px solid #A85C68;padding:18px 20px 26px;
+    box-shadow:0 -18px 40px rgba(0,0,0,.45);
+  }
+  #review[hidden]{display:none}
+  #review h2{margin:0 0 4px;font-size:15px}
+  #review .sub{margin:0 0 16px;font-size:12px;color:#9fb3a6}
+  .chg{border-top:1px solid #3c4b42;padding:12px 0;display:grid;gap:5px}
+  .chg .where{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#9BD9AE;font-weight:700}
+  .chg .was{color:#e39aa4;text-decoration:line-through;font-size:13px}
+  .chg .now{color:#b9e6c8;font-size:13px}
+  .chg .undo{
+    justify-self:start;margin-top:3px;font-size:11px;padding:4px 10px;
+    background:transparent;border:1px solid #4a5b51;color:#cfd8d2;
+  }
+  #closeReview{position:absolute;top:12px;right:14px}
+  .empty{color:#9fb3a6;font-size:13px;padding:14px 0}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <span class="brand">Farmhouse&nbsp;Getaways · Edit mode</span>
+  <select id="page" aria-label="Which page to edit"></select>
+  <button class="b-toggle" id="toggle" data-on="true">Editing: ON</button>
+  <span id="count" data-dirty="false">0 changes</span>
+  <span class="spacer"></span>
+  <button class="b-ghost" id="reviewBtn">Review changes</button>
+  <button class="b-ghost" id="resetBtn">Undo all</button>
+  <button class="b-ghost" id="saveBtn">Save to a file</button>
+  <button class="b-save" id="pubBtn">Publish to the live site</button>
+</div>
+
+<div id="hint">
+  Click any text on the page to change it. <b>Layout is locked</b> so nothing can break. Click a <b>photo</b> to swap it.
+  Changes are kept as you move between pages. When you're happy, hit <b>Publish to the live site</b> &mdash; it goes live in about half a minute, and saves Claude a copy on the way.
+</div>
+
+<div id="stage">
+  <div id="loading">Loading the page…</div>
+  <iframe id="frame" title="Site preview"></iframe>
+</div>
+
+<input type="file" id="picker" accept="image/jpeg,image/png,image/webp">
+<div id="toast" hidden></div>
+
+<div id="review" hidden>
+  <button class="b-ghost" id="closeReview">Close</button>
+  <h2>Your changes</h2>
+  <p class="sub">Nothing is live until Claude publishes it.</p>
+  <div id="reviewList"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PAGES = [
+    ["/index.html",            "Homepage"],
+    ["/red-barn-ranch.html",   "Red Barn Ranch"],
+    ["/mountain-retreat.html", "Mountain Retreat"],
+    ["/wedding-groups.html",   "Weddings & groups"],
+    ["/book-both.html",        "Book both houses"],
+    ["/ramona-farmstand-map.html", "Farmstand map"],
+    ["/our-story.html",        "Our story"],
+    ["/ramona.html",           "Ramona"],
+    ["/thanks.html",           "Thanks (inquiry)"],
+    ["/thanks-list.html",      "Thanks (map signup)"],
+    ["/404.html",              "Not-found page"]
+  ];
+
+  // key -> {page,pageName,parentPath,textIndex,occurrence,before,after}
+  var changes = {};
+  var editing = true;
+  var current = PAGES[0][0];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var frame = $("frame"), sel = $("page");
+
+  PAGES.forEach(function(p){
+    var o = document.createElement("option");
+    o.value = p[0]; o.textContent = p[1];
+    sel.appendChild(o);
+  });
+
+  /* ---------- locating an edit in the source file ---------- */
+
+  function pathOf(el){
+    var parts = [];
+    while (el && el.nodeType === 1 && el.tagName !== "BODY") {
+      var i = 1, s = el;
+      while ((s = s.previousElementSibling)) { if (s.tagName === el.tagName) i++; }
+      parts.unshift(el.tagName.toLowerCase() + ":nth-of-type(" + i + ")");
+      el = el.parentElement;
+    }
+    return "body>" + parts.join(">");
+  }
+
+  function labelFor(el){
+    while (el && el.nodeType === 1) {
+      var t = el.tagName;
+      if (t === "H1") return "Main heading";
+      if (t === "H2" || t === "H3") return "Heading";
+      if (t === "LI") return "List item";
+      if (t === "FIGCAPTION") return "Photo caption";
+      if (t === "BUTTON") return "Button";
+      if (t === "A" && el.className.indexOf("btn") > -1) return "Button";
+      if (t === "P") return "Paragraph";
+      el = el.parentElement;
+    }
+    return "Text";
+  }
+
+  var SKIP = { SCRIPT:1, STYLE:1, NOSCRIPT:1, TITLE:1, HEAD:1, IFRAME:1, SELECT:1, OPTION:1, TEXTAREA:1 };
+
+  function instrument(doc){
+    // count identical strings so the applier can find the right one
+    var seen = {};
+
+    var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function(n){
+        if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        var p = n.parentNode;
+        while (p && p.nodeType === 1) {
+          if (SKIP[p.tagName]) return NodeFilter.FILTER_REJECT;
+          if (p.getAttribute && p.getAttribute("aria-hidden") === "true") return NodeFilter.FILTER_REJECT;
+          if (p.id === "lodgify-book-now-box") return NodeFilter.FILTER_REJECT;
+          p = p.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    var nodes = [], n;
+    while ((n = walker.nextNode())) nodes.push(n);
+
+    // PASS 1 — read every location off the untouched DOM. Wrapping text nodes
+    // inserts <span> elements, which would shift :nth-of-type counts for any
+    // real <span> siblings and send the applier to the wrong element.
+    var recs = [];
+    nodes.forEach(function(node){
+      var parent = node.parentElement;
+      if (!parent) return;
+
+      // which text node am I, inside my parent element?
+      var textIndex = 0, k;
+      for (k = 0; k < parent.childNodes.length; k++) {
+        var c = parent.childNodes[k];
+        if (c === node) break;
+        if (c.nodeType === 3 && c.nodeValue && c.nodeValue.trim()) textIndex++;
+      }
+
+      var original = node.nodeValue;
+      var trimmed  = original.trim();
+      var occ = seen[trimmed] = (seen[trimmed] || 0) + 1;
+
+      recs.push({ node:node, parent:parent, path:pathOf(parent),
+                  textIndex:textIndex, original:original, trimmed:trimmed, occ:occ });
+    });
+
+    // PASS 2 — now it is safe to mutate
+    recs.forEach(function(r){
+      var node = r.node, parent = r.parent, textIndex = r.textIndex;
+      var original = r.original, trimmed = r.trimmed, occ = r.occ;
+
+      var span = node.ownerDocument.createElement("span");
+      span.setAttribute("data-fh", "1");
+      span.style.cssText = "display:inline;outline-offset:2px";
+      node.parentNode.replaceChild(span, node);
+      span.appendChild(node);
+
+      var key = current + "||" + r.path + "||" + textIndex;
+
+      span.__fh = {
+        key: key,
+        page: current,
+        pageName: sel.options[sel.selectedIndex].textContent,
+        parentPath: r.path,
+        textIndex: textIndex,
+        occurrence: occ,
+        before: trimmed,
+        lead: original.match(/^\s*/)[0],
+        tail: original.match(/\s*$/)[0],
+        label: labelFor(parent)
+      };
+
+      // restore any change already made this session
+      if (changes[key]) {
+        span.textContent = "";
+        changes[key].after.split("\n").forEach(function(part, i){
+          if (i) span.appendChild(node.ownerDocument.createElement("br"));
+          span.appendChild(node.ownerDocument.createTextNode(part));
+        });
+      }
+
+      span.contentEditable = editing ? "true" : "false";
+      span.addEventListener("input", onEdit);
+
+      // Inside an <a>, the browser swallows mousedown for link handling and the
+      // caret never lands. Place it ourselves from the click point.
+      span.addEventListener("mousedown", function(ev){
+        if (!editing || !span.parentNode) return;
+        var host = span, inLink = false;
+        while (host) { if (host.tagName === "A") { inLink = true; break; } host = host.parentElement; }
+        if (!inLink) return;
+        ev.preventDefault(); ev.stopPropagation();
+        var d = span.ownerDocument, r = null;
+        if (d.caretRangeFromPoint) r = d.caretRangeFromPoint(ev.clientX, ev.clientY);
+        else if (d.caretPositionFromPoint) {
+          var cp = d.caretPositionFromPoint(ev.clientX, ev.clientY);
+          if (cp) { r = d.createRange(); r.setStart(cp.offsetNode, cp.offset); r.collapse(true); }
+        }
+        span.focus();
+        if (r) { var sel = d.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      }, true);
+      span.addEventListener("keydown", function(ev){
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        try { node.ownerDocument.execCommand("insertLineBreak"); }
+        catch (err) { return; }
+        onEdit({ currentTarget: span });
+      });
+      span.addEventListener("focus", function(){ span.style.outline = "2px solid #A85C68"; });
+      span.addEventListener("blur",  function(){ span.style.outline = "none"; });
+    });
+
+    // A link is draggable, and a mousedown on one starts a link-drag instead of
+    // placing the caret — which made the two property cards uneditable.
+    Array.prototype.forEach.call(doc.querySelectorAll("a"), function(a){
+      if (a.querySelector("span[data-fh]")) a.setAttribute("draggable", "false");
+    });
+
+    instrumentImages(doc);
+    applyEditableStyling(doc);
+  }
+
+  /* ---------- photos ---------- */
+
+  var SKIP_IMG = /logo|favicon|icon|apple-touch/i;
+  var pendingImg = null;
+
+  function instrumentImages(doc){
+    var seen = {};
+    Array.prototype.forEach.call(doc.querySelectorAll("img"), function(img){
+      var raw = img.getAttribute("src") || "";
+      if (raw.indexOf("/images/") !== 0) return;
+      var base = raw.split("?")[0];
+      if (SKIP_IMG.test(base)) return;
+      var occ = seen[base] = (seen[base] || 0) + 1;
+      if (img.__fh) return;
+      img.__fh = { page: current, src: base, occurrence: occ };
+      img.setAttribute("data-fh-img", "1");
+      img.setAttribute("title", "Click to replace this photo");
+
+      var key = current + "||img||" + base + "||" + occ;
+      if (changes[key] && changes[key].preview) img.src = changes[key].preview;
+
+      img.addEventListener("click", function(ev){
+        if (!editing) return;
+        ev.preventDefault(); ev.stopPropagation();
+        pendingImg = img;
+        $("picker").value = "";
+        $("picker").click();
+      }, true);
+    });
+  }
+
+  // Resize and compress in the browser to the rules the site already uses:
+  // landscape ~1600px, portrait ~1200px, JPEG, under 300 KB.
+  function prepareImage(file){
+    return createImageBitmap(file, { imageOrientation: "from-image" })
+      .catch(function(){ return createImageBitmap(file); })
+      .then(function(bmp){
+        var max = bmp.width >= bmp.height ? 1600 : 1200;
+        var scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+        var w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+        var cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+
+        function attempt(q){
+          return new Promise(function(res){ cv.toBlob(res, "image/jpeg", q); })
+            .then(function(blob){
+              if (blob.size <= 300 * 1024 || q <= 0.58) return blob;
+              return attempt(q - 0.06);
+            });
+        }
+        return attempt(0.84).then(function(blob){
+          return new Promise(function(res){
+            var fr = new FileReader();
+            fr.onload = function(){
+              res({ dataUrl: fr.result, b64: String(fr.result).split(",")[1],
+                    width: w, height: h, bytes: blob.size });
+            };
+            fr.readAsDataURL(blob);
+          });
+        });
+      });
+  }
+
+  $("picker").addEventListener("change", function(){
+    var file = this.files && this.files[0];
+    if (!file || !pendingImg) return;
+    var img = pendingImg; pendingImg = null;
+    var meta = img.__fh;
+    toast("Shrinking the photo\u2026", true);
+
+    prepareImage(file).then(function(out){
+      var key = meta.page + "||img||" + meta.src + "||" + meta.occurrence;
+      changes[key] = {
+        kind: "photo", page: meta.page,
+        pageName: sel.options[sel.selectedIndex].textContent, label: "Photo",
+        src: meta.src, occurrence: meta.occurrence,
+        width: out.width, height: out.height,
+        version: String(Date.now()), data: out.b64, preview: out.dataUrl,
+        before: meta.src.split("/").pop(), after: file.name
+      };
+      img.src = out.dataUrl;
+      paintCount();
+      toast("Photo ready \u2014 " + out.width + "\u00d7" + out.height + ", " +
+            Math.round(out.bytes / 1024) + " KB. Hit Publish when you are done.", true);
+    }).catch(function(err){
+      toast("Could not read that image: " + err, false);
+    });
+  });
+
+  function applyEditableStyling(doc){
+    var s = doc.getElementById("fh-edit-style");
+    if (!s) {
+      s = doc.createElement("style");
+      s.id = "fh-edit-style";
+      doc.head.appendChild(s);
+    }
+    s.textContent = editing
+      ? 'span[data-fh]{cursor:text;border-radius:3px;transition:background .12s}' +
+        'span[data-fh]:hover{background:rgba(168,92,104,.16);box-shadow:0 0 0 2px rgba(168,92,104,.28)}' +
+        'img[data-fh-img]{cursor:pointer;transition:box-shadow .15s}' +
+        'img[data-fh-img]:hover{box-shadow:0 0 0 4px #A85C68}' +
+        'a[draggable=false]{-webkit-user-drag:none}' +
+        'a[draggable=false] span[data-fh]{-webkit-user-drag:none;user-select:text}'
+      : 'span[data-fh]{cursor:default}img[data-fh-img]{cursor:default}';
+  }
+
+  // Read an editable span as text, turning <br> into a real newline so a
+  // deliberate line break registers as a change instead of collapsing away.
+  function readSpan(el){
+    // A <br> becomes a sentinel, never a raw newline — text nodes carry the
+    // source file's own indentation, and that whitespace must not be mistaken
+    // for a line the owner typed.
+    var out = "";
+    (function walk(n){
+      for (var c = n.firstChild; c; c = c.nextSibling){
+        if (c.nodeType === 3) out += c.nodeValue.replace(/\s+/g, " ");
+        else if (c.nodeType === 1) { if (c.tagName === "BR") out += "\u0000"; else walk(c); }
+      }
+    })(el);
+    return out
+      .replace(/[ \t]*\u0000[ \t]*/g, "\n")   // the breaks he actually typed
+      .replace(/ {2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n")             // one blank line is the maximum
+      .replace(/^ +| +$/g, "");                // trim spaces only — a break at the
+                                               // very start or end is a real edit
+  }
+
+  function onEdit(e){
+    var span = e.currentTarget, meta = span.__fh;
+    var now = readSpan(span);
+    if (now === meta.before) delete changes[meta.key];
+    else changes[meta.key] = {
+      page: meta.page, pageName: meta.pageName, label: meta.label,
+      parentPath: meta.parentPath, textIndex: meta.textIndex,
+      occurrence: meta.occurrence, before: meta.before, after: now
+    };
+    paintCount();
+  }
+
+  function list(){ return Object.keys(changes).map(function(k){ return changes[k]; }); }
+
+  function paintCount(){
+    var n = list().length;
+    var c = $("count");
+    c.textContent = n === 1 ? "1 change" : n + " changes";
+    c.setAttribute("data-dirty", n > 0 ? "true" : "false");
+    $("saveBtn").disabled = n === 0;
+    $("pubBtn").disabled = n === 0;
+    $("resetBtn").disabled = n === 0;
+  }
+
+  /* ---------- loading a page ---------- */
+
+  function load(path){
+    current = path;
+    $("loading").hidden = false;
+    frame.src = path;
+  }
+
+  frame.addEventListener("load", function(){
+    var doc;
+    try { doc = frame.contentDocument; } catch (err) { doc = null; }
+    if (!doc || !doc.body) { $("loading").hidden = true; return; }
+
+    instrument(doc);
+
+    // keep navigation inside the editor
+    doc.addEventListener("click", function(e){
+      // Two of the homepage property cards are one big <a>. While editing, a
+      // click on text inside them has to place the caret, not navigate away.
+      if (editing) {
+        var n = e.target;
+        while (n && n !== doc.body) {
+          if (n.nodeType === 1 && n.getAttribute && n.getAttribute("data-fh")) {
+            e.preventDefault();   // stop the link, but stay on this page
+            return;
+          }
+          n = n.parentElement;
+        }
+      }
+      var a = e.target;
+      while (a && a.tagName !== "A") a = a.parentElement;
+      if (!a) return;
+      e.preventDefault();
+      var href = a.getAttribute("href") || "";
+      var known = PAGES.filter(function(p){
+        return href === p[0] || href === p[0].replace(".html","") || (href === "/" && p[0] === "/index.html");
+      })[0];
+      if (known) { sel.value = known[0]; load(known[0]); }
+    }, true);
+
+    $("loading").hidden = true;
+  });
+
+  /* ---------- controls ---------- */
+
+  sel.addEventListener("change", function(){ load(sel.value); });
+
+  $("toggle").addEventListener("click", function(){
+    editing = !editing;
+    this.textContent = "Editing: " + (editing ? "ON" : "OFF");
+    this.setAttribute("data-on", editing ? "true" : "false");
+    var doc = frame.contentDocument;
+    if (!doc) return;
+    Array.prototype.forEach.call(doc.querySelectorAll("span[data-fh]"), function(s){
+      s.contentEditable = editing ? "true" : "false";
+    });
+    applyEditableStyling(doc);
+  });
+
+  $("resetBtn").addEventListener("click", function(){
+    if (!confirm("Throw away all " + list().length + " changes? This cannot be undone.")) return;
+    changes = {};
+    paintCount();
+    renderReview();
+    load(current);
+  });
+
+  $("reviewBtn").addEventListener("click", function(){
+    renderReview();
+    $("review").hidden = false;
+  });
+  $("closeReview").addEventListener("click", function(){ $("review").hidden = true; });
+
+  function renderReview(){
+    var box = $("reviewList"), items = list();
+    box.innerHTML = "";
+    if (!items.length) {
+      box.innerHTML = '<p class="empty">No changes yet. Click any text on the page to start.</p>';
+      return;
+    }
+    items.forEach(function(c){
+      var d = document.createElement("div");
+      d.className = "chg";
+      var w = document.createElement("div");
+      w.className = "where"; w.textContent = c.pageName + " · " + c.label;
+      var was = document.createElement("div"); was.className = "was";
+      was.textContent = c.kind === "photo" ? "Photo: " + c.before : c.before;
+      var now = document.createElement("div"); now.className = "now";
+      now.textContent = c.kind === "photo" ? "Replaced with: " + c.after : c.after;
+      var u = document.createElement("button");
+      u.className = "undo"; u.textContent = "Undo this one";
+      u.addEventListener("click", function(){
+        var key = c.kind === "photo"
+          ? c.page + "||img||" + c.src + "||" + c.occurrence
+          : c.page + "||" + c.parentPath + "||" + c.textIndex;
+        delete changes[key];
+        paintCount(); renderReview();
+        if (c.page === current) load(current);
+      });
+      d.appendChild(w); d.appendChild(was); d.appendChild(now); d.appendChild(u);
+      box.appendChild(d);
+    });
+  }
+
+  $("saveBtn").addEventListener("click", function(){
+    var items = list();
+    if (!items.length) return;
+    var payload = {
+      site: "farmhousegetaways.com",
+      savedAt: new Date().toISOString(),
+      changeCount: items.length,
+      note: "Send this file to Claude. Each entry locates one piece of text in the source and gives its replacement.",
+      changes: items.map(function(c){
+        if (c.kind !== "photo") return c;
+        var copy = {}; for (var k in c) if (k !== "data" && k !== "preview") copy[k] = c[k];
+        return copy;
+      })
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+    a.href = url; a.download = "farmhouse-edits-" + stamp + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    alert("Saved " + items.length + " change" + (items.length === 1 ? "" : "s") +
+          ".\n\nSend that file to Claude and it goes live.");
+  });
+
+  function toast(msg, ok){
+    var t = $("toast");
+    t.className = ok ? "good" : "bad";
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ t.hidden = true; }, ok ? 9000 : 16000);
+  }
+
+  $("pubBtn").addEventListener("click", function(){
+    var items = list();
+    if (!items.length) { toast("Nothing to publish yet.", false); return; }
+    if (!confirm("Publish " + items.length + " change" + (items.length===1?"":"s") +
+                 " to the live site?\n\nThis updates farmhousegetaways for real.")) return;
+
+    var btn = this;
+    btn.disabled = true; btn.setAttribute("data-busy","true");
+    btn.textContent = "Publishing…";
+
+    // Snapshot bookkeeping: note what these pages look like now, so we can tell
+    // when the deploy has actually landed and the copy we save is the new one.
+    var touched = {};
+    items.forEach(function(c){ touched[c.page] = 1; });
+    var before = {};
+
+    Promise.all(Object.keys(touched).map(function(pth){
+      return fetchText(pth).then(function(t){ if (t !== null) before[pth] = fingerprint(t); });
+    }))
+    .then(function(){ return fetch("/.netlify/functions/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        changes: items.filter(function(c){ return c.kind !== "photo"; }),
+        photos: items.filter(function(c){ return c.kind === "photo"; }).map(function(c){
+          return { page: c.page, src: c.src, occurrence: c.occurrence,
+                   width: c.width, height: c.height, version: c.version, data: c.data };
+        })
+      })
+    }); })
+    .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+    .then(function(res){
+      if (!res.ok || res.d.error) {
+        toast("Could not publish: " + (res.d.detail || res.d.error || "unknown error"), false);
+        return;
+      }
+      changes = {};
+      paintCount(); renderReview();
+      btn.textContent = "Going live…";
+      toast("Published. Waiting for it to go live…", true);
+
+      return waitForDeploy(before).then(function(landed){
+        return snapshot().then(function(n){
+          toast(landed
+            ? "Live. A copy of all " + n + " files was saved to your Downloads for Claude."
+            : "Published, but it is slow to go live — the copy saved for Claude may be one step behind.",
+            landed);
+          load(current);
+        }).catch(function(){
+          toast("Published and live. Could not save a copy for Claude this time.", true);
+          load(current);
+        });
+      });
+    })
+    .catch(function(err){ toast("Could not reach the publisher: " + err, false); })
+    .finally(function(){
+      btn.disabled = false; btn.removeAttribute("data-busy");
+      btn.textContent = "Publish to the live site";
+      paintCount();
+    });
+  });
+
+  /* ---------- keeping Claude's copy in step ---------- */
+
+  var SNAP_FILES = PAGES.map(function(p){ return p[0]; }).concat(["/css/site.css"]);
+
+  function fingerprint(t){
+    var h = 0;
+    for (var i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) | 0; }
+    return t.length + ":" + h;
+  }
+
+  function fetchText(path){
+    return fetch(path, { cache: "reload" })
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .catch(function(){ return null; });
+  }
+
+  // Wait until the live pages actually reflect the deploy, so the copy Claude
+  // gets is the published one and not the version from ten seconds ago.
+  function waitForDeploy(before, tries){
+    tries = tries || 0;
+    if (tries > 15) return Promise.resolve(false);
+    var paths = Object.keys(before);
+    return new Promise(function(done){ setTimeout(done, tries === 0 ? 6000 : 4000); })
+      .then(function(){ return Promise.all(paths.map(fetchText)); })
+      .then(function(texts){
+        var allChanged = texts.every(function(t, i){
+          return t !== null && fingerprint(t) !== before[paths[i]];
+        });
+        return allChanged ? true : waitForDeploy(before, tries + 1);
+      });
+  }
+
+  function snapshot(){
+    return Promise.all(SNAP_FILES.map(function(path){
+      return fetchText(path).then(function(text){ return { path: path, text: text }; });
+    })).then(function(results){
+      var files = {}, missing = [];
+      results.forEach(function(r){
+        if (r.text === null) missing.push(r.path); else files[r.path] = r.text;
+      });
+      var payload = {
+        site: "farmhousegetaways.com",
+        kind: "site-snapshot",
+        takenAt: new Date().toISOString(),
+        note: "The live pages exactly as they stand. Images not included - Claude already has those.",
+        missing: missing,
+        files: files
+      };
+      var blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      var stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+      a.href = url; a.download = "farmhouse-snapshot-" + stamp + ".json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+      return Object.keys(files).length;
+    });
+  }
+
+  window.addEventListener("beforeunload", function(e){
+    if (list().length) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  paintCount();
+  load(current);
+
+  // Claude occasionally needs the live site to do structural work. Rather than
+  // a button nobody wants or a download on every publish, it hands over a link
+  // ending ?copy=1 and this fires once.
+  if (/[?&]copy=1/.test(window.location.search)) {
+    setTimeout(function(){
+      toast("Saving a copy of the site for Claude…", true);
+      snapshot().then(function(n){
+        toast("Saved " + n + " files to your Downloads. Tell Claude it is there.", true);
+      }).catch(function(err){
+        toast("Could not save the copy: " + err, false);
+      });
+    }, 1200);
+  }
+})();
+</script>
+</body>
+</html>

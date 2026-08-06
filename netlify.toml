@@ -4,6 +4,30 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+
+# ============================================================================
+#  ⚠️  STAGING — THE SITE IS HIDDEN FROM GOOGLE
+#
+#  The block below tells every search engine not to index this site.
+#  It is here on purpose while farmhousegetaways.com still points at the
+#  old site.
+#
+#  >>> DELETE THIS ENTIRE BLOCK THE DAY YOU POINT THE DOMAIN HERE. <<<
+#  >>> ALSO change robots.txt back to "Allow: /".                  <<<
+#
+#  If you forget, the site will be live and completely invisible in search.
+# ============================================================================
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+# ============================ END STAGING BLOCK =============================
+
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -15,3 +39,81 @@
   for = "/css/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# friendly alias for the publish function
+[[redirects]]
+  from = "/api/publish"
+  to = "/.netlify/functions/publish"
+  status = 200
+
+# old URL kept alive after the Weddings page was renamed
+[[redirects]]
+  from = "/events.html"
+  to = "/wedding-groups.html"
+  status = 301
+
+[[redirects]]
+  from = "/events"
+  to = "/wedding-groups"
+  status = 301
+
+
+# ============================================================================
+#  OLD SITE URLs — DO NOT DELETE
+#
+#  The previous farmhousegetaways.com used these short paths. Google has them
+#  indexed, and Farmstand.TV links to all three of them by hand. Without these
+#  lines every one of those links 404s the moment the domain is pointed here.
+# ============================================================================
+[[redirects]]
+  from = "/rbr"
+  to = "/red-barn-ranch.html"
+  status = 301
+
+[[redirects]]
+  from = "/mr"
+  to = "/mountain-retreat.html"
+  status = 301
+
+# Industrial Mini Mansion — the tiny home. It had a page of its own on the old
+# site; here it is a section of the Red Barn Ranch page.
+[[redirects]]
+  from = "/imm"
+  to = "/red-barn-ranch.html"
+  status = 301
+
+[[redirects]]
+  from = "/weddings"
+  to = "/wedding-groups.html"
+  status = 301
+
+# The old site already ranked a farmstand map page at /map. Sending it to the
+# new page hands that ranking over instead of throwing it away.
+[[redirects]]
+  from = "/map"
+  to = "/ramona-farmstand-map.html"
+  status = 301
+
+[[redirects]]
+  from = "/socialmedia"
+  to = "/"
+  status = 301
+
+# Junk page Wix left behind, indexed by Google as "New Page".
+[[redirects]]
+  from = "/blank-2"
+  to = "/"
+  status = 301
+
+# The old site sold the properties as film and photoshoot locations at /photo.
+# Cory retired that line of business on 1 Aug 2026 — no page here, by choice.
+# The redirect stays so the indexed URL lands somewhere useful instead of a 404.
+[[redirects]]
+  from = "/photo"
+  to = "/"
+  status = 301

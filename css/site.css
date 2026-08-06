@@ -25,6 +25,14 @@
   --brass:      #B18A50;
   --stone:      #93868A;
 
+  /* property colours */
+  --rbr:        #B8402A;   /* Red Barn Ranch — barn red, light backgrounds */
+  --rbr-bright: #F5836A;   /* on the dark video */
+  --rbr-btn:    #C4462F;
+  --mr:         #2C6A4B;   /* Mountain Retreat — pine, light backgrounds */
+  --mr-bright:  #9BD9AE;   /* on the dark video */
+  --mr-btn:     #35835C;
+
   --display: "Instrument Serif", Georgia, serif;
   --body:    "Karla", -apple-system, BlinkMacSystemFont, sans-serif;
 
@@ -33,7 +41,7 @@
   --rule: 1px solid var(--bloom-3);
   --radius: 6px;
 
-  --sprig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 24'%3E%3Cpath d='M3 12h46' stroke='black' stroke-width='1.3' fill='none' stroke-linecap='round'/%3E%3Cpath d='M30 12c0-4 3-7 7-7 0 4-3 7-7 7zM30 12c0 4 3 7 7 7 0-4-3-7-7-7zM18 12c0-3.4 2.6-6 6-6 0 3.4-2.6 6-6 6zM18 12c0 3.4 2.6 6 6 6 0-3.4-2.6-6-6-6z' fill='black'/%3E%3Ccircle cx='47.5' cy='12' r='2.5' fill='black'/%3E%3C/svg%3E");
+  --sprig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 24'%3E%3Cpath d='M0 12h52' stroke='black' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
 }
 
 /* ---------- reset ---------- */
@@ -65,7 +73,7 @@ a { color: inherit; }
 .skip:focus { left: 0; }
 :focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; }
 
-/* ---------- eyebrow with botanical sprig (signature) ---------- */
+/* ---------- eyebrow with a plain rule (signature) ---------- */
 .tag {
   font-size: .72rem; font-weight: 700;
   letter-spacing: .2em; text-transform: uppercase;
@@ -105,6 +113,15 @@ a { color: inherit; }
   color: var(--plum-soft);
 }
 
+/* A line break the owner adds in the editor should read as a paragraph break,
+   because that is what he means by it. A bare <br> gives a new line and no air,
+   which looks like nothing happened. Scoped to body copy so the footer's
+   phone/email break and the hero headline are untouched. */
+.lede br,
+.prose p br,
+.book-note br,
+.signup-copy p br { display: block; content: ""; margin-top: .95em; }
+
 .prose { max-width: var(--measure); }
 .prose p { margin: 0 0 1.35rem; }
 .prose p:last-child { margin-bottom: 0; }
@@ -121,6 +138,10 @@ a { color: inherit; }
 .band-dark .lede { color: var(--sage-pale); }
 .band-dark .prose { color: var(--sage-pale); }
 .band-dark .prose a { color: #fff; }
+/* .pull inherits --plum, which is invisible on sage-deep. Caught on
+   our-story.html, where it was hiding the closing line of the page. */
+.band-dark .pull { color: var(--bloom); }
+.band-dark .cite { color: var(--sage-pale); }
 
 .split { display: grid; gap: clamp(2rem,5vw,4.5rem); grid-template-columns: 1fr; align-items: start; }
 @media (min-width: 60rem) {
@@ -189,6 +210,11 @@ a { color: inherit; }
   border-bottom: 1px solid var(--sage-line);
 }
 .band-dark .board-title { color: var(--blush-pale); border-bottom-color: rgba(221,230,220,.28); }
+/* The property colours are tuned for light backgrounds. On sage-deep the
+   pine green lands at 1.26:1 — the Mountain Retreat title was literally
+   invisible. These two clear 4.5:1 and keep the colour coding. */
+.band-dark .board-title.t-rbr { color: #F9B3A4; border-bottom-color: rgba(249,179,164,.32); }
+.band-dark .board-title.t-mr  { color: #9BD9AE; border-bottom-color: rgba(155,217,174,.32); }
 
 .board-list { list-style: none; margin: 0; padding: 0; }
 .board-list li { display: flex; align-items: baseline; gap: .7rem; font-size: .92rem; padding-block: .52rem; }
@@ -312,6 +338,13 @@ a { color: inherit; }
 /* ---------- misc ---------- */
 .stack > * + * { margin-top: 1.35rem; }
 .centered { max-width: 46rem; margin-inline: auto; text-align: center; }
+/* Body copy inside a centred block is set left, while the block itself stays
+   centred in the page. Several lines of centred prose give the eye a new
+   starting point on every line, which this audience should not have to work at.
+   Headings, eyebrows and the pull quote stay centred — those are short enough
+   to read as a shape rather than as text. */
+.centered .lede,
+.centered .prose { text-align: left; }
 .centered .lede { margin-inline: auto; }
 .centered .tag { justify-content: center; }
 .pull { font-family: var(--display); font-weight: 400; font-size: clamp(1.5rem,2.8vw,2.35rem); line-height: 1.28; margin: 0; text-wrap: balance; color: var(--plum); }
@@ -354,11 +387,44 @@ a { color: inherit; }
 }
 .hero-band > .wrap { position: relative; z-index: 3; width: 100%; padding-block: clamp(2.5rem, 5vw, 4rem); }
 
-.hero-media {
-  position: absolute; top: 0; left: 0;
+/* ---------- hero: four photographs, cross-dissolving with a slow drift ---------- */
+.hero-stack { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.hero-shot {
+  position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover; object-position: center;
-  z-index: 0;
+  opacity: 0;
+}
+/* Without JS, on a phone, or with motion reduced: the first photo, and only
+   the first photo. The other three never get a src, so they never download. */
+.hero-shot:first-child { opacity: 1; }
+
+.hero-stack--play .hero-shot:first-child { opacity: 0; }
+.hero-stack--play .hero-shot {
+  animation:
+    heroCycle 36s linear infinite,
+    heroDrift 36s linear infinite;
+  /* four nine-second slots; the -6.5s starts the cycle mid-hold so the first
+     photo is fully up on paint instead of fading in from nothing */
+  animation-delay: calc(var(--i) * 9s - 6.5s);
+  will-change: opacity, transform;
+}
+@keyframes heroCycle {
+  0%      { opacity: 0 }
+  6.94%   { opacity: 1 }
+  25%     { opacity: 1 }
+  31.94%  { opacity: 0 }
+  100%    { opacity: 0 }
+}
+/* the drift: a slow push-in while the photo is on screen; it resets while
+   the photo is fully transparent, so the jump is never visible */
+@keyframes heroDrift {
+  0%           { transform: scale(1.03) translate3d(0,0,0) }
+  31.94%, 100% { transform: scale(1.11) translate3d(-1.2%,-0.6%,0) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-stack--play .hero-shot { animation: none; opacity: 0; }
+  .hero-stack--play .hero-shot:first-child { opacity: 1; }
 }
 
 /* scrim: darkens toward the left so cream type always has a bed */
@@ -408,13 +474,9 @@ a { color: inherit; }
 
 /* phones: still frame instead of 2MB of video */
 @media (max-width: 47rem) {
-  .hero-media { display: none; }
-  .hero-band { background-image: url("/images/hero-poster.jpg"); background-size: cover; background-position: center; }
   .hero-drift { animation: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-media { display: none; }
-  .hero-band { background-image: url("/images/hero-poster.jpg"); background-size: cover; background-position: center; }
   .hero-drift { animation: none; }
 }
 
@@ -423,3 +485,427 @@ a { color: inherit; }
 .facts-grid { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
 @media (min-width: 48rem) { .facts-grid { grid-template-columns: 1fr 1fr; gap: 1.75rem; } }
 .facts .board { height: 100%; }
+
+/* ---------- property colour coding ---------- */
+.em-rbr, .em-mr { font-style: italic; }
+.hero-band .em-rbr { color: var(--rbr-bright); }
+.hero-band .em-mr  { color: var(--mr-bright); }
+.em-rbr { color: var(--rbr); }
+.em-mr  { color: var(--mr); }
+
+/* headline gets a little more presence on video */
+.hero-band .display {
+  text-shadow: 0 2px 30px rgba(24,34,28,.7), 0 1px 3px rgba(24,34,28,.45);
+  letter-spacing: -.016em;
+}
+
+/* buttons carry the same colours */
+.btn-rbr { background: var(--rbr-btn); color: #fff; border-color: var(--rbr-btn); }
+.btn-rbr:hover { background: #fff; color: var(--rbr); border-color: #fff; }
+.btn-mr  { background: var(--mr-btn); color: #fff; border-color: var(--mr-btn); }
+.btn-mr:hover  { background: #fff; color: var(--mr); border-color: #fff; }
+
+/* the facts cards and property blocks pick it up too */
+.board-title.t-rbr { color: var(--rbr); border-bottom-color: rgba(184,64,42,.28); }
+.board-title.t-mr  { color: var(--mr);  border-bottom-color: rgba(44,106,75,.28); }
+.slab-index.t-rbr { color: var(--rbr); }
+.slab-index.t-mr  { color: var(--mr); }
+.slab.s-rbr:hover .headline { color: var(--rbr); }
+.slab.s-mr:hover  .headline { color: var(--mr); }
+.slab.s-rbr .slab-more { color: var(--rbr); border-bottom-color: var(--rbr); }
+.slab.s-mr  .slab-more { color: var(--mr);  border-bottom-color: var(--mr); }
+
+/* ---------- book direct bands ---------- */
+.book-band { background: var(--bloom-2); border-top: var(--rule); border-bottom: var(--rule); }
+.book-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+@media (min-width: 56rem) { .book-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
+.booking-head.t-rbr { color: var(--rbr); }
+.booking-head.t-mr  { color: var(--mr); }
+
+/* ==========================================================================
+   BOOKING WIDGET — dressed so it feels like part of the house
+   ========================================================================== */
+.book-band {
+  background:
+    radial-gradient(80% 120% at 12% 0%, rgba(221,230,220,.55) 0%, transparent 60%),
+    radial-gradient(70% 100% at 92% 100%, rgba(242,223,224,.45) 0%, transparent 58%),
+    var(--bloom-2);
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+}
+
+.booking {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--sage-line);
+  border-radius: 12px;
+  padding: clamp(1.5rem, 3.2vw, 2.1rem);
+  box-shadow:
+    0 1px 2px rgba(69,57,64,.05),
+    0 12px 28px -18px rgba(63,85,72,.32),
+    0 40px 70px -50px rgba(63,85,72,.5);
+  transition: box-shadow .3s ease, transform .3s ease;
+  overflow: hidden;
+}
+.booking::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--sage) 0%, var(--blush) 100%);
+}
+.booking:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 2px rgba(69,57,64,.05),
+    0 18px 34px -18px rgba(63,85,72,.38),
+    0 50px 80px -50px rgba(63,85,72,.55);
+}
+
+.booking-head {
+  display: flex; align-items: center; gap: .6rem;
+  font-size: .74rem; font-weight: 700;
+  letter-spacing: .17em; text-transform: uppercase;
+  margin: 0 0 1.25rem; padding-bottom: .9rem;
+  border-bottom: 1px solid var(--bloom-3);
+}
+.booking-head::before {
+  content: ""; flex: 0 0 auto; width: 26px; height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--sprig) center / contain no-repeat;
+          mask: var(--sprig) center / contain no-repeat;
+}
+
+.booking-trust {
+  display: flex; flex-wrap: wrap; gap: .45rem 1.15rem;
+  margin: 1.15rem 0 0; padding-top: .95rem;
+  border-top: 1px solid var(--bloom-3);
+  font-size: .7rem; letter-spacing: .05em; color: var(--stone);
+}
+.booking-trust span { display: inline-flex; align-items: center; gap: .4rem; }
+.booking-trust span::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--sage); flex: 0 0 auto;
+}
+
+/* the band heading */
+.book-band .headline { margin-bottom: .4rem; }
+.book-band .book-note {
+  font-size: .95rem; color: var(--plum-soft);
+  margin: 0 0 2.25rem; max-width: 42rem;
+}
+
+/* ---------- merged property + booking card ---------- */
+.booking .board-list { margin: 0 0 .35rem; }
+.booking .board-list li { padding-block: .42rem; }
+
+.booking-step {
+  display: flex; align-items: center; gap: .75rem;
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--stone); margin: 1.35rem 0 1.1rem;
+}
+.booking-step::before,
+.booking-step::after { content: ""; height: 1px; background: var(--bloom-3); flex: 1; }
+
+.booking-more {
+  display: inline-block; margin-top: 1.1rem;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase;
+  text-decoration: none; border-bottom: 1.5px solid currentColor;
+  padding-bottom: .18rem;
+}
+.booking-more:hover { opacity: .7; }
+
+/* each card wears its property colour along the top edge */
+.booking.p-rbr::before { background: linear-gradient(90deg, var(--rbr) 0%, #EFA898 100%); }
+.booking.p-mr::before  { background: linear-gradient(90deg, var(--mr) 0%, var(--sage) 100%); }
+.booking.p-rbr { border-color: rgba(184,64,42,.22); }
+.booking.p-mr  { border-color: rgba(44,106,75,.22); }
+.booking.p-rbr .booking-head { border-bottom-color: rgba(184,64,42,.18); }
+.booking.p-mr  .booking-head { border-bottom-color: rgba(44,106,75,.18); }
+
+/* ==========================================================================
+   TICKER — a slow credibility strip under the hero
+   ========================================================================== */
+.ticker {
+  background: var(--sage-deep);
+  color: var(--bloom);
+  overflow: hidden;
+  padding-block: .95rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  position: relative;
+}
+/* soft fade at both ends so items appear and vanish rather than clipping */
+.ticker::before,
+.ticker::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 8%;
+  z-index: 2; pointer-events: none;
+}
+.ticker::before { left: 0;  background: linear-gradient(90deg, var(--sage-deep), transparent); }
+.ticker::after  { right: 0; background: linear-gradient(270deg, var(--sage-deep), transparent); }
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 68s linear infinite;
+  will-change: transform;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+
+.ticker-list {
+  display: flex; align-items: center;
+  list-style: none; margin: 0; padding: 0;
+}
+.ticker-list li {
+  display: flex; align-items: center;
+  white-space: nowrap;
+  padding-inline: 1.55rem;
+  font-size: .74rem; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase;
+  color: var(--sage-pale);
+}
+.ticker-list li::after {
+  content: ""; margin-left: 1.55rem;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--blush); flex: 0 0 auto;
+}
+.ticker-list li.tick-star { color: #fff; }
+.ticker-list li.tick-star::before {
+  content: "\2605"; margin-right: .55rem;
+  color: var(--blush); font-size: .8rem; letter-spacing: 0;
+}
+
+@keyframes ticker { to { transform: translateX(-50%); } }
+
+/* reduced motion: hold still, let people scroll it themselves */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .ticker { overflow-x: auto; }
+  .ticker::before, .ticker::after { display: none; }
+}
+
+/* ==========================================================================
+   HERO HEADLINE — two lines, and louder
+   ========================================================================== */
+.hero-h1 {
+  font-size: clamp(2.3rem, 5.6vw, 4.6rem);
+  line-height: .97;
+  letter-spacing: -.022em;
+}
+.hero-h1 .hl {
+  display: block;
+  text-wrap: balance;
+}
+/* second line steps in slightly — reads as a pair, not a wrap.
+   the negative margin closes the gap the serif's own metrics open up. */
+.hero-h1 .hl-2 { margin-top: -.11em; }
+@media (min-width: 48rem) {
+  .hero-h1 .hl-2 { padding-left: 1.6em; }
+}
+
+/* depth: a dark halo close in, a soft one further out */
+.hero-band .hero-h1 {
+  color: #fff;
+  text-shadow:
+    0 1px 2px  rgba(18,28,22,.55),
+    0 3px 14px rgba(18,28,22,.6),
+    0 10px 46px rgba(18,28,22,.5);
+}
+
+/* the two property words get a glow in their own colour */
+.hero-band .hero-h1 .em-rbr {
+  color: #FF9880;
+  text-shadow:
+    0 1px 2px rgba(18,28,22,.5),
+    0 0 26px rgba(255,152,128,.55),
+    0 0 54px rgba(255,120,90,.35);
+}
+.hero-band .hero-h1 .em-mr {
+  color: #A9E7BC;
+  text-shadow:
+    0 1px 2px rgba(18,28,22,.5),
+    0 0 26px rgba(169,231,188,.5),
+    0 0 54px rgba(120,210,150,.32);
+}
+
+/* a touch more shade directly behind the words */
+.hero-band .hero-scrim {
+  background:
+    linear-gradient(95deg, rgba(30,42,35,.93) 0%, rgba(30,42,35,.78) 34%, rgba(30,42,35,.34) 66%, rgba(30,42,35,.42) 100%),
+    linear-gradient(to top, rgba(30,42,35,.52) 0%, transparent 44%);
+}
+
+/* the two lines arrive one after the other */
+.hero-h1 .hl   { animation: rise .85s cubic-bezier(.22,.68,.28,1) both; animation-delay: .12s; }
+.hero-h1 .hl-2 { animation-delay: .34s; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-h1 .hl, .hero-h1 .hl-2 { animation: none; }
+}
+
+/* ==========================================================================
+   THE MAP — email capture
+   The offer is the Ramona Farmstand Map, the thing only we have. The card
+   is solid white inside the dark band on purpose: this audience has to be
+   able to read a form label without squinting.
+   ========================================================================== */
+.signup-band {
+  background:
+    radial-gradient(70% 110% at 6% 0%, rgba(124,152,133,.22) 0%, transparent 58%),
+    radial-gradient(64% 96% at 96% 100%, rgba(197,136,145,.18) 0%, transparent 56%),
+    var(--sage-deep);
+  color: var(--bloom);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.signup-grid { display: grid; gap: clamp(2.25rem, 5vw, 4rem); grid-template-columns: 1fr; align-items: center; }
+@media (min-width: 62rem) { .signup-grid { grid-template-columns: 1.05fr .95fr; } }
+
+.signup-band .tag { color: var(--blush-pale); }
+.signup-band .headline { color: #fff; margin-bottom: 1.15rem; }
+.signup-band .headline em { font-style: italic; color: var(--blush-pale); }
+.signup-copy p { color: var(--sage-pale); max-width: 34rem; margin: 0 0 1.15rem; }
+.signup-copy p:last-child { margin-bottom: 0; }
+
+/* what actually lands in the inbox — set the expectation, keep the list clean */
+.signup-promise { list-style: none; margin: 1.9rem 0 0; padding: 0; max-width: 32rem; }
+.signup-promise li {
+  display: flex; align-items: baseline; gap: .8rem;
+  padding-block: .62rem; font-size: .95rem; color: var(--sage-pale);
+  border-top: 1px solid rgba(221,230,220,.2);
+}
+.signup-promise li:last-child { border-bottom: 1px solid rgba(221,230,220,.2); }
+.signup-promise li::before {
+  content: ""; flex: 0 0 auto; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--blush); transform: translateY(-.2em);
+}
+
+/* ---------- the card ---------- */
+.signup-card {
+  position: relative; overflow: hidden;
+  background: #fff; color: var(--plum);
+  border: 1px solid var(--sage-line); border-radius: 12px;
+  padding: clamp(1.6rem, 3.4vw, 2.35rem);
+  box-shadow:
+    0 1px 2px rgba(20,30,24,.06),
+    0 18px 34px -20px rgba(20,30,24,.45),
+    0 54px 84px -54px rgba(20,30,24,.7);
+}
+.signup-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--sage) 0%, var(--blush) 100%);
+}
+.signup-card-head {
+  display: flex; align-items: center; gap: .6rem;
+  font-size: .74rem; font-weight: 700;
+  letter-spacing: .17em; text-transform: uppercase; color: var(--sage);
+  margin: 0 0 1.35rem; padding-bottom: .9rem;
+  border-bottom: 1px solid var(--bloom-3);
+}
+.signup-card-head::before {
+  content: ""; flex: 0 0 auto; width: 26px; height: 12px; background: currentColor;
+  -webkit-mask: var(--sprig) center / contain no-repeat;
+          mask: var(--sprig) center / contain no-repeat;
+}
+.signup-card .form { gap: 1.1rem; max-width: none; }
+.signup-card .btn { width: 100%; text-align: center; }
+
+/* ---------- property chips — segmentation without a dropdown ---------- */
+.chips { border: 0; margin: 0; padding: 0; }
+.chips legend {
+  font-size: .72rem; font-weight: 700; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--plum-soft); padding: 0; margin-bottom: .6rem;
+}
+.chips-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chips input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chips label {
+  display: inline-block; cursor: pointer;
+  font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  padding: .58rem 1.05rem; border-radius: 999px;
+  border: 1px solid var(--sage-line); background: #fff; color: var(--plum-soft);
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+.chips label:hover { border-color: var(--sage); color: var(--plum); }
+.chips input:checked + label { background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
+.chips input:focus-visible + label { outline: 2px solid var(--blush); outline-offset: 3px; }
+.chips input:checked + label.c-rbr { background: var(--rbr-btn); border-color: var(--rbr-btn); }
+.chips input:checked + label.c-mr  { background: var(--mr-btn);  border-color: var(--mr-btn); }
+
+.signup-fine {
+  font-size: .74rem; line-height: 1.6; color: var(--plum-soft);
+  margin: 1.05rem 0 0; text-align: center;
+}
+.signup-fine a { color: var(--plum-soft); }
+
+/* ==========================================================================
+   FOOTER STRIP — the same offer, on every page, out of the way
+   ========================================================================== */
+.foot-signup {
+  padding-bottom: clamp(2.25rem, 4vw, 3rem);
+  margin-bottom: clamp(2.25rem, 4vw, 3rem);
+  border-bottom: 1px solid rgba(221,230,220,.22);
+  display: grid; gap: 1.5rem clamp(2rem, 5vw, 4rem); grid-template-columns: 1fr; align-items: center;
+}
+@media (min-width: 56rem) { .foot-signup { grid-template-columns: 1fr 1fr; } }
+.foot-signup h2 { margin-bottom: .5rem; }
+.foot-signup p { margin: 0; font-size: .95rem; color: var(--sage-pale); max-width: 32rem; }
+.foot-signup .fs-title {
+  font-family: var(--display); font-size: clamp(1.45rem, 2.4vw, 1.95rem);
+  line-height: 1.15; color: #fff; margin: 0 0 .5rem; text-wrap: balance;
+}
+
+.fs-form { display: grid; gap: .7rem; grid-template-columns: 1fr; }
+@media (min-width: 30rem) { .fs-form { grid-template-columns: 1fr auto; align-items: start; } }
+.fs-form label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.fs-form input[type="email"] {
+  font-family: var(--body); font-size: 1rem; width: 100%;
+  padding: .9rem 1.05rem; border-radius: var(--radius);
+  border: 1px solid rgba(221,230,220,.4); background: #fff; color: var(--plum);
+}
+.fs-form input[type="email"]::placeholder { color: var(--stone); }
+.fs-form input[type="email"]:focus { outline: none; border-color: #fff; box-shadow: 0 0 0 3px rgba(197,136,145,.55); }
+.fs-form .btn-primary { background: var(--blush-btn); color: #fff; white-space: nowrap; }
+.fs-form .btn-primary:hover { background: #fff; color: var(--plum); }
+.fs-note { grid-column: 1 / -1; font-size: .72rem; color: var(--sage-pale); margin: 0; }
+
+
+/* ==========================================================================
+   THE RAMONA FARMSTAND MAP  (/ramona-farmstand-map.html)
+   The map is the hero here — it loads above everything and behind no gate.
+   Portrait on a phone because that is how you hold one at a roadside stand.
+   ========================================================================== */
+.map-embed {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--sage-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bloom-2);
+  box-shadow: 0 26px 64px -42px rgba(69,57,64,.6);
+}
+@media (min-width: 48rem) { .map-embed { aspect-ratio: 16 / 10; } }
+.map-embed iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: 0; display: block;
+}
+
+.map-ways {
+  display: grid; gap: 1.25rem; grid-template-columns: 1fr;
+  margin-top: clamp(2rem, 4.5vw, 3.25rem);
+}
+@media (min-width: 54rem) { .map-ways { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } }
+.map-way { display: flex; flex-direction: column; height: 100%; }
+.map-way p { margin: 0; font-size: .95rem; color: var(--plum-soft); }
+.map-way .btn-row { margin-top: auto; padding-top: 1.4rem; }
+.map-way .btn { width: 100%; text-align: center; }
+
+.map-illo {
+  display: block; width: 100%; height: auto;
+  border-radius: var(--radius); border: 1px solid var(--sage-line);
+  box-shadow: 0 26px 64px -42px rgba(69,57,64,.6);
+}
+.map-cap {
+  font-size: .78rem; color: var(--stone); margin: .9rem 0 0; text-align: center;
+}

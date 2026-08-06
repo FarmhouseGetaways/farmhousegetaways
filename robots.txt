@@ -1,4 +1,15 @@
-User-agent: *
-Allow: /
+# STAGING — hidden from search engines on purpose.
+# >>> Replace this whole file with the block at the bottom
+#     the day you point farmhousegetaways.com here. <<<
 
-Sitemap: https://farmhousegetaways.com/sitemap.xml
+User-agent: *
+Disallow: /
+
+# ---------------------------------------------------------------
+# LAUNCH VERSION — swap to this when the domain moves:
+#
+# User-agent: *
+# Allow: /
+#
+# Sitemap: https://farmhousegetaways.com/sitemap.xml
+# ---------------------------------------------------------------
