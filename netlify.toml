@@ -79,6 +79,14 @@
   status = 404
   force = true
 
+# Two farmhouse-app commits parked here because that repo is read-only to the
+# GitHub App. Not part of this site. See farmhouse-app-patches/README.md.
+[[redirects]]
+  from = "/farmhouse-app-patches/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
 # EmailOctopus setup and health check. Needs ?key=ADMIN_PASSWORD.
 # There is no redirect for submission-created — Netlify calls that one itself
 # on every verified form submission, and nothing should be able to reach it

@@ -216,6 +216,17 @@ They are 404'd by `netlify.toml` and are not served. Once the two repos exist,
 move each folder out, delete `brand-kits/`, and drop the `/brand-kits/*`
 redirect. `brand-kits/README.md` has the exact commands.
 
+`farmhouse-app-patches/` is the same situation for a different reason. The
+GitHub App can read `farmhouse-app` but not write to it — both `git push` and
+creating a branch through the API return 403 — so two finished commits had
+nowhere to go. They are parked as a `git am` patch series, verified to apply
+cleanly to `main`. Grant the app write access to that repo and the folder can
+be applied and deleted.
+
+**Check both folders are still needed before doing anything else in them.** If
+the repos and permissions now exist, moving the work out is the job, not adding
+to it.
+
 ## Known broken
 
 `netlify/functions/publish.mjs` — the Publish button inside `/edit.html` posts

@@ -1,0 +1,262 @@
+From eb4af051aeb30764101123dc557f1710b4b6c0da Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 7 Aug 2026 07:16:14 +0000
+Subject: [PATCH 2/2] Correct the brand tags, and start the welcome automation
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signups from the app now carry farmhousegetaways as well as app and
+source-app-more. The app really is all three brands at once, which is why it
+had no brand tag — but a contact with no brand tag is quietly left out of every
+branded send, and being in the wrong segment is easier to notice and fix than
+being in none. EMAILOCTOPUS_BRAND overrides it.
+
+Also queues the welcome email that carries the map, when an automation id is
+configured, and syncs _lib/emailoctopus.mjs with the farmhousegetaways copy it
+is a duplicate of.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EdLDnYDQAnsHQoCsr8K2Rx
+---
+ SETUP.md                                     | 25 ++++++++---
+ netlify/functions/_lib/emailoctopus.mjs      | 42 ++++++++++++++++-
+ netlify/functions/_lib/emailoctopus.test.mjs | 47 +++++++++++++++++---
+ netlify/functions/subscribe.mjs              | 29 +++++++++---
+ 4 files changed, 125 insertions(+), 18 deletions(-)
+
+diff --git a/SETUP.md b/SETUP.md
+index b7b66a6..0fd0574 100644
+--- a/SETUP.md
++++ b/SETUP.md
+@@ -61,13 +61,24 @@ The More screen has a signup that adds people to EmailOctopus. Same one list
+ the three websites feed — one list for all brands, told apart by tags, because
+ EmailOctopus bills per contact per list.
+ 
+-    EMAILOCTOPUS_API_KEY  = the key from EmailOctopus → Integrations & API
+-    EMAILOCTOPUS_LIST_ID  = the list's id
+-
+-Both are the same values the farmhousegetaways site uses. Get them there once
+-and paste them here too. Signups from the app are tagged `app` and
+-`source-app-more` — no brand tag, because the app is all three brands at once
+-and picking one would be a guess.
++    EMAILOCTOPUS_API_KEY       = the key from EmailOctopus → Integrations & API
++    EMAILOCTOPUS_LIST_ID       = the list's id
++    EMAILOCTOPUS_BRAND         = farmhousegetaways        (optional, this is the default)
++    EMAILOCTOPUS_AUTOMATION_ID = the welcome automation's id   (optional)
++
++The first two are the same values the farmhousegetaways site uses. Get them
++there once and paste them here too.
++
++Signups from the app are tagged `farmhousegetaways`, `app` and
++`source-app-more`. The app is really all three brands at once, but a contact
++with no brand tag would be quietly left out of every branded send, so it
++carries one — change `EMAILOCTOPUS_BRAND` if you would rather it counted as
++`minibarnmarket` or `farmstandtv`.
++
++`EMAILOCTOPUS_AUTOMATION_ID` starts the welcome email that carries the map.
++Leave it unset if the automation already triggers on joining the list; setting
++both would send the welcome twice. The three emails and how to build them are
++in the farmhousegetaways repo under `emails/`.
+ 
+ Until these are set the form politely says signups are not switched on yet, and
+ the lost address is printed in the function log.
+diff --git a/netlify/functions/_lib/emailoctopus.mjs b/netlify/functions/_lib/emailoctopus.mjs
+index 91bca42..7722081 100644
+--- a/netlify/functions/_lib/emailoctopus.mjs
++++ b/netlify/functions/_lib/emailoctopus.mjs
+@@ -18,6 +18,8 @@
+  * variables, exactly as SETUP.md requires of every other credential here.
+  */
+ 
++import { createHash } from "node:crypto";
++
+ const API = "https://api.emailoctopus.com";
+ 
+ export const apiKey = () => (process.env.EMAILOCTOPUS_API_KEY || "").trim();
+@@ -70,7 +72,7 @@ export async function getLists() {
+  * wants an array — ["map"] — and PUT wants an object keyed by tag name with a
+  * boolean value, where `false` REMOVES a tag:
+  *
+- *     "tags": { "brand-farmhouse-getaways": true }
++ *     "tags": { "farmhousegetaways": true }
+  *
+  * Hand PUT an array and the request still succeeds. It simply applies no tags
+  * at all, silently, and every contact arrives untagged — which would not look
+@@ -128,6 +130,44 @@ export function buildTags(tags) {
+   return out;
+ }
+ 
++/**
++ * Start an automation for one contact — the auto-responder that carries the map.
++ *
++ * WHY THIS EXISTS WHEN EMAILOCTOPUS CAN ALREADY TRIGGER ON "JOINED THE LIST"
++ * One list serves three brands. A list-join trigger fires for all of them, so
++ * a Mini Barn Market signup would get the Farmhouse welcome. EmailOctopus can
++ * narrow an automation by tag, and if yours does, leave EMAILOCTOPUS_AUTOMATION_ID
++ * unset and let it — that path needs no code and cannot drift.
++ *
++ * Set the variable and the site names its own automation explicitly instead,
++ * which is the only way to be certain the right brand's email goes out.
++ *
++ * THE API CANNOT BUILD THE AUTOMATION, ONLY START IT. v2 exposes lists,
++ * contacts, fields and tags; campaigns are read-only and automations have
++ * exactly this one write endpoint. The email itself has to be created in the
++ * EmailOctopus UI — see EMAIL.md, which has the copy ready to paste.
++ *
++ * contact_id is the MD5 of the lowercased address, not the id from the upsert
++ * response, so this needs no extra round trip and works for a contact that
++ * already existed.
++ */
++export async function queueAutomation(email, automationId) {
++  const id = String(automationId || "").trim();
++  if (!id) return { ok: true, skipped: "no automation configured" };
++
++  const contactId = createHash("md5")
++    .update(String(email).trim().toLowerCase())
++    .digest("hex");
++
++  const res = await call("POST", `/automations/${id}/queue`, { contact_id: contactId });
++
++  // 409 means the contact is already in this automation. That is the correct
++  // outcome for a second signup from the same address, not a failure — and it
++  // is exactly what stops someone who signs up twice getting the map twice.
++  if (res.status === 409) return { ok: true, alreadyQueued: true };
++  return res;
++}
++
+ /** A one-line, log-safe summary of a failed call. Never includes the API key. */
+ export function describe(res) {
+   const p = res.payload || {};
+diff --git a/netlify/functions/_lib/emailoctopus.test.mjs b/netlify/functions/_lib/emailoctopus.test.mjs
+index 040b260..31b142d 100644
+--- a/netlify/functions/_lib/emailoctopus.test.mjs
++++ b/netlify/functions/_lib/emailoctopus.test.mjs
+@@ -9,7 +9,7 @@
+  */
+ import { test, beforeEach, afterEach } from "node:test";
+ import assert from "node:assert/strict";
+-import { buildTags, upsertContact } from "./emailoctopus.mjs";
++import { buildTags, upsertContact, queueAutomation } from "./emailoctopus.mjs";
+ 
+ const realFetch = globalThis.fetch;
+ let calls = [];
+@@ -18,9 +18,12 @@ let calls = [];
+ function stubFetch(reply = { status: 200, body: { id: "abc" } }) {
+   globalThis.fetch = async (url, opts) => {
+     calls.push({ url, method: opts.method, body: JSON.parse(opts.body), headers: opts.headers });
+-    return new Response(JSON.stringify(reply.body), {
++    // 204 must have a null body — the Response constructor throws otherwise,
++    // and the automation endpoint answers 204 on success.
++    const noBody = reply.status === 204 || reply.status === 304;
++    return new Response(noBody ? null : JSON.stringify(reply.body), {
+       status: reply.status,
+-      headers: { "content-type": "application/json" },
++      headers: noBody ? {} : { "content-type": "application/json" },
+     });
+   };
+ }
+@@ -35,9 +38,17 @@ afterEach(() => {
+ });
+ 
+ test("tags are an OBJECT MAP on PUT, not an array", () => {
+-  const tags = buildTags(["farmhouse-getaways", "source-footer-home"]);
++  const tags = buildTags(["farmhousegetaways", "source-footer-home"]);
+   assert.equal(Array.isArray(tags), false, "an array here silently applies no tags at all");
+-  assert.deepEqual(tags, { "farmhouse-getaways": true, "source-footer-home": true });
++  assert.deepEqual(tags, { farmhousegetaways: true, "source-footer-home": true });
++});
++
++test("the three brand tags survive normalisation exactly as written", () => {
++  // These three are the segmentation. If normalisation ever mangled one, every
++  // send to that brand would quietly reach nobody.
++  for (const t of ["farmhousegetaways", "minibarnmarket", "farmstandtv"]) {
++    assert.deepEqual(buildTags([t]), { [t]: true }, `${t} must pass through untouched`);
++  }
+ });
+ 
+ test("tag names are normalised so one audience cannot become two", () => {
+@@ -94,3 +105,29 @@ test("an empty address is refused without calling the API", async () => {
+   assert.equal(res.ok, false);
+   assert.equal(calls.length, 0);
+ });
++
++test("the automation is started with an MD5 of the lowercased address", async () => {
++  stubFetch({ status: 204, body: {} });
++  await queueAutomation("Dana@Example.COM ", "auto-9");
++
++  assert.equal(calls[0].method, "POST");
++  assert.equal(calls[0].url, "https://api.emailoctopus.com/automations/auto-9/queue");
++  // md5("dana@example.com") — lowercased and trimmed first, or EmailOctopus
++  // would look up a contact that does not exist and the welcome never sends.
++  assert.deepEqual(calls[0].body, { contact_id: "e556d839bbda3d423c5b09096613f2d7" });
++});
++
++test("no automation configured means no call, and that is a success", async () => {
++  stubFetch();
++  const res = await queueAutomation("a@example.com", "");
++  assert.equal(res.ok, true);
++  assert.ok(res.skipped);
++  assert.equal(calls.length, 0, "an unset automation id is a choice, not an error");
++});
++
++test("a contact already in the automation is not an error", async () => {
++  stubFetch({ status: 409, body: { title: "Conflict" } });
++  const res = await queueAutomation("a@example.com", "auto-9");
++  assert.equal(res.ok, true, "a second signup must not resend the welcome, nor log a failure");
++  assert.equal(res.alreadyQueued, true);
++});
+diff --git a/netlify/functions/subscribe.mjs b/netlify/functions/subscribe.mjs
+index 7985cfd..9fd2ebc 100644
+--- a/netlify/functions/subscribe.mjs
++++ b/netlify/functions/subscribe.mjs
+@@ -22,7 +22,18 @@
+  * Netlify Blobs wired up for the push store and a counter keyed by IP is the
+  * obvious next move.
+  */
+-import { configured, upsertContact, describe } from "./_lib/emailoctopus.mjs";
++import { configured, upsertContact, queueAutomation, describe } from "./_lib/emailoctopus.mjs";
++
++/**
++ * Which brand this signup counts as.
++ *
++ * The app is all three brands at once, so there is no honest answer from the
++ * code alone — but every contact needs exactly one brand tag or the
++ * segmentation has a hole in it, and "no tag" would quietly exclude these
++ * people from every branded send. Farmhouse Getaways is the default because
++ * that is whose app it is; override it per-site in Netlify.
++ */
++const brand = () => (process.env.EMAILOCTOPUS_BRAND || "farmhousegetaways").trim();
+ 
+ const json = (obj, status = 200) =>
+   Response.json(obj, { status, headers: { "Cache-Control": "no-store" } });
+@@ -72,9 +83,9 @@ export default async (req) => {
+     const res = await upsertContact({
+       email,
+       firstName,
+-      // No brand tag: the app is all three brands at once, so claiming one
+-      // would be a guess. "app" is the honest answer to where they came from.
+-      tags: ["app", "source-app-more"],
++      // `app` records where they came from; the brand tag keeps them inside
++      // the same segmentation the three websites use.
++      tags: [brand(), "app", "source-app-more"],
+       status: "subscribed",
+     });
+ 
+@@ -84,7 +95,15 @@ export default async (req) => {
+     }
+ 
+     if (res.degraded) console.warn(`[emailoctopus] tags dropped for ${email}: ${res.degraded}`);
+-    console.log(`[emailoctopus] subscribed ${email} [app]`);
++    console.log(`[emailoctopus] subscribed ${email} [${brand()}, app]`);
++
++    // The welcome email that carries the map. Separate from the upsert on
++    // purpose: a broken automation id must cost the welcome, never the
++    // subscription. The message below promises the map either way, and if this
++    // fails the log says so loudly enough to send it by hand.
++    const auto = await queueAutomation(email, process.env.EMAILOCTOPUS_AUTOMATION_ID);
++    if (!auto.ok) console.error(`[emailoctopus] automation did not start for ${email}: ${describe(auto)}`);
++
+     return json({ ok: true, message: "Done. The map is on its way to your inbox." });
+   } catch (err) {
+     console.error(`[emailoctopus] threw for ${email}: ${String(err?.message || err)}`);
