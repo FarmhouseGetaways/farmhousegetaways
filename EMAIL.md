@@ -11,6 +11,32 @@ map is very often the same person who would book the barn, and on three lists
 they would be paid for three times. On one list they are one contact with two
 tags, and "send to just Mini Barn Market" is a filter in the dropdown.
 
+## The quick way
+
+Get an API key first — EmailOctopus → your account menu → **Integrations &
+API** → **API keys** → create one. Then:
+
+    node tools/eo-provision.mjs
+
+Paste the key when it asks (that keeps it out of your shell history). It finds
+or creates the list, prints the exact environment variables to paste into
+Netlify, and then proves the whole thing works by adding a test contact with
+all three brand tags, reading it back to check the tags actually stuck, and
+deleting it again.
+
+That last part is the only check that means anything. Everything else here is
+covered by unit tests against a stubbed API, which prove the code sends the
+right request but not that EmailOctopus does the right thing with it — and the
+wrong tag format is accepted with a `200` and silently applies nothing. Reading
+the contact back is the only way to catch it.
+
+It cannot create the automations. Nothing can; see below.
+
+Then paste the variables into Netlify, trigger a deploy, and do
+[the automations](#the-welcome-email--see-emails).
+
+The rest of this file is the same thing done by hand, and the detail behind it.
+
 ## What you have to do, once, in a browser
 
 Nothing in this list goes in a file or a commit. Same rule as the app.

@@ -101,6 +101,12 @@ Three things to know before touching it:
 
 Plain Node, no npm. Run it after any change under `_lib/`.
 
+Setup is one command — `node tools/eo-provision.mjs` finds or creates the list,
+prints the Netlify variables, and verifies tagging against the live API by
+adding a contact, reading it back and deleting it. The three welcome emails in
+`emails/` still have to be built by hand as EmailOctopus automations: the API
+can start an automation but has no endpoint to create one.
+
 ## Editing conventions
 
 - **Line breaks in a `.lede` or `.prose` paragraph**: use `<br>`, not a second
