@@ -87,6 +87,15 @@ Removing them 404s those links the moment the domain is pointed here.
   does not shift while loading, and keep `loading="lazy"` below the fold.
 - **Lodgify booking boxes** on the property pages are live embeds. Leave them
   alone.
+- **The ticker** (the scrolling bar, `section.ticker`) holds its `<ul>` **twice**
+  on every page. The second copy is `aria-hidden="true"` and exists only so the
+  scroll loops seamlessly. Any change to a ticker item must be made in both
+  copies or the old version keeps scrolling past every other cycle. The ticker
+  appears on `index`, `book-both`, `mountain-retreat`, `wedding-groups` and
+  `red-barn-ranch` — a change to one usually means a change to all five.
+- **The same phrase often appears in several roles**: the ticker, a detail board
+  (`<span class="k">…</span>`), and a hero tag. When the owner names one, change
+  only that one and tell them where the others still are.
 
 ## Known broken
 
