@@ -54,15 +54,20 @@
 # `publish = "."` serves every file in the repo, which would put the email
 # source and the setup script on the public web. Neither holds a secret and the
 # site is noindexed, but they are working files, not pages.
+# force = true is required. Netlify serves a real file in preference to a
+# redirect that matches it — "shadowing" — so without force these rules parse
+# fine, deploy fine, and do absolutely nothing.
 [[redirects]]
   from = "/emails/*"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/tools/*"
   to = "/404.html"
   status = 404
+  force = true
 
 # EmailOctopus setup and health check. Needs ?key=ADMIN_PASSWORD.
 # There is no redirect for submission-created — Netlify calls that one itself
