@@ -155,28 +155,39 @@ What is actually wired into the code, verified 7 Aug 2026:
 | **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `company` | Working |
 | **Lodgify** | `renderBookNowBox.js` embed on both property pages | Working |
 | **Google Maps** | Embedded map on the farmstand map page | Working |
-| **EmailOctopus** | **Not connected — see below** | **Gap** |
+| **EmailOctopus** | `submission-created.mjs` syncs every signup. Code done — **needs its API key set** | Waiting on key |
 
 The two form types are `group-inquiry` (lands on `/thanks.html`) and `newsletter`
 (lands on `/thanks-list.html`). Submissions appear under **Forms** in the Netlify
 dashboard. Email notifications are configured there, not in the code.
 
-### EmailOctopus is not connected
+### EmailOctopus — built, not yet switched on
 
-The owner counts EmailOctopus as part of the stack, but nothing in this repo
-talks to it. Every newsletter signup posts to Netlify Forms and stops there, so
-subscribers are sitting in Netlify's form store rather than flowing into the
-mailing list.
+The code is written, tested and deployed. `submission-created.mjs` forwards
+every verified Netlify form submission to EmailOctopus, tagged by brand. See
+`EMAIL.md` for how it works.
 
-**Do not build this.** As of 7 Aug 2026 the owner has a separate effort handling
-the EmailOctopus connection. Two sessions building the same integration would
-collide on `main`. The chosen approach is to keep Netlify Forms and forward
-submissions to EmailOctopus from a function, so Netlify keeps the record and the
-list still gets the subscriber.
+**It is inert until three environment variables are set on the Netlify site:**
+`EMAILOCTOPUS_API_KEY`, `EMAILOCTOPUS_LIST_ID`, `ADMIN_PASSWORD`. Without the
+key it logs `NOT_CONFIGURED` and does nothing — the signup still lands safely in
+the Netlify form store, so nothing is lost meanwhile, but nobody reaches the
+list.
 
-Your job here is **maintenance once it is in place**: if it breaks, if signups
-stop arriving, if a key expires, that is yours to diagnose and fix. Building it
-is not.
+To check the state at any time, open:
+
+    /api/emailoctopus?key=ADMIN_PASSWORD            # what is configured
+    /api/emailoctopus?key=ADMIN_PASSWORD&selftest=1 # live round-trip test
+
+The selftest adds a contact with all three brand tags, reads it back, confirms
+the tags stuck, and deletes it. `"ready": true` means signups are flowing.
+
+The three welcome emails in `emails/` must be built by hand as EmailOctopus
+automations — the API can start an automation but has no endpoint to create one.
+Each one triggers on *subscribes to list* **plus a tag condition**; without the
+tag condition all three brands get the same email.
+
+Your job from here is **maintenance**: if signups stop arriving, if a key
+expires, if the selftest goes red, that is yours to diagnose and fix.
 
 Reference, verified 7 Aug 2026, so nobody has to re-derive it:
 
@@ -192,6 +203,18 @@ Prefer v2 — v1 is legacy and no longer actively maintained.
 
 Existing subscribers live in **Wix** and need exporting separately. That is a
 known future task, not part of wiring up the forms.
+
+### `brand-kits/` is a holding pen, not part of this site
+
+The Mini Barn Market and Farmstand.TV sites are parked in `brand-kits/` because
+the Claude GitHub App cannot create repositories — it returns `403 Resource not
+accessible by integration`, so `minibarnmarket` and `farmstandtv` do not exist
+on GitHub yet. Committing them here keeps the work from being lost with the
+container.
+
+They are 404'd by `netlify.toml` and are not served. Once the two repos exist,
+move each folder out, delete `brand-kits/`, and drop the `/brand-kits/*`
+redirect. `brand-kits/README.md` has the exact commands.
 
 ## Known broken
 

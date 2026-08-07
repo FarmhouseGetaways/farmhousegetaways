@@ -1,0 +1,27 @@
+<!-- ==========================================================================
+     Farmstand.TV — email signup.
+
+     This uses .subform, which is ALREADY in this site's stylesheet and was
+     clearly built for exactly this — a grid that puts the field and the button
+     side by side above 32rem and stacks them below. It is not currently used
+     anywhere, so pasting this is the first thing to use it. No new CSS.
+
+     The two attributes that matter:
+       data-netlify="true"   Netlify captures the submission
+       name="newsletter"     what routes it to EmailOctopus — must be exactly
+                             this, it is the name the function looks for
+
+     Change action="/thanks" to a real thanks page on this site, or drop the
+     attribute and Netlify shows its own generic confirmation.
+     ========================================================================== -->
+<form class="subform" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="company" action="/thanks">
+  <input type="hidden" name="form-name" value="newsletter">
+  <input type="hidden" name="source" value="fstv-home">
+  <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+
+  <label class="hp" for="su-fstv-email">Email address</label>
+  <input id="su-fstv-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+  <button class="btn btn-go" type="submit">Send me the map</button>
+</form>
+<p class="fine centered">The Ramona Farmstand Map, free. One or two emails a month,
+  unsubscribe in a click, and we never sell your address.</p>

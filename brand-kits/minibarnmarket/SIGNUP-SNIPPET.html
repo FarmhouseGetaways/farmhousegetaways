@@ -1,0 +1,41 @@
+<!-- ==========================================================================
+     Mini Barn Market — email signup.
+
+     Paste this where you want the signup to appear. It uses classes the site
+     ALREADY has (.form-card, .field, .btn btn-go, .hp, .fine) so it needs no
+     new CSS and will match the rest of the page on its own.
+
+     The two attributes that matter:
+       data-netlify="true"   Netlify captures the submission
+       name="newsletter"     what routes it to EmailOctopus — must be exactly
+                             this, it is the name the function looks for
+
+     Change action="/thanks" to a real thanks page on this site, or drop the
+     attribute and Netlify shows its own generic confirmation.
+     ========================================================================== -->
+<div class="form-card">
+  <h2 class="headline">Know what is on the shelf.</h2>
+  <p class="lede">What is ripe, what has just come in, and when the barn has
+    something worth the drive. One or two emails a month, unsubscribe in a click.</p>
+
+  <form name="newsletter" method="POST" data-netlify="true" netlify-honeypot="company" action="/thanks">
+    <input type="hidden" name="form-name" value="newsletter">
+    <input type="hidden" name="source" value="mbm-home">
+    <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+
+    <div class="field-pair">
+      <div class="field">
+        <label for="su-mbm-name">First name</label>
+        <input id="su-mbm-name" name="first-name" type="text" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="su-mbm-email">Email</label>
+        <input id="su-mbm-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+      </div>
+    </div>
+
+    <button class="btn btn-go" type="submit">Keep me posted</button>
+  </form>
+
+  <p class="fine">We never sell your address. Unsubscribe in one click.</p>
+</div>
