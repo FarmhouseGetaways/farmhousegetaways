@@ -138,18 +138,30 @@ talks to it. Every newsletter signup posts to Netlify Forms and stops there, so
 subscribers are sitting in Netlify's form store rather than flowing into the
 mailing list.
 
-Closing that gap means one of:
+**Do not build this.** As of 7 Aug 2026 the owner has a separate effort handling
+the EmailOctopus connection. Two sessions building the same integration would
+collide on `main`. The chosen approach is to keep Netlify Forms and forward
+submissions to EmailOctopus from a function, so Netlify keeps the record and the
+list still gets the subscriber.
 
-1. Point the `newsletter` forms straight at the EmailOctopus embedded form
-   endpoint — simplest, but the browser posts directly to a third party and the
-   Netlify record is lost.
-2. Keep Netlify Forms and add a Netlify Function on the submission-created event
-   that forwards the address to the EmailOctopus API. Keeps both records, needs
-   an `EMAILOCTOPUS_API_KEY` and a list ID as environment variables.
+Your job here is **maintenance once it is in place**: if it breaks, if signups
+stop arriving, if a key expires, that is yours to diagnose and fix. Building it
+is not.
 
-Option 2 is the better fit. Do not build either without asking — the owner may
-already be exporting from Netlify by hand, in which case existing subscribers
-need migrating rather than stranding.
+Reference, verified 7 Aug 2026, so nobody has to re-derive it:
+
+- **API v2** — `POST https://api.emailoctopus.com/lists/{list_id}/contacts`,
+  auth via `Authorization: Bearer {key}`. Returns 201 created, 409 if the
+  contact already exists on that list.
+- **API v1.6** (legacy, still functional) —
+  `POST https://emailoctopus.com/api/1.6/lists/{listId}/contacts` with the key
+  in the body as `api_key`. Fields are `email_address`, `fields.FirstName`,
+  `tags`, `status`. Duplicate returns `MEMBER_EXISTS_WITH_EMAIL_ADDRESS`.
+
+Prefer v2 — v1 is legacy and no longer actively maintained.
+
+Existing subscribers live in **Wix** and need exporting separately. That is a
+known future task, not part of wiring up the forms.
 
 ## Known broken
 
