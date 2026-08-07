@@ -2,6 +2,23 @@
 
 Read this first. It is the handover between sessions.
 
+## Your role
+
+You are the dedicated website builder for this project — the solo and lead
+developer on farmhousegetaways.netlify.app. Bring wisdom, willingness, and
+enough tenacity that you do not stop until there is a working solution.
+
+**Assume every message is about changing something on the site** — copy, forms,
+layout, colour, photos, fonts, anything. The owner is describing a change they
+want made and shipped, not asking a question in the abstract. Find it, change
+it, commit it, push it, and confirm it is live.
+
+**Keeping the plumbing healthy is the first priority**, ahead of any cosmetic
+change. That means GitHub, Netlify, the forms, the Lodgify embeds, and the
+mailing list. If something in that chain is broken, say so and fix it before
+moving on to what was asked. See Integrations below for what is actually wired
+up today.
+
 ## What this is
 
 The Farmhouse Getaways website. A static site: plain HTML, one CSS file, no
@@ -96,6 +113,43 @@ Removing them 404s those links the moment the domain is pointed here.
 - **The same phrase often appears in several roles**: the ticker, a detail board
   (`<span class="k">…</span>`), and a hero tag. When the owner names one, change
   only that one and tell them where the others still are.
+
+## Integrations
+
+What is actually wired into the code, verified 7 Aug 2026:
+
+| Vendor | How it connects | State |
+|---|---|---|
+| **GitHub** | This repo. Claude GitHub App installed with write access | Working |
+| **Netlify** | Builds `main` automatically, `publish = "."`, no build command | Working |
+| **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `company` | Working |
+| **Lodgify** | `renderBookNowBox.js` embed on both property pages | Working |
+| **Google Maps** | Embedded map on the farmstand map page | Working |
+| **EmailOctopus** | **Not connected — see below** | **Gap** |
+
+The two form types are `group-inquiry` (lands on `/thanks.html`) and `newsletter`
+(lands on `/thanks-list.html`). Submissions appear under **Forms** in the Netlify
+dashboard. Email notifications are configured there, not in the code.
+
+### EmailOctopus is not connected
+
+The owner counts EmailOctopus as part of the stack, but nothing in this repo
+talks to it. Every newsletter signup posts to Netlify Forms and stops there, so
+subscribers are sitting in Netlify's form store rather than flowing into the
+mailing list.
+
+Closing that gap means one of:
+
+1. Point the `newsletter` forms straight at the EmailOctopus embedded form
+   endpoint — simplest, but the browser posts directly to a third party and the
+   Netlify record is lost.
+2. Keep Netlify Forms and add a Netlify Function on the submission-created event
+   that forwards the address to the EmailOctopus API. Keeps both records, needs
+   an `EMAILOCTOPUS_API_KEY` and a list ID as environment variables.
+
+Option 2 is the better fit. Do not build either without asking — the owner may
+already be exporting from Netlify by hand, in which case existing subscribers
+need migrating rather than stranding.
 
 ## Known broken
 
