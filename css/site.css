@@ -305,6 +305,14 @@ a { color: inherit; }
 @media (min-width: 40rem) { .field-pair { grid-template-columns: 1fr 1fr; } }
 .hp { position: absolute; left: -9999px; }
 
+/* The marketing opt-in on the inquiry forms. Deliberately NOT .field: that
+   label style is uppercase micro-type for naming a box, and consent has to be
+   readable prose or it is not really consent. Ships unticked, always. */
+.consent { display: grid; grid-template-columns: auto 1fr; gap: .75rem; align-items: start; max-width: 40rem; }
+.consent input { width: 1.15rem; height: 1.15rem; margin: .15rem 0 0; accent-color: var(--sage-deep); flex: none; }
+.consent label { font-size: .92rem; line-height: 1.55; color: var(--plum-soft); }
+.consent input:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+
 /* ---------- photos ---------- */
 .shot { width: 100%; display: block; object-fit: cover; background: var(--bloom-2); border-radius: var(--radius); }
 .shot-43 { aspect-ratio: 4/3; }

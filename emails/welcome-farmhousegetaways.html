@@ -1,0 +1,168 @@
+<!--
+  FARMHOUSE GETAWAYS — welcome / map delivery
+  Sends once, immediately, to anyone tagged `farmhousegetaways`.
+
+  Subject:   Here is the Ramona Farmstand Map
+  Preheader: Thirty-odd stands, most of them on the honour system.
+
+  HOW TO USE IT
+  EmailOctopus → Automation → the email step → choose the **HTML** editor (not
+  the drag-and-drop one) → paste this whole file.
+
+  Do not retype the {{ }} tags. EmailOctopus treats {{ }} and {% %} as merge
+  syntax, so a typo in one does not fall back to plain text — it fails to
+  render and the contact sees the raw tag.
+
+    {{FirstName|default("there")}}   first name, or "there" if we never got one
+    {{UnsubscribeURL}}               required by law and by EmailOctopus
+    {{SenderInfo}}                   your physical address, also required
+    {{WebVersionURL}}                view-in-browser
+
+  WHY IT LOOKS LIKE 2005 IN HERE
+  Tables, inline styles, no flexbox and no <style> block. Outlook renders with
+  Word's engine and Gmail strips <head> styles, so anything more modern falls
+  apart in the two clients most of this list will read it in.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background:#F4ECE7;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+
+      <!-- view in browser -->
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
+        <tr>
+          <td align="center" style="padding:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6E5F66;">
+            <a href="{{WebVersionURL}}" style="color:#6E5F66;text-decoration:underline;">View in browser</a>
+          </td>
+        </tr>
+      </table>
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:#FCF8F6;border:1px solid #EADFD8;border-radius:14px;overflow:hidden;">
+
+        <!-- masthead -->
+        <tr>
+          <td align="center" style="background:#3F5548;padding:26px 24px;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:23px;line-height:1.2;color:#FCF8F6;">Farmhouse Getaways</div>
+            <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9CC0A6;padding-top:7px;">Ramona, California</div>
+          </td>
+        </tr>
+
+        <!-- the map -->
+        <tr>
+          <td style="padding:0;">
+            <a href="https://farmhousegetaways.netlify.app/ramona-farmstand-map.html">
+              <img src="https://farmhousegetaways.netlify.app/images/ramona-farmstand-map.jpg"
+                   width="600" alt="The Ramona Farmstand Map — thirty-odd farm stands, hand drawn"
+                   style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px 34px 8px;">
+            <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:29px;line-height:1.22;color:#453940;">
+              Here it is, {{FirstName|default("there")}}.
+            </h1>
+
+            <p style="margin:0 0 15px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#453940;">
+              The Ramona Farmstand Map — thirty-odd working stands on this plateau.
+              Most of them run on the honour system. Most of them sit at the end of a
+              road you would never think to turn down. Almost none of them appeared on
+              any map until we went out and made one.
+            </p>
+
+            <p style="margin:0 0 26px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#453940;">
+              The PDF below is the print copy. Put it in the car — half of these places
+              are exactly where the phone signal stops.
+            </p>
+          </td>
+        </tr>
+
+        <!-- the button. A table, because Outlook ignores padding on an <a>. -->
+        <tr>
+          <td align="center" style="padding:0 34px 12px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#3F5548" style="border-radius:999px;">
+                  <a href="https://farmhousegetaways.netlify.app/downloads/Ramona-Farmstand-Map.pdf"
+                     style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:.15em;text-transform:uppercase;color:#FCF8F6;text-decoration:none;border-radius:999px;">
+                    Download the map (PDF)
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:0 34px 26px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#6E5F66;">
+            It is about 5&nbsp;MB — best downloaded on wifi.
+          </td>
+        </tr>
+
+        <!-- the houses -->
+        <tr>
+          <td style="padding:0 34px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #EADFD8;">
+              <tr><td style="padding:24px 0 14px;">
+                <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#7C9885;padding-bottom:10px;">While you are here</div>
+                <p style="margin:0 0 18px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
+                  We host two places on the same plateau — a working ranch that sleeps 20,
+                  and a mountain retreat that sleeps 14. Book both and it is 34.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 34px 30px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="50%" style="padding-right:6px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td align="center" bgcolor="#C4462F" style="border-radius:8px;">
+                      <a href="https://farmhousegetaways.netlify.app/red-barn-ranch.html" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Red Barn Ranch</a>
+                    </td></tr>
+                  </table>
+                </td>
+                <td width="50%" style="padding-left:6px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td align="center" bgcolor="#35835C" style="border-radius:8px;">
+                      <a href="https://farmhousegetaways.netlify.app/mountain-retreat.html" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Mountain Retreat</a>
+                    </td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- signed -->
+        <tr>
+          <td style="padding:0 34px 32px;">
+            <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.5;color:#453940;">
+              — Cory &amp; Carissa
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- footer -->
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
+        <tr>
+          <td align="center" style="padding:20px 24px 8px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#6E5F66;">
+            You are getting this because you asked for the map at
+            farmhousegetaways.com. One or two emails a month, and no more than that.<br>
+            <a href="{{UnsubscribeURL}}" style="color:#6E5F66;text-decoration:underline;">Unsubscribe</a>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:0 24px 26px;font-family:Helvetica,Arial,sans-serif;font-size:11px;line-height:1.6;color:#93868A;">
+            {{SenderInfo}}
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+</table>

@@ -51,6 +51,15 @@
   to = "/.netlify/functions/publish"
   status = 200
 
+# EmailOctopus setup and health check. Needs ?key=ADMIN_PASSWORD.
+# There is no redirect for submission-created — Netlify calls that one itself
+# on every verified form submission, and nothing should be able to reach it
+# from outside.
+[[redirects]]
+  from = "/api/emailoctopus"
+  to = "/.netlify/functions/emailoctopus-status"
+  status = 200
+
 # old URL kept alive after the Weddings page was renamed
 [[redirects]]
   from = "/events.html"

@@ -1,0 +1,139 @@
+<!--
+  FARMSTAND.TV — welcome / map delivery
+  Sends once, immediately, to anyone tagged `farmstandtv`.
+
+  Subject:   The Ramona Farmstand Map
+  Preheader: Every stand we have filmed, on one sheet of paper.
+
+  Paste into EmailOctopus → Automation → email step → HTML editor.
+  See emails/README.md. Do not retype the {{ }} tags.
+
+  This one is dark, like the site. Dark emails are fine in every modern client,
+  but Outlook on Windows ignores background-color on a <td> unless bgcolor is
+  ALSO set as an attribute — so every dark cell here carries both.
+-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D0A" style="margin:0;padding:0;background:#0B0D0A;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
+        <tr>
+          <td align="center" style="padding:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#686B5E;">
+            <a href="{{WebVersionURL}}" style="color:#686B5E;text-decoration:underline;">View in browser</a>
+          </td>
+        </tr>
+      </table>
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#121611" style="width:600px;max-width:100%;background:#121611;border:1px solid rgba(247,244,234,.12);overflow:hidden;">
+
+        <tr>
+          <td align="center" bgcolor="#0B0D0A" style="background:#0B0D0A;padding:26px 24px;border-bottom:1px solid rgba(247,244,234,.12);">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:23px;line-height:1.2;color:#F7F4EA;">Farmstand<span style="color:#3DE04A;">.TV</span></div>
+            <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#3DE04A;padding-top:7px;">The farm stands of Ramona</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0;">
+            <a href="https://farmstandtv.netlify.app/maps">
+              <img src="https://farmstandtv.netlify.app/images/ramona-farmstand-map.jpg"
+                   width="600" alt="The Ramona Farmstand Map — thirty-odd farm stands, hand drawn"
+                   style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px 34px 8px;">
+            <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:29px;line-height:1.22;color:#F7F4EA;">
+              Here you go, {{FirstName|default("there")}}.
+            </h1>
+
+            <p style="margin:0 0 15px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#EDE8D8;">
+              Every stand on this map is one we have actually driven to. Thirty-odd of
+              them, on one plateau, most on the honour system and most at the end of a
+              road you would never think to turn down.
+            </p>
+
+            <p style="margin:0 0 26px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#EDE8D8;">
+              We visit before we list. That is the whole editorial policy.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:0 34px 12px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#3DE04A" style="border-radius:2px;">
+                  <a href="https://farmstandtv.netlify.app/downloads/Ramona-Farmstand-Map.pdf"
+                     style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:.15em;text-transform:uppercase;color:#0B0D0A;text-decoration:none;border-radius:2px;">
+                    Download the map (PDF)
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:0 34px 26px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#686B5E;">
+            About 5&nbsp;MB — best downloaded on wifi. Print it; the signal out there is a rumour.
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 34px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(247,244,234,.12);">
+              <tr><td style="padding:24px 0 8px;">
+                <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#3DE04A;padding-bottom:10px;">Two things you can do</div>
+                <p style="margin:0 0 18px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#EDE8D8;">
+                  Watch the show, or tell us about a stand we have missed. We will go and
+                  see it — that is how everything on this map got there.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 34px 30px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="50%" style="padding-right:6px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td align="center" bgcolor="#1B6E24" style="border-radius:2px;">
+                      <a href="https://www.youtube.com/@FarmstandTV" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#F7F4EA;text-decoration:none;">Watch the show</a>
+                    </td></tr>
+                  </table>
+                </td>
+                <td width="50%" style="padding-left:6px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr><td align="center" bgcolor="#1B6E24" style="border-radius:2px;">
+                      <a href="https://farmstandtv.netlify.app/submit" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#F7F4EA;text-decoration:none;">Add a stand</a>
+                    </td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
+        <tr>
+          <td align="center" style="padding:20px 24px 8px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#686B5E;">
+            You are getting this because you asked for the map at farmstandtv.com.<br>
+            <a href="{{UnsubscribeURL}}" style="color:#686B5E;text-decoration:underline;">Unsubscribe</a>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:0 24px 26px;font-family:Helvetica,Arial,sans-serif;font-size:11px;line-height:1.6;color:#4A5145;">
+            {{SenderInfo}}
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+</table>
