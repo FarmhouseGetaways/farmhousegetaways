@@ -77,6 +77,30 @@ moved.
 `/events.html`. Google has these indexed and Farmstand.TV links to some by hand.
 Removing them 404s those links the moment the domain is pointed here.
 
+## The email list — see `EMAIL.md`
+
+Signups sync to EmailOctopus. One list for all three brands, told apart by
+tags. It runs entirely server-side: `netlify/functions/submission-created.mjs`
+is called by Netlify itself after each verified submission.
+
+Three things to know before touching it:
+
+- **The forms are plain Netlify forms and must stay that way.** No EmailOctopus
+  embed, no `fetch()` in the page. Submissions still land in the Netlify inbox
+  that the app's admin screen reads, and the pages still work with JavaScript
+  off. Replacing a form with EmailOctopus's hosted one breaks both.
+- **The inquiry forms need the tick.** `wedding-groups.html` and
+  `book-both.html` carry an unticked `email-opt-in` checkbox, and an inquiry
+  only reaches the list if it was ticked. This is a promise on the page, not a
+  preference.
+- **Tags go to the API as an object map, not an array.** `PUT` takes
+  `{"tag": true}`; an array is accepted, silently ignored, and every contact
+  arrives untagged. `_lib/emailoctopus.test.mjs` guards it.
+
+    node --test netlify/functions/_lib/*.test.mjs
+
+Plain Node, no npm. Run it after any change under `_lib/`.
+
 ## Editing conventions
 
 - **Line breaks in a `.lede` or `.prose` paragraph**: use `<br>`, not a second

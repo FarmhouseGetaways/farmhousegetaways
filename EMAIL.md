@@ -1,0 +1,116 @@
+# The email list
+
+One EmailOctopus list for all three brands. Every signup gets tagged with which
+brand and which form it came from, so a send can go to one brand or to
+everybody.
+
+## Why one list and not three
+
+EmailOctopus charges per contact **per list**. Someone who wants the farmstand
+map is very often the same person who would book the barn, and on three lists
+they would be paid for three times. On one list they are one contact with two
+tags, and "send to just Mini Barn Market" is a filter in the dropdown.
+
+## What you have to do, once, in a browser
+
+Nothing in this list goes in a file or a commit. Same rule as the app.
+
+### 1. Make the list
+
+EmailOctopus → **Lists** → new list. Call it something like
+`Farmhouse — all brands`. One list. That is it.
+
+### 2. Get an API key
+
+EmailOctopus → your account menu → **Integrations & API** → **API keys** →
+create one. Copy it. It is shown once.
+
+### 3. Paste both into Netlify
+
+Netlify → the **farmhousegetaways** site → Site configuration → Environment
+variables:
+
+    EMAILOCTOPUS_API_KEY   = the key from step 2
+    EMAILOCTOPUS_LIST_ID   = the list's id  (see below)
+    ADMIN_PASSWORD         = something long, only used for the status page
+
+Then **Deploys → Trigger deploy**. Environment variables only reach the site on
+the next deploy, so nothing works until you do this.
+
+### 4. Find the list ID without hunting for it
+
+Open:
+
+    https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_ADMIN_PASSWORD
+
+It prints every list on the account with its id, and tells you what is still
+missing. Copy the id you want into `EMAILOCTOPUS_LIST_ID`, redeploy, reload the
+page. When it says `"ready": true` it is done.
+
+(The list id is also the last part of the URL when you open the list in
+EmailOctopus, if you would rather read it there.)
+
+### 5. Check it for real
+
+Submit the footer signup on the live site. The address should be on the list
+within a few seconds, tagged `farmhouse-getaways` and `source-footer-home`.
+
+## How it actually works
+
+    someone submits a form
+      -> Netlify saves it (unchanged — the app's admin inbox still sees it)
+      -> Netlify checks it for spam
+      -> Netlify calls netlify/functions/submission-created.mjs
+      -> that adds them to EmailOctopus with tags
+
+**The forms on the site were not touched.** No EmailOctopus embed, no
+JavaScript in the page, no API key in front of visitors, and the pages still
+work with JavaScript off. If EmailOctopus is down or misconfigured, the
+submission is still saved in Netlify — you would just have to add that one
+address by hand. Failures are in Netlify → Functions → `submission-created`,
+every line prefixed `[emailoctopus]`.
+
+## The tags you get
+
+| Tag | Meaning |
+|---|---|
+| `farmhouse-getaways` | Which brand. Set per site by `EMAILOCTOPUS_BRAND`. |
+| `source-footer-home`, `source-farmstand-map-page`, … | Which form on which page. Ten of them. This is how you find out which band actually earns signups. |
+| `red-barn-ranch` / `mountain-retreat` | Which property they picked. "Both / not sure" adds nothing, on purpose. |
+| `group-inquiry`, `lead` | A wedding or group inquiry who ticked the opt-in box. |
+
+## Consent — do not shortcut this
+
+The signup forms **are** a subscription: the button says send me the map and the
+fine print promises one or two emails a month.
+
+The wedding and group **inquiry** forms are not. They now carry an opt-in
+checkbox that ships unticked, and an inquiry only reaches the list if it was
+actually ticked. Someone asking whether September is free has not asked to be
+marketed to, and adding them anyway earns spam complaints against the sending
+domain — which is shared by all three brands on the one account.
+
+`netlify/functions/_lib/signup.test.mjs` locks that rule down. Run it before
+changing anything in there:
+
+    node --test netlify/functions/_lib/*.test.mjs
+
+No npm, no install — that is plain Node, same as the rest of this repo.
+
+## Single opt-in
+
+New contacts are added as `subscribed`, not `pending`. They typed the address
+and pressed a button asking for the map, so the welcome email can carry the map
+instead of a confirmation link a third of them would never click.
+
+To switch to double opt-in, change `status` in `_lib/signup.mjs` to `"pending"`.
+EmailOctopus then sends the confirmation itself.
+
+## Reusing this on the other two brands
+
+`netlify/functions/` is deliberately brand-agnostic. Copy the folder to the
+Mini Barn Market or Farmstand.TV site, set that site's own env vars, and set:
+
+    EMAILOCTOPUS_BRAND = mini-barn-market      (or farmstand-tv)
+
+Same API key, same list id, different brand tag. No code change.
