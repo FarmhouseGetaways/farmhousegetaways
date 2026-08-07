@@ -11,10 +11,38 @@ map is very often the same person who would book the barn, and on three lists
 they would be paid for three times. On one list they are one contact with two
 tags, and "send to just Mini Barn Market" is a filter in the dropdown.
 
-## The quick way
+## The quick way — from a browser, no terminal
 
-Get an API key first — EmailOctopus → your account menu → **Integrations &
-API** → **API keys** → create one. Then:
+1. EmailOctopus → account menu → **Integrations & API** → **API keys** → create
+   one. Copy it; it is shown once.
+2. Netlify → this site → Site configuration → Environment variables. Add
+   `EMAILOCTOPUS_API_KEY`, and `ADMIN_PASSWORD` (anything long).
+3. **Deploys → Trigger deploy.** Variables only reach the site on a new deploy.
+4. Open this, with your admin password in place of `YOUR_PASSWORD`:
+
+       https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_PASSWORD
+
+   It lists every list on the account with its id. Copy the one you want into
+   `EMAILOCTOPUS_LIST_ID` in Netlify and trigger another deploy.
+5. Now prove it actually works:
+
+       https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_PASSWORD&selftest=1
+
+   That adds a test contact with all three brand tags, reads it back to check
+   the tags really stuck, and deletes it again. When it says `"ready": true`
+   the plumbing is verified end to end.
+
+The read-back in step 5 is the only check that means anything. Everything else
+is covered by unit tests against a stubbed API, which prove the code sends the
+right request but not that EmailOctopus does the right thing with it — and the
+wrong tag format is accepted with a `200` and silently applies nothing.
+
+Then build [the automations](#the-welcome-email--see-emails). Nothing can do
+that part for you; see below for why.
+
+## The same thing from a terminal
+
+If you would rather, one command does steps 1–5 at once:
 
     node tools/eo-provision.mjs
 

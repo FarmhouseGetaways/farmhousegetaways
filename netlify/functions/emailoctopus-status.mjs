@@ -106,6 +106,84 @@ export default async (req) => {
   }
 
   out.ready = true;
-  out.next = "Wired up. Submit a signup form on the site and the address should appear on the list within a few seconds.";
+  out.automationIdSet = !!(process.env.EMAILOCTOPUS_AUTOMATION_ID || "").trim();
+  out.next = out.automationIdSet
+    ? "Wired up, and this site names its own welcome automation."
+    : "Wired up. The welcome email is expected to fire from EmailOctopus's own \"joined the list\" trigger — make sure that automation has a tag condition, or set EMAILOCTOPUS_AUTOMATION_ID here instead.";
+
+  // ?selftest=1 — the real round trip, in a browser.
+  //
+  // tools/eo-provision.mjs does this from a terminal, which is the wrong shape
+  // for the person who actually owns this site: the handover notes say plainly
+  // that they do not run commands. Same check, same guarantees, reachable from
+  // a phone.
+  //
+  // It is opt-in rather than part of the normal status read because it writes:
+  // a contact is created and then deleted, and a status page you refresh out of
+  // habit should not be touching the real list every time.
+  if (url.searchParams.get("selftest") === "1") {
+    out.selftest = await selftest();
+    out.ready = out.selftest.tagsApplied === true;
+    out.next = out.ready
+      ? "Verified end to end. Tagging works against the live API — submit a real signup form and it will appear on the list within a few seconds."
+      : "The round trip did not come back clean. See selftest below.";
+  } else {
+    out.tip = "Add &selftest=1 to prove it end to end — adds a test contact, checks the tags stuck, deletes it again.";
+  }
+
   return json(out);
 };
+
+/**
+ * Add a contact with all three brand tags, read it back, delete it.
+ *
+ * The read-back is the entire point. A wrong tag format is accepted with a 200
+ * and applies nothing, so "the request succeeded" proves nothing at all — only
+ * looking at the stored contact can tell you the tags are really there.
+ */
+async function selftest() {
+  const { upsertContact, apiKey } = await import("./_lib/emailoctopus.mjs");
+  const BRANDS = ["farmhousegetaways", "minibarnmarket", "farmstandtv"];
+  const email = `selftest+${listId().slice(0, 8)}@farmhousegetaways.com`;
+  const r = { email, added: false, tagsApplied: null, tagsSeen: [], cleanedUp: false, note: null };
+
+  const added = await upsertContact({ email, firstName: "Selftest", tags: BRANDS });
+  if (!added.ok) {
+    r.note = "Could not add the test contact: " + describe(added);
+    return r;
+  }
+  r.added = true;
+
+  const { createHash } = await import("node:crypto");
+  const id = createHash("md5").update(email.toLowerCase()).digest("hex");
+  const base = "https://api.emailoctopus.com";
+  const headers = { authorization: "Bearer " + apiKey() };
+
+  try {
+    const res = await fetch(`${base}/lists/${listId()}/contacts/${id}`, { headers });
+    if (res.ok) {
+      const c = await res.json();
+      const seen = Array.isArray(c.tags) ? c.tags : Object.keys(c.tags || {});
+      r.tagsSeen = seen;
+      const missing = BRANDS.filter((b) => !seen.includes(b));
+      r.tagsApplied = missing.length === 0;
+      if (missing.length) {
+        r.note = "These tags did not stick: " + missing.join(", ") +
+                 ". PUT needs tags as an object map, not an array — if you are seeing this, the API contract moved.";
+      }
+    } else {
+      r.note = `Added the contact but could not read it back (HTTP ${res.status}).`;
+    }
+  } catch (err) {
+    r.note = "Could not read the contact back: " + String(err?.message || err);
+  }
+
+  // Always clean up. A status page must not leave fake subscribers behind.
+  try {
+    const del = await fetch(`${base}/lists/${listId()}/contacts/${id}`, { method: "DELETE", headers });
+    r.cleanedUp = del.ok || del.status === 404;
+  } catch { r.cleanedUp = false; }
+  if (!r.cleanedUp) r.note = (r.note ? r.note + " " : "") + `Could not remove ${email} — delete it by hand.`;
+
+  return r;
+}
