@@ -13,7 +13,7 @@
  * copied to the Mini Barn Market and Farmstand.TV sites with no code change —
  * only a different EMAILOCTOPUS_BRAND value in their Netlify settings.
  */
-export const brand = () => (process.env.EMAILOCTOPUS_BRAND || "farmhouse-getaways").trim();
+export const brand = () => (process.env.EMAILOCTOPUS_BRAND || "farmhousegetaways").trim();
 
 /**
  * Forms that ARE a subscription. Submitting one is the request to be emailed;

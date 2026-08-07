@@ -53,7 +53,7 @@ EmailOctopus, if you would rather read it there.)
 ### 5. Check it for real
 
 Submit the footer signup on the live site. The address should be on the list
-within a few seconds, tagged `farmhouse-getaways` and `source-footer-home`.
+within a few seconds, tagged `farmhousegetaways` and `source-footer-home`.
 
 ## How it actually works
 
@@ -74,7 +74,7 @@ every line prefixed `[emailoctopus]`.
 
 | Tag | Meaning |
 |---|---|
-| `farmhouse-getaways` | Which brand. Set per site by `EMAILOCTOPUS_BRAND`. |
+| `farmhousegetaways` | Which brand. Set per site by `EMAILOCTOPUS_BRAND`. The three are `farmhousegetaways`, `minibarnmarket`, `farmstandtv`. |
 | `source-footer-home`, `source-farmstand-map-page`, … | Which form on which page. Ten of them. This is how you find out which band actually earns signups. |
 | `red-barn-ranch` / `mountain-retreat` | Which property they picked. "Both / not sure" adds nothing, on purpose. |
 | `group-inquiry`, `lead` | A wedding or group inquiry who ticked the opt-in box. |
@@ -97,6 +97,25 @@ changing anything in there:
 
 No npm, no install — that is plain Node, same as the rest of this repo.
 
+## The welcome email — see `emails/`
+
+Three of them, one per brand, each delivering the map. They live in `emails/`
+as plain HTML with a full setup guide in `emails/README.md`.
+
+**They have to be built once, by hand, in EmailOctopus.** Not laziness — the
+API can add contacts, tag them and *start* an automation, but it cannot create
+one, and campaigns are read-only over the API. Roughly five minutes each, then
+they run themselves forever.
+
+The one thing to get right: put a **tag condition on the trigger**. One list
+serves three brands, so an automation triggered on plain "joined the list"
+sends the Farmhouse welcome to Mini Barn Market signups.
+
+If tag conditions are awkward on your plan, set `EMAILOCTOPUS_AUTOMATION_ID` in
+that site's Netlify variables instead and the code will start the right
+automation itself. Use one route or the other, never both, or the welcome sends
+twice.
+
 ## Single opt-in
 
 New contacts are added as `subscribed`, not `pending`. They typed the address
@@ -111,6 +130,6 @@ EmailOctopus then sends the confirmation itself.
 `netlify/functions/` is deliberately brand-agnostic. Copy the folder to the
 Mini Barn Market or Farmstand.TV site, set that site's own env vars, and set:
 
-    EMAILOCTOPUS_BRAND = mini-barn-market      (or farmstand-tv)
+    EMAILOCTOPUS_BRAND = minibarnmarket        (or farmstandtv)
 
 Same API key, same list id, different brand tag. No code change.

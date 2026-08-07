@@ -21,7 +21,7 @@
  * from EmailOctopus and a line in the function log, which is the right way
  * round. It must never throw hard enough to make Netlify retry and double-send.
  */
-import { configured, upsertContact, describe } from "./_lib/emailoctopus.mjs";
+import { configured, upsertContact, queueAutomation, describe } from "./_lib/emailoctopus.mjs";
 import { contactFrom } from "./_lib/signup.mjs";
 
 export default async (req) => {
@@ -63,11 +63,28 @@ export default async (req) => {
 
   try {
     const res = await upsertContact(contact);
-    if (res.ok) {
-      const note = res.degraded ? ` (tags dropped: ${res.degraded})` : "";
-      console.log(`[emailoctopus] subscribed ${contact.email} [${contact.tags.join(", ")}]${note}`);
-    } else {
+    if (!res.ok) {
       console.error(`[emailoctopus] failed for ${contact.email}: ${describe(res)}`);
+      return new Response("ok", { status: 200 });
+    }
+
+    const note = res.degraded ? ` (tags dropped: ${res.degraded})` : "";
+    console.log(`[emailoctopus] subscribed ${contact.email} [${contact.tags.join(", ")}]${note}`);
+
+    // The auto-responder that carries the map. Only if this site names an
+    // automation; otherwise EmailOctopus's own "joined the list" trigger owns
+    // it. Kept separate from the upsert so a broken automation id costs the
+    // welcome email and not the subscription — the address is already safely
+    // on the list by this point, and that is the part that cannot be redone.
+    const auto = await queueAutomation(contact.email, process.env.EMAILOCTOPUS_AUTOMATION_ID);
+    if (auto.skipped) {
+      // Nothing to say — the list-join trigger is handling it.
+    } else if (auto.alreadyQueued) {
+      console.log(`[emailoctopus] ${contact.email} was already in the automation`);
+    } else if (!auto.ok) {
+      console.error(`[emailoctopus] automation did not start for ${contact.email}: ${describe(auto)}`);
+    } else {
+      console.log(`[emailoctopus] automation started for ${contact.email}`);
     }
   } catch (err) {
     console.error(`[emailoctopus] threw for ${contact.email}: ${String(err?.message || err)}`);
