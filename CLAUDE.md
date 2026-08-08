@@ -155,40 +155,35 @@ What is actually wired into the code, verified 7 Aug 2026:
 | **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `company` | Working |
 | **Lodgify** | `renderBookNowBox.js` embed on both property pages | Working |
 | **Google Maps** | Embedded map on the farmstand map page | Working |
-| **EmailOctopus** | **Not connected — see below** | **Gap** |
+| **EmailOctopus** | `netlify/functions/submission-created.mjs` — see `EMAIL.md` | Code shipped, **setup unfinished** |
 
 The two form types are `group-inquiry` (lands on `/thanks.html`) and `newsletter`
 (lands on `/thanks-list.html`). Submissions appear under **Forms** in the Netlify
 dashboard. Email notifications are configured there, not in the code.
 
-### EmailOctopus is not connected
+### EmailOctopus — code shipped, setup not finished
 
-The owner counts EmailOctopus as part of the stack, but nothing in this repo
-talks to it. Every newsletter signup posts to Netlify Forms and stops there, so
-subscribers are sitting in Netlify's form store rather than flowing into the
-mailing list.
+Corrected 8 Aug 2026. An earlier version of this file said EmailOctopus was not
+connected. The code now exists — see `EMAIL.md` and the section above — but the
+integration is **not live yet**, and the owner is picking up the remaining setup
+by hand later.
 
-**Do not build this.** As of 7 Aug 2026 the owner has a separate effort handling
-the EmailOctopus connection. Two sessions building the same integration would
-collide on `main`. The chosen approach is to keep Netlify Forms and forward
-submissions to EmailOctopus from a function, so Netlify keeps the record and the
-list still gets the subscriber.
+Still outstanding, as of 8 Aug 2026:
 
-Your job here is **maintenance once it is in place**: if it breaks, if signups
-stop arriving, if a key expires, that is yours to diagnose and fix. Building it
-is not.
+- The Netlify environment variables are not all set: `EMAILOCTOPUS_API_KEY`,
+  `EMAILOCTOPUS_LIST_ID`, `EMAILOCTOPUS_BRAND`, `EMAILOCTOPUS_AUTOMATION_ID`.
+  Without them the function has nothing to talk to.
+- The three welcome emails in `emails/` still have to be built by hand as
+  EmailOctopus automations. The API can start an automation but cannot create
+  one.
 
-Reference, verified 7 Aug 2026, so nobody has to re-derive it:
+**Do not assume signups are reaching the list**, and do not tell the owner they
+are, until those are done and a real submission has been seen arriving. Until
+then a newsletter signup lands in Netlify Forms and stops there.
 
-- **API v2** — `POST https://api.emailoctopus.com/lists/{list_id}/contacts`,
-  auth via `Authorization: Bearer {key}`. Returns 201 created, 409 if the
-  contact already exists on that list.
-- **API v1.6** (legacy, still functional) —
-  `POST https://emailoctopus.com/api/1.6/lists/{listId}/contacts` with the key
-  in the body as `api_key`. Fields are `email_address`, `fields.FirstName`,
-  `tags`, `status`. Duplicate returns `MEMBER_EXISTS_WITH_EMAIL_ADDRESS`.
-
-Prefer v2 — v1 is legacy and no longer actively maintained.
+**Do not rebuild any of this.** It belongs to a separate effort. Your job is
+**maintenance once it is live**: if it breaks, if signups stop arriving, if a key
+expires, that is yours to diagnose and fix.
 
 Existing subscribers live in **Wix** and need exporting separately. That is a
 known future task, not part of wiring up the forms.
