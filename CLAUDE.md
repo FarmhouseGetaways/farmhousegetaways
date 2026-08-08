@@ -25,6 +25,33 @@ The Farmhouse Getaways website. A static site: plain HTML, one CSS file, no
 build step, no dependencies, no npm. Ramona, California — two vacation
 properties, Red Barn Ranch and Mountain Retreat, hosted by Cory and Carissa.
 
+## Who the site is for — read before writing any copy
+
+**The majority of guests are large families and large groups.** What they are
+shopping for, in this order:
+
+1. A place that sleeps everyone under one roof
+2. Plenty for people to do — the game barn, the pool, the animals, the trails
+3. Safety, especially with children around — the fenced pool matters to them
+
+Lead with those. That is the sale.
+
+**The natural-living angle is not the sale.** Some guests already live this way
+and love finding it, and those bookings are a delight — but they are the
+minority. Most guests are not thinking about chemicals at all, and copy that
+pitches at them reads as though the house is only for people already converted.
+
+What the owners actually want is the opposite of a pitch: guests who have never
+lived this way arrive, use the shampoo, conditioner, soap and laundry soap that
+are already in the house, have a good week, and go home thinking it might be
+possible for them too. **The conversion happens during the stay, not on the
+website.** The site's job is to get the family through the door.
+
+So state the natural-living details plainly and let them be found — a detail
+board row, a line on Our Story — and never lead with them. If a mention starts
+to argue rather than inform, it is too much. Nine mentions across five pages was
+too much; it was cut to five on 8 Aug 2026 for exactly this reason.
+
 ## How it goes live
 
 ```
