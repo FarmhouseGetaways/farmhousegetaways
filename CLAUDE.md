@@ -185,14 +185,16 @@ it and change all of them, or the pages start contradicting each other.
 
 Current as of 9 Aug 2026:
 
-- **Red Barn Ranch: 6 bedrooms, 4.5 bathrooms, sleeps 18, 4 acres.**
+- **Red Barn Ranch: 6 bedrooms, 3.5 bathrooms, sleeps 18, 4 acres.**
 - **Mountain Retreat: 4 bedrooms, 3 bathrooms, sleeps 14, 8 acres.**
 - **32 across both properties.**
 
-**The 4.5 bathrooms already includes the Industrial Mini Mansion's full
-bathroom.** The property page had drifted to 5.5, almost certainly by someone
-reading "the tiny home has its own full bathroom" and adding one. Do not add it
-again.
+**The bathroom count moves with the tiny home.** The house itself has 3.5. The
+Industrial Mini Mansion's full bathroom is the fourth, so the figure is 4.5 only
+while the tiny home counts as part of the property. It is 3.5 today because the
+site now sells six bedrooms — see below. Earlier drafts said 5.5, which was the
+same mistake in the other direction: someone read "the tiny home has its own
+full bathroom" and added it on top of a total that already contained it.
 
 ### Why it is six bedrooms and not seven
 
