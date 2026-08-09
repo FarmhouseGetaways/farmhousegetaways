@@ -52,6 +52,25 @@ board row, a line on Our Story — and never lead with them. If a mention starts
 to argue rather than inform, it is too much. Nine mentions across five pages was
 too much; it was cut to five on 8 Aug 2026 for exactly this reason.
 
+## Who books, and what "cutting edge" means here
+
+**The person booking is usually a mother or a grandmother** organising a trip
+for the whole family. Not a group of twenty-somethings looking for somewhere
+cool to party. She is trying to find a place where everyone fits, where there is
+plenty for people to do, where the children are safe, and where she can be
+confident the group will be well looked after. Write for her.
+
+**"Cutting edge" describes the build, not the tone.** The owners want the site
+itself to look and behave like a high-end product — polished design, fast,
+beautifully laid out, obviously well made. That request was once read as
+permission for a cool, edgy voice, which is how the tone drifted. It is not.
+**High-end design, warm voice.** The two are not in tension.
+
+The properties themselves are a deliberate blend of high technology and nature,
+and Cory put real work into the technical side. It is a point of pride and worth
+showing — but through the quality of the design and through plainly naming the
+features, never through swagger in the copy.
+
 ## The voice — Carissa's, not Cory's
 
 Some of the earlier copy was written in Cory's register: wry, punchy, a little
