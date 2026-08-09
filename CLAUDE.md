@@ -95,6 +95,19 @@ Write like this:
   the place to themselves for a week. Both are welcome and copy should say so
   rather than assume the sociable one.
 
+**Safety features go on the site. Safety obligations go in the contract.**
+Decided 8 Aug 2026. A gated pool, a house with no stairs, pack-n-plays ready on
+arrival — those are reasons to book, and they answer the worry before the guest
+has to raise it. Supervision requirements, what is off limits, who is
+responsible for what: those go in the house rules and the contract the guest
+signs, not on a property page. Rules on a web page bind nobody and cost
+bookings, so they are the worst of both.
+
+The exception is a **material fact that affects whether the trip works at all**
+— Mountain Retreat's spa sitting under a locked cover rather than behind a gate,
+for instance. That is not a rule, it is something a family travelling with
+toddlers must know before booking, and it stays on the page.
+
 **Do not promise what the stay does not include.** Farm visits, the gold-mining
 sluice and similar are paid add-ons arranged in advance, not things that happen
 because a host is standing nearby. Free and spontaneous — gathering eggs,
