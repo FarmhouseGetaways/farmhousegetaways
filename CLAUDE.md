@@ -52,6 +52,37 @@ board row, a line on Our Story — and never lead with them. If a mention starts
 to argue rather than inform, it is too much. Nine mentions across five pages was
 too much; it was cut to five on 8 Aug 2026 for exactly this reason.
 
+## The voice — Carissa's, not Cory's
+
+Some of the earlier copy was written in Cory's register: wry, punchy, a little
+competitive, pleased with itself. **That is not the brand's voice.** Carissa is,
+and hers is warmer.
+
+Write like this:
+
+- **Warm and welcoming above everything.** The business is hospitality. Copy
+  should sound like someone glad you are coming, not someone proving a point.
+- **Never at anyone else's expense.** Do not sell this stay by running down
+  other rentals, other hosts, or the way other people live. The old Our Story
+  opening said a coded entry was "a terrible way to spend a weekend on a farm";
+  that is the exact move to avoid.
+- **Not sassy, not trying to be cool.** The properties are genuinely lovely and
+  do not need attitude to carry them. If a line is reaching for a laugh or a
+  mic drop, cut it.
+- **Offer, do not boast.** "We are the people who will do X, Y and Z" is a list
+  of feats. "Whatever your family wants from the week, we are glad to be here
+  for it" is hospitality. Prefer the second.
+- **Let the guest choose.** Some groups want everything shown to them, some want
+  the place to themselves for a week. Both are welcome and copy should say so
+  rather than assume the sociable one.
+
+**Do not promise what the stay does not include.** Farm visits, the gold-mining
+sluice and similar are paid add-ons arranged in advance, not things that happen
+because a host is standing nearby. Free and spontaneous — gathering eggs,
+walking the garden, picking what is ripe — can be offered warmly. Anything
+billable belongs in the "Also available" section on `red-barn-ranch.html`, which
+already exists and already says plainly that some of it costs extra.
+
 ## How it goes live
 
 ```
