@@ -103,6 +103,12 @@ responsible for what: those go in the house rules and the contract the guest
 signs, not on a property page. Rules on a web page bind nobody and cost
 bookings, so they are the worst of both.
 
+**Never write copy that makes unsupervised children sound fine.** The Mountain
+Retreat page once said "eight acres is enough that children can be out of sight
+and still be on the property", which was meant as a note about scale and read as
+an invitation. There are granite boulders and uneven ground out there. Removed
+9 Aug 2026. Sell the space, never the absence of an adult.
+
 The exception is a **material fact that affects whether the trip works at all**
 — Mountain Retreat's spa sitting under a locked cover rather than behind a gate,
 for instance. That is not a rule, it is something a family travelling with
