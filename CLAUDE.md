@@ -183,17 +183,40 @@ The same figure appears on a property page, on the homepage comparison board,
 in a meta description and sometimes in the JSON-LD. When one changes, grep for
 it and change all of them, or the pages start contradicting each other.
 
-Confirmed by the owner, 8 Aug 2026:
+Current as of 9 Aug 2026:
 
-- **Red Barn Ranch: 7 bedrooms, 4.5 bathrooms, sleeps 20, 4 acres.**
+- **Red Barn Ranch: 6 bedrooms, 4.5 bathrooms, sleeps 18, 4 acres.**
 - **Mountain Retreat: 4 bedrooms, 3 bathrooms, sleeps 14, 8 acres.**
-- **34 across both properties.**
+- **32 across both properties.**
 
-**The 4.5 already includes the Industrial Mini Mansion's full bathroom.** The
-tiny home is the seventh bedroom and its bathroom is inside the count, not on
-top of it. The property page had drifted to 5.5, almost certainly by someone
-reading "the tiny home has its own full bathroom" and adding one. Corrected
-8 Aug 2026. Do not add it again.
+**The 4.5 bathrooms already includes the Industrial Mini Mansion's full
+bathroom.** The property page had drifted to 5.5, almost certainly by someone
+reading "the tiny home has its own full bathroom" and adding one. Do not add it
+again.
+
+### Why it is six bedrooms and not seven
+
+The Industrial Mini Mansion — the tiny home, seventh bedroom — has a compliance
+problem and will probably move off the property before the end of 2026. The
+owners will always have room for the extra guests, via the loft or a trailer,
+but they cannot promise that particular room.
+
+So on 9 Aug 2026 the site was changed to **promise the capacity, not the room**.
+Six bedrooms and eighteen beds is true today and stays true whatever happens, so
+no booking taken now can be broken by the outcome. Anyone needing more is
+invited to ask, on the `red-barn-ranch.html` sleeping board and in the prose
+beneath it.
+
+**Do not put the seventh bedroom back** on the strength of a photograph or an
+old draft. It goes back only when the owner says the compliance question is
+settled — and then sleeps 18 becomes 20, 32 becomes 34, and six bedrooms becomes
+seven, everywhere.
+
+That change touched 38 references across seven pages: copy, both meta
+descriptions, the JSON-LD `numberOfRooms` and `occupancy`, the doubled ticker
+lists, the detail and comparison boards, two form `max` attributes, the enquiry
+dropdowns, and `emails/welcome-farmhousegetaways.html`. It is a single commit,
+`f3f1d0c`, so it can be reverted in one command if the answer comes back happy.
 
 ## Redirects — do not delete
 
