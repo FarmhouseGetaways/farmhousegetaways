@@ -114,6 +114,24 @@ moved.
 | `404.html` | Not-found page |
 | `css/site.css` | All styling, one file |
 
+## Numbers, and where they have to agree
+
+The same figure appears on a property page, on the homepage comparison board,
+in a meta description and sometimes in the JSON-LD. When one changes, grep for
+it and change all of them, or the pages start contradicting each other.
+
+Confirmed by the owner, 8 Aug 2026:
+
+- **Red Barn Ranch: 7 bedrooms, 4.5 bathrooms, sleeps 20, 4 acres.**
+- **Mountain Retreat: 4 bedrooms, 3 bathrooms, sleeps 14, 8 acres.**
+- **34 across both properties.**
+
+**The 4.5 already includes the Industrial Mini Mansion's full bathroom.** The
+tiny home is the seventh bedroom and its bathroom is inside the count, not on
+top of it. The property page had drifted to 5.5, almost certainly by someone
+reading "the tiny home has its own full bathroom" and adding one. Corrected
+8 Aug 2026. Do not add it again.
+
 ## Redirects — do not delete
 
 `netlify.toml` carries 301s for the old site's indexed URLs: `/rbr`, `/mr`,
