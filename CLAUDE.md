@@ -410,6 +410,12 @@ Environment variables:
 Optional, only if the repo or branch ever moves: `GITHUB_REPO`,
 `GITHUB_BRANCH`.
 
+**Neither is set yet, as of 10 Aug 2026.** The endpoint answers every request
+with `503 Publishing is shut.` until they are, which is the correct behaviour
+but means the button does not work yet. Environment variables only reach the
+site on the next deploy, so a **Deploys → Trigger deploy** is needed after
+adding them.
+
 **Why there is a password on it.** `/edit.html` and the function behind it are
 both on the open web. While the Netlify token was dead that cost nothing; a
 working GitHub token changes it, because anyone who found the URL could commit.
