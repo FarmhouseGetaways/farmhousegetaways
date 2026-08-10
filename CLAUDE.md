@@ -386,15 +386,39 @@ change, and nothing ranks while the site is hidden anyway. Target capacity terms
 titles do not currently carry at all. `mountain-retreat.html`'s JSON-LD is also
 missing `occupancy`, which the ranch has.
 
-## Known broken
+## The visual editor at `/edit.html`
 
-`netlify/functions/publish.mjs` — the Publish button inside `/edit.html` posts
-here, and it deploys straight to Netlify using `NETLIFY_TOKEN`, which is dead
-and revoked. It fails with "NETLIFY_TOKEN is not valid."
+The Publish button posts to `netlify/functions/publish.mjs`, which **commits to
+GitHub**. Netlify sees the commit and builds, exactly as when a change is pushed
+by hand. Rewritten 10 Aug 2026; it used to deploy straight to Netlify with
+`NETLIFY_TOKEN`, which is dead, revoked, and was the drift mechanism that lost
+D16. That path is gone — do not put it back. Everything goes through the repo.
 
-The fix, when asked for: rewrite it to commit to GitHub instead of deploying to
-Netlify, so editor changes and code changes go through the same door and cannot
-overwrite each other. The **Save to a file** button still works meanwhile.
+How it works: read the branch head, read the pages from the repo at that exact
+sha, apply the text replacements and photo swaps, write **one** commit with
+every changed file, then move the branch with `force: false`. If somebody pushed
+in the meantime the ref update fails rather than discarding their work, and the
+editor says to press Publish again.
+
+Two environment variables are needed in Netlify → Site configuration →
+Environment variables:
+
+- `GITHUB_TOKEN` — a fine-grained personal access token, **Contents: Read and
+  write** on `FarmhouseGetaways/farmhousegetaways`, and nothing else.
+- `ADMIN_PASSWORD` — the same one that guards `/api/emailoctopus`.
+
+Optional, only if the repo or branch ever moves: `GITHUB_REPO`,
+`GITHUB_BRANCH`.
+
+**Why there is a password on it.** `/edit.html` and the function behind it are
+both on the open web. While the Netlify token was dead that cost nothing; a
+working GitHub token changes it, because anyone who found the URL could commit.
+It **fails closed** — with no `ADMIN_PASSWORD` set nobody publishes, the owner
+included. The editor prompts for the key once and keeps it in `localStorage`
+under `fg-publish-key`; a 401 clears it so the next press asks again.
+
+**Save to a file** still works and needs no key — it downloads a change list to
+hand over instead.
 
 ## Access
 

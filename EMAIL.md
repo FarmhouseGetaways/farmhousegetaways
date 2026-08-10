@@ -86,7 +86,8 @@ variables:
 
     EMAILOCTOPUS_API_KEY   = the key from step 2
     EMAILOCTOPUS_LIST_ID   = the list's id  (see below)
-    ADMIN_PASSWORD         = something long, only used for the status page
+    ADMIN_PASSWORD         = something long. Guards the status page, and also
+                             the Publish button in /edit.html
 
 Then **Deploys → Trigger deploy**. Environment variables only reach the site on
 the next deploy, so nothing works until you do this.

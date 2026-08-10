@@ -151,7 +151,7 @@ console.log("\n" + bold("4. Paste these into Netlify"));
 console.log(dim("   Site configuration → Environment variables, then trigger a deploy.\n"));
 console.log(`   EMAILOCTOPUS_API_KEY   = ${dim("(the key you just used)")}`);
 console.log(`   EMAILOCTOPUS_LIST_ID   = ${bold(listId)}`);
-console.log(`   ADMIN_PASSWORD         = ${dim("(anything long, guards the status page)")}`);
+console.log(`   ADMIN_PASSWORD         = ${dim("(anything long; guards the status page and /edit.html's Publish)")}`);
 console.log(dim("\n   On the other two sites, add one more:"));
 console.log(`   EMAILOCTOPUS_BRAND     = minibarnmarket   ${dim("(or farmstandtv)")}`);
 

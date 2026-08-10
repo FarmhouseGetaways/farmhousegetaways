@@ -1,27 +1,47 @@
 /**
  * Farmhouse Getaways — one-click publish.
  *
- * The editor at /edit.html POSTs its change list here. This function runs on
- * Netlify's own servers, so unlike a browser (or a sandboxed assistant) it can
- * talk to the Netlify API directly.
+ * The editor at /edit.html POSTs its change list here. This function commits
+ * the result to GitHub. Netlify sees the commit and builds the site, exactly
+ * as it does when a change is pushed by hand.
  *
- * How it publishes without re-uploading the whole 12 MB site:
- *   1. ask Netlify for the file manifest of the currently published deploy
- *   2. fetch only the pages that changed, apply the text replacements
- *   3. post the same manifest back with new digests for just those pages
- *   4. upload only the files Netlify says it is missing
+ * WHY IT COMMITS INSTEAD OF DEPLOYING
+ *
+ * This used to call the Netlify API and push a deploy straight to the site.
+ * That works, and it is a trap: a deploy made that way never reaches the repo,
+ * so the live site and `main` drift apart, and the next ordinary commit
+ * silently reverts whatever the editor published. That is precisely how the
+ * D16 version of this site was lost. Everything goes through the repo now, so
+ * the editor and a hand edit cannot overwrite each other.
+ *
+ * How it works:
+ *   1. read the current branch head from GitHub
+ *   2. read the pages being changed straight from the repo, not the live site
+ *   3. apply the text replacements and swap any photographs
+ *   4. write one commit containing every changed file
+ *   5. move the branch to it — Netlify builds, the site is live in ~30s
  *
  * Requires two environment variables, set in Netlify → Site configuration →
  * Environment variables:
- *   NETLIFY_TOKEN   a personal access token
- *   NETLIFY_SITE_ID the site's API ID (Site configuration → General → Site ID)
+ *   GITHUB_TOKEN     a fine-grained personal access token with Contents: Read
+ *                    and write on FarmhouseGetaways/farmhousegetaways
+ *   ADMIN_PASSWORD   the same one that guards /api/emailoctopus
  *
- * Neither ever reaches the browser.
+ * Optional, only if the repo or branch ever moves:
+ *   GITHUB_REPO    owner/name       (default FarmhouseGetaways/farmhousegetaways)
+ *   GITHUB_BRANCH  branch to commit (default main)
+ *
+ * The token never reaches the browser.
+ *
+ * WHY THERE IS A PASSWORD ON IT NOW
+ *
+ * /edit.html is on the open web and so is this endpoint. While the old Netlify
+ * token was dead that cost nothing. A working GitHub token changes the maths:
+ * without a gate, anyone who found this URL could commit to the repo. It FAILS
+ * CLOSED — with no ADMIN_PASSWORD set, nobody publishes, including the owner.
  */
 
-import { createHash } from "node:crypto";
-
-const API = "https://api.netlify.com/api/v1";
+const GH = "https://api.github.com";
 
 /* ---------- text replacement — mirrors tools/apply-edits.py ---------- */
 
@@ -29,7 +49,7 @@ const ENT = {
   "—": "&mdash;", "–": "&ndash;", "&": "&amp;", "·": "&middot;",
   "→": "&rarr;", "←": "&larr;", "’": "&rsquo;", "‘": "&lsquo;",
   "“": "&ldquo;", "”": "&rdquo;", "…": "&hellip;", "★": "&#9733;",
-  "<": "&lt;", ">": "&gt;", " ": "&nbsp;", "°": "&deg;",
+  "<": "&lt;", ">": "&gt;", " ": "&nbsp;", "°": "&deg;",
 };
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,10 +88,8 @@ function applyToPage(html, changes) {
   return { html, applied, missed };
 }
 
-const sha1 = (buf) => createHash("sha1").update(buf).digest("hex");
-
 /**
- * Point one <img> at its freshly uploaded file.
+ * Point one <img> at its freshly committed file.
  * The file keeps its path so nothing else has to change, but /images/* is
  * cached immutable for a year — so the src gets a ?v= stamp to force browsers
  * to fetch it again. Width and height are rewritten to the new dimensions so
@@ -91,6 +109,40 @@ function swapImage(html, p) {
   return { html: html.slice(0, hit.index) + tag + html.slice(hit.index + hit[0].length), ok: true };
 }
 
+/* ---------- commit message ---------- */
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function commitMessage(report, changes, photos) {
+  const parts = [];
+  if (changes.length) parts.push(plural(changes.length, "text change"));
+  if (photos.length) parts.push(plural(photos.length, "photograph"));
+
+  const lines = [`Editor: ${parts.join(" and ")}`, ""];
+  for (const r of report) {
+    const bits = [];
+    if (r.applied) bits.push(plural(r.applied, "change"));
+    if (r.photos) bits.push(plural(r.photos, "photograph"));
+    lines.push(`- ${r.page}: ${bits.join(", ") || "no change"}`);
+  }
+  lines.push("", "Published from /edit.html. Netlify builds this commit.");
+  return lines.join("\n");
+}
+
+/* ---------- who is allowed to publish ---------- */
+
+/** Constant time, so the endpoint cannot be used to guess the password. */
+function secretOk(given) {
+  const want = process.env.ADMIN_PASSWORD || "";
+  if (!want) return false;
+  const a = new TextEncoder().encode(String(given || ""));
+  const b = new TextEncoder().encode(want);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 /* ---------- handler ---------- */
 
 export default async (req) => {
@@ -102,12 +154,26 @@ export default async (req) => {
 
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
 
-  const TOKEN = process.env.NETLIFY_TOKEN;
-  const SITE = process.env.NETLIFY_SITE_ID;
-  if (!TOKEN || !SITE) {
+  if (!process.env.ADMIN_PASSWORD) {
+    return json({
+      error: "Publishing is shut.",
+      detail: "ADMIN_PASSWORD is not set in Netlify, so nothing here can publish. Add it under Site configuration → Environment variables.",
+    }, 503);
+  }
+  if (!secretOk(new URL(req.url).searchParams.get("key") || req.headers.get("x-admin-password"))) {
+    return json({ error: "Wrong publishing key.", detail: "Wrong publishing key." }, 401);
+  }
+
+  const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const REPO = process.env.GITHUB_REPO || "FarmhouseGetaways/farmhousegetaways";
+  const BRANCH = process.env.GITHUB_BRANCH || "main";
+
+  if (!TOKEN) {
     return json({
       error: "Not set up yet.",
-      detail: "Add NETLIFY_TOKEN and NETLIFY_SITE_ID under Site configuration → Environment variables, then redeploy.",
+      detail:
+        "Add GITHUB_TOKEN under Site configuration → Environment variables. It needs a fine-grained personal access token with Contents: Read and write on " +
+        REPO + ". Then redeploy.",
     }, 500);
   }
 
@@ -119,63 +185,56 @@ export default async (req) => {
   const photos = payload?.photos || [];
   if (!changes.length && !photos.length) return json({ error: "No changes to publish." }, 400);
 
-  const auth = { authorization: `Bearer ${TOKEN}` };
-  const origin = new URL(req.url).origin;
+  const headers = {
+    authorization: `Bearer ${TOKEN}`,
+    accept: "application/vnd.github+json",
+    "x-github-api-version": "2022-11-28",
+    "user-agent": "farmhouse-getaways-editor",
+  };
+
+  /** Call GitHub and fail loudly, in plain English, rather than falling through. */
+  async function gh(path, init = {}) {
+    const res = await fetch(`${GH}${path}`, {
+      ...init,
+      headers: { ...headers, ...(init.body ? { "content-type": "application/json" } : {}), ...(init.headers || {}) },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      const why =
+        res.status === 401 ? "GITHUB_TOKEN is not valid. It was probably revoked or has expired. Make a new fine-grained token with Contents: Read and write and update the environment variable."
+        : res.status === 403 ? "GITHUB_TOKEN does not have permission to write to " + REPO + ". Check the token grants Contents: Read and write on that repository."
+        : res.status === 404 ? "GitHub cannot see " + REPO + " at that path. Either the repository name is wrong or the token has no access to it."
+        : res.status === 409 || res.status === 422 ? "Someone pushed to " + BRANCH + " while this was publishing. Nothing was lost — press Publish again."
+        : "GitHub rejected the request.";
+      const err = new Error(`GitHub said ${res.status}. ${why}`);
+      err.detail = body.slice(0, 400);
+      throw err;
+    }
+    return res;
+  }
+
+  const repoPath = (webPath) => webPath.replace(/^\/+/, "");
 
   try {
-    // 1. what is live right now
-    //
-    // This call used to be .then(r => r.json()) with no status check, so a 401
-    // from a revoked token or a 404 from a wrong site ID both fell through to
-    // "No published deploy found on this site." — which sent us looking at the
-    // deploy list when the real problem was the credential. Check the status.
-    const siteRes = await fetch(`${API}/sites/${SITE}`, { headers: auth });
-    if (!siteRes.ok) {
-      const body = await siteRes.text();
-      const why =
-        siteRes.status === 401
-          ? "NETLIFY_TOKEN is not valid. It was probably revoked or expired. Make a new personal access token in Netlify and update the environment variable."
-          : siteRes.status === 404
-          ? "NETLIFY_SITE_ID does not match a site on this account."
-          : "Netlify rejected the request.";
-      return json(
-        { error: `Netlify said ${siteRes.status}. ${why}`, detail: body.slice(0, 400) },
-        500
-      );
-    }
-    const site = await siteRes.json();
-    const liveId = site.published_deploy?.id;
-    if (!liveId) {
-      return json({
-        error: "No published deploy found on this site.",
-        detail:
-          "The token and site ID are fine — Netlify genuinely reports nothing published. Open the Deploys page and click Publish deploy on the deploy you want live, then try again.",
-      }, 500);
-    }
+    // 1. where the branch is now — every read and the commit's parent both use
+    //    this exact sha, so a push mid-publish cannot half-apply.
+    const ref = await gh(`/repos/${REPO}/git/ref/heads/${BRANCH}`).then((r) => r.json());
+    const headSha = ref.object.sha;
+    const headCommit = await gh(`/repos/${REPO}/git/commits/${headSha}`).then((r) => r.json());
+    const baseTree = headCommit.tree.sha;
 
-    const fileList = await fetch(`${API}/deploys/${liveId}/files`, { headers: auth }).then((r) => r.json());
-    if (!Array.isArray(fileList)) return json({ error: "Could not read the current file list." }, 500);
-
-    const manifest = {};
-    for (const f of fileList) manifest[f.path || f.id] = f.sha;
-
-    // 2. rebuild just the pages that changed
+    // 2. group the work by page
     const byPage = {};
     for (const c of changes) (byPage[c.page] ||= []).push(c);
     for (const p of photos) (byPage[p.page] ||= []);
 
-    // new image bytes go in at their existing paths
-    const binaries = {};
-    for (const p of photos) {
-      const buf = Buffer.from(p.data, "base64");
-      binaries[p.src] = buf;
-      manifest[p.src] = sha1(buf);
-    }
-
-    const edited = {}, report = [];
+    // 3. rebuild each page from the repo copy, not from the live site
+    const tree = [], report = [];
     for (const [page, items] of Object.entries(byPage)) {
-      const res = await fetch(`${origin}${page}`, { headers: { "cache-control": "no-cache" } });
-      if (!res.ok) { report.push({ page, error: `could not read live page (${res.status})` }); continue; }
+      const res = await fetch(`${GH}/repos/${REPO}/contents/${repoPath(page)}?ref=${headSha}`, {
+        headers: { ...headers, accept: "application/vnd.github.raw" },
+      });
+      if (!res.ok) { report.push({ page, error: `could not read ${page} from the repo (${res.status})` }); continue; }
 
       let { html, applied, missed } = applyToPage(await res.text(), items);
 
@@ -186,55 +245,60 @@ export default async (req) => {
         else missed.push("photo " + p.src);
       }
 
-      edited[page] = html;
-      manifest[page] = sha1(Buffer.from(html, "utf8"));
+      const blob = await gh(`/repos/${REPO}/git/blobs`, {
+        method: "POST",
+        body: JSON.stringify({ content: html, encoding: "utf-8" }),
+      }).then((r) => r.json());
+
+      tree.push({ path: repoPath(page), mode: "100644", type: "blob", sha: blob.sha });
       report.push({ page, applied: applied.length, photos: swapped, missed });
     }
-    if (!Object.keys(edited).length) return json({ error: "Nothing could be applied.", report }, 500);
 
-    // 3. new deploy from the same manifest, new digests for the edited pages
-    const deploy = await fetch(`${API}/sites/${SITE}/deploys`, {
+    // 4. new image bytes go in at their existing paths
+    const written = [];
+    for (const p of photos) {
+      const blob = await gh(`/repos/${REPO}/git/blobs`, {
+        method: "POST",
+        body: JSON.stringify({ content: p.data, encoding: "base64" }),
+      }).then((r) => r.json());
+      tree.push({ path: repoPath(p.src), mode: "100644", type: "blob", sha: blob.sha });
+      written.push(p.src);
+    }
+
+    if (!tree.length) return json({ error: "Nothing could be applied.", report }, 500);
+
+    // 5. one tree, one commit, every changed file in it
+    const newTree = await gh(`/repos/${REPO}/git/trees`, {
       method: "POST",
-      headers: { ...auth, "content-type": "application/json" },
+      body: JSON.stringify({ base_tree: baseTree, tree }),
+    }).then((r) => r.json());
+
+    const commit = await gh(`/repos/${REPO}/git/commits`, {
+      method: "POST",
       body: JSON.stringify({
-        files: manifest,
-        draft: false,
-        // shows in the Netlify Deploys list instead of "No deploy message"
-        title: `Farmhouse Getaways editor — ${
-          changes.length ? changes.length + " text change" + (changes.length === 1 ? "" : "s") : ""
-        }${changes.length && photos.length ? ", " : ""}${
-          photos.length ? photos.length + " photo" + (photos.length === 1 ? "" : "s") : ""
-        }`,
+        message: commitMessage(report, changes, photos),
+        tree: newTree.sha,
+        parents: [headSha],
       }),
     }).then((r) => r.json());
 
-    if (!deploy.id) return json({ error: "Netlify refused the deploy.", detail: deploy }, 500);
-
-    // 4. upload only what Netlify is missing
-    const required = new Set(deploy.required || []);
-    const outgoing = Object.entries(edited)
-      .map(([path, html]) => [path, Buffer.from(html, "utf8")])
-      .concat(Object.entries(binaries));
-
-    for (const [path, body] of outgoing) {
-      if (required.size && !required.has(manifest[path])) continue;
-      const up = await fetch(`${API}/deploys/${deploy.id}/files${path}`, {
-        method: "PUT",
-        headers: { ...auth, "content-type": "application/octet-stream" },
-        body,
-      });
-      if (!up.ok) return json({ error: `Upload failed for ${path}`, detail: await up.text() }, 500);
-    }
+    // 6. move the branch. No force — if someone pushed in the meantime this
+    //    fails rather than throwing their commit away.
+    await gh(`/repos/${REPO}/git/refs/heads/${BRANCH}`, {
+      method: "PATCH",
+      body: JSON.stringify({ sha: commit.sha, force: false }),
+    });
 
     return json({
       ok: true,
-      deployId: deploy.id,
-      pages: Object.keys(edited),
-      photos: Object.keys(binaries),
+      commit: commit.sha,
+      branch: BRANCH,
+      pages: report.filter((r) => !r.error).map((r) => r.page),
+      photos: written,
       report,
-      message: "Published. Give it about thirty seconds, then refresh your site.",
+      message: "Committed to " + BRANCH + ". Netlify is building — give it about thirty seconds, then refresh your site.",
     });
   } catch (err) {
-    return json({ error: "Publish failed.", detail: String(err) }, 500);
+    return json({ error: err.message || "Publish failed.", detail: err.detail || String(err) }, 500);
   }
 };

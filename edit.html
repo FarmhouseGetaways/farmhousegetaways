@@ -118,7 +118,7 @@
 <div id="review" hidden>
   <button class="b-ghost" id="closeReview">Close</button>
   <h2>Your changes</h2>
-  <p class="sub">Nothing is live until Claude publishes it.</p>
+  <p class="sub">Nothing is live until you hit Publish.</p>
   <div id="reviewList"></div>
 </div>
 
@@ -595,11 +595,34 @@
     toast._t = setTimeout(function(){ t.hidden = true; }, ok ? 9000 : 16000);
   }
 
+  // The publishing key. This editor is on the open web and so is the function
+  // behind it, which now holds a GitHub token that can commit to the repo — so
+  // the button asks for the key once and remembers it on this browser.
+  var KEY_STORE = "fg-publish-key";
+
+  function publishKey(){
+    var k = "";
+    try { k = window.localStorage.getItem(KEY_STORE) || ""; } catch (e) {}
+    if (!k) {
+      k = window.prompt("Publishing key\n\n(the ADMIN_PASSWORD set in Netlify — asked once, then remembered on this browser)") || "";
+      if (!k) return "";
+      try { window.localStorage.setItem(KEY_STORE, k); } catch (e) {}
+    }
+    return k;
+  }
+
+  function forgetKey(){
+    try { window.localStorage.removeItem(KEY_STORE); } catch (e) {}
+  }
+
   $("pubBtn").addEventListener("click", function(){
     var items = list();
     if (!items.length) { toast("Nothing to publish yet.", false); return; }
     if (!confirm("Publish " + items.length + " change" + (items.length===1?"":"s") +
                  " to the live site?\n\nThis updates farmhousegetaways for real.")) return;
+
+    var key = publishKey();
+    if (!key) { toast("Publishing needs the key. Nothing was sent.", false); return; }
 
     var btn = this;
     btn.disabled = true; btn.setAttribute("data-busy","true");
@@ -616,7 +639,7 @@
     }))
     .then(function(){ return fetch("/.netlify/functions/publish", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-admin-password": key },
       body: JSON.stringify({
         changes: items.filter(function(c){ return c.kind !== "photo"; }),
         photos: items.filter(function(c){ return c.kind === "photo"; }).map(function(c){
@@ -628,6 +651,9 @@
     .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
     .then(function(res){
       if (!res.ok || res.d.error) {
+        // A wrong key is the one failure worth clearing, so the next press asks
+        // again instead of retrying the same bad one for ever.
+        if (res.d && /publishing key/i.test(res.d.error || "")) forgetKey();
         toast("Could not publish: " + (res.d.detail || res.d.error || "unknown error"), false);
         return;
       }
