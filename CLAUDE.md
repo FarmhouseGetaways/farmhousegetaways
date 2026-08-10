@@ -403,18 +403,32 @@ editor says to press Publish again.
 Two environment variables are needed in Netlify → Site configuration →
 Environment variables:
 
-- `GITHUB_TOKEN` — a fine-grained personal access token, **Contents: Read and
-  write** on `FarmhouseGetaways/farmhousegetaways`, and nothing else.
+- `GITHUB_TOKEN` — a token that can write file contents on
+  `FarmhouseGetaways/farmhousegetaways`.
 - `ADMIN_PASSWORD` — the same one that guards `/api/emailoctopus`.
 
 Optional, only if the repo or branch ever moves: `GITHUB_REPO`,
 `GITHUB_BRANCH`.
 
-**Neither is set yet, as of 10 Aug 2026.** The endpoint answers every request
-with `503 Publishing is shut.` until they are, which is the correct behaviour
-but means the button does not work yet. Environment variables only reach the
-site on the next deploy, so a **Deploys → Trigger deploy** is needed after
-adding them.
+Environment variables only reach the code on the next build, so a **Deploys →
+Trigger deploy** is needed after adding or changing either one.
+
+### The token — read this in November
+
+The token in use is a **classic** token with the `repo` scope, made 10 Aug 2026,
+**expiring around 8 November 2026**. When it expires the Publish button starts
+reporting that the token is not valid. That is a renewal, not a breakage: make a
+new one at github.com/settings/tokens/new and swap the value in Netlify.
+
+It is a classic token rather than a fine-grained one because **the fine-grained
+form would not generate.** Both `/settings/personal-access-tokens/new` and, at
+first, the classic page returned to an empty token list with no error message —
+in an ordinary window and in incognito alike, on a correctly filled form
+(resource owner set, single repository selected, Contents: Read and write). The
+classic page worked on a second attempt with a 90-day expiry. If the
+fine-grained form ever starts behaving, swapping to one scoped to Contents on
+this repository alone is a worthwhile tightening: a classic `repo` token can
+reach every repository on the account.
 
 **Why there is a password on it.** `/edit.html` and the function behind it are
 both on the open web. While the Netlify token was dead that cost nothing; a
