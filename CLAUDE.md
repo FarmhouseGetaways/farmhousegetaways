@@ -333,6 +333,59 @@ expires, that is yours to diagnose and fix.
 Existing subscribers live in **Wix** and need exporting separately. That is a
 known future task, not part of wiring up the forms.
 
+## Open, as of 9 Aug 2026
+
+**Photographs — none of the new ones are on the site.** The owner has sent them
+by pasting into the chat, which lets a session *see* an image but writes no file
+to disk, so there is nothing to resize or commit. **Ask for a zip, or a Google
+Drive folder** — the D16 zip arrived intact, and the Drive tools can pull a
+folder directly. Pillow is not installed by default; `pip install Pillow` works
+and takes a few seconds, so full-size camera files are fine.
+
+Nineteen photographs are described and waiting, all Red Barn Ranch:
+
+| Room | Shots |
+|---|---|
+| 1 · The Primary | bedroom, tub bath, vanity/shower bath, breakfast tray, bedside |
+| 2 · The Library | wide, from doorway |
+| 3 · The White Room | wide, from doorway |
+| 4 · The Pink Peacock | wide with desk, bed and console |
+| 5 · The Floral Peacock | wide, bed close-up, sitting area |
+| 6 · The Adventure Room | wide, sitting area, the Jack-and-Jill |
+| 7 · Industrial Mini Mansion | breakfast tray, wide interior |
+
+`images/rbr-primary-suite.jpg` is **mislabelled** — it is bedroom 5, the Floral
+Peacock, and its caption wrongly calls the Jack-and-Jill an ensuite. Rename and
+recaption when the new photographs land.
+
+**A portrait of Cory, Carissa and Legend** is coming, for Our Story. There is no
+photograph of the owners anywhere on the site, which is the largest gap on it —
+`images/hosts-temp.jpg` sits unused, evidently intended for this.
+
+**Waiting on the owner:**
+
+- The compliance ruling on what may be said about weddings. Until then
+  `wedding-groups.html` describes guests who are in town for a celebration and
+  never offers to host one. Do not add event or micro-wedding wording.
+- How to word additional people on the property, once the insurance position is
+  settled. The old "$50 per person" day-visitor line was removed from three
+  pages and nothing replaced it.
+- Quiet hours. They are 10pm to 6am under the county noise ordinance, not a
+  house rule, and Dos Picos is a short walk away rather than adjacent. Agreed in
+  principle for `mountain-retreat.html`'s "Good to know", wording not settled.
+- Whether to name the wildlife — coyotes, bobcats, raccoons, snakes — on both
+  property pages. The owner's own Airbnb listing does this well.
+- Seasonal pool heating rates. The site now says to ask, which holds until she
+  has winter pricing.
+
+**SEO comes last.** Titles, meta descriptions and structured data should be done
+in one pass across all nine pages, immediately before `robots.txt` and the
+`noindex` header are flipped. Doing it earlier means redoing it after every copy
+change, and nothing ranks while the site is hidden anyway. Target capacity terms
+— large group vacation rental San Diego, sleeps 18, family reunion — which the
+titles do not currently carry at all. `mountain-retreat.html`'s JSON-LD is also
+missing `occupancy`, which the ranch has.
+
 ## Known broken
 
 `netlify/functions/publish.mjs` — the Publish button inside `/edit.html` posts
