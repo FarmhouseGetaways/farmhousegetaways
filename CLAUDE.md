@@ -333,14 +333,16 @@ expires, that is yours to diagnose and fix.
 Existing subscribers live in **Wix** and need exporting separately. That is a
 known future task, not part of wiring up the forms.
 
-## Open, as of 9 Aug 2026
+## Open, as of 10 Aug 2026
 
 **Photographs — none of the new ones are on the site.** The owner has sent them
 by pasting into the chat, which lets a session *see* an image but writes no file
 to disk, so there is nothing to resize or commit. **Ask for a zip, or a Google
-Drive folder** — the D16 zip arrived intact, and the Drive tools can pull a
-folder directly. Pillow is not installed by default; `pip install Pillow` works
-and takes a few seconds, so full-size camera files are fine.
+Drive folder** — the D16 zip arrived intact, and the Google Drive connector is
+live on this account (verified 10 Aug 2026), so a shared folder can be pulled
+straight down without the owner exporting anything. Pillow is not installed by
+default; `pip install Pillow` works and takes a few seconds, so full-size camera
+files are fine.
 
 Nineteen photographs are described and waiting, all Red Barn Ranch:
 
@@ -377,6 +379,13 @@ photograph of the owners anywhere on the site, which is the largest gap on it �
   property pages. The owner's own Airbnb listing does this well.
 - Seasonal pool heating rates. The site now says to ask, which holds until she
   has winter pricing.
+
+**The barn paragraph on `red-barn-ranch.html` was rewritten by the owner** on
+10 Aug 2026, through the editor. It no longer names the pinewood derby track,
+but the gallery directly beneath it still carries a photograph captioned "Derby
+track" and the board still says "Derby track and putting green — Yes". Not a
+contradiction, but the owner was asked whether the derby track should go back
+into the prose and has not answered.
 
 **SEO comes last.** Titles, meta descriptions and structured data should be done
 in one pass across all nine pages, immediately before `robots.txt` and the
@@ -469,3 +478,40 @@ The Claude GitHub App is installed on this repo with write access, so a cloud
 session can push directly. If a push ever returns 403, check that the app is
 still installed at github.com/settings/installations — authorizing the app is
 not the same thing as installing it, and only the install grants write.
+
+Google Drive, Gmail and Google Calendar connectors are live on the account.
+Drive is the useful one here: it can pull a shared folder of photographs
+directly, which is the answer to the photographs problem above.
+
+### What a Claude Code session cannot do — read before promising anything
+
+**A Claude Code session cannot drive the owner's browser.** It runs in a
+container in the cloud with no link to their machine. It can read and write
+every file here, push to GitHub, and fetch the live site — and that is the lot.
+
+The owner has the **Claude for Chrome** extension, which genuinely does drive
+their browser, but it works with **claude.ai** conversations, not with a Claude
+Code session. They are different surfaces. On 10 Aug 2026 this caused a long
+and frustrating detour: a session said it could not drive the browser, the owner
+said it had been doing so for a week, and both were right about different tools.
+
+So the division of labour is:
+
+- **Here** — anything touching the site: copy, layout, photographs, forms,
+  commits, deploys.
+- **claude.ai with the Chrome extension** — anything that means clicking through
+  somebody else's settings pages: GitHub tokens, Netlify configuration, the
+  Airbnb and Lodgify listings.
+
+When browser work has to happen in this session anyway, the fallback that worked
+was: **one instruction at a time, and wait.** Batches of five steps failed
+repeatedly. Ask for a screenshot after each step and read it before giving the
+next one.
+
+### Dead weight in Netlify
+
+`NETLIFY_TOKEN` and `NETLIFY_SITE_ID` are still set as environment variables and
+**nothing reads them any more** — they belonged to the old publish path that
+deployed around the repo. The token is revoked. Deleting both is safe and is
+worth doing; it was left until a real publish had been seen working, which it
+now has.
