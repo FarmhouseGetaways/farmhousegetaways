@@ -43,71 +43,10 @@
 
 const GH = "https://api.github.com";
 
-/* ---------- text replacement — mirrors tools/apply-edits.py ---------- */
+/* ---------- text replacement and photo swaps ---------- */
 
-const ENT = {
-  "—": "&mdash;", "–": "&ndash;", "&": "&amp;", "·": "&middot;",
-  "→": "&rarr;", "←": "&larr;", "’": "&rsquo;", "‘": "&lsquo;",
-  "“": "&ldquo;", "”": "&rdquo;", "…": "&hellip;", "★": "&#9733;",
-  "<": "&lt;", ">": "&gt;", " ": "&nbsp;", "°": "&deg;",
-};
-
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** Match text whether the source wrote a literal character or its entity. */
-function tolerant(s) {
-  let out = "";
-  for (const ch of s) {
-    if (ch === "\n") { out += "(?:[ \\t]*<br\\s*/?>[ \\t]*\\n?|\\s+)"; continue; }
-    if (/\s/.test(ch)) { out += "\\s+"; continue; }
-    out += ENT[ch] ? `(?:${esc(ch)}|${esc(ENT[ch])})` : esc(ch);
-  }
-  return out.replace(/(?:\\s\+)+/g, "\\s+");
-}
-
-/** Write replacements back in the house entity style. */
-function encode(s) {
-  s = s.replace(/&/g, "&amp;");
-  for (const [ch, ent] of Object.entries(ENT)) {
-    if (ch === "&" || ch === "<" || ch === ">") continue;
-    s = s.split(ch).join(ent);
-  }
-  s = s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return s.replace(/\n/g, "<br>\n");   // deliberate line breaks become <br>
-}
-
-function applyToPage(html, changes) {
-  const applied = [], missed = [];
-  for (const c of changes) {
-    const re = new RegExp(tolerant(c.before));
-    const m = html.match(re);
-    if (!m) { missed.push(c.before.slice(0, 60)); continue; }
-    html = html.slice(0, m.index) + encode(c.after) + html.slice(m.index + m[0].length);
-    applied.push(c.before.slice(0, 60));
-  }
-  return { html, applied, missed };
-}
-
-/**
- * Point one <img> at its freshly committed file.
- * The file keeps its path so nothing else has to change, but /images/* is
- * cached immutable for a year — so the src gets a ?v= stamp to force browsers
- * to fetch it again. Width and height are rewritten to the new dimensions so
- * the page does not jump while it loads.
- */
-function swapImage(html, p) {
-  const re = new RegExp(`<img\\b[^>]*?src="${esc(p.src)}(?:\\?[^"]*)?"[^>]*>`, "g");
-  let m, seen = 0, hit = null;
-  while ((m = re.exec(html))) { if (++seen === (p.occurrence || 1)) { hit = m; break; } }
-  if (!hit) return { html, ok: false };
-
-  let tag = hit[0]
-    .replace(/src="[^"]*"/, `src="${p.src}?v=${p.version}"`)
-    .replace(/width="\d+"/, `width="${p.width}"`)
-    .replace(/height="\d+"/, `height="${p.height}"`);
-
-  return { html: html.slice(0, hit.index) + tag + html.slice(hit.index + hit[0].length), ok: true };
-}
+// Lives in _lib so it can be tested:  node --test netlify/functions/_lib/*.test.mjs
+import { applyToPage, swapImage } from "./_lib/edits.mjs";
 
 /* ---------- commit message ---------- */
 

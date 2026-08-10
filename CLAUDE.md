@@ -440,6 +440,29 @@ under `fg-publish-key`; a 401 clears it so the next press asks again.
 **Save to a file** still works and needs no key — it downloads a change list to
 hand over instead.
 
+### The text replacement is in `_lib/edits.mjs`, and it is tested
+
+The entity encoding and the photo swap used to sit inline in `publish.mjs`,
+untested. The very first real publish through the button proved why that was a
+mistake: the entity table mapped an **ordinary space** to `&nbsp;`, so every
+space in the edited paragraph came out non-breaking, the line refused to wrap,
+and it went live running off the right-hand edge of `red-barn-ranch.html`.
+Fixed and moved to `netlify/functions/_lib/edits.mjs` on 10 Aug 2026, with
+`edits.test.mjs` guarding it.
+
+    node --test netlify/functions/_lib/*.test.mjs
+
+Run it after any change to the encoding. Two rules the tests hold in place:
+
+- **Nothing ever writes `&nbsp;`.** A non-breaking space stops a line wrapping,
+  which is never what someone typing into the editor meant.
+- **Non-breaking spaces coming *in* are flattened to ordinary ones.** Browsers
+  scatter U+00A0 through `contenteditable` without being asked, so the encoder
+  strips them rather than preserving them.
+
+`tolerant()` also matches `&nbsp;` in the *source*, so a page damaged by the old
+bug can still be edited back out through the editor.
+
 ## Access
 
 The Claude GitHub App is installed on this repo with write access, so a cloud
