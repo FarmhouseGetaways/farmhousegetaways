@@ -94,6 +94,12 @@ Write like this:
 - **Let the guest choose.** Some groups want everything shown to them, some want
   the place to themselves for a week. Both are welcome and copy should say so
   rather than assume the sociable one.
+- **Say what you do, not what you are not.** A draft once read "we are not event
+  coordinators and we will not pretend to be" — punchy, and it defined the
+  business by a negative. What the owners actually offer is a house that is
+  ready, people they trust after nine years here, and their own presence on the
+  day to show vendors where to park and where things plug in. Say that instead.
+  The correction usually is not a softer negative, it is the positive underneath.
 
 **Safety features go on the site. Safety obligations go in the contract.**
 Decided 8 Aug 2026. A gated pool, a house with no stairs, pack-n-plays ready on
