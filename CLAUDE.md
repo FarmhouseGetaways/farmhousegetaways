@@ -356,9 +356,49 @@ Nineteen photographs are described and waiting, all Red Barn Ranch:
 | 6 · The Adventure Room | wide, sitting area, the Jack-and-Jill |
 | 7 · Industrial Mini Mansion | breakfast tray, wide interior |
 
-`images/rbr-primary-suite.jpg` is **mislabelled** — it is bedroom 5, the Floral
-Peacock, and its caption wrongly calls the Jack-and-Jill an ensuite. Rename and
-recaption when the new photographs land.
+### The photographs, and which frame is which
+
+Fixed 10 Aug 2026. The owner shared the **full professional shoot of Red Barn
+Ranch** as a Google Drive folder — 71 frames, Canon 6D Mark II, Lightroom, named
+`17054 Handlebar Rd_0NN.jpg`. Every photograph already on the site came from
+this same shoot, so the frame numbers are the shared vocabulary:
+
+| Site file | Frame |
+|---|---|
+| `rbr-gamehall-pool` 014 · `rbr-derby` 016 · `rbr-shuffleboard` 018 | barn |
+| `rbr-arcade-hoops` 019 · `rbr-arcade-digdug` 020 · `rbr-minigolf` 021 | barn |
+| `rbr-excavator-kids` 040 · `rbr-feeding-birds` 042 · `rbr-girl-chicken` 045 | farm |
+| `rbr-eggs-kids` 048 | farm |
+| `rbr-living-room` 068 · `rbr-kitchen` 072 · `rbr-kitchen-bar` 073 | house |
+| `rbr-bedroom-desk` 075 · `rbr-bedroom-floral` 086 · `rbr-bedroom-twins` 090 | bedrooms |
+| `rbr-pool-vineyard` 107 · `rbr-pool-spa` 109 · `rbr-pool-wide` 111 | pool |
+
+Roughly fifty frames have never been used. Subject groups: barn 008–022, farm
+039–057, kitchen/dining/living 063–074, **bedrooms 027 and 075–096**, bathrooms
+081/088/097/098, laundry 099, pool 107–111. Frame **089** (a hallway through an
+arch) the owner has said to drop.
+
+**Rooms identified so far:**
+
+- **1 · The Primary** — 092, 093, 094, 095, 096, and its bathroom 097 (soaking
+  tub) and 098 (two sinks, walk-in shower). Confirmed by the owner via 096.
+- **5 · The Floral Peacock** — 084, 085, 086, 087. Frame 085 was on the site as
+  `rbr-primary-suite.jpg`, captioned "Primary suite" with alt text calling the
+  shared bathroom an ensuite. **Renamed to `rbr-floral-peacock.jpg` and
+  recaptioned on 10 Aug 2026.**
+- **6 · The Adventure Room** — 090, 091, and 088 is the Jack-and-Jill it shares
+  with room 5. Inferred from the layout, not yet confirmed by the owner.
+
+**Still to name: 2 · The Library, 3 · The White Room, 4 · The Pink Peacock.**
+The unassigned bedroom frames are 027, 075, 076, 077, 079, 080, 082, 083, and
+bathroom 081. Do not guess — ask.
+
+The originals can be pulled again from Drive at any time; `download_file_content`
+returns base64 and would flood the context, so fetch by URL instead:
+
+    curl -sL "https://drive.google.com/uc?export=download&id=FILE_ID" -o out.jpg
+
+Web copies are 1600px wide, JPEG quality 82, progressive — 20 MB for all 71.
 
 **A portrait of Cory, Carissa and Legend** is coming, for Our Story. There is no
 photograph of the owners anywhere on the site, which is the largest gap on it —
