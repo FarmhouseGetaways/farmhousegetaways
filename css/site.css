@@ -144,6 +144,10 @@ a { color: inherit; }
 .band-dark .cite { color: var(--sage-pale); }
 
 .split { display: grid; gap: clamp(2rem,5vw,4.5rem); grid-template-columns: 1fr; align-items: start; }
+/* A grid item defaults to min-width:auto, so a single stubborn child can widen
+   its whole track and take the page with it. This is the guard against that
+   happening again anywhere the boards or long words live. */
+.split > *, .hero-grid > *, .slab-grid > *, .book-grid > * { min-width: 0; }
 @media (min-width: 60rem) {
   .split { grid-template-columns: 1.15fr 1fr; }
   .split-even { grid-template-columns: 1fr 1fr; }
@@ -218,10 +222,25 @@ a { color: inherit; }
 
 .board-list { list-style: none; margin: 0; padding: 0; }
 .board-list li { display: flex; align-items: baseline; gap: .7rem; font-size: .92rem; padding-block: .52rem; }
-.board-list .k { letter-spacing: .05em; color: var(--plum-soft); white-space: nowrap; font-size: .84rem; }
+.board-list .k { letter-spacing: .05em; color: var(--plum-soft); white-space: nowrap; font-size: .84rem; min-width: 0; }
 .board-list .dots { flex: 1; border-bottom: 1px solid var(--bloom-3); transform: translateY(-.25em); }
-.board-list .v { font-weight: 700; white-space: nowrap; color: var(--plum); }
+/* The value used to be white-space: nowrap, which was fine while every value
+   was "18" or "Yes". The Sleeping board on red-barn-ranch.html puts whole
+   sentences in this slot, and a nowrap child inside a grid item forces its
+   whole column to grow — so on a phone it pushed the board, the prose AND the
+   headline off the right-hand edge. Caught on mobile 11 Aug 2026. Values wrap
+   now; right alignment keeps the dotted-leader look. */
+.board-list .v { font-weight: 700; color: var(--plum); text-align: right; min-width: 0; }
 .board-list .v-hi { color: var(--blush); }
+
+/* On a phone there is not enough room for label, leader and a sentence on one
+   line, so the value drops beneath its label and the leader dots go away. */
+@media (max-width: 40rem) {
+  .board-list li { flex-wrap: wrap; gap: .2rem; padding-block: .6rem; }
+  .board-list .k { flex: 1 0 100%; white-space: normal; }
+  .board-list .dots { display: none; }
+  .board-list .v { flex: 1 0 100%; text-align: left; }
+}
 .band-dark .board-list .k { color: var(--sage-pale); }
 .band-dark .board-list .dots { border-bottom-color: rgba(221,230,220,.22); }
 .band-dark .board-list .v { color: #fff; }

@@ -288,6 +288,35 @@ can start an automation but has no endpoint to create one.
 - **The same phrase often appears in several roles**: the ticker, a detail board
   (`<span class="k">…</span>`), and a hero tag. When the owner names one, change
   only that one and tell them where the others still are.
+- **`css/site.css` is cached immutable for a year.** Every page links it as
+  `site.css?v=XXXXXXXX`. Change the file and you **must** bump that string on all
+  eleven pages or nobody sees the change:
+
+      NEW=$(md5sum css/site.css | cut -c1-8); sed -i "s/site\.css?v=[a-z0-9]*/site.css?v=$NEW/g" *.html
+
+### Checking the site on a phone
+
+Chromium is already installed at
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. It **cannot reach the live
+site** — the agent proxy only relays CONNECT and Chromium gets
+`ERR_CONNECTION_RESET`. Serve the repo instead, which is better anyway because
+it tests the working copy before anything ships:
+
+    python3 -m http.server 8099 --bind 127.0.0.1 &
+    cd <scratchpad> && npm install playwright-core     # PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+Then drive it at 390×844 and compare `documentElement.scrollWidth` with
+`clientWidth`. Anything wider than the viewport is a horizontal-overflow bug.
+
+**This has bitten once, on 11 Aug 2026.** `.board-list .v` carried
+`white-space: nowrap`, which was harmless while every value was "18" or "Yes".
+The Sleeping board on `red-barn-ranch.html` put whole sentences in that slot,
+and **a nowrap child inside a grid item forces its whole track to grow** — so
+the board took the prose and the headline off the right-hand edge with it. Red
+Barn Ranch measured 696px inside a 390px screen, Mountain Retreat 539px, and
+`index.html` was quietly over by 45px too. Fixed by letting values wrap,
+stacking label above value below 40rem, and adding `min-width: 0` to the grid
+children as a general guard. Re-run the check after any layout change.
 
 ## Integrations
 
