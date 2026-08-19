@@ -772,7 +772,7 @@
     /* The blurb wraps inside the column so a longer one written later cannot
        run underneath the stage and difficulty readouts on the right. */
     var infoX = W - 98;
-    var lines = HUD.wrapText(ctx, sel.blurb, infoX - 86 - 10, 7.6, 600);
+    var lines = HUD.wrapText(ctx, sel.blurb, infoX - 86 - 18, 7.5, 600);
     for (var L = 0; L < Math.min(lines.length, 4); L++) {
       HUD.text(ctx, lines[L], 86, by + 39 + L * 9, 7.6, 'rgba(255,240,220,.78)', 'left', 600, 0.3);
     }
@@ -784,10 +784,12 @@
     HUD.text(ctx, 'WEIGHT', infoX, by + 14, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
     HUD.text(ctx, cls.label, infoX + 40, by + 14, 8.5, clsCol, 'left', 800, 0.8);
 
-    /* the two numbers that follow from it */
-    var tough = Math.round((1 / cls.damageTaken) * 100 - 100);
-    HUD.text(ctx, (tough >= 0 ? 'TAKES ' + tough + '% LESS' : 'TAKES ' + (-tough) + '% MORE'),
-             infoX, by + 24, 6.6, 'rgba(255,240,220,.55)', 'left', 600, 0.2);
+    /* what that costs, or buys, in plain words */
+    var swing = Math.round(Math.abs(1 - cls.damageTaken) * 100);
+    var toughLine = cls.damageTaken < 1 ? 'TAKES ' + swing + '% LESS DAMAGE'
+                  : (cls.damageTaken > 1 ? 'TAKES ' + swing + '% MORE DAMAGE'
+                  : 'NO WEAKNESS, NO EDGE');
+    HUD.text(ctx, toughLine, infoX, by + 24, 6.4, 'rgba(255,240,220,.55)', 'left', 600, 0.15);
 
     /* difficulty pips */
     HUD.text(ctx, 'DIFFICULTY', infoX, by + 38, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
