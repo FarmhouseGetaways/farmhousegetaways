@@ -233,6 +233,7 @@
 
   function drawHead(ctx, j, c, fur, fur2, belly, line, opts) {
     var r = j.headR, s = j.s;
+    var es = s;                  // facial detail scales with the figure
     ctx.save();
     ctx.translate(j.head.x, j.head.y);
     ctx.rotate(-(j.headRot || 0) * DEG);
@@ -245,7 +246,7 @@
       ctx.lineTo(sx * r * 1.02, r * 0.42);
       ctx.closePath();
       ctx.fillStyle = fur; ctx.fill();
-      ctx.strokeStyle = line; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.strokeStyle = line; ctx.lineWidth = 1.1 * es; ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(sx * r * 0.52, r * 0.66);
       ctx.lineTo(sx * r * 0.88, r * 1.32);
@@ -259,11 +260,11 @@
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.02, r * 0.94, 0, 0, Math.PI * 2);
     ctx.fillStyle = fur; ctx.fill();
-    ctx.strokeStyle = line; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.strokeStyle = line; ctx.lineWidth = 1.3 * es; ctx.stroke();
 
     /* head markings */
     if (c.pattern === 'tabby') {
-      ctx.strokeStyle = c.marks; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = c.marks; ctx.lineWidth = 1.6 * es; ctx.globalAlpha = 0.9;
       for (var i = -1; i <= 1; i++) {
         ctx.beginPath();
         ctx.moveTo(i * 3.2, r * 0.9);
@@ -300,7 +301,7 @@
     var eyeState = opts.eyes || 'normal';
     function eye(ex, ey, sc) {
       if (eyeState === 'closed' || eyeState === 'ko') {
-        ctx.strokeStyle = line; ctx.lineWidth = 1.6;
+        ctx.strokeStyle = line; ctx.lineWidth = 1.6 * es;
         ctx.beginPath();
         if (eyeState === 'ko') {  // X eyes
           ctx.moveTo(ex - 2.6 * sc, ey - 2.6 * sc); ctx.lineTo(ex + 2.6 * sc, ey + 2.6 * sc);
@@ -315,7 +316,7 @@
       ctx.beginPath();
       ctx.ellipse(ex, ey, 3.4 * sc, 3.9 * sc * open, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#fdfbf5'; ctx.fill();
-      ctx.strokeStyle = line; ctx.lineWidth = 0.9; ctx.stroke();
+      ctx.strokeStyle = line; ctx.lineWidth = 0.9 * es; ctx.stroke();
       ctx.beginPath();
       ctx.ellipse(ex + 0.9 * sc, ey, 2.0 * sc, 3.2 * sc * open, 0, 0, Math.PI * 2);
       ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
@@ -326,11 +327,11 @@
       ctx.arc(ex + 1.9 * sc, ey + 1.4 * sc, 0.85 * sc, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
     }
-    eye(r * 0.42, r * 0.2, 1);
-    eye(-r * 0.28, r * 0.22, 0.92);
+    eye(r * 0.42, r * 0.2, es);
+    eye(-r * 0.28, r * 0.22, 0.92 * es);
 
     if (eyeState === 'angry') {
-      ctx.strokeStyle = line; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = line; ctx.lineWidth = 1.5 * es;
       ctx.beginPath();
       ctx.moveTo(r * 0.14, r * 0.62); ctx.lineTo(r * 0.72, r * 0.44);
       ctx.moveTo(-r * 0.54, r * 0.5); ctx.lineTo(-r * 0.04, r * 0.66);
@@ -338,7 +339,7 @@
     }
 
     /* whiskers */
-    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.8;
+    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.8 * es;
     for (var w = -1; w <= 1; w++) {
       ctx.beginPath();
       ctx.moveTo(r * 0.62, -r * 0.28 + w * 1.8);
@@ -354,7 +355,7 @@
       ctx.beginPath();
       ctx.moveTo(-r * 0.9, r * 0.55);
       ctx.quadraticCurveTo(-r * 1.9, r * 0.5, -r * 2.5, r * 1.1);
-      ctx.lineWidth = 2.6; ctx.strokeStyle = c.accent; ctx.stroke();
+      ctx.lineWidth = 2.6 * es; ctx.strokeStyle = c.accent; ctx.stroke();
     } else if (c.accessory === 'goggles') {
       ctx.fillStyle = 'rgba(30,30,38,.95)';
       ctx.beginPath();

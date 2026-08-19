@@ -694,19 +694,25 @@
     }
     HUD.text(ctx, sel.displayName, 86 + photoW, by + 16, 15, '#ffe07a', 'left', 800, 1.4);
     HUD.text(ctx, sel.subtitle, 86 + photoW, by + 27, 9, '#ffb8a0', 'left', 700, 1);
-    var lines = sel.blurb.split('\n');
-    for (var L = 0; L < lines.length; L++) {
+
+    /* The blurb wraps inside the column so a longer one written later cannot
+       run underneath the stage and difficulty readouts on the right. */
+    var infoX = W - 98;
+    var lines = HUD.wrapText(ctx, sel.blurb, infoX - 86 - 10, 7.6, 600);
+    for (var L = 0; L < Math.min(lines.length, 4); L++) {
       HUD.text(ctx, lines[L], 86, by + 39 + L * 9, 7.6, 'rgba(255,240,220,.78)', 'left', 600, 0.3);
     }
+
     /* difficulty pips */
-    HUD.text(ctx, 'DIFFICULTY', W - 96, by + 16, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
+    HUD.text(ctx, 'DIFFICULTY', infoX, by + 16, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
     for (var d = 0; d < 3; d++) {
       ctx.fillStyle = d < sel.difficulty ? '#ffd24a' : 'rgba(255,255,255,.18)';
-      ctx.fillRect(W - 96 + d * 11, by + 20, 8, 4);
+      ctx.fillRect(infoX + d * 11, by + 20, 8, 4);
     }
-    HUD.text(ctx, 'STAGE: ' + CF.Stages[this.select.stage].name, W - 96, by + 38, 7,
-             'rgba(255,240,220,.6)', 'left', 700, 0.4);
-    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', W - 96, by + 50, 7.5,
+    HUD.text(ctx, 'STAGE', infoX, by + 36, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
+    HUD.text(ctx, CF.Stages[this.select.stage].name, infoX, by + 45, 7,
+             'rgba(255,240,220,.85)', 'left', 700, 0.2);
+    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', infoX, by + 58, 7.5,
              '#8fd6ff', 'left', 800, 0.6);
   };
 

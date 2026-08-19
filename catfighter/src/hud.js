@@ -42,6 +42,31 @@
     ctx.restore();
   }
 
+  /* Break a string into lines that fit `maxWidth`, honouring any newlines
+     already in it. Character blurbs are written by hand and get edited, so
+     they must wrap rather than run off into the next column. */
+  function wrapText(ctx, str, maxWidth, size, weight) {
+    ctx.save();
+    ctx.font = (weight || 600) + ' ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+    var out = [];
+    var paras = String(str).split('\n');
+    for (var p = 0; p < paras.length; p++) {
+      var words = paras[p].split(/\s+/), line = '';
+      for (var i = 0; i < words.length; i++) {
+        var probe = line ? line + ' ' + words[i] : words[i];
+        if (ctx.measureText(probe).width > maxWidth && line) {
+          out.push(line);
+          line = words[i];
+        } else {
+          line = probe;
+        }
+      }
+      if (line) out.push(line);
+    }
+    ctx.restore();
+    return out;
+  }
+
   /* ---- health bars ------------------------------------------------------- */
   function bar(ctx, f, side, ghost) {
     var W = 152, H = 12;
@@ -282,7 +307,7 @@
   }
 
   CF.HUD = {
-    text: text, outlineText: outlineText,
+    text: text, outlineText: outlineText, wrapText: wrapText,
     bar: bar, meterBar: meterBar, timer: timer, combo: combo,
     drawFx: drawFx, drawProjectile: drawProjectile
   };

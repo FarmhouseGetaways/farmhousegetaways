@@ -2,7 +2,7 @@
   "name": "cat-fighter-ii",
   "productName": "Cat Fighter II",
   "version": "0.1.0",
-  "description": "Cat Fighter II — The Farmhouse Warriors. A six-button arcade fighting game.",
+  "description": "Cat Fighter II \u2014 The Farmhouse Warriors. A six-button arcade fighting game.",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
@@ -22,8 +22,10 @@
   "build": {
     "appId": "com.farmhousegetaways.catfighter",
     "productName": "Cat Fighter II",
-    "copyright": "Copyright © 2026 Farmhouse Getaways",
-    "directories": { "output": "dist" },
+    "copyright": "Copyright \u00a9 2026 Farmhouse Getaways",
+    "directories": {
+      "output": "dist"
+    },
     "files": [
       "index.html",
       "css/**/*",
@@ -34,10 +36,21 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "zip", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "artifactName": "CatFighterII-${version}-${arch}.${ext}"
+      "artifactName": "CatFighterII-${version}-${arch}.${ext}",
+      "icon": "assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -46,7 +59,20 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Cat Fighter II"
     },
-    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.games" },
-    "linux": { "target": ["AppImage"], "category": "Game" }
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games",
+      "icon": "assets/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game",
+      "icon": "assets/icon.png"
+    }
   }
 }
