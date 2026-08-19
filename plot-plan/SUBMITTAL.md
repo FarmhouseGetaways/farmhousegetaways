@@ -28,8 +28,9 @@ You will still need:
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
 - Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev6.pdf`
-- Check one dimension with an engineer's scale after printing. The graphic scale
-  bar at the bottom left should measure exactly 4 inches from 0 to 160.
+- Check the print with an engineer's scale: the graphic scale bar at the bottom
+  left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
+  was scaled and the plans will not check out.
 
 ## The numbers, and where they come from
 
@@ -133,9 +134,14 @@ an existing-use site).
 
 ```bash
 cd plot-plan
-python3 scripts/build_plot_plan.py     # -> Ag_Plot_Plan_17054_Handlebar.pdf
+python3 scripts/build_plot_plan.py     # -> output/Ag_Plot_Plan_17054_Handlebar_rev6.pdf
 python3 scripts/make_overlay.py        # -> output/Verification_Overlay_v3.png
+python3 scripts/verify_sheet.py        # print-fidelity check — run before printing
 ```
+
+`verify_sheet.py` measures the finished PDF and asserts the parcel plots at a
+true 1"=40' and the scale bar spans exactly 3.00 inches. It caught a real defect
+during rev 6: the bar had been labelled 0–160 ft while measuring 2.88 inches.
 
 The build script fails loudly if the notes block or the store compliance box
 outgrows its space, so a text edit cannot silently push content off the sheet.

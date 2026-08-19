@@ -406,14 +406,21 @@ tl(ca, cy-0.098, "ON THE NET BASIS AG USE IS 36.7% — MET EITHER WAY.", 6.0, x=
 
 # ---- Col 1 bottom: north arrow + graphic scale
 sa = band_axes(C1, 0.45, CW, 1.55)
-sa.text(0.10, 0.80, 'N', fontsize=15, ha='center', va='center', fontweight='bold')
-sa.annotate('', (0.10, 0.74), (0.10, 0.14), arrowprops=dict(arrowstyle='-|>', lw=2.6, color='black'))
-bx0, by0, bw, bh = 0.22, 0.40, 4.0/CW*0.72, 0.13
-for i in range(4):
-    sa.add_patch(Rectangle((bx0 + i*bw/4, by0), bw/4, bh,
+sa.text(0.07, 0.80, 'N', fontsize=15, ha='center', va='center', fontweight='bold')
+sa.annotate('', (0.07, 0.74), (0.07, 0.14), arrowprops=dict(arrowstyle='-|>', lw=2.6, color='black'))
+# The bar must measure TRUE on the printed sheet: 120 ft at 1"=40' is exactly
+# 3.00 in. A plan checker scales off this, so it is derived, never eyeballed.
+BAR_FT = 120.0
+BAR_IN = BAR_FT / SCALE                      # 3.00 in
+assert abs(BAR_IN - 3.0) < 1e-9, BAR_IN
+bw = BAR_IN / CW                             # axes fraction (CW is the box width, in)
+bx0, by0, bh = 0.18, 0.40, 0.13
+assert bx0 + bw <= 0.99, f"scale bar overruns its box: {bx0 + bw:.3f}"
+for i in range(3):
+    sa.add_patch(Rectangle((bx0 + i*bw/3, by0), bw/3, bh,
                  fc='black' if i % 2 == 0 else 'white', ec='black', lw=0.9))
-for i, v in enumerate([0, 40, 80, 120, 160]):
-    sa.text(bx0 + i*bw/4, by0-0.09, str(v), fontsize=7, ha='center', va='top')
+for i, v in enumerate([0, 40, 80, 120]):
+    sa.text(bx0 + i*bw/3, by0-0.09, str(v), fontsize=7, ha='center', va='top')
 sa.text(bx0 + bw/2, 0.80, 'GRAPHIC SCALE: 1" = 40\'', fontsize=9.5, ha='center', fontweight='bold')
 sa.text(bx0 + bw/2, 0.10, '(FEET)', fontsize=6.5, ha='center')
 
@@ -702,7 +709,11 @@ tline(tb_h*0.245, "5    8/06/2026  SETBACK LINES ADDED", 5.4, x=0.62)
 tline(tb_h*0.170, "6    8/19/2026  FARM STORE; SETBACKS", 5.4, x=0.62)
 tline(tb_h*0.095, "                CORRECTED PER §4810", 5.4, x=0.62)
 
-out_pdf = 'Ag_Plot_Plan_17054_Handlebar.pdf'
+# Write to output/ relative to the project, not the working directory, so the
+# sheet lands in the same place however the script is invoked.
+_out = os.path.join(_here, '..', 'output')
+os.makedirs(_out, exist_ok=True)
+out_pdf = os.path.join(_out, 'Ag_Plot_Plan_17054_Handlebar_rev6.pdf')
 fig.savefig(out_pdf, format='pdf')
-fig.savefig('preview.png', dpi=72)
-print("saved", out_pdf)
+fig.savefig(os.path.join(_out, 'preview.png'), dpi=72)
+print("saved", os.path.normpath(out_pdf))

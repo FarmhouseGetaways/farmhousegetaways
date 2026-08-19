@@ -458,6 +458,13 @@ block would overrun the title block, or if the store compliance box would
 overrun its column. Edit note text freely — if it no longer fits, the build fails
 loudly instead of silently pushing content off the sheet. Keep those guards.
 
+**Run `scripts/verify_sheet.py` before printing.** It opens the finished PDF and
+measures it: sheet size, the parcel plotting true at 1"=40', and the graphic
+scale bar spanning exactly 3.00 in for 120 ft. It caught a real defect in rev 6 —
+the scale bar was labelled 0–160 ft but measured 2.88 in, which would have made
+every distance a checker scaled off it wrong. The sheet also writes to
+`output/` regardless of the working directory, so there is no stale-copy trap.
+
 **Always regenerate the verification overlay after a geometry change:**
 
     python3 scripts/make_overlay.py     # -> output/Verification_Overlay_v3.png
@@ -479,6 +486,7 @@ research/FINDINGS.md          §6157 verbatim, §4810 Schedule C, §4842, the
 data/                         zone polys, parcel boundary, ag areas, site features
 scripts/build_plot_plan.py    generates the 24x18 sheet (rev 6)
 scripts/make_overlay.py       verification overlay on the aerial
+scripts/verify_sheet.py       print-fidelity check — run before printing
 reference/                    county forms and the assessor's map
 source/                       owner aerial + well/septic markup
 output/                       rev5 + rev6 PDFs, overlays v2 and v3
