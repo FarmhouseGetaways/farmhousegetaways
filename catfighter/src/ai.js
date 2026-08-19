@@ -15,6 +15,10 @@
     this.virtual = true;
     this.script = [];               // queued frames: {dir, btn:{}}
     this.holdDir = 5;
+    /* Buttons the CPU keeps held once its queued script runs out. Without
+       this it can only block in short bursts, because releasing everything
+       is exactly what happens when the queue empties. */
+    this.holdBtn = {};
     this.slot = -1;                 // no hardware slot: see below
   }
   VirtualPort.prototype = Object.create(Port.prototype);
@@ -31,7 +35,7 @@
   VirtualPort.prototype.poll = function () {
     var f = this.script.shift();
     if (f) this.apply(f.dir, f.btn || {}, false);
-    else this.apply(this.holdDir, {}, false);
+    else this.apply(this.holdDir, this.holdBtn, false);
   };
 
   /* Queue helpers. Directions here are RELATIVE (facing right); the AI
@@ -46,6 +50,7 @@
     return this;
   };
   VirtualPort.prototype.clear = function () { this.script.length = 0; return this; };
+  VirtualPort.prototype.release = function () { this.holdBtn = {}; return this; };
   VirtualPort.prototype.busy = function () { return this.script.length > 0; };
 
   function mirror(dir, facing) {
@@ -90,12 +95,22 @@
 
     if (this.cool > 0) { this.cool--; return; }
     if (p.busy()) return;
+    if (p.release) p.release();     // let go of anything held from last time
     if (f.isLocked() && f.state !== 'blockstun') { p.holdDir = 5; return; }
 
     var dist = Math.abs(o.x - f.x);
     var face = f.facing;
+    var simple = CF.Input.getScheme() === 'simple';
+    /* Translate the arcade buttons the CPU's decision tree talks in into
+       whatever the active scheme actually has. */
+    function translate(b) {
+      if (!simple) return b;
+      if (b === 'LP' || b === 'MP' || b === 'HP') return 'P';
+      if (b === 'LK' || b === 'MK' || b === 'HK') return 'K';
+      return b;
+    }
     var q = function (dir, frames) { p.qDir(mirror(dir, face), frames); };
-    var qb = function (dir, btn, frames) { p.qBtn(mirror(dir, face), btn, frames); };
+    var qb = function (dir, btn, frames) { p.qBtn(mirror(dir, face), translate(btn), frames); };
 
     /* ---- 1. defend ------------------------------------------------------ */
     var threat = this.incomingThreat(game, dist);
@@ -107,10 +122,28 @@
       return;
     }
 
+    /* In the four-button scheme everyone has a dodge on the trigger, so the
+       CPU should sometimes simply not be there. */
+    if (simple && threat && dist < 90 && this.r() < L.blockOdds * 0.22) {
+      var dd = { DODGE: true };
+      for (var di = 0; di < 3; di++) p.script.push({ dir: mirror(5, face), btn: dd });
+      this.cool = 8;
+      return;
+    }
+
     if (threat && this.r() < L.blockOdds) {
       var low = threat === 'low';
-      p.holdDir = mirror(low ? 1 : 4, face);
-      q(low ? 1 : 4, L.react + 6);
+      if (simple) {
+        var bo = { BLOCK: true };
+        for (var bi = 0; bi < L.react + 6; bi++) {
+          p.script.push({ dir: mirror(low ? 2 : 5, face), btn: bo });
+        }
+        p.holdDir = mirror(low ? 2 : 5, face);
+        p.holdBtn = { BLOCK: true };      // keep guarding after the script ends
+      } else {
+        p.holdDir = mirror(low ? 1 : 4, face);
+        q(low ? 1 : 4, L.react + 6);
+      }
       this.cool = 2;
       return;
     }
@@ -155,7 +188,10 @@
         var mid = this.pick('projectile');
         if (mid) { this.doSpecial(mid, q, qb, 0); this.cool = 12; return; }
       }
-      if (this.r() < 0.30) { q(9, 3); q(5, 22); this.cool = 6; return; }   // jump in
+      if (this.r() < 0.30) {                                              // jump in
+        if (simple) { qb(6, 'JUMP', 2); q(6, 22); } else { q(9, 3); q(5, 22); }
+        this.cool = 6; return;
+      }
       if (this.r() < L.aggro) { q(6, 16); this.cool = 3; return; }
       q(4, 10); this.cool = 3; return;
     }
@@ -180,8 +216,10 @@
     }
 
     /* nothing doing — hold guard or reposition */
-    if (this.r() < 0.5) { p.holdDir = mirror(4, face); q(4, 10); }
-    else q(5, 10);
+    if (this.r() < 0.5) {
+      if (simple) { p.holdDir = mirror(5, face); p.holdBtn = { BLOCK: true }; q(5, 10); }
+      else { p.holdDir = mirror(4, face); q(4, 10); }
+    } else q(5, 10);
     this.cool = L.think;
   };
 
@@ -248,16 +286,38 @@
 
   /* Actually input the motion, frame by frame, like a person would. */
   AI.prototype.doSpecial = function (m, q, qb, strength) {
-    var btn = m.buttons[Math.min(strength || 0, m.buttons.length - 1)] || m.buttons[0];
+    var btn = (m.buttons && m.buttons[Math.min(strength || 0, m.buttons.length - 1)]) ||
+              (m.buttons && m.buttons[0]) || 'HP';
     this.inputMotion(m, q, qb, btn);
   };
 
   AI.prototype.doSuper = function (m, q, qb) {
-    var btn = m.buttons[2] || m.buttons[0];
+    var btn = (m.buttons && (m.buttons[2] || m.buttons[0])) || 'HP';
     this.inputMotion(m, q, qb, btn);
   };
 
+  /* In the four-button scheme there are no motions to input: a special is a
+     pair of buttons. The CPU presses the same pair a player would. */
+  AI.prototype.inputPair = function (m) {
+    var f = this.f, p = this.port;
+    var pair = null;
+    if (m.kind === 'super') pair = ['DODGE', 'LUNGE'];
+    else if (m.kind === 'throw') pair = ['K', 'BLOCK'];
+    else {
+      var idx = f.chr.specials.indexOf(m);
+      if (idx === 0) pair = ['P', 'K'];
+      else if (idx === 1) pair = ['P', 'BLOCK'];
+    }
+    if (!pair) return false;
+    var o = {}; o[pair[0]] = true; o[pair[1]] = true;
+    var dir = mirror(this.r() < 0.5 ? 6 : 5, f.facing);
+    for (var i = 0; i < 3; i++) p.script.push({ dir: dir, btn: o });
+    p.script.push({ dir: dir, btn: {} });
+    return true;
+  };
+
   AI.prototype.inputMotion = function (m, q, qb, btn) {
+    if (CF.Input.getScheme() === 'simple' && this.inputPair(m)) return;
     if (m.charge) {
       var need = (m.chargeFrames || 40) + 6;
       if (m.charge === 'bf') { q(4, need); qb(6, btn, 3); }

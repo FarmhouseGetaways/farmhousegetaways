@@ -11,27 +11,72 @@
         1 2 3
    ========================================================================== */
 (function () {
-  var BUTTONS = ['LP', 'MP', 'HP', 'LK', 'MK', 'HK'];
+  /* Every logical button the game knows. The classic six are the arcade
+     layout; the rest belong to the four-button scheme. A port tracks all of
+     them and the active scheme decides which are wired to hardware. */
+  var BUTTONS = ['LP', 'MP', 'HP', 'LK', 'MK', 'HK',
+                 'P', 'K', 'JUMP', 'BLOCK', 'DODGE', 'LUNGE'];
 
-  /* ---- Key bindings ------------------------------------------------------
-     Six-button arcade layout, punches on the top row, kicks below:
-          LP MP HP
-          LK MK HK
-     Edit these to taste — nothing else reads raw key codes.                */
-  var KEYS = {
-    p1: {
-      up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
-      LP: ['KeyU'], MP: ['KeyI'], HP: ['KeyO'],
-      LK: ['KeyJ'], MK: ['KeyK'], HK: ['KeyL'],
-      start: ['Enter', 'Space']
+  /* ---- Control schemes ----------------------------------------------------
+
+     SIMPLE is the default: four buttons for the things you do most, two
+     triggers for movement, and specials on a pair of buttons pressed
+     together. Because Jump is a button, UP on the stick is free — which is
+     what gives eight ground normals out of two attack buttons.
+
+            PUNCH   KICK   JUMP   BLOCK        LT dodge   RT lunge
+            P+K = special 1   P+BLOCK = special 2   K+BLOCK = throw
+            LT+RT = super
+
+     CLASSIC is the arcade layout the engine was built on: six attack
+     buttons, hold back to block, up to jump, quarter-circles and charges.
+     Nothing was thrown away — it is a menu option.                        */
+
+  var SCHEMES = {
+    simple: {
+      label: 'SIMPLE',
+      keys: {
+        p1: {
+          up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
+          P: ['KeyJ'], K: ['KeyK'], JUMP: ['Space'], BLOCK: ['KeyL'],
+          DODGE: ['KeyU'], LUNGE: ['KeyI'],
+          start: ['Enter']
+        },
+        p2: {
+          up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
+          P: ['Numpad4'], K: ['Numpad5'], JUMP: ['Numpad0'], BLOCK: ['Numpad6'],
+          DODGE: ['Numpad7'], LUNGE: ['Numpad8'],
+          start: ['NumpadEnter', 'ShiftRight']
+        }
+      },
+      /* standard-gamepad indices: X punch, B kick, A jump, Y or LB block */
+      pad: { P: 2, K: 1, JUMP: 0, BLOCK: 3, BLOCK_ALT: 4, DODGE: 6, LUNGE: 7, start: 9, back: 8 }
     },
-    p2: {
-      up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
-      LP: ['Numpad7', 'Digit7'], MP: ['Numpad8', 'Digit8'], HP: ['Numpad9', 'Digit9'],
-      LK: ['Numpad4', 'Digit4'], MK: ['Numpad5', 'Digit5'], HK: ['Numpad6', 'Digit6'],
-      start: ['NumpadEnter', 'ShiftRight']
+
+    classic: {
+      label: 'CLASSIC',
+      keys: {
+        p1: {
+          up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
+          LP: ['KeyU'], MP: ['KeyI'], HP: ['KeyO'],
+          LK: ['KeyJ'], MK: ['KeyK'], HK: ['KeyL'],
+          start: ['Enter', 'Space']
+        },
+        p2: {
+          up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
+          LP: ['Numpad7'], MP: ['Numpad8'], HP: ['Numpad9'],
+          LK: ['Numpad4'], MK: ['Numpad5'], HK: ['Numpad6'],
+          start: ['NumpadEnter', 'ShiftRight']
+        }
+      },
+      pad: { LP: 2, MP: 3, HP: 5, LK: 0, MK: 1, HK: 7, start: 9, throwMacro: 6, back: 8 }
     }
   };
+
+  var scheme = 'simple';
+  function setScheme(name) { if (SCHEMES[name]) scheme = name; }
+  function getScheme() { return scheme; }
+  function schemeDef() { return SCHEMES[scheme]; }
 
   /* ---- Gamepads ----------------------------------------------------------
 
@@ -46,7 +91,6 @@
      Both triggers are analogue: they report `value` from 0 to 1 and only set
      `pressed` around halfway. A fighting game wants the input the moment the
      player commits, so they are read at a third of the way down.            */
-  var PAD_BUTTONS = { LP: 2, MP: 3, HP: 5, LK: 0, MK: 1, HK: 7, start: 9, throwMacro: 6, back: 8 };
   var PAD_DEADZONE = 0.42;
   var TRIGGER_POINT = 0.32;
 
@@ -154,7 +198,8 @@
     this.chargeBack = 0;           // frames spent holding back-ish
     this.chargeDown = 0;           // frames spent holding down-ish
     this.consumed = 0;             // frame index up to which motions are spent
-    for (var i = 0; i < BUTTONS.length; i++) this.held[BUTTONS[i]] = false;
+    this.lastPress = {};           // button -> frame it last went down
+    for (var i = 0; i < BUTTONS.length; i++) { this.held[BUTTONS[i]] = false; this.lastPress[BUTTONS[i]] = 0; }
   }
 
   Port.BUTTONS = BUTTONS;
@@ -164,20 +209,19 @@
   Port.prototype.padName = function () { return padName(this.slot); };
   Port.prototype.rumble = function (strength, ms) { rumble(this.slot, strength, ms); };
 
-  /* Read the physical keyboard/pad for this port. */
+  /* Read the physical keyboard/pad for this port, through the active scheme. */
   Port.prototype.readHardware = function () {
-    var k = KEYS[this.which], p = this.pad();
+    var def = schemeDef();
+    var k = def.keys[this.which], PAD = def.pad, p = this.pad();
     var up = anyDown(k.up), dn = anyDown(k.down),
         lf = anyDown(k.left), rt = anyDown(k.right);
 
     if (p) {
-      /* left stick */
       var ax = p.axes[0] || 0, ay = p.axes[1] || 0;
       if (ax < -PAD_DEADZONE) lf = true;
       if (ax > PAD_DEADZONE) rt = true;
       if (ay < -PAD_DEADZONE) up = true;
       if (ay > PAD_DEADZONE) dn = true;
-      /* d-pad — the one most people actually use for motions */
       if (btn(p, 12)) up = true;
       if (btn(p, 13)) dn = true;
       if (btn(p, 14)) lf = true;
@@ -193,12 +237,14 @@
     var btns = {};
     for (var i = 0; i < BUTTONS.length; i++) {
       var b = BUTTONS[i];
-      btns[b] = anyDown(k[b]) || (p ? btn(p, PAD_BUTTONS[b]) : false);
+      btns[b] = (k[b] ? anyDown(k[b]) : false) || (p ? btn(p, PAD[b]) : false);
     }
-    /* LT is a throw macro, the same as pressing light punch and light kick */
-    if (p && btn(p, PAD_BUTTONS.throwMacro)) { btns.LP = true; btns.LK = true; }
+    /* a second, more comfortable block button on the shoulder */
+    if (p && PAD.BLOCK_ALT !== undefined && btn(p, PAD.BLOCK_ALT)) btns.BLOCK = true;
+    /* classic only: the left trigger presses both lights, which is a throw */
+    if (p && PAD.throwMacro !== undefined && btn(p, PAD.throwMacro)) { btns.LP = true; btns.LK = true; }
 
-    var start = anyDown(k.start) || (p ? btn(p, PAD_BUTTONS.start) : false);
+    var start = anyDown(k.start) || (p ? btn(p, PAD.start) : false);
     return { dir: 1 + col + row * 3, btn: btns, start: start };
   };
 
@@ -221,6 +267,7 @@
       var b = BUTTONS[i], now = !!btn[b];
       this.pressed[b] = now && !this.held[b];
       this.released[b] = !now && this.held[b];
+      if (this.pressed[b]) this.lastPress[b] = this.frame + 1;
       this.held[b] = now;
       if (now) mask |= (1 << i);
     }
@@ -246,8 +293,8 @@
   Port.prototype.poll = function () {
     var h = this.readHardware();
     this.apply(h.dir, h.btn, h.start);
-    var k = KEYS[this.which], i;
-    for (i = 0; i < BUTTONS.length; i++) clearLatch(k[BUTTONS[i]]);
+    var k = schemeDef().keys[this.which], i;
+    for (i = 0; i < BUTTONS.length; i++) if (k[BUTTONS[i]]) clearLatch(k[BUTTONS[i]]);
     clearLatch(k.start);
     clearLatch(k.up); clearLatch(k.down); clearLatch(k.left); clearLatch(k.right);
   };
@@ -351,14 +398,42 @@
     this.chargeBack = 0; this.chargeDown = 0;
   };
 
+  /* Were these two buttons pressed close enough together to count as one
+     input? People are never simultaneous to the frame — three frames of slop
+     is generous enough to be reliable and short enough that it never fires
+     from a deliberate two-hit string. */
+  Port.prototype.pairPressed = function (a, b, window) {
+    var w = window || 4;
+    var fa = this.lastPress[a], fb = this.lastPress[b];
+    if (!fa || !fb) return false;
+    if (Math.abs(fa - fb) > w) return false;
+    return (this.frame - Math.max(fa, fb)) <= w;
+  };
+
+  /* Forget a pair so one press cannot pay for two moves. */
+  Port.prototype.consumePair = function (a, b) {
+    this.lastPress[a] = 0;
+    this.lastPress[b] = 0;
+  };
+
+  /* Menu inputs that mean the same thing in either scheme. */
+  Port.prototype.confirmPressed = function () {
+    return !!(this.startPressed || this.pressed.P ||
+              this.pressed.LP || this.pressed.MP || this.pressed.HP);
+  };
+  Port.prototype.cancelPressed = function () {
+    return !!(this.pressed.K || this.pressed.LK || this.pressed.MK || this.pressed.HK);
+  };
+
   Port.prototype.anyPressed = function () {
     for (var i = 0; i < BUTTONS.length; i++) if (this.pressed[BUTTONS[i]]) return true;
     return this.startPressed;
   };
 
   CF.Input = {
-    Port: Port, BUTTONS: BUTTONS, KEYS: KEYS,
-    PAD_BUTTONS: PAD_BUTTONS, PAD_DEADZONE: PAD_DEADZONE, TRIGGER_POINT: TRIGGER_POINT,
+    Port: Port, BUTTONS: BUTTONS,
+    SCHEMES: SCHEMES, setScheme: setScheme, getScheme: getScheme, schemeDef: schemeDef,
+    PAD_DEADZONE: PAD_DEADZONE, TRIGGER_POINT: TRIGGER_POINT,
     padForPlayer: padForPlayer, padCount: padCount, padName: padName,
     rumble: rumble, refreshPadOrder: refreshPadOrder, readButton: btn
   };

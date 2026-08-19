@@ -56,59 +56,60 @@ your machine to get a build.
 
 ## Controls
 
-The arcade layout: three punches on the top row, three kicks below.
+Two schemes. **SIMPLE** is the default; **CLASSIC** is the original arcade
+layout, and you switch between them under Options.
 
-```
-        LP  MP  HP
-        LK  MK  HK
-```
+### SIMPLE — four buttons
 
-### On an Xbox controller
-
-Plug it in and press a button — it is found automatically, with no setup
-screen. The mapping is the one every six-button fighting game uses on a pad:
-
-| Button | Does |
+| Xbox | Does |
 |---|---|
-| **X** | Light punch |
-| **Y** | Medium punch |
-| **RB** | Heavy punch |
-| **A** | Light kick |
-| **B** | Medium kick |
-| **RT** | Heavy kick |
-| **LT** | Throw (a macro for light punch + light kick) |
-| **Left stick or D-pad** | Move, jump, block |
-| **Start** | Pause, and confirm on menus |
+| **X** | Punch |
+| **B** | Kick |
+| **A** | Jump |
+| **Y** (or LB) | Block |
+| **LT** | Dodge — an invincible hop away |
+| **RT** | Lunge — a fast advance |
 
-Both triggers are analogue, and are taken at a third of the way down rather
-than waiting for the button to bottom out — a fighting game should register
-the input when you commit to it.
+Specials are two buttons pressed together:
 
-The pad **rumbles**: lightly on a blocked hit, harder on a heavy one, and a
-long low shake on a knockout.
+| Together | Does |
+|---|---|
+| **PUNCH + KICK** | special 1 |
+| **PUNCH + BLOCK** | special 2 |
+| **KICK + BLOCK** | throw |
+| **LT + RT** | super, on a full meter |
 
-Two controllers give you two players. They are assigned in the order they were
-plugged in, so unplugging one and putting it back does not shuffle who is who.
-PlayStation and Switch Pro pads work too — anything the browser reports as a
-standard gamepad.
+Hold **forward** with a special for the heavy version.
 
-### On the keyboard
+Because Jump is a button, **up on the stick is free** — which is what gives
+eight ground normals out of two attack buttons:
 
-|                       | Player 1      | Player 2       |
-|-----------------------|---------------|----------------|
-| Move                  | `W A S D`     | Arrow keys     |
-| Light / Med / Heavy punch | `U` `I` `O` | Numpad `7 8 9` |
-| Light / Med / Heavy kick  | `J` `K` `L` | Numpad `4 5 6` |
-| Throw                 | `LP` + `LK`   | `LP` + `LK`    |
-| Pause                 | `Enter`       | —              |
+| Input | Move |
+|---|---|
+| PUNCH / forward / down / up | jab · heavy punch · low punch · rising claw (anti-air) |
+| KICK / forward / down / up | quick kick · roundhouse · sweep · side kick |
 
-`F1` toggles the hitbox display. `F11` is fullscreen.
+**Block is a real button**, so you can guard while walking forward. Add down
+for a low block. There is still no air blocking.
 
-Hold **back** to block. Hold **down-back** to block low. There is no air
-blocking, exactly as in the original.
+A normal comes out with **no input delay at all** — if the second button of a
+pair lands a frame or two late, the normal is swapped for the special while it
+is still in startup, so nothing has come out yet and being slightly late costs
+nothing.
 
-The **Controls** screen in the game shows all of this, including whether a
-controller is currently detected and what it is.
+Keyboard 1P: `A D` move, `S` crouch, `W` up, `J` punch, `K` kick, `SPACE`
+jump, `L` block, `U` dodge, `I` lunge.
+Keyboard 2P: arrows, numpad `4` punch, `5` kick, `0` jump, `6` block,
+`7` dodge, `8` lunge.
+
+### CLASSIC — six buttons
+
+The arcade layout: `LP MP HP` over `LK MK HK`, hold back to block, up to jump,
+quarter-circles, dragon punches and charge moves. Nothing was thrown away when
+the simple scheme arrived — see [MOVES.md](MOVES.md) for the motion list.
+
+`F1` toggles the hitbox display. `F11` is fullscreen. Two controllers give you
+two players, assigned in the order they were plugged in. The pad rumbles.
 
 ---
 

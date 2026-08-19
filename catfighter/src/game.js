@@ -145,8 +145,7 @@
   };
 
   Game.prototype.anyStart = function () {
-    return this.ports[0].startPressed || this.ports[1].startPressed ||
-           this.ports[0].pressed.LP || this.ports[1].pressed.LP;
+    return this.ports[0].confirmPressed() || this.ports[1].confirmPressed();
   };
 
   /* ---- title ------------------------------------------------------------- */
@@ -191,6 +190,9 @@
   Game.prototype.optionRows = function () {
     var s = this.settings;
     return [
+      { label: 'CONTROLS', value: CF.Input.schemeDef().label,
+        inc: function () { CF.Input.setScheme(CF.Input.getScheme() === 'simple' ? 'classic' : 'simple'); },
+        dec: function () { CF.Input.setScheme(CF.Input.getScheme() === 'simple' ? 'classic' : 'simple'); } },
       { label: 'DIFFICULTY', value: CF.AI_LEVELS[s.difficulty].name,
         inc: function () { s.difficulty = Math.min(5, s.difficulty + 1); },
         dec: function () { s.difficulty = Math.max(1, s.difficulty - 1); } },
@@ -250,7 +252,7 @@
         if (p.dir === 2) { c = (c + 3) % 6; moved = true; }
         if (moved) { this.select.cursor[i] = c; this._navCool = 10; CF.Audio.play('cursor'); }
       }
-      if (p.startPressed || p.pressed.LP || p.pressed.MP || p.pressed.HP) {
+      if (p.confirmPressed()) {
         this.select.locked[i] = true;
         CF.Audio.play('select');
         CF.Audio.play('meow');
@@ -277,14 +279,14 @@
         this._navCool = 11; CF.Audio.play('cursor');
       }
       /* back out and change your cat */
-      if (p.pressed.LK || p.pressed.MK || p.pressed.HK) {
+      if (p.cancelPressed()) {
         this.select.phase = 'chars';
         this.select.locked = [false, false];
         this._navCool = 12; CF.Audio.play('cursor');
         return;
       }
     }
-    if (p.startPressed || p.pressed.LP || p.pressed.MP || p.pressed.HP) {
+    if (p.confirmPressed()) {
       var stage = this.select.stage;
       if (stage >= CF.Stages.length) stage = (Math.random() * CF.Stages.length) | 0;
       this.select.stage = stage;
@@ -313,7 +315,7 @@
       CF.Audio.play('select');
     }
     if (this.paused) {
-      if (this.ports[0].pressed.HK) { this.paused = false; this.scene = 'title'; CF.Audio.stopMusic(); }
+      if (this.ports[0].cancelPressed()) { this.paused = false; this.scene = 'title'; CF.Audio.stopMusic(); }
       return;
     }
 
@@ -926,94 +928,144 @@
   /* The legend sits beside the picture rather than being wired to it with
      callout lines: eight lines all reaching the same corner of a small pad
      cross each other into a cobweb and stop being readable. */
-  var PAD_LEGEND = [
-    ['X',  '#3f7fd9', 'LIGHT PUNCH'],
-    ['Y',  '#e0b52e', 'MEDIUM PUNCH'],
-    ['RB', '#5a5a68', 'HEAVY PUNCH'],
-    ['A',  '#6fbf4a', 'LIGHT KICK'],
-    ['B',  '#d94a3f', 'MEDIUM KICK'],
-    ['RT', '#5a5a68', 'HEAVY KICK'],
-    ['LT', '#5a5a68', 'THROW'],
-    ['STICK / D-PAD', null, 'MOVE, JUMP, BLOCK'],
-    ['START', null, 'PAUSE / CONFIRM']
+  var LEGEND = {
+    simple: [
+      ['X',  '#3f7fd9', 'PUNCH'],
+      ['B',  '#d94a3f', 'KICK'],
+      ['A',  '#6fbf4a', 'JUMP'],
+      ['Y',  '#e0b52e', 'BLOCK   (or LB)'],
+      ['LT', '#5a5a68', 'DODGE'],
+      ['RT', '#5a5a68', 'LUNGE']
+    ],
+    classic: [
+      ['X',  '#3f7fd9', 'LIGHT PUNCH'],
+      ['Y',  '#e0b52e', 'MEDIUM PUNCH'],
+      ['RB', '#5a5a68', 'HEAVY PUNCH'],
+      ['A',  '#6fbf4a', 'LIGHT KICK'],
+      ['B',  '#d94a3f', 'MEDIUM KICK'],
+      ['RT', '#5a5a68', 'HEAVY KICK'],
+      ['LT', '#5a5a68', 'THROW']
+    ]
+  };
+
+  var COMBOS = [
+    ['PUNCH + KICK',   'SPECIAL 1'],
+    ['PUNCH + BLOCK',  'SPECIAL 2'],
+    ['KICK + BLOCK',   'THROW'],
+    ['LT + RT',        'SUPER  (full meter)']
+  ];
+
+  var SIMPLE_NORMALS_HELP = [
+    ['PUNCH',            'jab'],
+    ['forward + PUNCH',  'heavy punch'],
+    ['down + PUNCH',     'low punch'],
+    ['up + PUNCH',       'rising claw — anti-air'],
+    ['KICK',             'quick kick'],
+    ['forward + KICK',   'roundhouse'],
+    ['down + KICK',      'sweep — knocks down'],
+    ['up + KICK',        'side kick']
   ];
 
   Game.prototype.drawControls = function (ctx) {
     var page = this.ctrlPage || 0;
+    var simple = CF.Input.getScheme() === 'simple';
     ctx.fillStyle = '#171224'; ctx.fillRect(0, 0, W, H);
     var g = ctx.createRadialGradient(W / 2, 90, 10, W / 2, 90, 230);
     g.addColorStop(0, 'rgba(90,60,120,.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-    HUD.text(ctx, page === 0 ? 'CONTROLLER' : 'MOTIONS', W / 2, 17, 13, '#ffe07a', 'center', 800, 2);
-    HUD.text(ctx, '◀   ' + (page + 1) + ' / 2   ▶', W / 2, 27, 7,
-             'rgba(255,240,220,.45)', 'center', 700, 1);
+    HUD.text(ctx, page === 0 ? 'CONTROLLER' : (simple ? 'MOVES' : 'MOTIONS'),
+             W / 2, 17, 13, '#ffe07a', 'center', 800, 2);
+    HUD.text(ctx, CF.Input.schemeDef().label + '  •  ◀ ' + (page + 1) + ' / 2 ▶',
+             W / 2, 27, 7, 'rgba(255,240,220,.5)', 'center', 700, 1);
 
     if (page === 0) {
-      padDiagram(ctx, 92, 78, 1.4);
+      padDiagram(ctx, 88, 76, 1.35);
 
-      /* legend */
-      var lx = 176;
-      for (var i = 0; i < PAD_LEGEND.length; i++) {
-        var row = PAD_LEGEND[i], ly = 44 + i * 12;
-        if (row[1]) {
-          ctx.fillStyle = row[1];
-          ctx.beginPath(); ctx.arc(lx + 6, ly - 3, 5, 0, Math.PI * 2); ctx.fill();
-          ctx.save();
-          ctx.font = '800 6px Arial'; ctx.textAlign = 'center';
-          ctx.fillStyle = 'rgba(0,0,0,.7)';
-          ctx.fillText(row[0], lx + 6, ly - 1);
-          ctx.restore();
-        } else {
-          HUD.text(ctx, row[0], lx, ly, 7, 'rgba(255,240,220,.75)', 'left', 700, 0.3);
-        }
-        HUD.text(ctx, row[2], lx + (row[1] ? 18 : 0) + (row[1] ? 0 : 0), ly,
-                 8, row[1] ? '#ffe9b8' : 'rgba(255,240,220,.55)',
-                 'left', row[1] ? 700 : 600, 0.4);
+      var rows = LEGEND[simple ? 'simple' : 'classic'];
+      var lx = 168;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i], ly = 44 + i * 12;
+        ctx.fillStyle = row[1];
+        ctx.beginPath(); ctx.arc(lx + 6, ly - 3, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.font = '800 6px Arial'; ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(0,0,0,.72)';
+        ctx.fillText(row[0], lx + 6, ly - 1);
+        ctx.restore();
+        HUD.text(ctx, row[2], lx + 18, ly, 8, '#ffe9b8', 'left', 700, 0.4);
       }
-      /* the two that have no chip get their action on the next column instead */
-      ctx.fillStyle = 'rgba(23,18,36,1)';
-      ctx.fillRect(lx, 44 + 7 * 12 - 9, W - lx - 6, 24);
-      for (var j = 7; j < PAD_LEGEND.length; j++) {
-        var r2 = PAD_LEGEND[j], y2 = 44 + j * 12;
-        HUD.text(ctx, r2[0], lx, y2, 7, '#8fd6ff', 'left', 800, 0.4);
-        HUD.text(ctx, r2[2], W - 8, y2, 7.4, 'rgba(255,240,220,.7)', 'right', 600, 0.3);
+      HUD.text(ctx, 'STICK OR D-PAD  —  MOVE, CROUCH, AIM', lx, 44 + rows.length * 12 + 2,
+               7, 'rgba(255,240,220,.55)', 'left', 600, 0.3);
+
+      if (simple) {
+        ctx.fillStyle = 'rgba(255,224,122,.08)';
+        ctx.fillRect(14, 122, W - 28, 46);
+        HUD.text(ctx, 'SPECIALS — PRESS TWO TOGETHER', W / 2, 132, 8, '#ffe07a', 'center', 800, 1);
+        for (var cbi = 0; cbi < COMBOS.length; cbi++) {
+          var cy = 142 + cbi * 7.5;
+          HUD.text(ctx, COMBOS[cbi][0], 26, cy, 7.4, '#8fd6ff', 'left', 700, 0.3);
+          HUD.text(ctx, COMBOS[cbi][1], W - 26, cy, 7.4, 'rgba(255,240,220,.85)', 'right', 600, 0.2);
+        }
       }
 
       /* live connection status */
       var names = [this.ports[0].padName(), this.ports[1].padName()];
       var any = names[0] || names[1];
-      ctx.fillStyle = any ? 'rgba(60,180,110,.16)' : 'rgba(255,255,255,.05)';
-      ctx.fillRect(20, 148, W - 40, any && names[1] ? 26 : 17);
+      var sy = simple ? 178 : 150;
       HUD.text(ctx, any ? 'CONTROLLER DETECTED' : 'NO CONTROLLER DETECTED',
-               W / 2, 159, 8.5, any ? '#8fe6a0' : 'rgba(255,240,220,.5)', 'center', 800, 1);
+               W / 2, sy, 8, any ? '#8fe6a0' : 'rgba(255,240,220,.5)', 'center', 800, 1);
       if (any) {
         var shown = 0;
-        for (var k = 0; k < 2; k++) {
-          if (!names[k]) continue;
-          HUD.text(ctx, (k === 0 ? '1P — ' : '2P — ') + names[k], W / 2, 169 + shown * 9, 7.5,
-                   k === 0 ? '#4ad0ff' : '#ff9db0', 'center', 700, 0.6);
+        for (var k2 = 0; k2 < 2; k2++) {
+          if (!names[k2]) continue;
+          HUD.text(ctx, (k2 === 0 ? '1P — ' : '2P — ') + names[k2], W / 2, sy + 9 + shown * 8, 7,
+                   k2 === 0 ? '#4ad0ff' : '#ff9db0', 'center', 700, 0.6);
           shown++;
         }
-      } else {
-        HUD.text(ctx, 'PLUG ONE IN AND PRESS A BUTTON', W / 2, 169, 7,
-                 'rgba(255,240,220,.5)', 'center', 700, 0.6);
       }
 
-      /* keyboard, for anyone without a pad */
-      HUD.text(ctx, 'KEYBOARD', 20, 188, 7.5, '#ffb8a0', 'left', 800, 0.8);
-      var rows = [
-        ['MOVE', 'W A S D', 'ARROW KEYS'],
-        ['PUNCHES  LP MP HP', 'U  I  O', 'NUMPAD 7 8 9'],
-        ['KICKS  LK MK HK', 'J  K  L', 'NUMPAD 4 5 6']
-      ];
-      HUD.text(ctx, '1P', 236, 188, 7, '#8fd6ff', 'center', 800, 0.6);
-      HUD.text(ctx, '2P', 320, 188, 7, '#ff9db0', 'center', 800, 0.6);
-      for (var r = 0; r < rows.length; r++) {
-        var ry = 197 + r * 7.4;
-        HUD.text(ctx, rows[r][0], 20, ry, 7, 'rgba(255,240,220,.72)', 'left', 600, 0.2);
-        HUD.text(ctx, rows[r][1], 236, ry, 7, '#ffe9b8', 'center', 700, 0.2);
-        HUD.text(ctx, rows[r][2], 320, ry, 7, '#ffe9b8', 'center', 700, 0.2);
+      if (!simple) {
+        HUD.text(ctx, 'KEYBOARD', 20, 176, 7.5, '#ffb8a0', 'left', 800, 0.8);
+        HUD.text(ctx, '1P', 236, 176, 7, '#8fd6ff', 'center', 800, 0.6);
+        HUD.text(ctx, '2P', 320, 176, 7, '#ff9db0', 'center', 800, 0.6);
+        var kb = [['MOVE', 'W A S D', 'ARROWS'],
+                  ['PUNCHES', 'U  I  O', 'NUM 7 8 9'],
+                  ['KICKS', 'J  K  L', 'NUM 4 5 6']];
+        for (var r2 = 0; r2 < kb.length; r2++) {
+          var ry2 = 186 + r2 * 8;
+          HUD.text(ctx, kb[r2][0], 20, ry2, 7, 'rgba(255,240,220,.72)', 'left', 600, 0.2);
+          HUD.text(ctx, kb[r2][1], 236, ry2, 7, '#ffe9b8', 'center', 700, 0.2);
+          HUD.text(ctx, kb[r2][2], 320, ry2, 7, '#ffe9b8', 'center', 700, 0.2);
+        }
+      } else {
+        HUD.text(ctx, '1P KEYBOARD   A D move · S crouch · W up · J punch · K kick · ' +
+                      'SPACE jump · L block · U dodge · I lunge',
+                 W / 2, 202, 6.2, 'rgba(255,240,220,.62)', 'center', 600, 0.1);
+        HUD.text(ctx, '2P KEYBOARD   arrows · NUM 4 punch · 5 kick · 0 jump · 6 block · 7 dodge · 8 lunge',
+                 W / 2, 211, 6.2, 'rgba(255,240,220,.45)', 'center', 600, 0.1);
+      }
+
+    } else if (simple) {
+      HUD.text(ctx, 'a direction changes what the button does',
+               W / 2, 39, 7.4, 'rgba(255,240,220,.55)', 'center', 600, 0.4);
+      for (var m2 = 0; m2 < SIMPLE_NORMALS_HELP.length; m2++) {
+        var my2 = 55 + m2 * 13;
+        ctx.fillStyle = m2 % 2 ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.18)';
+        ctx.fillRect(24, my2 - 9, W - 48, 12);
+        HUD.text(ctx, SIMPLE_NORMALS_HELP[m2][0], 32, my2, 7.6, '#ffe07a', 'left', 800, 0.3);
+        HUD.text(ctx, SIMPLE_NORMALS_HELP[m2][1], W - 32, my2, 7.4,
+                 'rgba(255,240,220,.85)', 'right', 600, 0.2);
+      }
+      var extra = [['BLOCK', 'hold it — add down for lows'],
+                   ['DODGE (LT)', 'invincible hop away'],
+                   ['LUNGE (RT)', 'fast advance']];
+      for (var e2 = 0; e2 < extra.length; e2++) {
+        var ey = 170 + e2 * 13;
+        ctx.fillStyle = 'rgba(143,214,255,.07)';
+        ctx.fillRect(24, ey - 9, W - 48, 12);
+        HUD.text(ctx, extra[e2][0], 32, ey, 7.6, '#8fd6ff', 'left', 800, 0.3);
+        HUD.text(ctx, extra[e2][1], W - 32, ey, 7.4, 'rgba(255,240,220,.85)', 'right', 600, 0.2);
       }
 
     } else {
@@ -1028,14 +1080,13 @@
         ['COMMAND GRAB', 'forward, down, back, up', 'punch'],
         ['SUPER',        'two fireball motions, full meter', 'button'],
         ['DASH',         'tap forward twice', '—'],
-        ['BACK HOP',     'tap back twice', '—'],
         ['BLOCK',        'hold back, or down-back for lows', '—'],
         ['THROW',        'LT, or light punch + light kick', '—']
       ];
       for (var m = 0; m < mo.length; m++) {
-        var my = 54 + m * 13.4;
+        var my = 54 + m * 14;
         ctx.fillStyle = m % 2 ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.18)';
-        ctx.fillRect(14, my - 9, W - 28, 12.4);
+        ctx.fillRect(14, my - 9, W - 28, 13);
         HUD.text(ctx, mo[m][0], 20, my, 7.6, '#ffe07a', 'left', 800, 0.4);
         HUD.text(ctx, mo[m][1], 112, my, 7.2, 'rgba(255,240,220,.85)', 'left', 600, 0.15);
         HUD.text(ctx, mo[m][2], W - 20, my, 7.2, '#8fd6ff', 'right', 700, 0.2);
@@ -1136,7 +1187,7 @@
     if (this.paused) {
       ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.fillRect(0, 0, W, H);
       HUD.outlineText(ctx, 'PAUSED', W / 2, H / 2 - 6, 26, '#ffe07a', '#2a0e18');
-      HUD.text(ctx, 'ENTER TO RESUME   •   L TO QUIT TO TITLE',
+      HUD.text(ctx, 'ENTER TO RESUME   •   KICK TO QUIT TO TITLE',
                W / 2, H / 2 + 14, 8, 'rgba(255,240,220,.75)', 'center', 700, 0.8);
     }
   };

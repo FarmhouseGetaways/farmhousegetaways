@@ -84,6 +84,8 @@
     this.teleportTo = null;
     this.airborneDash = false;
     this.armorUsed = false;
+    this.blockHeld = false;
+    this.pendingPairFrom = null;
 
     this.throwVictim = null;
     this.throwTimer = 0;
@@ -152,6 +154,36 @@
     if (!m || m.noAttack) return false;
     return this.moveFrame >= m.startup && this.moveFrame < m.startup + m.active;
   };
+
+  /* ---- the four-button scheme --------------------------------------------
+
+     Two attack buttons and a direction give eight ground normals. UP is
+     available as a modifier precisely because Jump moved onto a button of
+     its own, and that is what buys the anti-air and the up kick.
+
+     Specials come from pairs: punch+kick, punch+block, kick+block. The pair
+     is checked BEFORE the single button, and can also override a normal that
+     is still in its first few frames — so a normal fires with no input delay
+     at all, and a slightly late second button still gets the special.     */
+
+  var SIMPLE_NORMALS = {
+    stand:  { P: { n: 'stLP', f: 'stHP', d: 'crMP', u: 'crHP' },
+              K: { n: 'stLK', f: 'stHK', d: 'crHK', u: 'stMK' } },
+    crouch: { P: { n: 'crMP', f: 'crHP', d: 'crMP', u: 'crHP' },
+              K: { n: 'crMK', f: 'crHK', d: 'crHK', u: 'stMK' } },
+    air:    { P: { n: 'airMP', f: 'airHP', d: 'airHP', u: 'airLP' },
+              K: { n: 'airMK', f: 'airHK', d: 'airHK', u: 'airLK' } }
+  };
+
+  /* Which special a pair of buttons calls up. */
+  var SIMPLE_PAIRS = [
+    { a: 'P', b: 'K', what: 'special0' },
+    { a: 'P', b: 'BLOCK', what: 'special1' },
+    { a: 'K', b: 'BLOCK', what: 'throw' },
+    { a: 'DODGE', b: 'LUNGE', what: 'super' }
+  ];
+
+  function isSimple() { return CF.Input.getScheme() === 'simple'; }
 
   /* ---- starting a move --------------------------------------------------- */
 
@@ -242,8 +274,43 @@
     return MOTION_PRIORITY[m.motion] || 20;
   };
 
+  /* Four-button scheme: a pair of buttons picks the move directly, with no
+     motion to input. Holding forward asks for the heavy version. */
+  Fighter.prototype.trySimpleSpecial = function (stance, allowSuper) {
+    var p = this.port, d = p.relDir(this.facing);
+    var strength = (d === 6 || d === 3 || d === 9) ? 2 : 1;
+
+    for (var i = 0; i < SIMPLE_PAIRS.length; i++) {
+      var pr = SIMPLE_PAIRS[i];
+      if (!p.pairPressed(pr.a, pr.b, 4)) continue;
+
+      var move = null;
+      if (pr.what === 'super') {
+        if (allowSuper === false) continue;
+        var sup = this.chr.supers[0];
+        if (!sup || this.meter < (sup.cost || 100)) continue;
+        move = sup;
+      } else if (pr.what === 'throw') {
+        move = (d === 4 || d === 1 || d === 7) ? this.chr.moves.thrBack : this.chr.moves.thrForward;
+        strength = 0;
+      } else {
+        var idx = pr.what === 'special0' ? 0 : 1;
+        move = this.chr.specials[idx];
+        if (move && !this.stanceOk(move, stance)) move = null;
+      }
+      if (!move) continue;
+
+      p.consumePair(pr.a, pr.b);
+      this.startMove(move, strength);
+      this.consumeBuffer();
+      return true;
+    }
+    return false;
+  };
+
   /* Try to begin a super, then a special. Returns true if one started. */
   Fighter.prototype.trySpecial = function (stance, allowSuper) {
+    if (isSimple()) return this.trySimpleSpecial(stance, allowSuper);
     var i, m, btn, best = null, bestPri = -1;
 
     if (allowSuper !== false) {
@@ -278,8 +345,30 @@
     return false;
   };
 
+  Fighter.prototype.trySimpleNormal = function (stance) {
+    var p = this.port, mv = this.chr.moves, d = p.relDir(this.facing);
+    var table = SIMPLE_NORMALS[stance] || SIMPLE_NORMALS.stand;
+    var slot = (d === 6 || d === 3 || d === 9) ? 'f'
+             : ((d === 8 || d === 7 || d === 9) ? 'u'
+             : ((d === 2 || d === 1 || d === 3) ? 'd' : 'n'));
+
+    var order = ['P', 'K'];
+    for (var i = 0; i < order.length; i++) {
+      var b = order[i];
+      if (!this.pressedRecently(b)) continue;
+      var key = table[b][slot] || table[b].n;
+      if (!mv[key]) continue;
+      this.startMove(mv[key], 1);
+      this.pendingPairFrom = b;          // a late partner can still upgrade it
+      this.consumeBuffer();
+      return true;
+    }
+    return false;
+  };
+
   /* Normals, throws and system moves from a free state. */
   Fighter.prototype.tryNormal = function (stance) {
+    if (isSimple()) return this.trySimpleNormal(stance);
     var p = this.port, mv = this.chr.moves, d = p.relDir(this.facing);
     var o = this.other;
     var dist = o ? Math.abs(o.x - this.x) : 999;
@@ -395,7 +484,43 @@
     var stance = crouching ? 'crouch' : 'stand';
 
     if (this.trySpecial(stance, true)) return;
+
+    if (isSimple()) {
+      /* the two trigger moves, before normals so a tap of either always wins */
+      if (this.pressedRecently('DODGE') && !this.port.pairPressed('DODGE', 'LUNGE', 4)) {
+        this.startMove(this.chr.moves.dodge, 0); this.consumeBuffer(); return;
+      }
+      if (this.pressedRecently('LUNGE') && !this.port.pairPressed('DODGE', 'LUNGE', 4)) {
+        this.startMove(this.chr.moves.lunge, 0); this.consumeBuffer(); return;
+      }
+    }
+
     if (this.tryNormal(stance)) return;
+
+    if (isSimple()) {
+      /* Jump is a button, so it can be pressed while holding any direction —
+         which is also why UP is free to modify the attack buttons. */
+      if (this.pressedRecently('JUMP')) {
+        this.grounded = false;
+        this.jumpAttackUsed = false;
+        this.airDashUsed = false;
+        this.vy = this.stats.jumpVy;
+        this.jumpDir = (d === 6 || d === 3 || d === 9) ? 1 : ((d === 4 || d === 1 || d === 7) ? -1 : 0);
+        this.vx = this.jumpDir * this.facing * this.stats.jumpVx;
+        this.state = 'jump';
+        this.consumeBuffer();
+        this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 6 });
+        return;
+      }
+      /* Block is held, not implied by walking backwards. */
+      if (this.port.held.BLOCK) {
+        this.state = crouching ? 'crouch' : 'idle';
+        this.blockHeld = true;
+        this.vx = 0;
+        return;
+      }
+      this.blockHeld = false;
+    }
 
     /* dashes */
     if (this.stats.hasDash && !crouching) {
@@ -403,8 +528,8 @@
       if (p.doubleTap(4, this.facing, 13)) { this.startMove(this.chr.moves.dashB, 0); p.flushMotion(); return; }
     }
 
-    /* jump */
-    if (d === 7 || d === 8 || d === 9) {
+    /* jump — classic only; the simple scheme has a button for it */
+    if (!isSimple() && (d === 7 || d === 8 || d === 9)) {
       this.grounded = false;
       this.jumpAttackUsed = false;
       this.airDashUsed = false;
@@ -471,6 +596,19 @@
 
     /* ground friction while attacking */
     if (this.grounded && !m.moveSelf) this.vx = U.approach(this.vx, 0, 0.5);
+
+    /* A pair that lands a frame or two after the first button still gets the
+       special: the normal is swapped out while it is still in startup, so
+       nothing has come out yet and the player pays nothing for being late. */
+    if (isSimple() && this.pendingPairFrom && this.moveFrame <= 3 && m.kind === 'normal') {
+      var before = this.move;
+      var st = m.stance === 'crouch' ? 'crouch' : (m.stance === 'air' ? 'air' : 'stand');
+      if (this.trySimpleSpecial(st, true) && this.move !== before) {
+        this.pendingPairFrom = null;
+        return;
+      }
+    }
+    if (this.moveFrame > 3) this.pendingPairFrom = null;
 
     /* cancels: a connected light or medium can be taken into a special */
     if (this.moveConnected && m.cancel && m.cancel.length && !this.canceled) {
@@ -587,9 +725,14 @@
         this.state === 'knockdown' || this.state === 'thrown' ||
         this.state === 'dizzy' || this.state === 'wakeup') return false;
     var d = this.port.relDir(this.facing);
-    var holdingBack = (d === 4 || d === 1 || d === 7);
-    if (!holdingBack) return false;
     var crouching = (d === 1 || d === 2 || d === 3);
+    if (isSimple()) {
+      /* a real block button: you can guard while walking in */
+      if (!this.port.held.BLOCK) return false;
+    } else {
+      var holdingBack = (d === 4 || d === 1 || d === 7);
+      if (!holdingBack) return false;
+    }
     if (hitLevel === 'low') return crouching;
     if (hitLevel === 'overhead') return !crouching;
     return true;                                       // mid: either guard works
@@ -735,13 +878,14 @@
     }
     switch (s) {
       case 'idle':
+        if (this.blockHeld) return Ps.guardHigh;
         return A.cycle([Ps.stand, Ps.standB, Ps.stand, Ps.standC], 16, this.idleTimer);
       case 'walkF':
         return A.cycle([Ps.walkF1, Ps.walkF2, Ps.walkF3, Ps.walkF4], 7, this.walkTimer);
       case 'walkB':
         return A.cycle([Ps.walkB1, Ps.walkB2, Ps.walkB3, Ps.walkB4], 8, this.walkTimer);
       case 'crouch':
-        return Ps.crouch;
+        return this.blockHeld ? Ps.guardLow : Ps.crouch;
       case 'jump':
         if (this.vy > 3) return Ps.jumpRise;
         if (this.vy > -3) return Ps.jumpApex;
@@ -852,5 +996,7 @@
 
   CF.Fighter = Fighter;
   CF.GROUND = GROUND;
+  CF.SIMPLE_NORMALS = SIMPLE_NORMALS;
+  CF.SIMPLE_PAIRS = SIMPLE_PAIRS;
   CF.CLASSES = CLASSES;
 })();

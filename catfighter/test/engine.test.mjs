@@ -287,32 +287,47 @@ test('combo damage scales down and never reaches zero', () => {
 });
 
 test('chip damage from a blocked hit can never finish a round', () => {
-  const port = new CF.Input.Port('p1');
-  const f = new CF.Fighter(CF.ROSTER[0], 0, port, []);
-  f.other = new CF.Fighter(CF.ROSTER[1], 1, new CF.Input.Port('p2'), []);
-  f.setState('idle');
-  f.health = 3;
-  port.apply(4, {}, false);              // holding back = blocking
-  const res = f.takeHit(f.other, { damage: 200, chip: 50, hitLevel: 'mid', blockstun: 10 });
-  assert.equal(res, 'block');
-  assert.ok(f.health >= 1, 'chip must leave at least one point of health');
+  for (const scheme of ['simple', 'classic']) {
+    CF.Input.setScheme(scheme);
+    const port = new CF.Input.Port('p1');
+    const f = new CF.Fighter(CF.ROSTER[0], 0, port, []);
+    f.other = new CF.Fighter(CF.ROSTER[1], 1, new CF.Input.Port('p2'), []);
+    f.setState('idle');
+    f.health = 3;
+    port.apply(4, scheme === 'simple' ? { BLOCK: true } : {}, false);
+    const res = f.takeHit(f.other, { damage: 200, chip: 50, hitLevel: 'mid', blockstun: 10 });
+    assert.equal(res, 'block', `${scheme}: the hit should have been blocked`);
+    assert.ok(f.health >= 1, `${scheme}: chip must leave at least one point of health`);
+  }
+  CF.Input.setScheme('simple');
 });
 
-test('blocking respects high and low', () => {
-  function tryBlock(dir, level) {
+test('blocking respects high and low, in both schemes', () => {
+  function tryBlock(scheme, dir, level, holdBlock) {
+    CF.Input.setScheme(scheme);
     const port = new CF.Input.Port('p1');
     const f = new CF.Fighter(CF.ROSTER[0], 0, port, []);
     f.setState('idle');
-    port.apply(dir, {}, false);
+    port.apply(dir, holdBlock ? { BLOCK: true } : {}, false);
     return f.canBlock(level, 999);
   }
-  assert.equal(tryBlock(4, 'low'), false, 'standing block does not stop a low');
-  assert.equal(tryBlock(1, 'low'), true, 'crouch block stops a low');
-  assert.equal(tryBlock(1, 'overhead'), false, 'crouch block does not stop an overhead');
-  assert.equal(tryBlock(4, 'overhead'), true, 'standing block stops an overhead');
-  assert.equal(tryBlock(4, 'mid'), true);
-  assert.equal(tryBlock(1, 'mid'), true);
-  assert.equal(tryBlock(6, 'mid'), false, 'holding forward is not blocking');
+
+  /* CLASSIC: hold back. Standing guard loses to a low, crouching to an overhead. */
+  assert.equal(tryBlock('classic', 4, 'low'), false, 'standing block does not stop a low');
+  assert.equal(tryBlock('classic', 1, 'low'), true, 'crouch block stops a low');
+  assert.equal(tryBlock('classic', 1, 'overhead'), false, 'crouch block does not stop an overhead');
+  assert.equal(tryBlock('classic', 4, 'overhead'), true, 'standing block stops an overhead');
+  assert.equal(tryBlock('classic', 6, 'mid'), false, 'holding forward is not blocking');
+
+  /* SIMPLE: a real button. The high/low rule is identical, but you can guard
+     while walking forward — which is the whole point of having the button. */
+  assert.equal(tryBlock('simple', 5, 'mid', true), true, 'the block button blocks');
+  assert.equal(tryBlock('simple', 6, 'mid', true), true, 'and it works walking forward');
+  assert.equal(tryBlock('simple', 4, 'mid', false), false, 'holding back alone does not block');
+  assert.equal(tryBlock('simple', 5, 'low', true), false, 'standing guard still loses to a low');
+  assert.equal(tryBlock('simple', 2, 'low', true), true, 'crouching guard stops it');
+  assert.equal(tryBlock('simple', 2, 'overhead', true), false, 'and loses to an overhead');
+  CF.Input.setScheme('simple');
 });
 
 test('you cannot block in the air', () => {
@@ -418,6 +433,7 @@ test('parallax layers tile far enough to cover the widest camera offset', () => 
 /* ---- motion priority ---------------------------------------------------- */
 
 test('a dragon punch that ends on forward is not read as a fireball', () => {
+  CF.Input.setScheme('classic');
   const port = new CF.Input.Port('p1');
   /* Lilly owns both a quarter circle and a dragon punch, on the same three
      buttons — the exact case where the wrong one comes out. */
@@ -435,9 +451,11 @@ test('a dragon punch that ends on forward is not read as a fireball', () => {
   assert.equal(f.trySpecial('stand', false), true, 'something should have come out');
   assert.equal(f.move.id, 'flipattack',
     `expected the Flip Attack, got "${f.move.name}" — motion priority is wrong`);
+  CF.Input.setScheme('simple');
 });
 
 test('a plain fireball motion still gives a fireball', () => {
+  CF.Input.setScheme('classic');
   const port = new CF.Input.Port('p1');
   const f = new CF.Fighter(CF.byId('gracie'), 0, port, []);
   f.setState('idle');
@@ -448,9 +466,11 @@ test('a plain fireball motion still gives a fireball', () => {
 
   assert.equal(f.trySpecial('stand', false), true);
   assert.equal(f.move.id, 'growl', `expected the growl, got "${f.move.name}"`);
+  CF.Input.setScheme('simple');
 });
 
 test('a half circle beats the quarter circle hiding inside it', () => {
+  CF.Input.setScheme('classic');
   /* Mario's Smother is a half circle forward, which contains a quarter
      circle forward. On the same buttons, the harder motion must win. */
   const port = new CF.Input.Port('p1');
@@ -466,6 +486,7 @@ test('a half circle beats the quarter circle hiding inside it', () => {
   f.inputBuf.push({ btn: 'HK', frame: f.frame });
   assert.equal(f.trySpecial('stand', false), true);
   assert.equal(f.move.id, 'smother', `expected the Smother, got "${f.move.name}"`);
+  CF.Input.setScheme('simple');
 });
 
 test('every motion the roster uses has a declared priority', () => {
@@ -517,6 +538,7 @@ test('an Xbox pad is recognised and named', () => {
 
 test('the six face buttons map to the arcade layout', () => {
   const { CF: G, sandbox } = loadGame();
+  G.Input.setScheme('classic');
   const pad = fakePad();
   sandbox.navigator.getGamepads = () => [pad, null, null, null];
   G.Input.refreshPadOrder();
@@ -537,6 +559,7 @@ test('the six face buttons map to the arcade layout', () => {
 
 test('the analogue triggers register before they bottom out', () => {
   const { CF: G, sandbox } = loadGame();
+  G.Input.setScheme('classic');
   const pad = fakePad();
   sandbox.navigator.getGamepads = () => [pad, null, null, null];
   G.Input.refreshPadOrder();
@@ -554,6 +577,7 @@ test('the analogue triggers register before they bottom out', () => {
 
 test('the left trigger is a throw macro', () => {
   const { CF: G, sandbox } = loadGame();
+  G.Input.setScheme('classic');
   const pad = fakePad();
   sandbox.navigator.getGamepads = () => [pad, null, null, null];
   G.Input.refreshPadOrder();
@@ -594,6 +618,7 @@ test('the d-pad and the left stick both give clean directions', () => {
 
 test('a quarter circle on the d-pad reads as a fireball', () => {
   const { CF: G, sandbox } = loadGame();
+  G.Input.setScheme('classic');
   const pad = fakePad();
   sandbox.navigator.getGamepads = () => [pad, null, null, null];
   G.Input.refreshPadOrder();
@@ -962,5 +987,173 @@ test('the CPU knows what an escape is', () => {
     if (c.id === 'figuro') continue;
     const ff = new CF.Fighter(c, 0, new CF.Input.Port('p1'), []);
     assert.equal(new CF.AI(ff, 3).roles().escape.length, 0, `${c.id} should not have an escape`);
+  }
+});
+
+/* ---- the four-button scheme ---------------------------------------------
+   Punch, Kick, Jump, Block, plus two triggers. Specials come from pairs, and
+   direction picks which normal. These drive the fighter through the real
+   input path rather than calling startMove directly.                      */
+
+function simpleRig(id) {
+  CF.Input.setScheme('simple');
+  const port = new CF.Input.Port('p1');
+  const f = new CF.Fighter(CF.byId(id || 'gracie'), 0, port, []);
+  f.other = new CF.Fighter(CF.byId('mario'), 1, new CF.Input.Port('p2'), []);
+  f.setState('idle');
+  f.grounded = true;
+  return { f, port };
+}
+
+/* one frame of input, then one frame of fighter logic */
+function frame(f, port, dir, btns) {
+  port.apply(dir === undefined ? 5 : dir, btns || {}, false);
+  f.frame++;
+  for (const b of CF.Input.BUTTONS) if (port.pressed[b]) f.inputBuf.push({ btn: b, frame: f.frame });
+  while (f.inputBuf.length && f.frame - f.inputBuf[0].frame > 5) f.inputBuf.shift();
+}
+
+test('two attack buttons and a direction give eight ground normals', () => {
+  const expect = [
+    [5, 'P', 'stLP'], [6, 'P', 'stHP'], [2, 'P', 'crMP'], [8, 'P', 'crHP'],
+    [5, 'K', 'stLK'], [6, 'K', 'stHK'], [2, 'K', 'crHK'], [8, 'K', 'stMK']
+  ];
+  const seen = new Set();
+  for (const [dir, btn, moveId] of expect) {
+    const { f, port } = simpleRig();
+    const b = {}; b[btn] = true;
+    frame(f, port, dir, b);
+    const stance = (dir === 2 || dir === 1 || dir === 3) ? 'crouch' : 'stand';
+    assert.equal(f.tryNormal(stance), true, `direction ${dir} + ${btn} produced nothing`);
+    assert.equal(f.move.id, moveId,
+      `direction ${dir} + ${btn} gave "${f.move.name}" (${f.move.id}), expected ${moveId}`);
+    seen.add(moveId);
+  }
+  assert.equal(seen.size, 8, 'the eight normals should all be different moves');
+});
+
+test('punch and kick together fire the first special, with no motion', () => {
+  const { f, port } = simpleRig('gracie');
+  frame(f, port, 5, { P: true, K: true });
+  assert.equal(f.trySpecial('stand', true), true, 'the pair produced nothing');
+  assert.equal(f.move.id, 'growl', `expected the growl, got "${f.move.name}"`);
+});
+
+test('punch and block together fire the second special', () => {
+  const { f, port } = simpleRig('gracie');
+  frame(f, port, 5, { P: true, BLOCK: true });
+  assert.equal(f.trySpecial('stand', true), true);
+  assert.equal(f.move.id, 'tailwhip', `expected the tail whip, got "${f.move.name}"`);
+});
+
+test('kick and block together throw', () => {
+  const { f, port } = simpleRig('gracie');
+  frame(f, port, 5, { K: true, BLOCK: true });
+  assert.equal(f.trySpecial('stand', true), true);
+  assert.equal(f.move.kind, 'throw', `expected a throw, got ${f.move.kind}`);
+});
+
+test('both triggers together fire the super, and only on a full meter', () => {
+  const empty = simpleRig('gracie');
+  empty.f.meter = 0;
+  frame(empty.f, empty.port, 5, { DODGE: true, LUNGE: true });
+  assert.equal(empty.f.trySpecial('stand', true), false, 'no meter, no super');
+
+  const full = simpleRig('gracie');
+  full.f.meter = 100;
+  frame(full.f, full.port, 5, { DODGE: true, LUNGE: true });
+  assert.equal(full.f.trySpecial('stand', true), true);
+  assert.equal(full.f.move.kind, 'super', `expected a super, got ${full.f.move.kind}`);
+});
+
+test('holding forward asks for the heavy version of a special', () => {
+  const light = simpleRig('gracie');
+  frame(light.f, light.port, 5, { P: true, K: true });
+  light.f.trySpecial('stand', true);
+
+  const heavy = simpleRig('gracie');
+  frame(heavy.f, heavy.port, 6, { P: true, K: true });
+  heavy.f.trySpecial('stand', true);
+
+  assert.ok(heavy.f.strength > light.f.strength,
+    'forward should give a stronger version');
+});
+
+test('a second button arriving late still gets the special', () => {
+  /* The normal fires with no delay at all; if the partner lands within the
+     first few frames the normal is swapped out before anything came out. */
+  const { f, port } = simpleRig('gracie');
+  frame(f, port, 5, { P: true });
+  assert.equal(f.tryNormal('stand'), true);
+  assert.equal(f.move.id, 'stLP', 'the punch should come out immediately');
+  f.state = 'move';
+
+  frame(f, port, 5, { P: true, K: true });
+  f.updateMove({ projectiles: [], hitstop() {}, shake() {}, excite() {} });
+  assert.equal(f.move.id, 'growl',
+    `a kick two frames later should have upgraded it, got "${f.move.name}"`);
+});
+
+test('one press cannot pay for two specials', () => {
+  const { f, port } = simpleRig('gracie');
+  frame(f, port, 5, { P: true, K: true });
+  assert.equal(f.trySpecial('stand', true), true);
+  const first = f.move.id;
+  f.setState('idle');
+  assert.equal(f.trySpecial('stand', true), false,
+    `the same press fired "${first}" twice`);
+});
+
+test('jump is a button, so up is free to modify attacks', () => {
+  const { f, port } = simpleRig();
+  frame(f, port, 8, {});
+  f.updateFree({});
+  assert.equal(f.grounded, true, 'holding up must not jump in the simple scheme');
+
+  const j = simpleRig();
+  frame(j.f, j.port, 5, { JUMP: true });
+  j.f.updateFree({});
+  assert.equal(j.f.grounded, false, 'the jump button should jump');
+});
+
+test('jumping while holding a direction still angles the jump', () => {
+  const fwd = simpleRig();
+  frame(fwd.f, fwd.port, 6, { JUMP: true });
+  fwd.f.updateFree({});
+  assert.ok(fwd.f.vx > 0, 'forward + jump should carry you forward');
+
+  const back = simpleRig();
+  frame(back.f, back.port, 4, { JUMP: true });
+  back.f.updateFree({});
+  assert.ok(back.f.vx < 0, 'back + jump should carry you back');
+});
+
+test('the triggers dodge and lunge, and go opposite ways', () => {
+  const d = simpleRig();
+  frame(d.f, d.port, 5, { DODGE: true });
+  d.f.updateFree({});
+  assert.equal(d.f.move && d.f.move.id, 'dodge');
+  for (let i = 0; i < 3; i++) d.f.updateMove({ projectiles: [] });
+  assert.ok(d.f.vx < 0, 'a dodge should take you away');
+  assert.ok(d.f.hasInvuln(), 'and it should be invincible while it does');
+
+  const l = simpleRig();
+  frame(l.f, l.port, 5, { LUNGE: true });
+  l.f.updateFree({});
+  assert.equal(l.f.move && l.f.move.id, 'lunge');
+  for (let i = 0; i < 3; i++) l.f.updateMove({ projectiles: [] });
+  assert.ok(l.f.vx > 0, 'a lunge should take you in');
+});
+
+test('every cat can reach both specials, a throw and a super from the pad', () => {
+  for (const c of CF.ROSTER) {
+    for (const pair of [['P', 'K'], ['P', 'BLOCK'], ['K', 'BLOCK'], ['DODGE', 'LUNGE']]) {
+      const { f, port } = simpleRig(c.id);
+      f.meter = 100;
+      const b = {}; b[pair[0]] = true; b[pair[1]] = true;
+      frame(f, port, 5, b);
+      assert.equal(f.trySpecial('stand', true), true,
+        `${c.id}: ${pair.join('+')} produced nothing`);
+    }
   }
 });

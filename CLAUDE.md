@@ -572,6 +572,17 @@ Three things a later session needs to know:
   but cannot save. Colours were read by eye. **Ask for a zip or a Drive folder**
   if the actual photographs are wanted on the select screen (`photo:` on the
   cat, files in `catfighter/assets/cats/`).
+- **There are two control schemes**, in `catfighter/src/input.js`. SIMPLE is the
+  default — four buttons (punch, kick, jump, block), two triggers (dodge,
+  lunge), and specials on a pair of buttons. CLASSIC is the original six-button
+  arcade layout with motion inputs, kept whole and switchable under Options.
+  The frame data is shared; only the way a move is asked for differs. Anything
+  reading input must go through `CF.Input.getScheme()` or the port's
+  `confirmPressed()` / `cancelPressed()`, never a raw button name.
+- **The cats are drawn as one silhouette, in two passes** (`rig.js`): stroke
+  every shape with a thick contour, then fill them all in order so the interior
+  strokes are painted over. That is what stops them looking like rag dolls.
+  Do not give a body part its own outline.
 - **Do not teach the CPU about a cat by name.** `ai.js` classifies specials by
   what they do — spawns something, rises with invincibility, travels forward,
   is a command grab, hits low — so a cat added tomorrow is understood without

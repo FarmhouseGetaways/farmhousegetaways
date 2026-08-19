@@ -277,6 +277,33 @@
           else f.airborneDash = false;
         }
       },
+      /* ---- the two trigger moves ----------------------------------------
+         Dodge gets you out of something, lunge gets you into something. Both
+         are pure movement — neither hits, which is what keeps them honest. */
+      dodge: {
+        name: 'Dodge', kind: 'system', stance: 'stand',
+        startup: 2, active: 12, recovery: 10, noAttack: true,
+        invuln: [1, 13],
+        anim: [{ at: 0, p: CF.Pose.stand }, { at: 3, p: CF.Pose.retreatWind },
+               { at: 8, p: CF.Pose.retreatAir }, { at: 16, p: CF.Pose.land },
+               { at: 24, p: CF.Pose.stand }],
+        moveSelf: function (f, fr) {
+          if (fr === 1) { f.vx = -f.facing * 6.4; f.vy = 2.6; f.grounded = false; }
+          if (fr > 1 && fr < 14) f.airborneDash = true; else f.airborneDash = false;
+        }
+      },
+      lunge: {
+        name: 'Lunge', kind: 'system', stance: 'stand',
+        startup: 2, active: 14, recovery: 8, noAttack: true,
+        anim: [{ at: 0, p: CF.Pose.stand }, { at: 3, p: CF.Pose.walkF1 },
+               { at: 9, p: CF.Pose.walkF3 }, { at: 15, p: CF.Pose.walkF1 },
+               { at: 24, p: CF.Pose.stand }],
+        moveSelf: function (f, fr) {
+          if (fr < 15) f.vx = f.facing * 7.0 * (1 - fr / 26);
+          else f.vx *= 0.78;
+        }
+      },
+
       taunt: {
         name: 'Taunt', kind: 'system', stance: 'stand',
         startup: 8, active: 20, recovery: 20, noAttack: true,

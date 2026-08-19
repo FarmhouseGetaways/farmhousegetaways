@@ -86,6 +86,35 @@ const NORMAL_ROWS = [
 
 let out = `# Move list
 
+## The four-button scheme (default)
+
+| Input | Does |
+|---|---|
+| **PUNCH** | jab |
+| **forward + PUNCH** | heavy punch |
+| **down + PUNCH** | low punch |
+| **up + PUNCH** | rising claw — anti-air |
+| **KICK** | quick kick |
+| **forward + KICK** | roundhouse |
+| **down + KICK** | sweep, knocks down |
+| **up + KICK** | side kick |
+| **JUMP** | jump — hold a direction to angle it |
+| **BLOCK** | guard — add down for lows. You can block while walking in. |
+| **DODGE** (LT) | invincible hop away |
+| **LUNGE** (RT) | fast advance |
+| **PUNCH + KICK** | special 1 |
+| **PUNCH + BLOCK** | special 2 |
+| **KICK + BLOCK** | throw |
+| **LT + RT** | super, on a full meter |
+
+Hold **forward** with a special to get the heavy version. There are no motion
+inputs in this scheme — the frame data below still applies, only the way you
+ask for a move changes. The **CLASSIC** six-button layout with quarter-circles
+and charges is still there under Options.
+
+---
+
+
 Generated from \`src/characters.js\` by \`node tools/gen-moves.mjs\` — do not edit
 this file by hand, edit the character data and run the generator again.
 
