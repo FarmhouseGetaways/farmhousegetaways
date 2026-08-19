@@ -28,9 +28,40 @@ your machine to get a build.
 The arcade layout: three punches on the top row, three kicks below.
 
 ```
-        LP  MP  HP                 U  I  O
-        LK  MK  HK                 J  K  L
+        LP  MP  HP
+        LK  MK  HK
 ```
+
+### On an Xbox controller
+
+Plug it in and press a button — it is found automatically, with no setup
+screen. The mapping is the one every six-button fighting game uses on a pad:
+
+| Button | Does |
+|---|---|
+| **X** | Light punch |
+| **Y** | Medium punch |
+| **RB** | Heavy punch |
+| **A** | Light kick |
+| **B** | Medium kick |
+| **RT** | Heavy kick |
+| **LT** | Throw (a macro for light punch + light kick) |
+| **Left stick or D-pad** | Move, jump, block |
+| **Start** | Pause, and confirm on menus |
+
+Both triggers are analogue, and are taken at a third of the way down rather
+than waiting for the button to bottom out — a fighting game should register
+the input when you commit to it.
+
+The pad **rumbles**: lightly on a blocked hit, harder on a heavy one, and a
+long low shake on a knockout.
+
+Two controllers give you two players. They are assigned in the order they were
+plugged in, so unplugging one and putting it back does not shuffle who is who.
+PlayStation and Switch Pro pads work too — anything the browser reports as a
+standard gamepad.
+
+### On the keyboard
 
 |                       | Player 1      | Player 2       |
 |-----------------------|---------------|----------------|
@@ -40,14 +71,13 @@ The arcade layout: three punches on the top row, three kicks below.
 | Throw                 | `LP` + `LK`   | `LP` + `LK`    |
 | Pause                 | `Enter`       | —              |
 
-**Gamepads work.** Plug one in and it is found automatically — no setup screen.
-Player 1 takes the first pad, player 2 the second. The mapping is the standard
-six-button fightpad layout (`X Y RB` punches, `A B RT` kicks).
-
 `F1` toggles the hitbox display. `F11` is fullscreen.
 
 Hold **back** to block. Hold **down-back** to block low. There is no air
 blocking, exactly as in the original.
+
+The **Controls** screen in the game shows all of this, including whether a
+controller is currently detected and what it is.
 
 ---
 
@@ -70,6 +100,28 @@ Motions, written facing right:
 | Super | two fireball motions + button, on a full meter |
 
 ---
+
+## The stages
+
+Six places on the property, each built as a stack of parallax layers with
+something moving in every one of them:
+
+| Stage | What is going on |
+|---|---|
+| **The Game Barn** | Arcade cabinets with live screens, string lights swinging in the foreground, cats on the hay bales, dust in the light |
+| **The Pool Deck** | Moving water, an inflatable flamingo with a cat asleep on it, sunbathers, birds crossing, tiles passing in front |
+| **The Orchard** | Three ranks of trees swaying at different rates, chickens who stop to peck, falling blossom, sun rays, a branch hanging into frame |
+| **Mountain Retreat** | Stars, a shooting star now and then, bats across the moon, a campfire throwing light on the granite, fireflies, mist round the ankles |
+| **The Farmhouse Kitchen** | A pot steaming on the range, the oven glowing, a clock whose hands move, pans swinging overhead, a cat on the counter batting something towards the edge |
+| **The Front Porch** | A windmill turning on the ridge, a rocking chair rocking, moths at the lantern, wind chimes, hanging ferns |
+
+**The crowd watches the fight.** Spectators bob along idly, and when a combo
+lands or someone is nearly out they get on their feet and cheer. A knockout
+brings the house down.
+
+Adding a stage means one object in `src/stages.js` with a `drawBack` and a
+`drawFore`. The pieces to build it from — scrolling layers, hills, trees,
+water, weather, crowds, smoke — are all in `src/stagekit.js`.
 
 ## Modes
 
@@ -160,7 +212,7 @@ double-clicked file, and a Windows application.
 index.html          the page
 css/game.css        the page shell — the game is all canvas
 src/util.js         maths helpers and a deterministic random
-src/input.js        keyboard, gamepad, and the motion detector
+src/input.js        keyboard, Xbox pad, rumble, and the motion detector
 src/rig.js          the cat skeleton and how a cat is drawn
 src/anim.js         the pose library and keyframe blending
 src/moves.js        the eighteen normals, built once and shared

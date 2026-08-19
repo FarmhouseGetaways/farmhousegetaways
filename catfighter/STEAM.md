@@ -103,6 +103,23 @@ review flags.
 
 ---
 
+## Controllers on Steam
+
+Nothing needs doing. The game reads controllers through the standard gamepad
+interface, and Steam Input presents an Xbox, PlayStation or Switch pad to the
+game in exactly that shape. An Xbox pad works with no configuration at all,
+and a DualSense or a Switch Pro controller is handed over already translated.
+
+Two things worth setting on the Steamworks store page when you get there:
+
+- Tick **Full Controller Support** in the app's controller settings. It puts
+  the game in front of Steam Deck and living-room users, who filter on it.
+- Upload a **controller configuration** if you want the button prompts in the
+  Steam overlay to match. The default gamepad template is already correct for
+  this layout, so this is polish rather than a requirement.
+
+The game also rumbles, which Steam Input passes through untouched.
+
 ## Optional: the Steam overlay and achievements
 
 The game does not need the Steamworks API to run on Steam — it will launch and

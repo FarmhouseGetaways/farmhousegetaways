@@ -33,9 +33,86 @@
     }
   };
 
-  /* Standard-gamepad button indices for a six-button fightpad. */
-  var PAD_BUTTONS = { LP: 2, MP: 3, HP: 5, LK: 0, MK: 1, HK: 7, start: 9 };
-  var PAD_DEADZONE = 0.4;
+  /* ---- Gamepads ----------------------------------------------------------
+
+     An Xbox controller on Windows arrives through XInput and is reported by
+     Chromium as a "standard gamepad", which fixes the indices below. The
+     layout is the one every six-button fighting game uses on a pad:
+
+            Y  RB          MP  HP              LT  ─ throw macro (LP+LK)
+          X       →      LP        and         RB  ─ HP
+            A  B  RT       LK  MK  HK          RT  ─ HK
+
+     Both triggers are analogue: they report `value` from 0 to 1 and only set
+     `pressed` around halfway. A fighting game wants the input the moment the
+     player commits, so they are read at a third of the way down.            */
+  var PAD_BUTTONS = { LP: 2, MP: 3, HP: 5, LK: 0, MK: 1, HK: 7, start: 9, throwMacro: 6, back: 8 };
+  var PAD_DEADZONE = 0.42;
+  var TRIGGER_POINT = 0.32;
+
+  /* Players are given pads in the order the pads were first seen, not by raw
+     index. Unplugging a controller and plugging it back in can move it to a
+     different slot, and the player should not have to care. */
+  var padOrder = [];          // gamepad.index, in order of first appearance
+
+  function livePads() {
+    return navigator.getGamepads ? navigator.getGamepads() : [];
+  }
+
+  function refreshPadOrder() {
+    var pads = livePads(), i;
+    for (i = 0; i < pads.length; i++) {
+      var p = pads[i];
+      if (p && p.connected && padOrder.indexOf(p.index) < 0) padOrder.push(p.index);
+    }
+    for (i = padOrder.length - 1; i >= 0; i--) {
+      var still = pads[padOrder[i]];
+      if (!still || !still.connected) padOrder.splice(i, 1);
+    }
+  }
+
+  /* The pad assigned to a player slot, or null. */
+  function padForPlayer(slot) {
+    refreshPadOrder();
+    var idx = padOrder[slot];
+    if (idx === undefined) return null;
+    var p = livePads()[idx];
+    return (p && p.connected) ? p : null;
+  }
+
+  function padCount() { refreshPadOrder(); return padOrder.length; }
+
+  /* A readable name for the controls screen. */
+  function padName(slot) {
+    var p = padForPlayer(slot);
+    if (!p) return null;
+    var id = p.id || 'Gamepad';
+    if (/xbox|xinput|045e/i.test(id)) return 'XBOX CONTROLLER';
+    if (/dualsense|dualshock|054c|playstation/i.test(id)) return 'PLAYSTATION CONTROLLER';
+    if (/pro controller|057e/i.test(id)) return 'SWITCH PRO CONTROLLER';
+    return id.replace(/\s*\([^)]*\)\s*/g, '').toUpperCase().slice(0, 22) || 'GAMEPAD';
+  }
+
+  /* Rumble. Xbox pads support dual-rumble through the Gamepad API in
+     Chromium and Electron; anything that does not just silently does nothing,
+     which is exactly the right failure. */
+  function rumble(slot, strength, ms) {
+    var p = padForPlayer(slot);
+    if (!p) return;
+    var act = p.vibrationActuator;
+    if (!act || !act.playEffect) return;
+    try {
+      act.playEffect('dual-rumble', {
+        startDelay: 0,
+        duration: ms || 90,
+        weakMagnitude: Math.min(1, strength * 0.9),
+        strongMagnitude: Math.min(1, strength)
+      });
+    } catch (e) { /* a pad that will not buzz must never break the fight */ }
+  }
+
+  window.addEventListener('gamepadconnected', refreshPadOrder);
+  window.addEventListener('gamepaddisconnected', refreshPadOrder);
 
   var down = Object.create(null);   // physical keys currently held
   var latch = Object.create(null);  // keys pressed since the port last looked
@@ -67,7 +144,7 @@
   /* ---- Per-player input port -------------------------------------------- */
   function Port(which) {
     this.which = which;            // 'p1' | 'p2'
-    this.padIndex = which === 'p1' ? 0 : 1;
+    this.slot = which === 'p1' ? 0 : 1;
     this.dir = 5;
     this.held = {};                // button -> bool
     this.pressed = {};             // button -> true on the frame it went down
@@ -82,13 +159,10 @@
 
   Port.BUTTONS = BUTTONS;
 
-  Port.prototype.pad = function () {
-    var pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    var p = pads && pads[this.padIndex];
-    return (p && p.connected) ? p : null;
-  };
-
+  Port.prototype.pad = function () { return padForPlayer(this.slot); };
   Port.prototype.padConnected = function () { return !!this.pad(); };
+  Port.prototype.padName = function () { return padName(this.slot); };
+  Port.prototype.rumble = function (strength, ms) { rumble(this.slot, strength, ms); };
 
   /* Read the physical keyboard/pad for this port. */
   Port.prototype.readHardware = function () {
@@ -97,15 +171,17 @@
         lf = anyDown(k.left), rt = anyDown(k.right);
 
     if (p) {
+      /* left stick */
       var ax = p.axes[0] || 0, ay = p.axes[1] || 0;
       if (ax < -PAD_DEADZONE) lf = true;
       if (ax > PAD_DEADZONE) rt = true;
       if (ay < -PAD_DEADZONE) up = true;
       if (ay > PAD_DEADZONE) dn = true;
-      if (p.buttons[12] && p.buttons[12].pressed) up = true;
-      if (p.buttons[13] && p.buttons[13].pressed) dn = true;
-      if (p.buttons[14] && p.buttons[14].pressed) lf = true;
-      if (p.buttons[15] && p.buttons[15].pressed) rt = true;
+      /* d-pad — the one most people actually use for motions */
+      if (btn(p, 12)) up = true;
+      if (btn(p, 13)) dn = true;
+      if (btn(p, 14)) lf = true;
+      if (btn(p, 15)) rt = true;
     }
 
     if (lf && rt) { lf = rt = false; }   // SOCD: opposing directions cancel
@@ -114,20 +190,26 @@
     var col = lf ? 0 : (rt ? 2 : 1);
     var row = dn ? 0 : (up ? 2 : 1);
 
-    var btn = {};
+    var btns = {};
     for (var i = 0; i < BUTTONS.length; i++) {
       var b = BUTTONS[i];
-      var now = anyDown(k[b]);
-      if (p) {
-        var pb = p.buttons[PAD_BUTTONS[b]];
-        if (pb && (pb.pressed || pb.value > 0.5)) now = true;
-      }
-      btn[b] = now;
+      btns[b] = anyDown(k[b]) || (p ? btn(p, PAD_BUTTONS[b]) : false);
     }
-    var start = anyDown(k.start) ||
-                !!(p && p.buttons[PAD_BUTTONS.start] && p.buttons[PAD_BUTTONS.start].pressed);
-    return { dir: 1 + col + row * 3, btn: btn, start: start };
+    /* LT is a throw macro, the same as pressing light punch and light kick */
+    if (p && btn(p, PAD_BUTTONS.throwMacro)) { btns.LP = true; btns.LK = true; }
+
+    var start = anyDown(k.start) || (p ? btn(p, PAD_BUTTONS.start) : false);
+    return { dir: 1 + col + row * 3, btn: btns, start: start };
   };
+
+  /* One button, treating the analogue triggers as pressed early. */
+  function btn(pad, index) {
+    if (index === undefined) return false;
+    var b = pad.buttons && pad.buttons[index];
+    if (!b) return false;
+    if (typeof b === 'number') return b > TRIGGER_POINT;
+    return !!b.pressed || (b.value || 0) > TRIGGER_POINT;
+  }
 
   /* Fold one frame of input — from hardware or from the CPU — into the port's
      state, history and charge timers. Everything downstream reads only this. */
@@ -274,7 +356,12 @@
     return this.startPressed;
   };
 
-  CF.Input = { Port: Port, BUTTONS: BUTTONS, KEYS: KEYS, PAD_BUTTONS: PAD_BUTTONS };
+  CF.Input = {
+    Port: Port, BUTTONS: BUTTONS, KEYS: KEYS,
+    PAD_BUTTONS: PAD_BUTTONS, PAD_DEADZONE: PAD_DEADZONE, TRIGGER_POINT: TRIGGER_POINT,
+    padForPlayer: padForPlayer, padCount: padCount, padName: padName,
+    rumble: rumble, refreshPadOrder: refreshPadOrder, readButton: btn
+  };
 })();
 
 /* ---- appended: button-mash detection for electricity / flurry specials ---- */

@@ -11,7 +11,7 @@ const ROOT = join(HERE, '..');
 /* Everything except main.js, which needs a real document. */
 export const FILES = [
   'util.js', 'input.js', 'rig.js', 'anim.js', 'moves.js',
-  'characters.js', 'audio.js', 'stage.js', 'fighter.js', 'ai.js',
+  'characters.js', 'audio.js', 'stagekit.js', 'stages.js', 'fighter.js', 'ai.js',
   'hud.js', 'game.js'
 ];
 

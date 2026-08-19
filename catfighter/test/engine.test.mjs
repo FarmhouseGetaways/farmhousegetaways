@@ -369,15 +369,47 @@ test('the long cat genuinely out-ranges everyone', () => {
 
 /* ---- stages ------------------------------------------------------------- */
 
-test('every stage has a name and a draw function', () => {
+test('every stage has a name and both draw passes', () => {
   assert.ok(CF.Stages.length >= 4);
-  const names = new Set();
+  const names = new Set(), ids = new Set();
   for (const s of CF.Stages) {
     assert.ok(s.id && s.name, 'a stage is missing its id or name');
-    assert.equal(typeof s.draw, 'function', `stage ${s.id} cannot draw itself`);
-    names.add(s.name);
+    assert.equal(typeof s.drawBack, 'function', `stage ${s.id} has no background pass`);
+    assert.equal(typeof s.drawFore, 'function',
+      `stage ${s.id} has no foreground pass — the layer in front of the fighters is what sells it`);
+    names.add(s.name); ids.add(s.id);
   }
   assert.equal(names.size, CF.Stages.length, 'stage names must be unique');
+  assert.equal(ids.size, CF.Stages.length, 'stage ids must be unique');
+});
+
+test('every stage carries its own ambience', () => {
+  /* A stage with no particle system is a still photograph. */
+  for (const s of CF.Stages) {
+    const systems = Object.keys(s).filter(k => s[k] && s[k].p && Array.isArray(s[k].p));
+    assert.ok(systems.length >= 1,
+      `stage ${s.id} has no particles — nothing is drifting through it`);
+    for (const k of systems) {
+      assert.ok(s[k].p.length > 0, `stage ${s.id}: particle system "${k}" is empty`);
+    }
+  }
+});
+
+test('parallax layers tile far enough to cover the widest camera offset', () => {
+  /* The camera can sit 380 units from the origin. Anything tiled must still
+     produce elements across the whole screen there, or a gap opens up. */
+  const K = CF.StageKit;
+  for (const camX of [-380, -190, -4, 0]) {
+    for (const depth of [0.06, 0.3, 0.62, 1, 1.5]) {
+      for (const spacing of [22, 74, 300, 420]) {
+        const xs = [];
+        K.repeatX(camX, depth, spacing, x => xs.push(x));
+        const min = Math.min(...xs), max = Math.max(...xs);
+        assert.ok(min <= 0, `camX ${camX} depth ${depth} spacing ${spacing}: left gap (first at ${min})`);
+        assert.ok(max >= K.W - spacing, `camX ${camX} depth ${depth} spacing ${spacing}: right gap (last at ${max})`);
+      }
+    }
+  }
 });
 
 /* ---- motion priority ---------------------------------------------------- */
@@ -435,4 +467,183 @@ test('every motion the roster uses has a declared priority', () => {
       assert.ok(Number.isFinite(pri) && pri > 0, `${c.id}.${m.id}: no priority`);
     }
   }
+});
+
+/* ---- gamepads -----------------------------------------------------------
+   An Xbox pad on Windows reaches the browser as a "standard gamepad", which
+   fixes every index below. These tests build one by hand and push it through
+   the real readHardware path.                                              */
+
+function fakePad(over) {
+  const p = {
+    id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 02fd)',
+    index: 0, connected: true, mapping: 'standard',
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    vibrationActuator: { calls: [], playEffect(type, o) { this.calls.push({ type, o }); return Promise.resolve('complete'); } }
+  };
+  if (over) over(p);
+  return p;
+}
+
+function press(p, i, value) {
+  p.buttons[i].value = value === undefined ? 1 : value;
+  p.buttons[i].pressed = p.buttons[i].value > 0.5;
+}
+
+function withPad(sandbox, pad) {
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  CF.Input.refreshPadOrder();
+}
+
+test('an Xbox pad is recognised and named', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  assert.equal(G.Input.padCount(), 1);
+  assert.equal(G.Input.padName(0), 'XBOX CONTROLLER');
+  assert.equal(G.Input.padName(1), null, 'a second player has no pad yet');
+});
+
+test('the six face buttons map to the arcade layout', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+
+  const expect = { 2: 'LP', 3: 'MP', 5: 'HP', 0: 'LK', 1: 'MK', 7: 'HK' };
+  for (const [index, name] of Object.entries(expect)) {
+    pad.buttons.forEach(b => { b.pressed = false; b.value = 0; });
+    press(pad, Number(index));
+    const h = port.readHardware();
+    assert.equal(h.btn[name], true, `pad button ${index} should be ${name}`);
+    for (const other of ['LP', 'MP', 'HP', 'LK', 'MK', 'HK']) {
+      if (other === name) continue;
+      assert.equal(h.btn[other], false, `pad button ${index} should not also press ${other}`);
+    }
+  }
+});
+
+test('the analogue triggers register before they bottom out', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+
+  /* RT is heavy kick. A fighting game must take it the moment the player
+     commits, not halfway down the travel. */
+  press(pad, 7, 0.4);
+  assert.equal(pad.buttons[7].pressed, false, 'the browser would not call this pressed');
+  assert.equal(port.readHardware().btn.HK, true, 'but the game should still take it');
+
+  press(pad, 7, 0.1);
+  assert.equal(port.readHardware().btn.HK, false, 'a resting trigger is not a press');
+});
+
+test('the left trigger is a throw macro', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+  press(pad, 6, 0.9);
+  const h = port.readHardware();
+  assert.equal(h.btn.LP, true, 'LT should press light punch');
+  assert.equal(h.btn.LK, true, 'LT should press light kick');
+});
+
+test('the d-pad and the left stick both give clean directions', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+
+  const dpad = { 12: 8, 13: 2, 14: 4, 15: 6 };
+  for (const [index, dir] of Object.entries(dpad)) {
+    pad.buttons.forEach(b => { b.pressed = false; b.value = 0; });
+    press(pad, Number(index));
+    assert.equal(port.readHardware().dir, dir, `d-pad ${index} should give direction ${dir}`);
+  }
+  pad.buttons.forEach(b => { b.pressed = false; b.value = 0; });
+
+  /* down-forward on the d-pad, which is what a quarter circle needs */
+  press(pad, 13); press(pad, 15);
+  assert.equal(port.readHardware().dir, 3, 'down + right is down-forward');
+  pad.buttons.forEach(b => { b.pressed = false; b.value = 0; });
+
+  pad.axes = [0.9, 0.9, 0, 0];
+  assert.equal(port.readHardware().dir, 3, 'stick pushed down-right is down-forward');
+  pad.axes = [-0.9, -0.9, 0, 0];
+  assert.equal(port.readHardware().dir, 7, 'stick pushed up-left is up-back');
+  pad.axes = [0.2, 0.2, 0, 0];
+  assert.equal(port.readHardware().dir, 5, 'inside the deadzone is neutral');
+});
+
+test('a quarter circle on the d-pad reads as a fireball', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+
+  function frame() { const h = port.readHardware(); port.apply(h.dir, h.btn, h.start); }
+  const clear = () => pad.buttons.forEach(b => { b.pressed = false; b.value = 0; });
+
+  clear(); frame();
+  clear(); press(pad, 13); frame();                 // down
+  clear(); press(pad, 13); press(pad, 15); frame(); // down-forward
+  clear(); press(pad, 15); frame();                 // forward
+  assert.equal(port.motion('qcf', 1), true, 'd-pad quarter circle should read as a fireball motion');
+});
+
+test('players get pads in the order they were plugged in', () => {
+  const { CF: G, sandbox } = loadGame();
+  const a = fakePad(p => { p.index = 0; });
+  const b = fakePad(p => { p.index = 3; p.id = 'Xbox Controller B'; });
+  sandbox.navigator.getGamepads = () => [a, null, null, b];
+  G.Input.refreshPadOrder();
+  assert.equal(G.Input.padCount(), 2);
+  assert.equal(G.Input.padForPlayer(0).index, 0);
+  assert.equal(G.Input.padForPlayer(1).index, 3,
+    'a pad sitting at slot 3 should still be player two, not nobody');
+
+  /* unplug the first — the survivor becomes player one */
+  sandbox.navigator.getGamepads = () => [null, null, null, b];
+  G.Input.refreshPadOrder();
+  assert.equal(G.Input.padCount(), 1);
+  assert.equal(G.Input.padForPlayer(0).index, 3);
+});
+
+test('rumble reaches the pad, and never reaches a CPU port', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad();
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+
+  const human = new G.Input.Port('p1');
+  human.rumble(0.8, 120);
+  assert.equal(pad.vibrationActuator.calls.length, 1, 'a human port should buzz its pad');
+  assert.equal(pad.vibrationActuator.calls[0].o.strongMagnitude, 0.8);
+
+  /* The CPU port borrows player one's key map. It must not borrow the pad:
+     the computer taking a hit should never buzz the human's controller. */
+  const cpu = new G.VirtualPort();
+  cpu.rumble(1, 400);
+  assert.equal(pad.vibrationActuator.calls.length, 1,
+    'the CPU getting hit must not rumble the human player');
+  assert.equal(cpu.pad(), null);
+  assert.equal(cpu.padConnected(), false);
+});
+
+test('rumble on a pad that cannot buzz is harmless', () => {
+  const { CF: G, sandbox } = loadGame();
+  const pad = fakePad(p => { delete p.vibrationActuator; });
+  sandbox.navigator.getGamepads = () => [pad, null, null, null];
+  G.Input.refreshPadOrder();
+  const port = new G.Input.Port('p1');
+  assert.doesNotThrow(() => port.rumble(1, 200));
 });

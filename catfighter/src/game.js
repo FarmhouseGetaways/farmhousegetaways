@@ -46,6 +46,7 @@
     this.announce = null;
     this.announceT = 0;
     this.slowmo = 0;
+    this.crowdMood = 0;
   }
 
   /* ---- public hooks used by fighters ------------------------------------- */
@@ -54,6 +55,12 @@
     if (this.p2) this.p2.hitstop = Math.max(this.p2.hitstop, n);
   };
   Game.prototype.shake = function (n) { this.shakeAmt = Math.max(this.shakeAmt, n); };
+
+  /* Stir the crowd. Big hits, supers, knockdowns and a nearly-dead fighter all
+     get the spectators on their feet; it settles back down between exchanges. */
+  Game.prototype.excite = function (n) {
+    this.crowdMood = U.clamp(this.crowdMood + n, 0, 1);
+  };
   Game.prototype.say = function (str, frames, size, color) {
     this.announce = { str: str, size: size || 34, color: color || '#ffe07a' };
     this.announceT = frames || 70;
@@ -131,7 +138,7 @@
       case 'title':    this.stepTitle(); break;
       case 'select':   this.stepSelect(); break;
       case 'fight':    this.stepFight(); break;
-      case 'controls': if (this.anyStart()) { this.scene = 'title'; CF.Audio.play('select'); } break;
+      case 'controls': this.stepControls(); break;
       case 'options':  this.stepOptions(); break;
       case 'result':   this.stepResult(); break;
     }
@@ -164,6 +171,19 @@
         this.select.stage = (Math.random() * CF.Stages.length) | 0;
       }
     }
+  };
+
+  Game.prototype.stepControls = function () {
+    var p = this.ports[0];
+    if (this._navCool > 0) this._navCool--;
+    if (!this._navCool) {
+      if (p.dir === 6 || p.dir === 4) {
+        this.ctrlPage = this.ctrlPage ? 0 : 1;
+        this._navCool = 12;
+        CF.Audio.play('cursor');
+      }
+    }
+    if (this.anyStart()) { this.scene = 'title'; CF.Audio.play('select'); }
   };
 
   /* ---- options ----------------------------------------------------------- */
@@ -265,6 +285,12 @@
     }
 
     this.roundTimer++;
+
+    /* crowd mood settles, then gets topped up by whatever is happening */
+    this.crowdMood *= 0.985;
+    var lowest = Math.min(p1.health / p1.maxHealth, p2.health / p2.maxHealth);
+    if (lowest < 0.25 && this.roundState === 'fight') this.excite(0.006);
+    if (p1.comboCount >= 3 || p2.comboCount >= 3) this.excite(0.02);
 
     if (this.roundState === 'intro') {
       if (this.roundTimer === 62) { this.say('FIGHT!', 50, 40, '#ff7a4a'); CF.Audio.play('meow'); }
@@ -400,9 +426,16 @@
         atk.meter = Math.min(atk.maxMeter, atk.meter + Math.round((m.meterGain || 6) * 0.4));
         atk.vx = atk.facing * -1.2;
         this.hitstop(4);
+        def.port.rumble(0.22, 60);
+        atk.port.rumble(0.12, 45);
       } else {
         atk.meter = Math.min(atk.maxMeter, atk.meter + (m.meterOnHit || m.meterGain || 8));
         var heavy = data.damage >= 30;
+        this.excite(m.kind === 'super' ? 0.7 : (heavy ? 0.28 : 0.10));
+        /* the defender feels it hardest, the attacker feels the connection */
+        var force = m.kind === 'super' ? 1 : (heavy ? 0.72 : (data.damage >= 20 ? 0.45 : 0.26));
+        def.port.rumble(force, m.kind === 'super' ? 260 : (heavy ? 130 : 70));
+        atk.port.rumble(force * 0.4, 55);
         var stop = m.kind === 'super' ? 12 : (heavy ? 9 : (data.damage >= 20 ? 7 : 5));
         this.hitstop(stop);
         this.shake(heavy ? 5 : 2.5);
@@ -415,7 +448,11 @@
         } else {
           CF.Audio.play(m.kind === 'super' ? 'superhit' : (m.sfx || (heavy ? 'heavy' : 'med')));
         }
-        if (result === 'ko') { this.shake(12); this.slowmo = 60; }
+        if (result === 'ko') {
+          this.shake(12); this.slowmo = 60; this.excite(1);
+          def.port.rumble(1, 500);
+          atk.port.rumble(0.5, 260);
+        }
       }
     }
   };
@@ -716,42 +753,198 @@
              '#8fd6ff', 'left', 800, 0.6);
   };
 
-  /* ---- controls ----------------------------------------------------------- */
+  /* ---- controls -----------------------------------------------------------
+
+     Two pages: what the buttons are, and what the motions are. A drawn
+     controller beats a table of numbers, because the thing a player wants to
+     know is "which of these do I press", and a picture answers that.       */
+
+  function padDiagram(ctx, x, y, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+
+    /* triggers and bumpers, behind the body */
+    ctx.fillStyle = '#4a4a56';
+    ctx.fillRect(-36, -31, 14, 6);
+    ctx.fillRect(22, -31, 14, 6);
+    ctx.fillStyle = '#3d3d48';
+    ctx.fillRect(-40, -25, 21, 6);
+    ctx.fillRect(19, -25, 21, 6);
+
+    /* body */
+    ctx.fillStyle = '#2b2b34';
+    ctx.beginPath();
+    ctx.moveTo(-46, -6);
+    ctx.quadraticCurveTo(-52, 14, -38, 22);
+    ctx.quadraticCurveTo(-26, 28, -18, 14);
+    ctx.lineTo(18, 14);
+    ctx.quadraticCurveTo(26, 28, 38, 22);
+    ctx.quadraticCurveTo(52, 14, 46, -6);
+    ctx.quadraticCurveTo(40, -19, 20, -19);
+    ctx.lineTo(-20, -19);
+    ctx.quadraticCurveTo(-40, -19, -46, -6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1; ctx.stroke();
+
+    /* left stick */
+    ctx.fillStyle = '#16161d';
+    ctx.beginPath(); ctx.arc(-28, -5, 8.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#45454f';
+    ctx.beginPath(); ctx.arc(-28, -5, 5.8, 0, Math.PI * 2); ctx.fill();
+
+    /* d-pad */
+    ctx.fillStyle = '#16161d';
+    ctx.fillRect(-15, 2.4, 15, 5);
+    ctx.fillRect(-10, -2.6, 5, 15);
+
+    /* face buttons, in the real arrangement */
+    var faces = [[28, -12, '#e0b52e', 'Y'], [20, -4, '#3f7fd9', 'X'],
+                 [36, -4, '#d94a3f', 'B'], [28, 4, '#6fbf4a', 'A']];
+    ctx.textAlign = 'center';
+    for (var i = 0; i < faces.length; i++) {
+      var f = faces[i];
+      ctx.fillStyle = f[2];
+      ctx.beginPath(); ctx.arc(f[0], f[1], 4.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.65)';
+      ctx.font = '800 5.4px Arial';
+      ctx.fillText(f[3], f[0], f[1] + 2);
+    }
+
+    /* right stick, start and back */
+    ctx.fillStyle = '#16161d';
+    ctx.beginPath(); ctx.arc(6, 7, 7.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#45454f';
+    ctx.beginPath(); ctx.arc(6, 7, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4a4a56';
+    ctx.beginPath(); ctx.arc(-6, -9, 2.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(8, -9, 2.3, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* The legend sits beside the picture rather than being wired to it with
+     callout lines: eight lines all reaching the same corner of a small pad
+     cross each other into a cobweb and stop being readable. */
+  var PAD_LEGEND = [
+    ['X',  '#3f7fd9', 'LIGHT PUNCH'],
+    ['Y',  '#e0b52e', 'MEDIUM PUNCH'],
+    ['RB', '#5a5a68', 'HEAVY PUNCH'],
+    ['A',  '#6fbf4a', 'LIGHT KICK'],
+    ['B',  '#d94a3f', 'MEDIUM KICK'],
+    ['RT', '#5a5a68', 'HEAVY KICK'],
+    ['LT', '#5a5a68', 'THROW'],
+    ['STICK / D-PAD', null, 'MOVE, JUMP, BLOCK'],
+    ['START', null, 'PAUSE / CONFIRM']
+  ];
+
   Game.prototype.drawControls = function (ctx) {
-    ctx.fillStyle = '#1a1424'; ctx.fillRect(0, 0, W, H);
-    HUD.text(ctx, 'CONTROLS', W / 2, 20, 14, '#ffe07a', 'center', 800, 2);
+    var page = this.ctrlPage || 0;
+    ctx.fillStyle = '#171224'; ctx.fillRect(0, 0, W, H);
+    var g = ctx.createRadialGradient(W / 2, 90, 10, W / 2, 90, 230);
+    g.addColorStop(0, 'rgba(90,60,120,.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-    var rows = [
-      ['', 'PLAYER 1', 'PLAYER 2'],
-      ['MOVE', 'W A S D', 'ARROW KEYS'],
-      ['LIGHT / MED / HEAVY PUNCH', 'U  I  O', 'NUM 7 8 9'],
-      ['LIGHT / MED / HEAVY KICK', 'J  K  L', 'NUM 4 5 6'],
-      ['THROW', 'LP + LK', 'LP + LK'],
-      ['PAUSE', 'ENTER', '—']
-    ];
-    for (var i = 0; i < rows.length; i++) {
-      var y = 42 + i * 13;
-      var head = i === 0;
-      HUD.text(ctx, rows[i][0], 18, y, head ? 8 : 8.5, head ? '#ffb8a0' : 'rgba(255,240,220,.8)', 'left', head ? 800 : 600, 0.4);
-      HUD.text(ctx, rows[i][1], 210, y, 8.5, head ? '#8fd6ff' : '#ffe9b8', 'center', head ? 800 : 700, 0.4);
-      HUD.text(ctx, rows[i][2], 310, y, 8.5, head ? '#ff9db0' : '#ffe9b8', 'center', head ? 800 : 700, 0.4);
+    HUD.text(ctx, page === 0 ? 'CONTROLLER' : 'MOTIONS', W / 2, 17, 13, '#ffe07a', 'center', 800, 2);
+    HUD.text(ctx, '◀   ' + (page + 1) + ' / 2   ▶', W / 2, 27, 7,
+             'rgba(255,240,220,.45)', 'center', 700, 1);
+
+    if (page === 0) {
+      padDiagram(ctx, 92, 78, 1.4);
+
+      /* legend */
+      var lx = 176;
+      for (var i = 0; i < PAD_LEGEND.length; i++) {
+        var row = PAD_LEGEND[i], ly = 44 + i * 12;
+        if (row[1]) {
+          ctx.fillStyle = row[1];
+          ctx.beginPath(); ctx.arc(lx + 6, ly - 3, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.save();
+          ctx.font = '800 6px Arial'; ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(0,0,0,.7)';
+          ctx.fillText(row[0], lx + 6, ly - 1);
+          ctx.restore();
+        } else {
+          HUD.text(ctx, row[0], lx, ly, 7, 'rgba(255,240,220,.75)', 'left', 700, 0.3);
+        }
+        HUD.text(ctx, row[2], lx + (row[1] ? 18 : 0) + (row[1] ? 0 : 0), ly,
+                 8, row[1] ? '#ffe9b8' : 'rgba(255,240,220,.55)',
+                 'left', row[1] ? 700 : 600, 0.4);
+      }
+      /* the two that have no chip get their action on the next column instead */
+      ctx.fillStyle = 'rgba(23,18,36,1)';
+      ctx.fillRect(lx, 44 + 7 * 12 - 9, W - lx - 6, 24);
+      for (var j = 7; j < PAD_LEGEND.length; j++) {
+        var r2 = PAD_LEGEND[j], y2 = 44 + j * 12;
+        HUD.text(ctx, r2[0], lx, y2, 7, '#8fd6ff', 'left', 800, 0.4);
+        HUD.text(ctx, r2[2], W - 8, y2, 7.4, 'rgba(255,240,220,.7)', 'right', 600, 0.3);
+      }
+
+      /* live connection status */
+      var names = [this.ports[0].padName(), this.ports[1].padName()];
+      var any = names[0] || names[1];
+      ctx.fillStyle = any ? 'rgba(60,180,110,.16)' : 'rgba(255,255,255,.05)';
+      ctx.fillRect(20, 148, W - 40, any && names[1] ? 26 : 17);
+      HUD.text(ctx, any ? 'CONTROLLER DETECTED' : 'NO CONTROLLER DETECTED',
+               W / 2, 159, 8.5, any ? '#8fe6a0' : 'rgba(255,240,220,.5)', 'center', 800, 1);
+      if (any) {
+        var shown = 0;
+        for (var k = 0; k < 2; k++) {
+          if (!names[k]) continue;
+          HUD.text(ctx, (k === 0 ? '1P — ' : '2P — ') + names[k], W / 2, 169 + shown * 9, 7.5,
+                   k === 0 ? '#4ad0ff' : '#ff9db0', 'center', 700, 0.6);
+          shown++;
+        }
+      } else {
+        HUD.text(ctx, 'PLUG ONE IN AND PRESS A BUTTON', W / 2, 169, 7,
+                 'rgba(255,240,220,.5)', 'center', 700, 0.6);
+      }
+
+      /* keyboard, for anyone without a pad */
+      HUD.text(ctx, 'KEYBOARD', 20, 188, 7.5, '#ffb8a0', 'left', 800, 0.8);
+      var rows = [
+        ['MOVE', 'W A S D', 'ARROW KEYS'],
+        ['PUNCHES  LP MP HP', 'U  I  O', 'NUMPAD 7 8 9'],
+        ['KICKS  LK MK HK', 'J  K  L', 'NUMPAD 4 5 6']
+      ];
+      HUD.text(ctx, '1P', 236, 188, 7, '#8fd6ff', 'center', 800, 0.6);
+      HUD.text(ctx, '2P', 320, 188, 7, '#ff9db0', 'center', 800, 0.6);
+      for (var r = 0; r < rows.length; r++) {
+        var ry = 197 + r * 7.4;
+        HUD.text(ctx, rows[r][0], 20, ry, 7, 'rgba(255,240,220,.72)', 'left', 600, 0.2);
+        HUD.text(ctx, rows[r][1], 236, ry, 7, '#ffe9b8', 'center', 700, 0.2);
+        HUD.text(ctx, rows[r][2], 320, ry, 7, '#ffe9b8', 'center', 700, 0.2);
+      }
+
+    } else {
+      HUD.text(ctx, 'written facing right — they mirror when your cat turns around',
+               W / 2, 39, 7.4, 'rgba(255,240,220,.55)', 'center', 600, 0.4);
+      var mo = [
+        ['FIREBALL',     'down, down-forward, forward', 'punch'],
+        ['UPPERCUT',     'forward, down, down-forward', 'punch'],
+        ['SPIN KICK',    'down, down-back, back', 'kick'],
+        ['CHARGE SHOT',  'hold BACK 40 frames, then forward', 'button'],
+        ['FLASH KICK',   'hold DOWN 40 frames, then up', 'kick'],
+        ['COMMAND GRAB', 'forward, down, back, up', 'punch'],
+        ['SUPER',        'two fireball motions, full meter', 'button'],
+        ['DASH',         'tap forward twice', '—'],
+        ['BACK HOP',     'tap back twice', '—'],
+        ['BLOCK',        'hold back, or down-back for lows', '—'],
+        ['THROW',        'LT, or light punch + light kick', '—']
+      ];
+      for (var m = 0; m < mo.length; m++) {
+        var my = 54 + m * 13.4;
+        ctx.fillStyle = m % 2 ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.18)';
+        ctx.fillRect(14, my - 9, W - 28, 12.4);
+        HUD.text(ctx, mo[m][0], 20, my, 7.6, '#ffe07a', 'left', 800, 0.4);
+        HUD.text(ctx, mo[m][1], 112, my, 7.2, 'rgba(255,240,220,.85)', 'left', 600, 0.15);
+        HUD.text(ctx, mo[m][2], W - 20, my, 7.2, '#8fd6ff', 'right', 700, 0.2);
+      }
     }
 
-    HUD.text(ctx, 'MOTIONS  (shown facing right)', 18, 128, 8, '#ffb8a0', 'left', 800, 0.8);
-    var mo = [
-      'FIREBALL      down, down-forward, forward + punch',
-      'UPPERCUT      forward, down, down-forward + punch',
-      'SPIN KICK     down, down-back, back + kick',
-      'CHARGE        hold back 40f, then forward + button',
-      'FLASH KICK    hold down 40f, then up + kick',
-      'SUPER         two fireball motions + button (full meter)'
-    ];
-    for (var m = 0; m < mo.length; m++) {
-      HUD.text(ctx, mo[m], 18, 141 + m * 10, 7.4, 'rgba(255,240,220,.75)', 'left', 600, 0.2);
-    }
-    HUD.text(ctx, 'A GAMEPAD WORKS TOO — PLUG IT IN AND IT IS FOUND AUTOMATICALLY',
-             W / 2, H - 16, 7, 'rgba(255,240,220,.5)', 'center', 700, 0.6);
-    HUD.text(ctx, 'PRESS ENTER TO GO BACK', W / 2, H - 6, 7.5, '#ffe07a', 'center', 800, 1);
+    HUD.text(ctx, 'LEFT / RIGHT TO TURN THE PAGE   •   ENTER TO GO BACK',
+             W / 2, H - 3, 6.8, '#ffe07a', 'center', 800, 0.8);
   };
 
   /* ---- options ------------------------------------------------------------ */
@@ -777,7 +970,7 @@
 
     ctx.save();
     ctx.translate(sx, sy);
-    this.stage.draw(ctx, camX, this.t);
+    this.stage.drawBack(ctx, camX, this.t, this.crowdMood);
 
     /* shadows first so both cats cast onto the same floor */
     var fs = [this.p1, this.p2];
@@ -804,6 +997,10 @@
     }
 
     HUD.drawFx(ctx, this.fx, camX);
+
+    /* the foreground pass — what makes the cats feel inside the place
+       rather than pasted on top of a picture of it */
+    if (this.stage.drawFore) this.stage.drawFore(ctx, camX, this.t, this.crowdMood);
 
     if (this.settings.showBoxes) this.drawBoxes(ctx, camX);
     ctx.restore();

@@ -15,9 +15,18 @@
     this.virtual = true;
     this.script = [];               // queued frames: {dir, btn:{}}
     this.holdDir = 5;
+    this.slot = -1;                 // no hardware slot: see below
   }
   VirtualPort.prototype = Object.create(Port.prototype);
   VirtualPort.prototype.constructor = VirtualPort;
+
+  /* A virtual port has no controller behind it. Saying so explicitly matters:
+     it is constructed borrowing player one's key map, and without this the CPU
+     taking a hit would buzz the human's pad as though they had been hit. */
+  VirtualPort.prototype.pad = function () { return null; };
+  VirtualPort.prototype.padConnected = function () { return false; };
+  VirtualPort.prototype.padName = function () { return null; };
+  VirtualPort.prototype.rumble = function () {};
 
   VirtualPort.prototype.poll = function () {
     var f = this.script.shift();
