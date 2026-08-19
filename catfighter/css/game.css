@@ -1,0 +1,72 @@
+/* Cat Fighter II — page shell. The game itself is all canvas. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #07060a;
+  overflow: hidden;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  color: #ffe9c8;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1b1426 0%, #07060a 70%);
+}
+
+#screen {
+  display: block;
+  image-rendering: auto;
+  box-shadow: 0 0 0 2px #2a2233, 0 18px 60px rgba(0, 0, 0, .8);
+  outline: none;
+  touch-action: none;
+}
+
+/* Shown until the first key press, because browsers will not make a sound
+   before the player has touched something. */
+#boot {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  background: rgba(7, 6, 10, .88);
+  z-index: 10;
+  transition: opacity .35s ease;
+  text-align: center;
+  padding: 1rem;
+}
+
+#boot.gone { opacity: 0; pointer-events: none; }
+
+#boot h1 {
+  font-size: clamp(1.6rem, 6vw, 3rem);
+  letter-spacing: .12em;
+  color: #ffe07a;
+  text-shadow: 0 3px 0 #2a0e18;
+}
+
+#boot p {
+  font-size: clamp(.8rem, 2.4vw, 1rem);
+  letter-spacing: .08em;
+  color: rgba(255, 233, 200, .72);
+}
+
+#boot .key {
+  display: inline-block;
+  border: 1px solid rgba(255, 224, 122, .5);
+  border-radius: 4px;
+  padding: .12em .45em;
+  color: #ffe07a;
+}

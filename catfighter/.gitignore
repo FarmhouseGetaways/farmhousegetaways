@@ -1,0 +1,4 @@
+# Build output and tooling — the game itself is committed as source.
+node_modules/
+dist/
+package-lock.json
