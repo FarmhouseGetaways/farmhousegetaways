@@ -211,8 +211,10 @@ for lab, x0s, wid in PK_STALLS:
     elif lab:
         ax.text(x0s+wid/2, PK_Y0+PK_D/2, lab, fontsize=3.4, ha='center', va='center',
                 color='#0044aa', fontweight='bold', zorder=7)
-ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES\n(1 VAN ACCESSIBLE PER CBC 11B)\nPROPOSED GRAVEL SURFACE, ZO §6157(h)",
-            (211, PK_Y0), (330, 78), fontsize=6.2, ha='center', color='#00337f',
+# Short label on the drawing face; the detail lives in the §6157(h) parking
+# block on the sheet, so the plan stays readable.
+ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES",
+            (192, PK_Y0), (160, 233), fontsize=6.2, ha='center', color='#00337f',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
             bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.2))
 
@@ -299,7 +301,7 @@ ax.annotate("HANDLEBAR ROAD (PRIVATE ROAD ESMT.)", (497, 57), (392, 24), fontsiz
 drv_px = [(1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
 drv = [(x*SXX, 294.1-y*SYY) for x, y in drv_px]
 ax.plot([p[0] for p in drv], [p[1] for p in drv], color='0.35', lw=1.0, ls=(0,(6,3)), zorder=2)
-for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((196,150),"GRAVEL")]:
+for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((252,166),"GRAVEL")]:
     ax.text(*lp, lab, fontsize=5.8, color='0.25', style='italic', zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
