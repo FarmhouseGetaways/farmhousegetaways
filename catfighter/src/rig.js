@@ -16,7 +16,7 @@
      screen, which is roughly the Street Fighter II sprite-to-screen ratio. */
   var P = {
     torsoLen: 26,
-    headR: 17,
+    headR: 18.4,
     upperArm: 13, foreArm: 12,
     thigh: 17.5, shin: 16.5,
     tail: [14, 12, 10],
@@ -28,6 +28,21 @@
     pelvisScale: 34 / 42
   };
   CF.PROP = P;
+
+  /* Nudge a hex colour lighter or darker. Used to separate the front limbs
+     from the torso by TONE rather than by an outline, which keeps the
+     silhouette unbroken while still letting you read an arm as an arm. */
+  function shade(hex, amount) {
+    if (!hex || hex[0] !== '#' || hex.length < 7) return hex;
+    var r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+    function mix(v) {
+      var t = amount > 0 ? 255 : 0;
+      return Math.round(v + (t - v) * Math.abs(amount));
+    }
+    return 'rgb(' + mix(r) + ',' + mix(g) + ',' + mix(b) + ')';
+  }
 
   function pt(x, y) { return { x: x, y: y }; }
   function seg(from, ang, len) {
@@ -91,8 +106,22 @@
     };
   }
 
-  /* ---- Drawing helpers --------------------------------------------------- */
-  function capsule(ctx, a, b, r1, r2, fill, stroke) {
+  /* ---- Drawing ------------------------------------------------------------
+
+     The cat is drawn in TWO PASSES over one list of shapes.
+
+     Pass one strokes every shape with a thick contour colour. Pass two fills
+     them in draw order, which paints over all the interior strokes and leaves
+     only the outer edge standing. The result is a single unbroken silhouette
+     with one bold outline — the difference between a fighting-game character
+     and a doll with visible joints, which is what you get if each limb draws
+     its own outline.
+
+     Everything that is not part of the silhouette — markings, the face, fur
+     shading — goes in a third pass on top.
+     ------------------------------------------------------------------------ */
+
+  function capsulePath(ctx, a, b, r1, r2) {
     var dx = b.x - a.x, dy = b.y - a.y;
     var len = Math.hypot(dx, dy) || 0.001;
     var nx = -dy / len, ny = dx / len;
@@ -103,239 +132,334 @@
     ctx.lineTo(a.x - nx * r1, a.y - ny * r1);
     ctx.arc(a.x, a.y, r1, Math.atan2(-ny, -nx), Math.atan2(ny, nx), true);
     ctx.closePath();
+  }
+
+  function ellipsePath(ctx, x, y, rx, ry, rot) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2);
+    ctx.closePath();
+  }
+
+  /* kept for callers that still want a one-off shape */
+  function capsule(ctx, a, b, r1, r2, fill, stroke) {
+    capsulePath(ctx, a, b, r1, r2);
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); }
   }
-
   function blob(ctx, x, y, rx, ry, rot, fill, stroke) {
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(rot || 0);
-    ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ellipsePath(ctx, x, y, rx, ry, rot);
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); }
-    ctx.restore();
   }
 
-  /* ---- Fur patterns ------------------------------------------------------ */
-  function drawPattern(ctx, c, j, part) {
+  function tailPath(ctx, j) {
+    ctx.beginPath();
+    ctx.moveTo(j.tail[0].x, j.tail[0].y);
+    ctx.quadraticCurveTo(j.tail[1].x, j.tail[1].y, j.tail[2].x, j.tail[2].y);
+    ctx.quadraticCurveTo(j.tail[2].x, j.tail[2].y, j.tail[3].x, j.tail[3].y);
+  }
+
+  function earPath(ctx, r, sx) {
+    ctx.beginPath();
+    ctx.moveTo(sx * r * 0.34, r * 0.56);
+    ctx.quadraticCurveTo(sx * r * 0.74, r * 1.14, sx * r * 0.96, r * 1.60);
+    ctx.quadraticCurveTo(sx * r * 1.06, r * 1.02, sx * r * 1.02, r * 0.40);
+    ctx.closePath();
+  }
+
+  /* ---- fur patterns, drawn inside the body silhouette --------------------- */
+  function drawPattern(ctx, c, j) {
     var pat = c.pattern;
+    if (!pat || pat === 'solid') return;
+    var mid = { x: (j.pelvis.x + j.neck.x) / 2, y: (j.pelvis.y + j.neck.y) / 2 };
+    var ang = Math.atan2(j.neck.x - j.pelvis.x, j.neck.y - j.pelvis.y);
+    /* markings grow with the cat, but only about half as fast as its girth */
+    var s = j.s * (1 + ((j.girth || 1) - 1) * 0.45);
     ctx.save();
-    if (part === 'torso') {
-      var mid = pt((j.pelvis.x + j.neck.x) / 2, (j.pelvis.y + j.neck.y) / 2);
-      var ang = Math.atan2(j.neck.x - j.pelvis.x, j.neck.y - j.pelvis.y);
-      ctx.translate(mid.x, mid.y); ctx.rotate(-ang);
-      ctx.globalAlpha = 0.85;
+    ctx.translate(mid.x, mid.y);
+    ctx.rotate(-ang);
+    if (pat === 'tabby') {
+      ctx.globalAlpha = 0.8;
       ctx.fillStyle = c.marks;
-      if (pat === 'tabby') {
-        for (var i = -1; i <= 1; i++) {
-          ctx.beginPath();
-          ctx.ellipse(0, i * 9, 11, 2.1, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (pat === 'tuxedo') {
-        ctx.fillStyle = c.belly;
-        ctx.beginPath(); ctx.ellipse(3, -2, 6.5, 15, 0, 0, Math.PI * 2); ctx.fill();
-      } else if (pat === 'calico') {
-        ctx.beginPath(); ctx.ellipse(-4, -7, 6, 7, 0.4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = c.marks2 || c.belly;
-        ctx.beginPath(); ctx.ellipse(5, 6, 5, 6, -0.3, 0, Math.PI * 2); ctx.fill();
-      } else if (pat === 'tortie') {
-        ctx.fillStyle = c.marks;
-        ctx.beginPath(); ctx.ellipse(-3, -5, 7, 9, 0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = c.marks2 || c.fur2;
-        ctx.beginPath(); ctx.ellipse(4, 4, 6, 8, -0.4, 0, Math.PI * 2); ctx.fill();
-      } else if (pat === 'siamese') {
-        var g = ctx.createLinearGradient(0, -16, 0, 16);
-        g.addColorStop(0, 'rgba(0,0,0,0)');
-        g.addColorStop(1, c.marks);
-        ctx.globalAlpha = 0.4; ctx.fillStyle = g;
-        ctx.beginPath(); ctx.ellipse(0, 0, 12, 17, 0, 0, Math.PI * 2); ctx.fill();
+      for (var i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.ellipse(-1.5 * s, i * 7 * s, 12 * s, 2.0 * s, 0.08, 0, Math.PI * 2);
+        ctx.fill();
       }
+    } else if (pat === 'tuxedo') {
+      ctx.fillStyle = c.belly;
+      ctx.beginPath();
+      ctx.ellipse(5.5 * s, -1 * s, 6.2 * s, 13.5 * s, 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (pat === 'calico') {
+      ctx.globalAlpha = 0.9; ctx.fillStyle = c.marks;
+      ctx.beginPath(); ctx.ellipse(-4 * s, -7 * s, 7 * s, 8 * s, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = c.marks2 || c.belly;
+      ctx.beginPath(); ctx.ellipse(5 * s, 6 * s, 6 * s, 7 * s, -0.3, 0, Math.PI * 2); ctx.fill();
+    } else if (pat === 'tortie') {
+      ctx.globalAlpha = 0.9; ctx.fillStyle = c.marks;
+      ctx.beginPath(); ctx.ellipse(-3 * s, -5 * s, 8 * s, 10 * s, 0.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = c.marks2 || c.fur2;
+      ctx.beginPath(); ctx.ellipse(4 * s, 4 * s, 7 * s, 9 * s, -0.4, 0, Math.PI * 2); ctx.fill();
+    } else if (pat === 'siamese') {
+      var g = ctx.createLinearGradient(0, -20 * s, 0, 20 * s);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, c.marks);
+      ctx.globalAlpha = 0.42; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, 14 * s, 20 * s, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   }
 
-  /* ---- The cat ----------------------------------------------------------- */
+  /* ---- the cat ------------------------------------------------------------ */
+
   function drawCat(ctx, j, c, opts) {
     opts = opts || {};
-    var flash = opts.flash;        // 'hit' | 'white' | null
-    var fur = flash === 'white' ? '#ffffff' : c.fur;
-    var fur2 = flash === 'white' ? '#eeeeee' : c.fur2;
-    var belly = flash === 'white' ? '#ffffff' : c.belly;
-    var line = flash === 'white' ? '#ffffff' : c.line || 'rgba(30,22,18,.55)';
+    var flash = opts.flash;
+    var s = j.s, G = j.girth || 1;
+    var white = flash === 'white';
 
-    var G = j.girth || 1;
-    var limbR = 6.2 * j.s * G, limbR2 = 4.7 * j.s * G;
+    var fur   = white ? '#ffffff' : c.fur;
+    var fur2  = white ? '#eeeeee' : c.fur2;
+    var belly = white ? '#ffffff' : c.belly;
+    /* One solid contour for the whole figure. The old per-cat lines were
+       semi-transparent, which is fine for an internal seam and useless as a
+       silhouette — a translucent dark edge on a dark stage is no edge at all. */
+    var line  = white ? '#ffffff' : (c.outline || '#191410');
 
-    /* The tail normally hangs behind the cat. A pose can set `tailFront` to
-       bring it over the body instead, which is what a tail whip needs —
-       otherwise the business end of the attack is hidden behind the torso. */
-    function drawTail(front) {
+    /* A real taper — thick at the shoulder, slim at the wrist — is most of
+       what stops a limb reading as a sausage. */
+    var R_TOP = 6.9 * s * G, R_MID = 5.0 * s * G, R_END = 3.7 * s * G;
+    var HAND = 6.9 * s * G, FOOT_X = 8.0 * s * G, FOOT_Y = 4.9 * s * G;
+    var hipW = 10.4 * s * G, chestW = 15.2 * s * G;
+    var OUTLINE = 1.9 * s;
+
+    /* Three tones front to back: the shaded far side, the torso, and a
+       slightly brighter near side. Depth without a single extra line. */
+    /* The near limbs need to read by TONE, not just by an edge. Too small a
+       difference and you get an outline floating on a flat field, which looks
+       like an x-ray rather than an arm. */
+    var furFront = white ? '#ffffff' : shade(c.fur, 0.15);
+    var tailW = (c.longhair ? 11.0 : 8.4) * s * G;
+
+    var shapes = [];
+    function fillShape(path, colour) { shapes.push({ k: 'f', p: path, c: colour }); }
+    function strokeShape(path, colour, w) { shapes.push({ k: 's', p: path, c: colour, w: w }); }
+
+    var back = c.points ? c.marks : fur2;
+    var shinF = c.points ? c.marks : (c.sock ? (c.sockColor || belly) : fur);
+    var footF = c.points ? c.marks : shinF;
+    var tailCol = c.points ? c.marks : fur;
+    var tailUp = (j.pose && j.pose.tailFront > 0.5);
+
+    function addTail() {
+      strokeShape(function () { tailPath(ctx, j); }, tailUp ? tailCol : (c.points ? c.marks : fur2), tailW);
+    }
+
+    if (!tailUp) addTail();
+
+    /* back leg and arm, in the shade */
+    fillShape(function () { capsulePath(ctx, j.hipB, j.kneeB, R_TOP * 0.94, R_MID * 0.9); }, back);
+    fillShape(function () { capsulePath(ctx, j.kneeB, j.footB, R_MID * 0.9, R_END * 0.9); }, back);
+    fillShape(function () { ellipsePath(ctx, j.footB.x, j.footB.y, FOOT_X * 0.88, FOOT_Y * 0.88); }, back);
+    fillShape(function () { capsulePath(ctx, j.shB, j.elbB, R_TOP * 0.82, R_MID * 0.82); }, c.points ? c.marks : fur2);
+    fillShape(function () { capsulePath(ctx, j.elbB, j.handB, R_MID * 0.82, R_END * 0.82); }, c.points ? c.marks : fur2);
+    fillShape(function () { ellipsePath(ctx, j.handB.x, j.handB.y, HAND * 0.82, HAND * 0.78); }, c.gloves || (c.points ? c.marks : fur2));
+
+    /* the long-haired underlayer, wider than the body it sits behind */
+    if (c.longhair) {
+      fillShape(function () { capsulePath(ctx, j.pelvis, j.neck, hipW * 1.26, chestW * 1.20); }, fur2);
+    }
+
+    /* torso, and a neck mass so the head is not balanced on a stick */
+    fillShape(function () { capsulePath(ctx, j.pelvis, j.neck, hipW, chestW); }, fur);
+    fillShape(function () {
+      ellipsePath(ctx, (j.neck.x + j.head.x) / 2, (j.neck.y + j.head.y) / 2,
+                  chestW * 0.72, chestW * 0.62);
+    }, fur);
+
+    /* front leg and arm */
+    var frontParts = [
+      function () { capsulePath(ctx, j.hipF, j.kneeF, R_TOP, R_MID); },
+      function () { capsulePath(ctx, j.kneeF, j.footF, R_MID, R_END); },
+      function () { ellipsePath(ctx, j.footF.x, j.footF.y, FOOT_X, FOOT_Y); },
+      function () { capsulePath(ctx, j.shF, j.elbF, R_TOP * 0.92, R_MID * 0.92); },
+      function () { capsulePath(ctx, j.elbF, j.handF, R_MID * 0.92, R_END * 0.92); },
+      function () { ellipsePath(ctx, j.handF.x, j.handF.y, HAND, HAND * 0.94); }
+    ];
+    fillShape(frontParts[0], c.points ? shade(c.marks, 0.10) : furFront);
+    fillShape(frontParts[1], shinF === fur ? furFront : shinF);
+    fillShape(frontParts[2], footF === fur ? furFront : footF);
+    fillShape(frontParts[3], furFront);
+    fillShape(frontParts[4], furFront);
+    fillShape(frontParts[5], c.gloves || furFront);
+
+    if (tailUp) addTail();
+
+    /* the head joins the silhouette rather than sitting on top of it */
+    var r = j.headR, rot = -(j.headRot || 0) * DEG;
+    function inHead(fn) {
+      return function () {
+        ctx.save();
+        ctx.translate(j.head.x, j.head.y);
+        ctx.rotate(rot);
+        fn();
+        ctx.restore();
+      };
+    }
+    fillShape(inHead(function () { earPath(ctx, r, 1); }), c.points ? c.marks : fur);
+    fillShape(inHead(function () { earPath(ctx, r, -0.76); }), c.points ? c.marks : fur);
+    fillShape(inHead(function () { ellipsePath(ctx, 0, 0, r * 1.06, r * 0.98); }), fur);
+
+    /* ---- pass one: the contour ---- */
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = line;
+    for (var i = 0; i < shapes.length; i++) {
+      var sh = shapes[i];
+      ctx.lineWidth = sh.k === 's' ? sh.w + OUTLINE * 2 : OUTLINE * 2;
+      sh.p();
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    /* ---- pass two: the fills ---- */
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (var k = 0; k < shapes.length; k++) {
+      var sh2 = shapes[k];
+      sh2.p();
+      if (sh2.k === 's') { ctx.strokeStyle = sh2.c; ctx.lineWidth = sh2.w; ctx.stroke(); }
+      else { ctx.fillStyle = sh2.c; ctx.fill(); }
+    }
+    ctx.restore();
+
+    /* A soft line round the near limbs only. It reads as the edge of an arm
+       lying over a chest, and it is the difference between a figure and a
+       blob — without ever breaking the outer contour. */
+    if (!white) {
       ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(j.tail[0].x, j.tail[0].y);
-      ctx.quadraticCurveTo(j.tail[1].x, j.tail[1].y, j.tail[2].x, j.tail[2].y);
-      ctx.quadraticCurveTo(j.tail[2].x, j.tail[2].y, j.tail[3].x, j.tail[3].y);
-      ctx.lineCap = 'round';
-      var tw = (c.longhair ? 1.35 : 1) * j.s * G;
-      var tailFur = c.points ? c.marks : fur;
-      var tailFur2 = c.points ? c.marks : fur2;
-      ctx.strokeStyle = line; ctx.lineWidth = 9.4 * tw; ctx.stroke();
-      ctx.strokeStyle = front ? tailFur : tailFur2; ctx.lineWidth = 8.0 * tw; ctx.stroke();
-      ctx.strokeStyle = front ? belly : tailFur; ctx.lineWidth = 5.2 * tw; ctx.stroke();
-      if (c.tailTip) {
-        ctx.beginPath(); ctx.arc(j.tail[3].x, j.tail[3].y, 4.0 * j.s * G, 0, Math.PI * 2);
-        ctx.fillStyle = flash === 'white' ? '#fff' : c.tailTip; ctx.fill();
-      }
+      ctx.strokeStyle = 'rgba(0,0,0,.22)';
+      ctx.lineWidth = 1.15 * s;
+      ctx.lineJoin = 'round';
+      for (var fp = 0; fp < frontParts.length; fp++) { frontParts[fp](); ctx.stroke(); }
       ctx.restore();
     }
-    var tailUp = (j.pose && j.pose.tailFront > 0.5);
-    if (!tailUp) drawTail(false);
 
-    /* --- back limbs --- */
-    capsule(ctx, j.hipB, j.kneeB, limbR * 1.15, limbR2, fur2, null);
-    capsule(ctx, j.kneeB, j.footB, limbR2, limbR2 * 0.9, c.points ? c.marks : fur2, null);
-    blob(ctx, j.footB.x, j.footB.y, 6.4 * j.s * G, 4.2 * j.s * G, 0, c.points ? c.marks : fur2);
+    /* ---- pass three: everything that is not the silhouette ---- */
 
-    capsule(ctx, j.shB, j.elbB, limbR * 0.95, limbR2 * 0.9, fur2, null);
-    capsule(ctx, j.elbB, j.handB, limbR2 * 0.9, limbR2 * 0.85, fur2, null);
-    blob(ctx, j.handB.x, j.handB.y, 5.6 * j.s * G, 5.2 * j.s * G, 0, fur2);
-
-    /* --- torso --- */
-    var hipW = 12.8 * j.s * G, chestW = 14.2 * j.s * G;
-
-    /* A long-haired cat is mostly outline. Drawing a bigger, softer body
-       underneath the real one — with tufts breaking the edge — is what
-       separates the fluffy cats from the sleek ones at a glance. */
-    if (c.longhair) {
-      capsule(ctx, j.pelvis, j.neck, hipW * 1.24, chestW * 1.26, fur2, null);
-      var fx0 = j.pelvis.x, fy0 = j.pelvis.y, fx1 = j.neck.x, fy1 = j.neck.y;
-      var fdx = fx1 - fx0, fdy = fy1 - fy0;
-      var flen = Math.hypot(fdx, fdy) || 1;
-      var fnx = -fdy / flen, fny = fdx / flen;
-      ctx.fillStyle = fur2;
-      for (var tuf = 0; tuf <= 6; tuf++) {
-        var tk = tuf / 6;
-        var bx = fx0 + fdx * tk, by = fy0 + fdy * tk;
-        var w2 = (hipW + (chestW - hipW) * tk) * 1.28;
-        for (var side2 = -1; side2 <= 1; side2 += 2) {
-          ctx.beginPath();
-          ctx.ellipse(bx + fnx * w2 * side2, by + fny * w2 * side2,
-                      4.4 * j.s * G, 3.0 * j.s * G, Math.atan2(fdy, fdx), 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-
-    capsule(ctx, j.pelvis, j.neck, hipW, chestW, fur, line);
-    drawPattern(ctx, c, j, 'torso');
-    // belly highlight
-    var bx = U.lerp(j.pelvis.x, j.neck.x, 0.45) + 4 * j.s;
-    var by = U.lerp(j.pelvis.y, j.neck.y, 0.45);
-    if (c.pattern !== 'tuxedo') {
-      ctx.globalAlpha = 0.5;
-      blob(ctx, bx, by, 5 * j.s, 11 * j.s, 0, belly);
+    /* markings and volume, clipped inside the body */
+    ctx.save();
+    capsulePath(ctx, j.pelvis, j.neck, hipW, chestW);
+    ctx.clip();
+    drawPattern(ctx, c, j);
+    if (c.pattern !== 'tuxedo' && c.pattern !== 'siamese') {
+      ctx.globalAlpha = 0.42;
+      var bx = U.lerp(j.pelvis.x, j.neck.x, 0.46) + 5 * s * G;
+      var by = U.lerp(j.pelvis.y, j.neck.y, 0.46);
+      ellipsePath(ctx, bx, by, 6 * s * G, 12 * s * G);
+      ctx.fillStyle = belly; ctx.fill();
       ctx.globalAlpha = 1;
     }
+    /* a soft shadow under the chest gives the body weight */
+    if (!white) {
+      var sg = ctx.createLinearGradient(0, j.pelvis.y - hipW, 0, j.neck.y + chestW);
+      sg.addColorStop(0, 'rgba(0,0,0,.26)');
+      sg.addColorStop(0.55, 'rgba(0,0,0,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(j.pelvis.x - 40 * s, j.pelvis.y - 40 * s, 80 * s, 90 * s);
+    }
+    ctx.restore();
 
-    /* chest ruff — cheap, and it makes the silhouette read as a cat */
+    /* the ruff where the neck meets the chest */
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.fillStyle = belly;
-    var rx = U.lerp(j.pelvis.x, j.neck.x, 0.86), ry = U.lerp(j.pelvis.y, j.neck.y, 0.86);
-    var RG = G;
+    var rx = U.lerp(j.pelvis.x, j.neck.x, 0.88), ry = U.lerp(j.pelvis.y, j.neck.y, 0.88);
     ctx.beginPath();
     for (var rf = 0; rf < 7; rf++) {
-      var ra = -0.5 + rf * 0.42;
-      ctx.arc(rx + Math.cos(ra) * 5.5 * j.s * RG, ry + Math.sin(ra) * 3.4 * j.s - 2 * j.s,
-              3.6 * j.s * RG, 0, Math.PI * 2);
+      var ra = -0.55 + rf * 0.44;
+      ctx.arc(rx + Math.cos(ra) * 5.2 * s * G, ry + Math.sin(ra) * 3.0 * s * G - 2 * s,
+              3.1 * s * G, 0, Math.PI * 2);
     }
     ctx.fill();
     ctx.restore();
 
-    /* --- front limbs --- */
-    capsule(ctx, j.hipF, j.kneeF, limbR * 1.2, limbR2, fur, line);
-    /* Points darken the lower leg; a sock lightens it. Same slot, opposite
-       markings — a seal-point Siamese and a tuxedo with one white sleeve. */
-    var shinF = c.points ? c.marks : (c.sock ? (c.sockColor || belly) : fur);
-    capsule(ctx, j.kneeF, j.footF, limbR2, limbR2 * 0.95, shinF, line);
-    blob(ctx, j.footF.x, j.footF.y, 7.0 * j.s * G, 4.4 * j.s * G, 0,
-         c.points ? c.marks : shinF, line);
+    if (c.tailTip) {
+      ctx.beginPath();
+      ctx.arc(j.tail[3].x, j.tail[3].y, tailW * 0.52, 0, Math.PI * 2);
+      ctx.fillStyle = white ? '#fff' : c.tailTip;
+      ctx.fill();
+    }
 
-    capsule(ctx, j.shF, j.elbF, limbR, limbR2 * 0.95, fur, line);
-    capsule(ctx, j.elbF, j.handF, limbR2 * 0.95, limbR2 * 0.9, fur, line);
-    // fist / paw
-    blob(ctx, j.handF.x, j.handF.y, 6.4 * j.s * G, 5.9 * j.s * G, 0, fur, line);
-    if (c.gloves) blob(ctx, j.handF.x, j.handF.y, 6.8 * j.s, 6.3 * j.s, 0, c.gloves, line);
-    if (c.gloves) blob(ctx, j.handB.x, j.handB.y, 6.0 * j.s, 5.6 * j.s, 0, c.gloves, null);
-
-    if (tailUp) drawTail(true);
-
-    /* --- head --- */
     drawHead(ctx, j, c, fur, fur2, belly, line, opts);
   }
 
+  /* ---- the face, drawn on top of the finished silhouette ------------------ */
+
   function drawHead(ctx, j, c, fur, fur2, belly, line, opts) {
     var r = j.headR, s = j.s;
-    var es = s;                  // facial detail scales with the figure
+    var es = s;
+    var white = opts.flash === 'white';
+
     ctx.save();
     ctx.translate(j.head.x, j.head.y);
     ctx.rotate(-(j.headRot || 0) * DEG);
 
-    /* ears — drawn before the skull so they tuck behind it */
-    function ear(sx) {
+    /* inner ear */
+    function innerEar(sx) {
       ctx.beginPath();
-      ctx.moveTo(sx * r * 0.38, r * 0.62);
-      ctx.lineTo(sx * r * 0.98, r * 1.62);
-      ctx.lineTo(sx * r * 1.02, r * 0.42);
+      ctx.moveTo(sx * r * 0.50, r * 0.62);
+      ctx.quadraticCurveTo(sx * r * 0.78, r * 1.02, sx * r * 0.88, r * 1.34);
+      ctx.quadraticCurveTo(sx * r * 0.92, r * 0.94, sx * r * 0.90, r * 0.52);
       ctx.closePath();
-      ctx.fillStyle = c.points ? c.marks : fur; ctx.fill();
-      ctx.strokeStyle = line; ctx.lineWidth = 1.1 * es; ctx.stroke();
+      ctx.fillStyle = white ? '#fff' : (c.inner || '#e8a6ad');
+      ctx.fill();
       if (c.longhair) {
-        /* the wisps that stick out of a long-haired cat's ears */
         ctx.save();
         ctx.strokeStyle = 'rgba(255,255,255,.6)';
-        ctx.lineWidth = 0.62 * es;
-        ctx.lineCap = 'round';
-        for (var wisp = 0; wisp < 3; wisp++) {
-          var wb = 0.56 + wisp * 0.11;
+        ctx.lineWidth = 0.62 * es; ctx.lineCap = 'round';
+        for (var w = 0; w < 3; w++) {
+          var wb = 0.54 + w * 0.11;
           ctx.beginPath();
-          ctx.moveTo(sx * r * wb, r * (0.66 + wisp * 0.12));
-          ctx.quadraticCurveTo(sx * r * (wb + 0.10), r * (0.92 + wisp * 0.14),
-                               sx * r * (wb + 0.13), r * (1.10 + wisp * 0.16));
+          ctx.moveTo(sx * r * wb, r * (0.64 + w * 0.12));
+          ctx.quadraticCurveTo(sx * r * (wb + 0.10), r * (0.90 + w * 0.14),
+                               sx * r * (wb + 0.13), r * (1.08 + w * 0.16));
           ctx.stroke();
         }
         ctx.restore();
       }
-      ctx.beginPath();
-      ctx.moveTo(sx * r * 0.52, r * 0.66);
-      ctx.lineTo(sx * r * 0.88, r * 1.32);
-      ctx.lineTo(sx * r * 0.9, r * 0.56);
-      ctx.closePath();
-      ctx.fillStyle = c.inner || '#e8a6ad'; ctx.fill();
     }
-    ear(1); ear(-0.75);
+    innerEar(1); innerEar(-0.76);
 
-    /* skull */
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 1.02, r * 0.94, 0, 0, Math.PI * 2);
-    ctx.fillStyle = fur; ctx.fill();
-    ctx.strokeStyle = line; ctx.lineWidth = 1.3 * es; ctx.stroke();
+    /* a shadow across the top of the skull, so the head reads as a ball */
+    if (!white) {
+      ctx.save();
+      ellipsePath(ctx, 0, 0, r * 1.06, r * 0.98);
+      ctx.clip();
+      var hg = ctx.createLinearGradient(0, -r, 0, r);
+      hg.addColorStop(0, 'rgba(0,0,0,.22)');
+      hg.addColorStop(0.6, 'rgba(0,0,0,0)');
+      hg.addColorStop(1, 'rgba(255,255,255,.10)');
+      ctx.fillStyle = hg;
+      ctx.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
+      ctx.restore();
+    }
 
     /* head markings */
     if (c.pattern === 'tabby') {
-      ctx.strokeStyle = c.marks; ctx.lineWidth = 1.6 * es; ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = c.marks; ctx.lineWidth = 1.7 * es; ctx.globalAlpha = 0.9;
+      ctx.lineCap = 'round';
       for (var i = -1; i <= 1; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * 3.2, r * 0.9);
-        ctx.lineTo(i * 4.6, r * 0.42);
+        ctx.moveTo(i * 3.4, r * 0.92);
+        ctx.lineTo(i * 5.0, r * 0.40);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
     } else if (c.pattern === 'tuxedo') {
-      /* The white runs up the bridge of the nose in a wedge between the
-         eyes. Filling the whole lower face instead just makes a white
-         dinner plate with two eyes above it. */
       ctx.fillStyle = belly;
       ctx.beginPath();
       ctx.moveTo(r * 0.00, r * 0.80);
@@ -345,15 +469,12 @@
       ctx.closePath();
       ctx.fill();
     } else if (c.pattern === 'siamese') {
-      /* A seal point's mask covers the muzzle and eyes and fades out across
-         the cheek — it is the single most recognisable thing about her. */
       var mg = ctx.createRadialGradient(r * 0.36, -r * 0.10, r * 0.10,
                                         r * 0.36, -r * 0.10, r * 1.24);
       mg.addColorStop(0, c.marks);
       mg.addColorStop(0.62, c.marks);
       mg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 0.92;
-      ctx.fillStyle = mg;
+      ctx.globalAlpha = 0.92; ctx.fillStyle = mg;
       ctx.beginPath();
       ctx.ellipse(r * 0.26, -r * 0.06, r * 0.98, r * 0.86, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -366,8 +487,7 @@
       ctx.globalAlpha = 1;
     }
 
-    /* muzzle. An elder cat's goes pale and spreads up the cheeks — the one
-       marking that reads as age without needing a single grey hair drawn. */
+    /* an elder cat goes pale round the muzzle */
     if (c.elder) {
       ctx.globalAlpha = 0.5;
       ctx.beginPath();
@@ -375,10 +495,10 @@
       ctx.fillStyle = c.silver || '#d8d3c8'; ctx.fill();
       ctx.globalAlpha = 1;
     }
+
+    /* muzzle */
     ctx.beginPath();
     ctx.ellipse(r * 0.42, -r * 0.34, r * 0.56, r * 0.42, 0, 0, Math.PI * 2);
-    /* A seal point's muzzle is part of the mask, not a pale patch — painting
-       the usual light muzzle over it hides the one marking that says Siamese. */
     ctx.fillStyle = c.muzzleColor || belly; ctx.fill();
 
     /* an open mouth, for a cat that is making a noise */
@@ -389,7 +509,6 @@
       ctx.beginPath();
       ctx.ellipse(r * 0.56, -r * 0.41, r * 0.14, r * 0.095, -0.12, 0, Math.PI * 2);
       ctx.fillStyle = '#c9707e'; ctx.fill();
-      /* two small fangs, hanging from the top lip */
       ctx.fillStyle = '#fdfbf5';
       ctx.beginPath();
       ctx.moveTo(r * 0.40, -r * 0.36); ctx.lineTo(r * 0.47, -r * 0.36);
@@ -402,8 +521,8 @@
     /* nose */
     ctx.beginPath();
     ctx.moveTo(r * 0.66, -r * 0.12);
-    ctx.lineTo(r * 0.9, -r * 0.06);
-    ctx.lineTo(r * 0.78, -r * 0.3);
+    ctx.lineTo(r * 0.90, -r * 0.06);
+    ctx.lineTo(r * 0.78, -r * 0.30);
     ctx.closePath();
     ctx.fillStyle = c.nose || '#d98a94'; ctx.fill();
 
@@ -411,50 +530,49 @@
     var eyeState = opts.eyes || 'normal';
     function eye(ex, ey, sc) {
       if (eyeState === 'closed' || eyeState === 'ko') {
-        ctx.strokeStyle = line; ctx.lineWidth = 1.6 * es;
+        ctx.strokeStyle = line; ctx.lineWidth = 1.7 * sc; ctx.lineCap = 'round';
         ctx.beginPath();
-        if (eyeState === 'ko') {  // X eyes
-          ctx.moveTo(ex - 2.6 * sc, ey - 2.6 * sc); ctx.lineTo(ex + 2.6 * sc, ey + 2.6 * sc);
-          ctx.moveTo(ex + 2.6 * sc, ey - 2.6 * sc); ctx.lineTo(ex - 2.6 * sc, ey + 2.6 * sc);
+        if (eyeState === 'ko') {
+          ctx.moveTo(ex - 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex + 2.8 * sc, ey + 2.8 * sc);
+          ctx.moveTo(ex + 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex - 2.8 * sc, ey + 2.8 * sc);
         } else {
-          ctx.moveTo(ex - 3 * sc, ey); ctx.quadraticCurveTo(ex, ey - 2 * sc, ex + 3 * sc, ey);
+          ctx.moveTo(ex - 3.2 * sc, ey); ctx.quadraticCurveTo(ex, ey - 2.2 * sc, ex + 3.2 * sc, ey);
         }
         ctx.stroke();
         return;
       }
-      var open = eyeState === 'angry' ? 0.78 : 1;
+      var open = eyeState === 'angry' ? 0.76 : 1;
       ctx.beginPath();
-      ctx.ellipse(ex, ey, 3.4 * sc, 3.9 * sc * open, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex, ey, 3.5 * sc, 4.0 * sc * open, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#fdfbf5'; ctx.fill();
-      ctx.strokeStyle = line; ctx.lineWidth = 0.9 * es; ctx.stroke();
+      ctx.strokeStyle = line; ctx.lineWidth = 1.1 * sc; ctx.stroke();
       ctx.beginPath();
-      ctx.ellipse(ex + 0.9 * sc, ey, 2.0 * sc, 3.2 * sc * open, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex + 0.9 * sc, ey, 2.1 * sc, 3.3 * sc * open, 0, 0, Math.PI * 2);
       ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(ex + 1.0 * sc, ey, 0.8 * sc, 2.9 * sc * open, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex + 1.0 * sc, ey, 0.85 * sc, 3.0 * sc * open, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#181414'; ctx.fill();
       ctx.beginPath();
-      ctx.arc(ex + 1.9 * sc, ey + 1.4 * sc, 0.85 * sc, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill();
+      ctx.arc(ex + 1.9 * sc, ey + 1.5 * sc, 0.9 * sc, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
     }
     eye(r * 0.42, r * 0.2, es);
     eye(-r * 0.28, r * 0.22, 0.92 * es);
 
+    /* a heavy brow is most of what makes a face look like it means it */
     if (eyeState === 'angry') {
-      ctx.strokeStyle = line; ctx.lineWidth = 1.5 * es;
+      ctx.strokeStyle = line; ctx.lineWidth = 2.4 * es; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(r * 0.14, r * 0.62); ctx.lineTo(r * 0.72, r * 0.44);
-      ctx.moveTo(-r * 0.54, r * 0.5); ctx.lineTo(-r * 0.04, r * 0.66);
+      ctx.moveTo(r * 0.10, r * 0.66); ctx.lineTo(r * 0.76, r * 0.42);
+      ctx.moveTo(-r * 0.58, r * 0.46); ctx.lineTo(-r * 0.02, r * 0.68);
       ctx.stroke();
     }
 
     if (c.elder) {
-      /* silvered brows — a few hairs, not two painted dashes */
       ctx.save();
       ctx.globalAlpha = 0.42;
       ctx.strokeStyle = c.silver || '#e8e4da';
-      ctx.lineWidth = 0.85 * es;
-      ctx.lineCap = 'round';
+      ctx.lineWidth = 0.85 * es; ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(r * 0.22, r * 0.56); ctx.quadraticCurveTo(r * 0.46, r * 0.64, r * 0.64, r * 0.52);
       ctx.moveTo(-r * 0.46, r * 0.50); ctx.quadraticCurveTo(-r * 0.26, r * 0.62, -r * 0.06, r * 0.58);
@@ -463,20 +581,18 @@
     }
 
     /* whiskers */
-    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.8 * es;
+    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.85 * es;
     ctx.lineCap = 'round';
-    for (var w = -1; w <= 1; w++) {
+    for (var w2 = -1; w2 <= 1; w2++) {
       ctx.beginPath();
-      ctx.moveTo(r * 0.62, -r * 0.28 + w * r * 0.10);
-      ctx.quadraticCurveTo(r * 1.3, -r * 0.30 + w * r * 0.26,
-                           r * 1.75, -r * 0.24 + w * r * 0.37);
+      ctx.moveTo(r * 0.62, -r * 0.28 + w2 * r * 0.10);
+      ctx.quadraticCurveTo(r * 1.3, -r * 0.30 + w2 * r * 0.26,
+                           r * 1.75, -r * 0.24 + w2 * r * 0.37);
       ctx.stroke();
     }
 
     /* per-cat accessory */
     if (c.accessory === 'headband') {
-      /* A band across the brow, not a sun visor: narrow, following the skull,
-         with a knot at the side and two short tails behind. */
       ctx.save();
       ctx.beginPath();
       ctx.ellipse(0, r * 0.02, r * 1.0, r * 0.93, 0, Math.PI * 0.08, Math.PI * 0.92);
@@ -484,13 +600,10 @@
       ctx.strokeStyle = c.accent;
       ctx.stroke();
       ctx.restore();
-      /* knot */
       ctx.beginPath();
       ctx.arc(-r * 0.86, r * 0.42, r * 0.17, 0, Math.PI * 2);
       ctx.fillStyle = c.accent; ctx.fill();
-      /* two tails streaming back */
-      ctx.strokeStyle = c.accent;
-      ctx.lineCap = 'round';
+      ctx.strokeStyle = c.accent; ctx.lineCap = 'round';
       ctx.lineWidth = 1.9 * es;
       ctx.beginPath();
       ctx.moveTo(-r * 0.9, r * 0.44);
@@ -506,16 +619,13 @@
       ctx.beginPath();
       ctx.ellipse(0, r * 0.52, r * 1.08, r * 0.24, 0, 0, Math.PI * 2);
       ctx.fill();
-      [[r * 0.44, 1], [-r * 0.34, 0.9]].forEach(function (g) {
+      [[r * 0.44, 1], [-r * 0.34, 0.9]].forEach(function (g2) {
         ctx.beginPath();
-        ctx.ellipse(g[0], r * 0.52, r * 0.32 * g[1], r * 0.28 * g[1], 0, 0, Math.PI * 2);
+        ctx.ellipse(g2[0], r * 0.52, r * 0.32 * g2[1], r * 0.28 * g2[1], 0, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(20,20,28,1)'; ctx.fill();
         ctx.beginPath();
-        ctx.ellipse(g[0], r * 0.52, r * 0.22 * g[1], r * 0.19 * g[1], 0, 0, Math.PI * 2);
+        ctx.ellipse(g2[0], r * 0.52, r * 0.22 * g2[1], r * 0.19 * g2[1], 0, 0, Math.PI * 2);
         ctx.fillStyle = c.accent; ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(g[0] + r * 0.08, r * 0.58, r * 0.08, r * 0.06, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fill();
       });
     } else if (c.accessory === 'collar') {
       ctx.beginPath();

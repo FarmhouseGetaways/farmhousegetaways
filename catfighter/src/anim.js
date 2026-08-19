@@ -23,20 +23,32 @@
 
   var L = {};   /* the library */
 
-  /* ---- stance ----------------------------------------------------------- */
-  L.stand      = P();
-  L.standB     = P({ py: 43.5, torso: 5, head: [3, 15.5, -1], armF: [37, 92], armB: [23, 97], tail: [244, -39.2, -41.6] });
-  L.standC     = P({ py: 41, torso: 7, head: [3, 14.5, 1], armF: [43, 98], armB: [27, 103], tail: [236, -30.8, -22.4] });
+  /* ---- stance -------------------------------------------------------------
 
-  L.walkF1 = P({ py: 41, legF: [34, -30], legB: [-24, 24], armF: [34, 90], armB: [34, 96], torso: 8, tail: [246, -42, -28.8] });
-  L.walkF2 = P({ py: 43, legF: [6, -6], legB: [4, -4], armF: [42, 96], armB: [22, 102], torso: 5 });
-  L.walkF3 = P({ py: 41, legF: [-22, 22], legB: [32, -28], armF: [46, 100], armB: [18, 94], torso: 6, tail: [234, -28, -35.2] });
-  L.walkF4 = P({ py: 43, legF: [6, -6], legB: [4, -4], armF: [40, 95], armB: [25, 100], torso: 6 });
+     A fighting stance, not a standing cat: centre of gravity dropped, both
+     knees bent, a wide base, the lead paw out and the rear paw tucked by the
+     chin. Standing upright on straight legs is most of what made these read
+     as dolls rather than fighters.                                        */
 
-  L.walkB1 = P({ py: 41, legF: [-20, 20], legB: [28, -26], armF: [38, 96], armB: [28, 104], torso: 3, tail: [230, -19.6, -16] });
-  L.walkB2 = P({ py: 43, legF: [8, -8], legB: [-4, 4], armF: [41, 95], armB: [25, 100], torso: 4 });
-  L.walkB3 = P({ py: 41, legF: [26, -24], legB: [-18, 18], armF: [44, 98], armB: [22, 98], torso: 4, tail: [226, -14, -12.8] });
-  L.walkB4 = P({ py: 43, legF: [8, -8], legB: [-4, 4], armF: [40, 95], armB: [25, 100], torso: 5 });
+  L.stand  = P({ py: 40, torso: 10, head: [4, 14.6, 2],
+                 legF: [26, -30], legB: [-22, 26],
+                 armF: [48, 100], armB: [32, 116] });
+  L.standB = P({ py: 41.4, torso: 8, head: [4, 15.2, 0],
+                 legF: [23, -27], legB: [-19, 23],
+                 armF: [44, 96], armB: [29, 112], tail: [244, -39.2, -41.6] });
+  L.standC = P({ py: 39, torso: 12, head: [4, 14.2, 4],
+                 legF: [29, -33], legB: [-25, 29],
+                 armF: [51, 104], armB: [35, 120], tail: [236, -30.8, -22.4] });
+
+  L.walkF1 = P({ py: 39, torso: 12, legF: [40, -40], legB: [-30, 32], armF: [40, 94], armB: [38, 104], tail: [246, -42, -28.8] });
+  L.walkF2 = P({ py: 41, torso: 9,  legF: [16, -20], legB: [-10, 14], armF: [48, 100], armB: [30, 114] });
+  L.walkF3 = P({ py: 39, torso: 10, legF: [-14, 16], legB: [38, -34], armF: [54, 106], armB: [24, 108], tail: [234, -28, -35.2] });
+  L.walkF4 = P({ py: 41, torso: 10, legF: [16, -20], legB: [-10, 14], armF: [46, 98], armB: [32, 116] });
+
+  L.walkB1 = P({ py: 39, torso: 6, legF: [-12, 16], legB: [34, -30], armF: [44, 102], armB: [34, 120], tail: [230, -19.6, -16] });
+  L.walkB2 = P({ py: 41, torso: 8, legF: [18, -22], legB: [-12, 16], armF: [47, 100], armB: [32, 116] });
+  L.walkB3 = P({ py: 39, torso: 8, legF: [34, -34], legB: [-26, 28], armF: [50, 104], armB: [30, 112], tail: [226, -14, -12.8] });
+  L.walkB4 = P({ py: 41, torso: 9, legF: [18, -22], legB: [-12, 16], armF: [46, 98], armB: [32, 116] });
 
   L.crouch = P({ py: 22, torso: 20, head: [4, 13, 4],
                  legF: [62, -118], legB: [-46, 104],
@@ -59,9 +71,9 @@
                armF: [64, 70], armB: [44, 80], tail: [220, -11.2, 0] });
 
   /* ---- guard ------------------------------------------------------------ */
-  L.guardHigh = P({ py: 41, torso: -4, head: [1, 15, -4],
-                    armF: [18, 128], armB: [10, 132],
-                    legF: [10, -10], legB: [-14, 12], tail: [218, -8.4, -6.4] });
+  L.guardHigh = P({ py: 38, torso: -2, head: [1, 14.6, -4],
+                    armF: [14, 134], armB: [6, 138],
+                    legF: [24, -28], legB: [-26, 30], tail: [218, -8.4, -6.4] });
   L.guardLow = P({ py: 22, torso: 10, head: [2, 13, -2],
                    armF: [24, 122], armB: [16, 126],
                    legF: [62, -118], legB: [-46, 104], tail: [212, -5.6, 3.2] });
