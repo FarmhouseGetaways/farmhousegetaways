@@ -1,8 +1,13 @@
 #!/usr/bin/env node
-// Checks the full chain for the Farmstand.TV domains: DNS records, HTTPS
-// certificate, which server answers, and what each hostname finally serves.
+// Checks the full chain for a domain pointed at a Netlify site: DNS records,
+// HTTPS certificate, which server answers, and what each hostname serves.
 //
-//     node tools/farmstand-dns-check.mjs
+//     node tools/domain-check.mjs                       # the Farmstand domains
+//     node tools/domain-check.mjs minibarnmarket.com minibarnmarket.netlify.app "Mini Barn Market"
+//
+// With arguments: <primary-domain> <netlify-subdomain> [expected title text].
+// Every extra domain that should also serve the site can follow as further
+// arguments, and www is checked for each.
 //
 // No credentials, no npm. Two things this has to work around:
 //
@@ -15,9 +20,14 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 const run = promisify(execFile);
 
-const TARGET_TITLE = 'Farmstand.TV';
-const PRIMARY = 'farmstand.tv';
-const HOSTS = ['farmstand.tv', 'www.farmstand.tv', 'farmstandtv.com', 'www.farmstandtv.com'];
+const argv = process.argv.slice(2);
+const PRIMARY = argv[0] || 'farmstand.tv';
+const NETLIFY_SUBDOMAIN = argv[1] || 'farmstandtv.netlify.app';
+const TARGET_TITLE = argv[2] || 'Farmstand.TV';
+// Any further arguments are additional domains that should serve the same site.
+const EXTRA = argv.length > 3 ? argv.slice(3) : argv.length ? [] : ['farmstandtv.com'];
+const DOMAINS = [PRIMARY, ...EXTRA];
+const HOSTS = DOMAINS.flatMap((d) => [d, `www.${d}`]);
 const NETLIFY_APEX_IPS = ['75.2.60.5', '99.83.231.61'];
 const FORWARDING_IPS = ['104.143.9.210', '104.143.9.211'];
 
@@ -69,10 +79,10 @@ const note = (pass, msg) => {
   console.log(`  [${pass ? 'ok  ' : 'FAIL'}] ${msg}`);
 };
 
-console.log(`\nFarmstand.TV domain check\n${'='.repeat(56)}`);
+console.log(`\nDomain check: ${DOMAINS.join(', ')}  ->  ${NETLIFY_SUBDOMAIN}\n${'='.repeat(56)}`);
 
 const delegated = {};
-for (const domain of [PRIMARY, 'farmstandtv.com']) {
+for (const domain of DOMAINS) {
   const ns = await doh(domain, 'NS');
   delegated[domain] = ns.some((n) => n.includes('nsone.net'));
   console.log(`\n${domain}  ->  ${delegated[domain] ? 'Netlify DNS' : 'registrar DNS'}`);
@@ -101,7 +111,7 @@ for (const h of HOSTS) {
   const registrarRoute = !delegated[h.replace(/^www\./, '')];
   if (registrarRoute) {
     const pointsAtNetlify = h.startsWith('www.')
-      ? cname.some((c) => c.includes('netlify.app'))
+      ? cname.some((c) => c.includes(NETLIFY_SUBDOMAIN) || c.includes('netlify.app'))
       : a.some((ip) => NETLIFY_APEX_IPS.includes(ip));
     note(pointsAtNetlify, h.startsWith('www.') ? 'CNAME points at Netlify' : 'A record points at Netlify');
   }
@@ -111,6 +121,6 @@ for (const h of HOSTS) {
 }
 
 console.log(
-  `\n${'='.repeat(56)}\n${failures === 0 ? 'ALL CHECKS PASSED - both domains are live on Netlify over HTTPS.' : failures + ' check(s) failing.'}\n`
+  `\n${'='.repeat(56)}\n${failures === 0 ? 'ALL CHECKS PASSED - live on Netlify over HTTPS.' : failures + ' check(s) failing.'}\n`
 );
 process.exit(failures === 0 ? 0 : 1);

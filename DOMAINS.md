@@ -1,4 +1,21 @@
-# Pointing farmstand.tv and farmstandtv.com at Netlify
+# Pointing the brand domains at their Netlify sites
+
+All of these domains are registered at Directnic (registrar of record: DNC
+Holdings, Inc.). Directnic publishes **no API** — only a web control panel — so
+the registrar side is always browser work and cannot be scripted, or driven
+from a Claude Code session, which runs in a cloud container with no link to the
+owner's browser.
+
+Verify any of them with:
+
+    node tools/domain-check.mjs                       # the Farmstand domains
+    node tools/domain-check.mjs minibarnmarket.com minibarnmarket.netlify.app "Mini Barn Market"
+
+It exits non-zero until every hostname genuinely serves the site over HTTPS.
+
+---
+
+## Farmstand.TV — farmstand.tv and farmstandtv.com
 
 Status as of 19 Aug 2026: **done.** Both domains serve the Netlify site over
 HTTPS with a valid certificate. Route A below is what was used — DNS stayed at
@@ -96,10 +113,36 @@ owner's browser.
 
 ## Verifying
 
-    node tools/farmstand-dns-check.mjs
+    node tools/domain-check.mjs
 
 Checks nameserver delegation, the A/CNAME records, that HTTPS serves a real
 response on all four hostnames, that each lands on the site or redirects to the
 primary, and that the old forwarding IPs are gone. It accepts either route.
 Exits non-zero until everything passes. DNS changes can take up to 24 hours,
 though a records-only change at Directnic is usually minutes.
+
+---
+
+## Mini Barn Market — minibarnmarket.com
+
+Status as of 19 Aug 2026: **not done.** The Netlify site
+`minibarnmarket.netlify.app` is live and healthy, but the domain does not reach
+it — `https://minibarnmarket.com` serves a Wix **"ConnectYourDomain Error"**
+page, so the domain is broken right now, not merely mispointed.
+
+The difference from Farmstand: **this domain's nameservers are at Wix**
+(`ns6.wixdns.net`, `ns7.wixdns.net`), not Directnic. Its DNS zone lives at Wix
+and cannot be edited from Directnic's DNS manager while that is true.
+
+Because the nameservers have to change either way, the cheaper route here is to
+delegate straight to **Netlify DNS** — one change at Directnic instead of a
+nameserver change followed by building a zone by hand. Netlify then serves the
+apex directly and creates the records itself.
+
+Checked before recommending it: `minibarnmarket.com` has **no MX and no TXT
+records** on either public resolver, at the apex or at `_dmarc` and `mail`, so
+no email or domain verification can break by moving the nameservers.
+
+One thing to watch: the domain carries a `clientUpdateProhibited` registry lock.
+Directnic's own panel normally still allows a nameserver change, but if the form
+refuses, the domain has to be unlocked there first.
