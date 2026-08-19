@@ -1,0 +1,708 @@
+#!/usr/bin/env python3
+"""Agricultural Operations & Small Agricultural Store Plot Plan
+17054 Handlebar Rd, Ramona, CA 92065 — APN 278-361-08-00.
+
+REV 6. 24"x18" sheet, engineer scale 1"=40'. Coordinates in feet, origin at the
+SW corner of the parcel bounding box, north up. Zone polygons were extracted with
+origin at NW (y measured down from the north PL) and are already flipped in the
+JSON, so y is measured north-up from the south bbox edge. Do not flip again.
+
+PARCEL / ZONE / STRUCTURE GEOMETRY IS FROZEN from rev 5 (owner-verified against
+the aerial overlay). Rev 6 adds the Small Agricultural Store compliance layer and
+corrects the setbacks, both grounded in research/FINDINGS.md:
+
+  * Setbacks now per the parcel's own zoning box (SanGIS: A70/L/2AC/C/G/C/C),
+    setback designator C -> ZO 4810 Schedule C. Interior side is 15', not the
+    25' placeholder carried by rev 5.
+  * Small Agricultural Store per ZO 6157: 1,500 SF store area, 6 parking spaces,
+    and a compliance block testing each ordinance criterion.
+  * Agricultural percentage now computed on the GROSS basis the ordinance
+    specifies ("25 percent of the total gross area of the premises").
+"""
+import json, math, os
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams['hatch.linewidth'] = 0.45   # keep ag stipple under the linework
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon as MPoly, Rectangle, Circle, Ellipse
+
+SCALE = 40.0            # ft per inch
+SHEET_W, SHEET_H = 24.0, 18.0
+DATE = "8/19/2026"
+
+# ---- compliance figures (see research/FINDINGS.md) ------------------------
+GROSS_SF   = 164443     # county GIS parcel polygon = "total gross area of the premises"
+NET_SF     = 157251     # assessor net, for PDS 090 item 12
+REQ_25_SF  = 41111      # ZO 6157(b)(ii)  25% of gross
+REQ_50_SF  = 82222      # ZO 6157(b)(i)   50% of gross
+AG_TOTAL   = 57696
+CROP_SF    = 51365
+POULTRY_SF = 6331
+RES_SF     = 27292
+AVAIL_SF   = GROSS_SF - RES_SF          # suitable & available for ag / open space
+PCT_AG     = AG_TOTAL / GROSS_SF * 100
+PCT_AVAIL  = AVAIL_SF / GROSS_SF * 100
+STORE_SF   = 1500
+
+_here = os.path.dirname(os.path.abspath(__file__))
+_zp = 'zone_polys.json' if os.path.exists('zone_polys.json') else os.path.join(_here, '..', 'data', 'zone_polys.json')
+zones = json.load(open(_zp))
+
+# ---- parcel boundary (state plane -> local ft, origin SW bbox corner, north up)
+SP = [(6353226.9968340546,1952258.6981569827),(6353223.028009966,1951977.018930316),
+(6353222.0001248866,1951977.0199145675),(6353202.0090231299,1951977.4231289774),
+(6352974.9999627173,1951981.9998914748),(6352821.0071604699,1951984.3630757332),
+(6352676.9119762182,1951983.9211474806),(6352643.874968797,1951983.8191135675),
+(6352643.874968797,1952099.0770851374),(6352643.874968797,1952230.2329908162),
+(6352643.874968797,1952270.9274632335),(6352656.9769767225,1952270.6528574824),
+(6352731.2146891356,1952269.09577398),(6352753.893121466,1952268.6203812212),
+(6353127.6863371432,1952260.7811580598),(6353167.9398655593,1952259.936671555),
+(6353226.9968340546,1952258.6981569827)]
+minx = min(p[0] for p in SP); miny = min(p[1] for p in SP)
+PB = [(p[0]-minx, p[1]-miny) for p in SP]
+
+fig = plt.figure(figsize=(SHEET_W, SHEET_H))
+
+# ============================ SHEET FRAME ==================================
+frame = fig.add_axes([0, 0, 1, 1]); frame.set_xlim(0, SHEET_W); frame.set_ylim(0, SHEET_H)
+frame.axis('off')
+frame.add_patch(Rectangle((0.25, 0.25), SHEET_W-0.5, SHEET_H-0.5, fill=False, ec='black', lw=2.2))
+frame.add_patch(Rectangle((0.32, 0.32), SHEET_W-0.64, SHEET_H-0.64, fill=False, ec='black', lw=0.7))
+
+# ============================ DRAWING AXES =================================
+DW_X0, DW_Y0 = 0.55, 8.05        # inches, lower-left of drawing axes
+DW_W,  DW_H  = 16.55, 9.45
+ax = fig.add_axes([DW_X0/SHEET_W, DW_Y0/SHEET_H, DW_W/SHEET_W, DW_H/SHEET_H])
+ax.set_xlim(-39.4, -39.4 + DW_W*SCALE)      # 662.0 ft across  (parcel 583.1)
+ax.set_ylim(-50.0, -50.0 + DW_H*SCALE)      # 378.0 ft tall    (parcel 294.1)
+ax.set_aspect('equal'); ax.axis('off')
+
+# ---- parcel boundary (heaviest line on the sheet)
+ax.add_patch(MPoly(PB, closed=True, fill=False, ec='black', lw=2.6, zorder=5))
+
+def bearing(p, q):
+    dx, dy = q[0]-p[0], q[1]-p[1]
+    az = math.degrees(math.atan2(dx, dy)) % 360
+    if az <= 90: ns, ew, ang = 'N','E',az
+    elif az <= 180: ns, ew, ang = 'S','E',180-az
+    elif az <= 270: ns, ew, ang = 'S','W',az-180
+    else: ns, ew, ang = 'N','W',360-az
+    d = math.hypot(dx, dy)
+    dg = int(ang); mn = int(round((ang-dg)*60))
+    if mn == 60: dg += 1; mn = 0
+    return f"{ns}{dg:02d}°{mn:02d}'{ew}  {d:.1f}'", d
+
+for i in range(len(PB)-1):
+    p, q = PB[i], PB[i+1]
+    label, d = bearing(p, q)
+    if d < 22: continue
+    mxp, myp = (p[0]+q[0])/2, (p[1]+q[1])/2
+    ang = math.degrees(math.atan2(q[1]-p[1], q[0]-p[0]))
+    if ang > 90 or ang < -90: ang += 180
+    cx0, cy0 = 291, 147
+    vx, vy = mxp-cx0, myp-cy0
+    nl = math.hypot(vx, vy)
+    off = 15
+    ax.text(mxp+vx/nl*off, myp+vy/nl*off, label, fontsize=7.5, ha='center', va='center',
+            rotation=ang, rotation_mode='anchor', zorder=6)
+
+# ---- ag areas
+crop_info = {
+ '1': ("ORCHARD (FRUIT TREES)", 688), '2': ("ORCHARD (FRUIT TREES)", 4672),
+ '3': ("ORCHARD (FRUIT TREES)", 1814), '4': ("VINEYARD", 2074),
+ '6': ("PEPPER + NUT TREES", 1896), '7': ("LUFFA + VEGETABLES", 2844),
+ '8': ("VEGETABLES + FLOWERS", 2521), '9': ("ORCHARD 2 (FRUIT TREES)", 17125),
+ '10': ("FRUIT TREES + PUMPKIN", 7530), '11': ("FRUIT TREES + PUMPKIN", 8467),
+ '12': ("ROSEMARY (HERBS)", 1734)}
+lab_pos = {'1': (55,215), '2': None, '3': None, '4': None, '6': None, '7': (250,105),
+           '8': None, '9': None, '10': (25,100), '11': (300,4), '12': (492,32)}
+for k, poly in zones.items():
+    if k in ('BG','RES'): continue
+    ax.add_patch(MPoly(poly, closed=True, fc='none', ec='#8B0000', lw=1.1,
+                       hatch='...', zorder=3))
+for k, (crop, sf) in crop_info.items():
+    poly = zones[k]
+    xs = [p[0] for p in poly]; ys = [p[1] for p in poly]
+    cx, cy = sum(xs)/len(xs), sum(ys)/len(ys)
+    if lab_pos.get(k): cx, cy = lab_pos[k]
+    if k == '3':
+        ax.annotate(f"AG-3  {crop}  {sf:,} SF", (cx, 290), (360, 312), fontsize=6.4, ha='center',
+                    color='#7a0000', fontweight='bold', zorder=7,
+                    arrowprops=dict(arrowstyle='-', lw=0.7, color='#7a0000'),
+                    bbox=dict(fc='white', alpha=0.9, ec='#8B0000', lw=0.6, pad=1.6))
+        continue
+    ax.text(cx, cy, f"AG-{k}\n{crop}\n{sf:,} SF", fontsize=6.4, ha='center', va='center',
+            color='#7a0000', fontweight='bold', zorder=7,
+            bbox=dict(fc='white', alpha=0.88, ec='#8B0000', lw=0.6, pad=1.6))
+
+ax.add_patch(MPoly(zones['BG'], closed=True, fc='none', ec='#a07800', lw=1.3, hatch='xx', zorder=3))
+bx = [p[0] for p in zones['BG']]; by = [p[1] for p in zones['BG']]
+ax.text(sum(bx)/len(bx)+5, min(by)+16, "BIRD GARDEN (POULTRY)\n6,331 SF", fontsize=6.6,
+        ha='center', va='center', color='#6b5000', fontweight='bold', zorder=7,
+        bbox=dict(fc='white', alpha=0.88, ec='#a07800', lw=0.6, pad=1.6))
+ax.add_patch(MPoly(zones['RES'], closed=True, fc='none', ec='#006400', lw=1.3, ls='--', zorder=3))
+ax.text(252, 203, "RESIDENTIAL / DOMESTIC AREA\n27,292 SF (EXCL. FROM AG CALC)", fontsize=6.8,
+        ha='center', va='center', color='#004d00', fontweight='bold', zorder=7,
+        bbox=dict(fc='white', alpha=0.88, ec='#006400', lw=0.6, pad=1.6))
+
+# ---- structures
+SXX, SYY = 583.1/2186, 294.1/1136
+def rect_px(x0,y0,x1,y1):
+    xa, ya = x0*SXX, 294.1-y1*SYY
+    return xa, ya, (x1-x0)*SXX, (y1-y0)*SYY
+def poly_px(pts):
+    return [(x*SXX, 294.1-y*SYY) for x, y in pts]
+
+BARN = poly_px([(426,430),(632,476),(605,680),(520,704),(390,640)])
+structures = [
+ ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
+ ("EXIST.\nGARAGE/ACC.", poly_px([(1622,85),(1795,90),(1795,275),(1622,280)]), None),
+ ("EXIST.\nSHED", poly_px([(250,188),(328,188),(328,265),(250,265)]), None),
+ ("EXIST. SHED\n(STORAGE)", poly_px([(1778,18),(1828,18),(1828,66),(1778,66)]), (481,308)),
+ ("EXIST. CANOPY", poly_px([(1854,46),(1940,46),(1940,94),(1854,94)]), (540,282)),
+]
+for name, poly, lab_at in structures:
+    ax.add_patch(MPoly(poly, closed=True, fc='0.82', ec='black', lw=1.1, zorder=4))
+    cx_ = sum(p[0] for p in poly)/len(poly); cy_ = sum(p[1] for p in poly)/len(poly)
+    if lab_at:
+        ax.annotate(name, (cx_, cy_), lab_at, fontsize=5.4, ha='center', zorder=7,
+                    arrowprops=dict(arrowstyle='-', lw=0.6),
+                    bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+    else:
+        ax.text(cx_, cy_, name, fontsize=5.6, ha='center', va='center', zorder=7)
+
+# barn, holding the proposed store
+ax.add_patch(MPoly(BARN, closed=True, fc='0.82', ec='black', lw=1.3, zorder=4))
+ax.annotate("EXIST. BARN ('MINI BARN MARKET') 3,400 SF", (124, 126), (70, 74),
+            fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
+            bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
+
+# ---- PROPOSED SMALL AGRICULTURAL STORE, 50' x 30' = 1,500 SF, inside the barn
+ang_ = math.radians(-12.2)
+u = (math.cos(ang_), math.sin(ang_)); w = (-0.2113, -0.9774)
+p0 = (116.0, 181.0)
+STORE = [p0,
+         (p0[0]+50*u[0], p0[1]+50*u[1]),
+         (p0[0]+50*u[0]+30*w[0], p0[1]+50*u[1]+30*w[1]),
+         (p0[0]+30*w[0], p0[1]+30*w[1])]
+ax.add_patch(MPoly(STORE, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
+scx = sum(p[0] for p in STORE)/4; scy = sum(p[1] for p in STORE)/4
+ax.annotate("PROPOSED SMALL AGRICULTURAL STORE\n50' x 30' = 1,500 SF MAX (ZO §6157)\nWITHIN EXIST. BARN — SEE NOTE 14",
+            (scx, scy), (300, 232), fontsize=6.6, ha='center', color='#8a4a00',
+            fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
+            bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
+
+# ---- PROPOSED CUSTOMER PARKING: 6 spaces (1 van accessible), gravel.
+# Sited on the existing bare/compacted yard S of the driveway and E of the barn —
+# clear of every ag zone and of the small structure visible in the aerial at
+# x176-189, y115-123. Verified against source/Plot_Plan_Layout.png.
+PK_Y0, PK_D = 142.0, 18.0        # bay 18' deep, stalls in an E-W row
+PK_STALLS = [("VAN\nACCESS.", 180.0, 9.0), ("AISLE", 189.0, 8.0)] + \
+            [("", 197.0 + i*9.0, 9.0) for i in range(5)]
+for lab, x0s, wid in PK_STALLS:
+    is_aisle = (lab == "AISLE")
+    ax.add_patch(Rectangle((x0s, PK_Y0), wid, PK_D,
+                 fc='none' if is_aisle else '#eaf3ff',
+                 ec='#0044aa', lw=0.9, ls=(0,(2,2)) if is_aisle else '-', zorder=5))
+    if is_aisle:
+        ax.text(x0s+wid/2, PK_Y0+PK_D/2, "ACCESS\nAISLE", fontsize=3.4, ha='center',
+                va='center', color='#0044aa', zorder=7)
+    elif lab:
+        ax.text(x0s+wid/2, PK_Y0+PK_D/2, lab, fontsize=3.4, ha='center', va='center',
+                color='#0044aa', fontweight='bold', zorder=7)
+ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES\n(1 VAN ACCESSIBLE PER CBC 11B)\nPROPOSED GRAVEL SURFACE, ZO §6157(h)",
+            (211, PK_Y0), (330, 78), fontsize=6.2, ha='center', color='#00337f',
+            fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
+            bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.2))
+
+# trellis garden
+tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)
+ax.add_patch(Rectangle((tx0, ty0), tw_, th_, fc='none', ec='black', lw=1.0, zorder=4))
+ax.annotate("EXIST. TRELLIS GARDEN", (tx0, ty0+th_/2), (tx0-58, ty0-26), fontsize=5.6, ha='center',
+            arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+# greenhouse (as-built)
+ghx, ghy = 294.0, 95.9
+ax.add_patch(Rectangle((ghx, ghy), 20, 12, fc='0.82', ec='black', lw=1.1, zorder=4))
+ax.annotate("AS-BUILT GREENHOUSE\n12'x20' (UNPERMITTED)", (ghx+10, ghy), (ghx-30, ghy-40),
+            fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+# coop + run
+cpx, cpy = 326.0, 95.0
+ax.add_patch(Rectangle((cpx, cpy), 10, 10, fc='0.82', ec='black', lw=1.0, zorder=4))
+ax.add_patch(Rectangle((cpx, cpy-20), 12, 20, fc='none', ec='black', lw=1.0, zorder=4))
+ax.annotate("EXIST. COOP 10'x10'\n+ RUN 12'x20'", (cpx+11, cpy-5), (cpx+58, cpy-30),
+            fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+# pool
+pcx, pcy = 872*SXX, 294.1-235*SYY
+ax.add_patch(Ellipse((pcx, pcy), 40, 44, fc='none', ec='black', lw=1.1, zorder=4))
+ax.text(pcx, pcy, "EXIST.\nPOOL", fontsize=5.6, ha='center', va='center', zorder=7)
+# tiny home (to be removed) — encroaches the 35' exterior side setback; see Note 12
+th_poly = poly_px([(130,505),(188,520),(165,705),(107,690)])
+ax.add_patch(MPoly(th_poly, closed=True, fc='white', ec='black', lw=1.1, ls=(0,(4,3)), zorder=4))
+thx = sum(p[0] for p in th_poly)/4; thy = sum(p[1] for p in th_poly)/4
+ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 11)", (thx, thy-12), (thx+40, thy-52),
+            fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
+            bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
+
+# ---- pond
+pdx, pdy = 710*SXX, 294.1-865*SYY
+ax.add_patch(Ellipse((pdx, pdy), 90, 62, fc='none', ec='#00509e', lw=1.4, zorder=4))
+ax.add_patch(Ellipse((pdx, pdy), 78, 50, fc='none', ec='#00509e', lw=0.6, ls=':', zorder=4))
+ax.text(pdx, pdy, "EXISTING POND\nIRRIGATION SOURCE (PUMP)\n& AREA OF INUNDATION", fontsize=6,
+        ha='center', va='center', color='#00396e', zorder=7,
+        bbox=dict(fc='white', alpha=0.85, ec='#00509e', lw=0.6, pad=1.5))
+
+# ---- well, septic, leach
+def px2ft(x_ft_from_west, y_ft_from_north):
+    return x_ft_from_west, 294.1 - y_ft_from_north
+wx, wy = px2ft(175.3, 77.8)
+ax.add_patch(Circle((wx, wy), 4, fc='white', ec='black', lw=1.4, zorder=6))
+ax.text(wx, wy, "W", fontsize=7, ha='center', va='center', fontweight='bold', zorder=7)
+ax.annotate("EXIST. WELL", (wx+4, wy), (wx+44, wy+26), fontsize=6,
+            arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7, ha='center',
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+sx0, sy0 = px2ft(386.0, 19.4); sx1, sy1 = px2ft(408.9, 9.8)
+ax.add_patch(Rectangle((sx0, sy0), sx1-sx0, sy1-sy0, fc='none', ec='black', lw=1.1, zorder=5))
+lx0, ly0 = px2ft(407.6, 32.9); lx1, ly1 = px2ft(510.0, 8.5)
+ax.add_patch(Rectangle((lx0, ly0), lx1-lx0, ly1-ly0, fc='none', ec='black', lw=1.0, ls='--', hatch='///', zorder=5))
+ax.annotate("EXIST. SEPTIC TANK", (sx0+11, sy1), (sx0-30, 322), fontsize=6, ha='center',
+            arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7)
+ax.annotate("EXIST. LEACH LINES", ((lx0+lx1)/2, ly1+2), ((lx0+lx1)/2+30, 322), fontsize=6, ha='center',
+            arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7)
+
+# ---- electrical panel
+ex, ey = px2ft(168, 118)
+ax.add_patch(Rectangle((ex-2.5, ey-2.5), 5, 5, fc='black', zorder=6))
+ax.annotate("400A MAIN ELEC. PANEL\n(LOCATION APPROX.)", (ex+2, ey), (ex+52, ey+34), fontsize=6,
+            ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+
+# ---- HANDLEBAR ROAD (private road easement crossing the E portion)
+road_px = [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),
+           (1650,630),(1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]
+road = [(x*SXX, 294.1-y*SYY) for x, y in road_px]
+rx = [p[0] for p in road]; ry = [p[1] for p in road]
+ax.plot(rx, ry, color='black', lw=0.9, ls=(0,(10,4,2,4)), zorder=2)
+rxa, rya = np.array(rx), np.array(ry)
+dxg, dyg = np.gradient(rxa), np.gradient(rya)
+nrm = np.hypot(dxg, dyg); nxv, nyv = -dyg/nrm, dxg/nrm
+for s in (+10, -10):
+    ax.plot(rxa+nxv*s, rya+nyv*s, color='0.25', lw=1.1, zorder=2)
+ax.annotate("HANDLEBAR ROAD (PRIVATE ROAD ESMT.)", (497, 57), (392, 24), fontsize=6.4,
+            ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8), va='center',
+            fontweight='bold', bbox=dict(fc='white', ec='black', lw=0.5, alpha=0.92, pad=2))
+
+# ---- driveway
+drv_px = [(1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
+drv = [(x*SXX, 294.1-y*SYY) for x, y in drv_px]
+ax.plot([p[0] for p in drv], [p[1] for p in drv], color='0.35', lw=1.0, ls=(0,(6,3)), zorder=2)
+for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((196,150),"GRAVEL")]:
+    ax.text(*lp, lab, fontsize=5.8, color='0.25', style='italic', zorder=7, ha='center',
+            bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+
+# ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
+W_PL_X, WL_CL_X = 0.0, 0.0
+ESMT_W  = 30.0     # road easement along west boundary
+SB_EXT  = 35.0     # exterior side yard, from centerline
+SB_INT  = 15.0     # interior side yard, from lot line
+SB_REAR = 25.0     # rear yard, from lot line
+y_lo, y_hi = -14, 306
+
+ax.plot([WL_CL_X, WL_CL_X], [y_lo, y_hi], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
+ax.text(WL_CL_X-9, 250, "WHIRLWIND LN", fontsize=7, rotation=90, va='center', ha='center', fontweight='bold')
+ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
+ax.plot([W_PL_X+ESMT_W, W_PL_X+ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+ax.text(W_PL_X+ESMT_W-4, 205, "30' ROAD ESMT.", fontsize=6, rotation=90, va='center',
+        ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.8, pad=0.8))
+
+SB = '#0044aa'
+ax.plot([WL_CL_X+SB_EXT, WL_CL_X+SB_EXT], [y_lo, y_hi], color=SB, lw=1.2, ls=(0,(8,3,2,3)), zorder=4)
+ax.text(WL_CL_X+SB_EXT+4, 258, "EXTERIOR SIDE YARD SETBACK 35' FROM $\\mathcal{C}$L",
+        fontsize=6.2, rotation=90, va='center', color=SB, fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.75, pad=0.6))
+ax.annotate('', (WL_CL_X, 300), (WL_CL_X+SB_EXT, 300),
+            arrowprops=dict(arrowstyle='<->', lw=0.8, color=SB), zorder=6)
+ax.text(WL_CL_X+SB_EXT/2, 303, "35'", fontsize=6.4, ha='center', color=SB, fontweight='bold')
+
+for yv, xlab, ylab, lab in [(SB_INT, 105, SB_INT+3.5, "INTERIOR SIDE YARD SETBACK 15'"),
+                            (294.1-SB_INT, 300, 294.1-SB_INT-11, "INTERIOR SIDE YARD SETBACK 15'")]:
+    ax.plot([W_PL_X+SB_EXT, 583.1-SB_REAR], [yv, yv], color=SB, lw=0.9, ls=(0,(6,4)), zorder=4)
+    ax.text(xlab, ylab, lab, fontsize=5.9, ha='center', color=SB, fontweight='bold',
+            bbox=dict(fc='white', ec='none', alpha=0.8, pad=0.8))
+ax.plot([583.1-SB_REAR, 583.1-SB_REAR], [SB_INT, 294.1-SB_INT], color=SB, lw=0.9, ls=(0,(6,4)), zorder=4)
+ax.text(583.1-SB_REAR-5, 150, "REAR YARD SETBACK 25'", fontsize=5.9, rotation=90,
+        va='center', ha='right', color=SB, fontweight='bold')
+
+# ---- setback / clearance dimensions for the store structure (PDS 090 convention)
+def dim(p, q, txt, off=(0,0), fs=6.0, color='black'):
+    ax.annotate('', p, q, arrowprops=dict(arrowstyle='<->', lw=0.9, color=color), zorder=8)
+    mx, my = (p[0]+q[0])/2+off[0], (p[1]+q[1])/2+off[1]
+    ang = math.degrees(math.atan2(q[1]-p[1], q[0]-p[0]))
+    if ang > 90 or ang < -90: ang += 180
+    ax.text(mx, my, txt, fontsize=fs, ha='center', va='center', rotation=ang,
+            rotation_mode='anchor', color=color, fontweight='bold', zorder=9,
+            bbox=dict(fc='white', ec='none', alpha=0.9, pad=1.2))
+# Clearances are measured to the BARN envelope, the structure containing the
+# store; this is the conservative figure a plan checker verifies (ZO §6157(e)).
+dim((0, 172), (104.0, 172), "104' STORE BLDG. TO W P.L.", off=(0, 5), color='#8a4a00')
+dim((138, 0), (138, 112.0), "112' STORE BLDG. TO S P.L.", off=(6, 0), color='#8a4a00')
+dim((124, 183.0), (124, 294.1), "111' STORE BLDG. TO N P.L.", off=(6, 0), color='#8a4a00')
+
+# ---- drainage arrows toward pond
+for (fx, fy) in [(280,55),(320,175),(150,255),(72,40)]:
+    dxa, dya = pdx-fx, pdy-fy
+    n = math.hypot(dxa,dya)
+    ax.arrow(fx, fy, dxa/n*22, dya/n*22, head_width=5, head_length=6, fc='#00509e',
+             ec='#00509e', lw=0.7, zorder=2, alpha=0.85)
+ax.text(232, 30, "LOT DRAINS TOWARD EXISTING POND", fontsize=6, color='#00396e',
+        style='italic', ha='center', bbox=dict(fc='white', ec='none', alpha=0.8, pad=0.8))
+
+# ======================== BOTTOM BAND ======================================
+def band_axes(x0, y0, w, h, lw=1.0):
+    a = fig.add_axes([x0/SHEET_W, y0/SHEET_H, w/SHEET_W, h/SHEET_H])
+    a.set_xlim(0, 1); a.set_ylim(0, 1); a.axis('off')
+    a.add_patch(Rectangle((0, 0), 1, 1, fill=False, ec='black', lw=lw,
+                          transform=a.transAxes, clip_on=False))
+    return a
+def tl(a, y, txt, fs=8, bold=False, color='black', x=0.05, ha='left'):
+    a.text(x, y, txt, fontsize=fs, fontweight='bold' if bold else 'normal',
+           color=color, ha=ha, va='top')
+
+C1, C2, C3, C4, CW = 0.55, 4.70, 8.85, 13.00, 4.00
+
+# ---- Col 1 top: agricultural use calculation
+ca = band_axes(C1, 2.20, CW, 5.35, lw=1.3)
+tl(ca, 0.965, "AGRICULTURAL USE CALCULATION", 9.5, True, x=0.5, ha='center')
+tl(ca, 0.905, "PER ZO §6157(b) — GROSS BASIS", 6.6, x=0.5, ha='center')
+cy = 0.845
+for lab, val, bold in [
+    ("TOTAL GROSS AREA OF PREMISES", f"{GROSS_SF:,} SF", False),
+    ("   (COUNTY GIS PARCEL POLYGON, 3.78 AC)", "", False),
+    ("", "", False),
+    ("REQUIRED — 50% SUITABLE & AVAILABLE", f"{REQ_50_SF:,} SF", False),
+    ("PROVIDED — GROSS LESS RESIDENTIAL", f"{AVAIL_SF:,} SF", True),
+    (f"   = {PCT_AVAIL:.1f}% OF GROSS", "PASSES", True),
+    ("", "", False),
+    ("REQUIRED — 25% ACTIVE AG USE", f"{REQ_25_SF:,} SF", False),
+    ("CROP AREAS AG-1 THRU AG-12", f"{CROP_SF:,} SF", False),
+    ("POULTRY (BIRD GARDEN)", f"{POULTRY_SF:,} SF", False),
+    ("PROVIDED — TOTAL ACTIVE AG USE", f"{AG_TOTAL:,} SF", True),
+    (f"   = {PCT_AG:.1f}% OF GROSS", "PASSES", True),
+    ("", "", False),
+    ("MARGIN OVER 25% REQUIREMENT", f"+{AG_TOTAL-REQ_25_SF:,} SF", True),
+]:
+    if not lab: cy -= 0.022; continue
+    tl(ca, cy, lab, 7.0, bold, x=0.05)
+    if val: tl(ca, cy, val, 7.0, bold, x=0.95, ha='right',
+               color='#0a6b16' if val == "PASSES" else 'black')
+    cy -= 0.049
+ca.plot([0.05, 0.95], [cy+0.028, cy+0.028], color='black', lw=0.9, transform=ca.transAxes)
+tl(ca, cy-0.005, "BOTH ZO §6157(b) THRESHOLDS ARE MET", 8.2, True, x=0.5, ha='center')
+tl(ca, cy-0.062, f"NET AREA EXCL. ROAD ESMTS. (PDS 090 ITEM 12): {NET_SF:,} SF", 6.0, x=0.5, ha='center')
+tl(ca, cy-0.098, "ON THE NET BASIS AG USE IS 36.7% — MET EITHER WAY.", 6.0, x=0.5, ha='center')
+
+# ---- Col 1 bottom: north arrow + graphic scale
+sa = band_axes(C1, 0.45, CW, 1.55)
+sa.text(0.10, 0.80, 'N', fontsize=15, ha='center', va='center', fontweight='bold')
+sa.annotate('', (0.10, 0.74), (0.10, 0.14), arrowprops=dict(arrowstyle='-|>', lw=2.6, color='black'))
+bx0, by0, bw, bh = 0.22, 0.40, 4.0/CW*0.72, 0.13
+for i in range(4):
+    sa.add_patch(Rectangle((bx0 + i*bw/4, by0), bw/4, bh,
+                 fc='black' if i % 2 == 0 else 'white', ec='black', lw=0.9))
+for i, v in enumerate([0, 40, 80, 120, 160]):
+    sa.text(bx0 + i*bw/4, by0-0.09, str(v), fontsize=7, ha='center', va='top')
+sa.text(bx0 + bw/2, 0.80, 'GRAPHIC SCALE: 1" = 40\'', fontsize=9.5, ha='center', fontweight='bold')
+sa.text(bx0 + bw/2, 0.10, '(FEET)', fontsize=6.5, ha='center')
+
+# ---- Col 2: small agricultural store compliance
+fs_ = band_axes(C2, 0.45, CW, 7.10, lw=1.3)
+tl(fs_, 0.982, "SMALL AGRICULTURAL STORE", 9.5, True, x=0.5, ha='center')
+tl(fs_, 0.955, "COMPLIANCE — ZONING ORDINANCE §6157", 7.2, True, x=0.5, ha='center')
+tl(fs_, 0.933, "(ZO UPDATE 102, ADOPTED 3-26-2020)", 6.2, x=0.5, ha='center')
+fy = 0.905
+fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
+fy -= 0.012
+crit = [
+ ("a", "PERMITTED IN A70 USE REGS.", "A70 — NO MIN. LOT SIZE", True),
+ ("", "NO ZONING VERIFICATION PERMIT REQ'D", "PERMITTED BY RIGHT", True),
+ ("b.i", "≥50% OF GROSS SUITABLE/AVAILABLE", f"{PCT_AVAIL:.1f}% PROVIDED", True),
+ ("b.ii", "≥25% OF GROSS IN ACTIVE AG USE", f"{PCT_AG:.1f}% PROVIDED", True),
+ ("c", "OPERATED BY OWNER OR TENANT", "OWNER-OPERATED", True),
+ ("d", "ONE STORE PER LEGAL LOT; NO EXIST.", "NONE EXISTING", True),
+ ("", "AG STAND OR LARGE AG STORE", "", None),
+ ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "1,500 SF SHOWN", True),
+ ("", "CONFORM TO §4810 SETBACKS", "CLEARS BY 104'/111'/112'", True),
+ ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEH", "SEE NOTE 14", None),
+ ("g", "≤200 SF FOR OFF-SITE PRODUCTS", "TO BE DESIGNATED", None),
+ ("h", "MINIMUM 6 PARKING SPACES", "6 SHOWN, GRAVEL", True),
+ ("", "DISABLED ACCESS PER CBC CH. 11B", "1 VAN ACCESSIBLE", True),
+ ("i", "HOURS 10 A.M. TO LEGAL SUNSET", "ACKNOWLEDGED", True),
+ ("j", "ONE ON-PREMISE SIGN, MAX 4 SF", "ACKNOWLEDGED", True),
+ ("k", "EVENTS PROHIBITED", "ACKNOWLEDGED", True),
+]
+for ref, req, prov, ok in crit:
+    tl(fs_, fy, ref, 6.2, True, x=0.04)
+    tl(fs_, fy, req, 6.2, x=0.11)
+    if prov:
+        tl(fs_, fy, prov, 6.2, True, x=0.97, ha='right',
+           color='#0a6b16' if ok else '#8a4a00')
+    fy -= 0.0266
+fy -= 0.006
+fs_.plot([0.03, 0.97], [fy+0.02, fy+0.02], color='black', lw=0.7, transform=fs_.transAxes)
+tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
+for lab, val in [("PROPOSED STORE FLOOR AREA", "1,500 SF"),
+                 ("   OF WHICH OFF-SITE PRODUCTS (MAX)", "200 SF"),
+                 ("OPEN ROOFED DISPLAY AREA", "0 SF"),
+                 ("TOTAL PER §6157(e) — LIMIT 1,500 SF", "1,500 SF")]:
+    b = lab.startswith("TOTAL")
+    tl(fs_, fy, lab, 6.4, b, x=0.05); tl(fs_, fy, val, 6.4, b, x=0.97, ha='right')
+    fy -= 0.0272
+fy -= 0.010
+fs_.plot([0.03, 0.97], [fy+0.02, fy+0.02], color='black', lw=0.7, transform=fs_.transAxes)
+tl(fs_, fy, "PARKING — ZO §6157(h)", 8, True, x=0.04); fy -= 0.032
+for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
+                 ("   STANDARD 9' x 18'", "5"), ("   VAN ACCESSIBLE 9' x 18' + 8' AISLE", "1"),
+                 ("SURFACE — GRAVEL (EXPRESSLY ALLOWED)", "PROPOSED")]:
+    tl(fs_, fy, lab, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.05)
+    tl(fs_, fy, val, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.97, ha='right')
+    fy -= 0.0272
+fy -= 0.016
+fs_.add_patch(Rectangle((0.03, fy-0.115), 0.94, 0.125, fc='#fff4e0', ec='#a05a00',
+                        lw=1.0, transform=fs_.transAxes))
+tl(fs_, fy-0.004, "OUTSTANDING — CONFIRM WITH PDS ZONING", 6.6, True, x=0.5, ha='center', color='#8a4a00')
+tl(fs_, fy-0.030, "§6157(e) LIMITS THE STORE TO 1,500 SF. THE EXIST. BARN IS", 5.9, x=0.05)
+tl(fs_, fy-0.053, "LARGER. CONFIRM A DEMISED ≤1,500 SF PORTION SATISFIES §6157(e),", 5.9, x=0.05)
+tl(fs_, fy-0.076, "OR SITE THE STORE IN A SEPARATE ≤1,500 SF STRUCTURE.", 5.9, x=0.05)
+if fy-0.115 < 0.004:
+    raise SystemExit(f"LAYOUT: store-compliance box overruns its column (bottom {fy-0.115:.4f}).")
+print(f"store box bottom={fy-0.115:.4f} (floor 0.004)")
+
+# ---- Col 3 top: legend
+la = band_axes(C3, 2.20, CW, 5.35)
+la.text(0.5, 0.962, "LEGEND", 
+        fontsize=9.5, fontweight='bold', ha='center', va='top')
+leg_items = [
+    ('store',    "PROPOSED SMALL AGRICULTURAL STORE"),
+    ('parking',  "PROPOSED CUSTOMER PARKING"),
+    ('agpatch',  "AGRICULTURAL CROP AREA"),
+    ('bgpatch',  "POULTRY AREA (BIRD GARDEN)"),
+    ('respatch', "RESIDENTIAL / DOMESTIC AREA"),
+    ('struct',   "EXISTING STRUCTURE"),
+    ('tinyhome', "STRUCTURE TO BE REMOVED"),
+    ('leach',    "LEACH LINES"),
+    ('cl',       "ROAD CENTERLINE"),
+    ('esmt',     "ROAD EASEMENT LINE"),
+    ('setb',     "REQUIRED YARD SETBACK"),
+    ('drv',      "DRIVEWAY CENTERLINE"),
+    ('drain',    "DIRECTION OF LOT DRAINAGE"),
+    ('well',     "EXISTING WELL"),
+]
+ly = 0.878
+for kind, desc in leg_items:
+    x0, x1 = 0.05, 0.22; ym = ly
+    if kind == 'store':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='#ffe9b0', ec='#a05a00', lw=1.4, hatch='//'))
+    elif kind == 'parking':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='#eaf3ff', ec='#0044aa', lw=1.0))
+    elif kind == 'agpatch':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='none', ec='#8B0000', lw=1.1, hatch='...'))
+    elif kind == 'bgpatch':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='none', ec='#a07800', lw=1.1, hatch='xx'))
+    elif kind == 'respatch':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='none', ec='#006400', lw=1.1, ls='--'))
+    elif kind == 'struct':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='0.82', ec='black', lw=1.0))
+    elif kind == 'tinyhome':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='white', ec='black', lw=1.0, ls=(0,(4,3))))
+    elif kind == 'leach':
+        la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='none', ec='black', lw=0.9, ls='--', hatch='///'))
+    elif kind == 'cl':
+        la.plot([x0, x1], [ym, ym], color='black', lw=1.0, ls=(0,(12,4,2,4)))
+    elif kind == 'esmt':
+        la.plot([x0, x1], [ym, ym], color='0.35', lw=0.9, ls=(0,(4,3)))
+    elif kind == 'setb':
+        la.plot([x0, x1], [ym, ym], color=SB, lw=1.2, ls=(0,(8,3,2,3)))
+    elif kind == 'drv':
+        la.plot([x0, x1], [ym, ym], color='0.35', lw=1.0, ls=(0,(6,3)))
+    elif kind == 'drain':
+        la.annotate('', (x1, ym), (x0, ym), arrowprops=dict(arrowstyle='-|>', lw=1.3, color='#00509e'))
+    elif kind == 'well':
+        la.add_patch(Circle((x0+0.045, ym), 0.021, fc='white', ec='black', lw=1.2))
+        la.text(x0+0.045, ym, "W", fontsize=6, ha='center', va='center', fontweight='bold')
+    la.text(0.26, ym, desc, fontsize=7.0, ha='left', va='center')
+    ly -= 0.060
+
+# ---- Col 3 bottom: stormwater
+sw = band_axes(C3, 0.45, CW, 1.55)
+sw.text(0.5, 0.93, "STORMWATER (PDS 272)", fontsize=8.5, fontweight='bold', ha='center', va='top')
+swy = 0.70
+for ln in ["PROPOSED LAND DISTURBANCE: 0 SF. NO GRADING, CLEARING OR",
+           "CONSTRUCTION PROPOSED; NO NEW OR REPLACED IMPERVIOUS AREA.",
+           "SD-B: RUNOFF DIRECTED TO PERVIOUS/LANDSCAPED AREAS.",
+           "SD-G: EXISTING NATURAL SWALES AND POND CONSERVED.",
+           "SD-H: VEGETATED BUFFER MAINTAINED AROUND EXISTING POND."]:
+    sw.text(0.04, swy, ln, fontsize=5.9, ha='left', va='top'); swy -= 0.135
+
+# ---- Col 4: vicinity map
+vm = band_axes(C4, 0.45, CW, 7.10)
+vm.text(0.5, 0.975, "VICINITY MAP", fontsize=9.5, fontweight='bold', ha='center', va='top')
+vm.text(0.5, 0.945, "(NOT TO SCALE)", fontsize=6.8, ha='center', va='top')
+sx0, sy0v, swv, shv = 0.34, 0.50, 0.30, 0.13
+vm.add_patch(Rectangle((sx0, sy0v), swv, shv, fc='none', ec='#7a0000', lw=1.8))
+vm.plot([sx0, sx0, sx0], [0.86, 0.57, 0.16], color='0.3', lw=1.8)
+vm.text(sx0-0.028, 0.76, "WHIRLWIND LN", fontsize=6.8, rotation=90, va='center', ha='center')
+vm.plot([0.60, 0.578, 0.552, 0.545, 0.562, 0.593, 0.612],
+        [0.86, 0.745, 0.655, 0.605, 0.535, 0.36, 0.16], color='0.3', lw=2.0)
+vm.text(0.632, 0.755, "HANDLEBAR RD", fontsize=6.8, rotation=77, va='center')
+vm.plot([0.12, 0.13, 0.14], [0.86, 0.50, 0.16], color='0.3', lw=1.8)
+vm.text(0.094, 0.50, "GARJAN LN", fontsize=6.8, rotation=87, va='center', ha='center')
+vm.plot([0.10, 0.90], [0.885, 0.885], color='0.3', lw=2.4)
+vm.text(0.50, 0.900, "HIGHLAND VALLEY RD", fontsize=6.8, ha='center')
+vm.plot([0.455], [0.565], marker='*', ms=13, color='#7a0000')
+vm.text(0.52, 0.455, "SITE\n17054 HANDLEBAR RD\nAPN 278-361-08-00", fontsize=7.2, ha='center',
+        va='top', color='#7a0000', fontweight='bold')
+vm.text(0.5, 0.10, "RAMONA, SAN DIEGO COUNTY, CALIFORNIA", fontsize=6.8, ha='center')
+vm.annotate('', (0.90, 0.80), (0.90, 0.71), arrowprops=dict(arrowstyle='-|>', lw=1.6, color='black'))
+vm.text(0.90, 0.825, 'N', fontsize=9, ha='center', fontweight='bold')
+
+# ============================ RIGHT PANEL ==================================
+px_ = fig.add_axes([17.55/SHEET_W, 0.45/SHEET_H, 5.90/SHEET_W, 17.10/SHEET_H])
+px_.set_xlim(0,1); px_.set_ylim(0,1); px_.axis('off')
+px_.add_patch(Rectangle((0,0),1,1, fill=False, ec='black', lw=1.5))
+def tline(y, txt, fs=7, bold=False, color='black', ha='left', x=0.05):
+    px_.text(x, y, txt, fontsize=fs, fontweight='bold' if bold else 'normal',
+             color=color, ha=ha, va='top', family='DejaVu Sans')
+def hrule(y, x0=0.03, x1=0.97, lw=0.7):
+    px_.plot([x0, x1], [y, y], color='black', lw=lw, transform=px_.transAxes)
+
+y = 0.988
+tline(y, "AGRICULTURAL OPERATIONS &\nSMALL AGRICULTURAL STORE\nPLOT PLAN", 12.5, True, x=0.5, ha='center')
+y -= 0.058
+tline(y, "17054 HANDLEBAR ROAD, RAMONA, CA 92065", 8.5, True, x=0.5, ha='center'); y -= 0.0165
+tline(y, "APN 278-361-08-00  ·  ZONE A70 (LIMITED AGRICULTURE)", 7.5, x=0.5, ha='center'); y -= 0.0145
+tline(y, "ZONING BOX: A70 / L / 2AC / C / G / C / C", 7, x=0.5, ha='center'); y -= 0.0145
+tline(y, "LEGAL: PARCEL 1 OF PARCEL MAP 05062 (FILE NO. 69370)", 7, x=0.5, ha='center'); y -= 0.0145
+tline(y, f"GROSS AREA: {GROSS_SF:,} SF (3.78 AC)  ·  NET AREA: {NET_SF:,} SF (3.61 AC)", 7, x=0.5, ha='center'); y -= 0.0125
+hrule(y); y -= 0.013
+tline(y, "OWNER:  CORY J. DZBINSKI & CARISSA ULTSCH", 7, True, x=0.05); y -= 0.0135
+tline(y, "        17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, x=0.05); y -= 0.0125
+tline(y, "        farmhousegetaways@gmail.com", 6.6, x=0.05); y -= 0.0125
+tline(y, "PREPARED BY:  OWNER", 7, True, x=0.05); y -= 0.0125
+hrule(y); y -= 0.011
+
+tline(y, "AGRICULTURAL USE SUMMARY", 9, True); y -= 0.0145
+tline(y, "ZONE", 6.5, True, x=0.05); tline(y, "USE / CROP", 6.5, True, x=0.16); tline(y, "AREA", 6.5, True, x=0.95, ha='right')
+y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
+rows = [("AG-1","ORCHARD (FRUIT TREES)","688 SF"),("AG-2","ORCHARD (FRUIT TREES)","4,672 SF"),
+        ("AG-3","ORCHARD (FRUIT TREES)","1,814 SF"),("AG-4","VINEYARD","2,074 SF"),
+        ("AG-6","PEPPER + NUT TREES","1,896 SF"),("AG-7","LUFFA + VEGETABLES","2,844 SF"),
+        ("AG-8","VEGETABLES + FLOWERS","2,521 SF"),("AG-9","ORCHARD 2 (FRUIT TREES)","17,125 SF"),
+        ("AG-10","FRUIT TREES + PUMPKIN","7,530 SF"),("AG-11","FRUIT TREES + PUMPKIN","8,467 SF"),
+        ("AG-12","ROSEMARY (HERBS)","1,734 SF"),("BG","BIRD GARDEN (POULTRY)","6,331 SF")]
+for r in rows:
+    tline(y, r[0], 6.5, x=0.05); tline(y, r[1], 6.5, x=0.16); tline(y, r[2], 6.5, x=0.95, ha='right')
+    y -= 0.0095
+hrule(y+0.002, 0.04, 0.96, 0.5); y -= 0.003
+tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.2, True, x=0.05); tline(y, f"{AG_TOTAL:,} SF", 7.2, True, x=0.95, ha='right'); y -= 0.0122
+tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157 REQ.: 25% = {REQ_25_SF:,} SF)", 6.8, True, x=0.05); y -= 0.0115
+tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES.", 5.8, x=0.05); y -= 0.0125
+hrule(y); y -= 0.011
+
+tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
+tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
+y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
+srows = [("SMALL AGRICULTURAL STORE (IN BARN)","PROPOSED","1,500 SF", True),
+         ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", True),
+         ("BARN ('MINI BARN MARKET')","EXISTING","3,400 SF", False),
+         ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
+         ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
+         ("SHED (NW) — STORAGE","EXISTING","415 SF", False),
+         ("SHED (NE) — STORAGE","EXISTING","165 SF", False),
+         ("CANOPY (NE)","EXISTING","285 SF", False),
+         ("TRELLIS GARDEN (OPEN)","EXISTING","690 SF", False),
+         ("GREENHOUSE 12'x20'","AS-BUILT","240 SF", True),
+         ("POULTRY COOP 10'x10'","EXISTING","100 SF", False),
+         ("POULTRY RUN 12'x20'","EXISTING","240 SF", False),
+         ("POOL","EXISTING","1,380 SF", False),
+         ("TINY HOME (W)","TO BE REMOVED","765 SF", False)]
+for nm, st, sf, em in srows:
+    tline(y, nm, 6.2, em, x=0.05); tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
+    y -= 0.0095
+tline(y, "FOOTPRINTS AERIAL-DERIVED, APPROXIMATE (NOTE 2).", 5.7, x=0.05); y -= 0.0115
+hrule(y); y -= 0.011
+
+TB_H = 0.122          # title block height, reserved at the panel foot
+tline(y, "NOTES", 9, True); y -= 0.0145
+NOTES_TOP = y
+notes = [
+ "1.  PARCEL BOUNDARY PER COUNTY GIS / PM 05062; BEARINGS AND DISTANCES GIS-DERIVED",
+ "     (APPROXIMATE). RECORD BEARINGS PER PM 05062. ALL DIMENSIONS IN FEET.",
+ "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-MEASURED AND FIELD-CORROBORATED;",
+ "     OWNER FIELD VERIFICATION CONTINUING.",
+ "3.  NO NEW CONSTRUCTION OR GRADING PROPOSED. PLAN DOCUMENTS EXISTING AG OPERATIONS",
+ "     AND A PROPOSED SMALL AGRICULTURAL STORE PER ZO §6157.",
+ "4.  SETBACKS PER ZONING BOX SETBACK DESIGNATOR C, ZO §4810 SCHEDULE C: FRONT 60'",
+ "     FROM ℄; INTERIOR SIDE 15' FROM LOT LINE; EXTERIOR SIDE 35' FROM ℄; REAR 25'",
+ "     FROM LOT LINE. FOOTNOTE (d): A LOT FRONTING A PRIVATE EASEMENT UNDER 40' WIDE",
+ "     TAKES A 40' FRONT YARD FROM ℄. FRONTAGE DETERMINATION TO BE CONFIRMED WITH PDS",
+ "     ZONING (858) 694-8985 — ALL STRUCTURES CLEAR EVERY YARD EITHER WAY.",
+ "5.  EXIST. NE SHED (165 SF) AND CANOPY (285 SF) LIE WITHIN THE INTERIOR SIDE YARD.",
+ "     PERMITTED UNDER ZO §4842: WALLS ≥3' FROM THE LOT LINE, COMBINED AREA WITHIN THE",
+ "     SETBACK (450 SF) UNDER THE 1,000 SF LIMIT.",
+ "6.  POND IS AN EXISTING IRRIGATION SOURCE (PUMP) AND THE AREA OF INUNDATION; LOT",
+ "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
+ "7.  GREENHOUSE SHOWN AS-BUILT (UNPERMITTED); MAY QUALIFY FOR THE AGRICULTURAL",
+ "     BUILDING EXEMPTION — CONFIRM WITH PDS.",
+ "8.  DRIVEWAY RUNS E-W FROM HANDLEBAR RD: GRAVEL BOTH ENDS, DIRT MID-SEGMENT PAST",
+ "     THE RESIDENCE; SLOPE <5%, DRAINING WEST TOWARD THE POND.",
+ "9.  ELECTRICAL: 400A MAIN PANEL ADJACENT NE OF BARN.",
+ "10. WHIRLWIND LN ℄ SHOWN COINCIDENT WITH THE WEST PROPERTY LINE AND THE 30' ROAD",
+ "     ESMT. WIDTH ASSUMED — BOTH TO BE VERIFIED AGAINST RECORDED PM 05062.",
+ "11. EXIST. TINY HOME SITS 29' FROM THE WEST PROPERTY LINE, WITHIN THE 35' EXTERIOR",
+ "     SIDE YARD. REMOVAL (PLANNED) RESOLVES THE ENCROACHMENT.",
+ "12. HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST PORTION; ℄ SHOWN. WIDTH",
+ "     PER PM 05062 TO BE VERIFIED — ASSESSOR'S MAP SHOWS 30' WHERE DIMENSIONED.",
+ "13. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
+ "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED, NO NEW FENCES, WALLS OR",
+ "     GATES PROPOSED (PDS 070: FENCES ≤6' EXEMPT FROM BUILDING PERMIT).",
+ "14. ZO §6157(e) LIMITS THE STORE TO 1,500 SF TOTAL INCLUDING OPEN ROOFED DISPLAY.",
+ "     THE STORE IS SHOWN AS A DEMISED 1,500 SF PORTION OF THE EXIST. BARN; NO OTHER",
+ "     STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC-ACCESSED AREAS TO BE PERMITTED",
+ "     AND BUILT TO THE APPLICABLE COMMERCIAL BUILDING CODE AND DEHQ REQUIREMENTS.",
+ "     CONFIRM WITH PDS THAT A DEMISED PORTION OF A LARGER BUILDING SATISFIES §6157(e).",
+]
+NOTE_STEP = 0.00742
+for n_ in notes:
+    tline(y, n_, 5.2, x=0.04); y -= NOTE_STEP
+if y < TB_H + 0.012:
+    raise SystemExit(
+        f"LAYOUT: notes overrun the title block. notes end y={y:.4f}, "
+        f"floor={TB_H + 0.012:.4f}. Shorten notes or reduce NOTE_STEP.")
+print(f"notes end y={y:.4f}  (floor {TB_H + 0.012:.4f}, headroom {y-(TB_H+0.012):.4f})")
+
+# ---- title block
+tb_h = TB_H
+px_.add_patch(Rectangle((0, 0), 1, tb_h, fill=False, ec='black', lw=1.2))
+px_.plot([0, 1], [tb_h*0.74, tb_h*0.74], color='black', lw=0.7, transform=px_.transAxes)
+px_.plot([0, 1], [tb_h*0.46, tb_h*0.46], color='black', lw=0.7, transform=px_.transAxes)
+px_.plot([0.60, 0.60], [0, tb_h*0.46], color='black', lw=0.7, transform=px_.transAxes)
+tline(tb_h*0.99, "AGRICULTURAL OPERATIONS & SMALL AGRICULTURAL STORE", 7.4, True, x=0.5, ha='center')
+tline(tb_h*0.905, "PLOT PLAN — EXISTING CONDITIONS & PROPOSED STORE", 6.8, x=0.5, ha='center')
+tline(tb_h*0.685, "17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, True, x=0.03)
+tline(tb_h*0.590, "APN 278-361-08-00  ·  ZONE A70", 6.6, x=0.03)
+tline(tb_h*0.395, "SCALE: 1\" = 40'", 7.2, True, x=0.03)
+tline(tb_h*0.295, f"DATE: {DATE}", 7.2, x=0.03)
+tline(tb_h*0.190, "SHEET 1 OF 1", 7.2, True, x=0.03)
+tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
+tline(tb_h*0.320, "4    8/06/2026  BASE SHEET", 5.4, x=0.62)
+tline(tb_h*0.245, "5    8/06/2026  SETBACK LINES ADDED", 5.4, x=0.62)
+tline(tb_h*0.170, "6    8/19/2026  FARM STORE; SETBACKS", 5.4, x=0.62)
+tline(tb_h*0.095, "                CORRECTED PER §4810", 5.4, x=0.62)
+
+out_pdf = 'Ag_Plot_Plan_17054_Handlebar.pdf'
+fig.savefig(out_pdf, format='pdf')
+fig.savefig('preview.png', dpi=72)
+print("saved", out_pdf)

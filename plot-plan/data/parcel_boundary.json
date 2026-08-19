@@ -1,0 +1,66 @@
+{
+  "apn": "278-361-08-00",
+  "address": "17054 Handlebar Rd, Ramona, CA 92065",
+  "legal": "Parcel 1 of Parcel Map 05062 (File No. 69370, May 1969)",
+  "zoning": "A70 (Limited Agriculture)",
+  "source": "San Diego County ArcGIS REST, ARCC/apprmapr MapServer layer 2 (Parcel Lines), retrieved 2026-08-06",
+  "spatial_reference": "NAD83 CA State Plane Zone 6, US survey feet (WKID 2230/102646)",
+  "derived_dimensions_ft": {
+    "east_property_line": 281.7,
+    "south_property_line_total": 579.2,
+    "west_property_line": 287.1,
+    "north_property_line_total": 583.3,
+    "bounding_box": [583.1, 294.1]
+  },
+  "recorded_dimensions_ft": {
+    "east_west": 550.50,
+    "north_south": 285.58,
+    "note": "Per recorded plat; N 89deg32' W on north/south lines, N 0deg43' E on east/west lines"
+  },
+  "areas_sf": {
+    "gis_polygon_gross": 164443,
+    "assessor_net": 157251,
+    "difference_presumed_road_easement": 7192,
+    "ag_requirement_25pct_of_net": 39313,
+    "ag_requirement_25pct_of_gross_acreage": 39313,
+    "ag_requirement_25pct_of_net_less_whirlwind_esmt": 37170,
+    "design_target": 40000
+  },
+  "acreage": {
+    "gis_gross": 3.775,
+    "assessor_net": 3.610
+  },
+  "west_frontage": {
+    "street": "Whirlwind Lane",
+    "road_easement_width_ft": 30,
+    "building_setback_ft": 35,
+    "setback_measured_from": "centerline of Whirlwind Lane",
+    "assumption_flag": "Centerline drawn coincident with west property line; VERIFY against recorded PM 5062"
+  },
+  "east_easement": {
+    "street": "Handlebar Road",
+    "type": "private road easement",
+    "location": "crosses EAST portion of parcel on N-S curve, entrance at NE",
+    "width_ft": null,
+    "note": "Width and centerline data TBD from recorded PM 5062"
+  },
+  "boundary_vertices_state_plane": [
+    [6353226.9968340546, 1952258.6981569827],
+    [6353223.028009966, 1951977.018930316],
+    [6353222.0001248866, 1951977.0199145675],
+    [6353202.0090231299, 1951977.4231289774],
+    [6352974.9999627173, 1951981.9998914748],
+    [6352821.0071604699, 1951984.3630757332],
+    [6352676.9119762182, 1951983.9211474806],
+    [6352643.874968797, 1951983.8191135675],
+    [6352643.874968797, 1952099.0770851374],
+    [6352643.874968797, 1952230.2329908162],
+    [6352643.874968797, 1952270.9274632335],
+    [6352656.9769767225, 1952270.6528574824],
+    [6352731.2146891356, 1952269.09577398],
+    [6352753.893121466, 1952268.6203812212],
+    [6353127.6863371432, 1952260.7811580598],
+    [6353167.9398655593, 1952259.936671555],
+    [6353226.9968340546, 1952258.6981569827]
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "_note": "Zone numbering is FROZEN to match owner references. #5 was removed as a false detection. DO NOT RENUMBER until field measurements are complete.",
+  "method": "Aerial-derived via OpenCV color extraction, calibrated to parcel boundary; field-corroborated at AG-9.",
+  "parcel_net_sf": 157251,
+  "requirement_sf": 39313,
+  "zones": [
+    {"id": "AG-1",  "location": "NW patch around old shed",          "crop": "Fruit trees (orchard)",   "sf": 688,   "field_measured": false},
+    {"id": "AG-2",  "location": "North strip - west",                "crop": "Fruit trees (orchard)",   "sf": 4672,  "field_measured": false},
+    {"id": "AG-3",  "location": "North strip - east (same as AG-2)", "crop": "Fruit trees (orchard)",   "sf": 1814,  "field_measured": false},
+    {"id": "AG-4",  "location": "Triangle behind Mini Barn Market",  "crop": "Vineyard",                "sf": 2074,  "field_measured": false},
+    {"id": "AG-6",  "location": "Patio patch S of residence",        "crop": "Pepper + nut trees",      "sf": 1896,  "field_measured": false},
+    {"id": "AG-7",  "location": "Trellis garden + greenhouse patch", "crop": "Loofa + vegetables",      "sf": 2844,  "field_measured": false},
+    {"id": "AG-8",  "location": "Patch E of bird garden",            "crop": "Vegetables + flowers",    "sf": 2521,  "field_measured": false},
+    {"id": "AG-9",  "location": "East field (large)",                "crop": "Orchard 2, fruit trees",  "sf": 17125, "field_measured": true,
+      "field_note": "Legs measured 200' (W along road), 130' (N), 190' (E fence, straight). W and N boundaries CURVED, bowing outward. Rescaled trace = 15,773 SF; owner elected to retain 17,125 SF. DO NOT use Heron's formula - it gives 11,915 SF and understates by ~30% by ignoring the outward bulge."},
+    {"id": "AG-10", "location": "West strip (~50 ft wide)",          "crop": "Fruit trees + pumpkin",   "sf": 7530,  "field_measured": false},
+    {"id": "AG-11", "location": "South strip",                       "crop": "Fruit trees + pumpkin",   "sf": 8467,  "field_measured": false},
+    {"id": "AG-12", "location": "SE strip along road",               "crop": "Rosemary (herbs)",        "sf": 1734,  "field_measured": false},
+    {"id": "BG",    "location": "Bird garden: coop 10x10, run 12x20","crop": "Poultry",                 "sf": 6331,  "field_measured": false}
+  ],
+  "removed_zones": [
+    {"id": "5", "reason": "False detection in color extraction. Number retained as a gap; do not reuse."}
+  ],
+  "totals_sf": {
+    "crop_subtotal": 51365,
+    "poultry": 6331,
+    "ag_total": 57696,
+    "residential_excluded": 27292
+  },
+  "percent_of_net": 36.7,
+  "margin_over_requirement_sf": 18383
+}
