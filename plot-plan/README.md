@@ -1,38 +1,63 @@
-# 17054 Handlebar Rd — Ag Plot Plan
+# 17054 Handlebar Rd — Agricultural Operations & Small Agricultural Store Plot Plan
 
-San Diego County A70 zoning compliance package. APN 278-361-08-00.
+San Diego County compliance package. APN 278-361-08-00, Ramona CA 92065, zoned A70.
 
-**Start with `CLAUDE.md`.** It carries the full project context, site facts,
-decision log, and open items. Read it before making changes.
+**Start with `CLAUDE.md`** for full project context and the decision log.
+**`SUBMITTAL.md`** is the take-to-county packet — print rules, the numbers, and
+the questions to ask at the counter. **`research/FINDINGS.md`** carries the
+regulatory citations behind every figure.
+
+## What this is for
+
+Qualifying the parcel for a **Small Agricultural Store (≤1,500 SF)** under
+**Zoning Ordinance §6157**. In A70 that store is **permitted by right** — ZO
+Update 102 (March 2020) removed the Zoning Verification Permit — provided the
+parcel meets the agricultural-use tests the plot plan documents.
+
+## Status
+
+| Test (ZO §6157(b)) | Required | Provided | |
+|---|---:|---:|---|
+| 50% of gross suitable & available for ag/open space | 82,222 SF | 137,151 SF | **83.4% — passes** |
+| 25% of gross in actual active agricultural use | 41,111 SF | 57,696 SF | **35.1% — passes** |
+
+The denominator is **gross** (164,443 SF) because §6157(b)(ii) says "25 percent
+of the total gross area of the premises." Net area (157,251 SF) is stated
+separately because PDS 090 item 12 requires it.
+
+Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setback
+designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
+exterior side 35' from ℄, rear 25'. The barn holding the store clears every line
+by over 100 feet.
+
+**The one open question:** §6157(e) caps the store at 1,500 SF and the barn is
+about 3,400 SF. The sheet shows a demised 1,500 SF portion. Confirm with PDS
+that this satisfies §6157(e) before spending anything — see `SUBMITTAL.md`.
 
 ## Quickstart
 
 ```bash
-pip install matplotlib numpy
-cd scripts
-cp ../data/zone_polys.json .
-python3 build_plot_plan.py
-# -> Ag_Plot_Plan_17054_Handlebar.pdf  (24"x18", 1"=40')
-# -> preview.png
+pip install matplotlib numpy pymupdf pillow
+python3 scripts/build_plot_plan.py   # -> output/Ag_Plot_Plan_17054_Handlebar_rev6.pdf (24x18, 1"=40')
+python3 scripts/make_overlay.py      # -> output/Verification_Overlay_v3.png
+python3 scripts/verify_sheet.py      # print-fidelity check — run before printing
 ```
 
 ## Where things are
 
-- `CLAUDE.md` — full context. Read first.
-- `data/` — parcel boundary, ag zone polygons, area table
-- `scripts/build_plot_plan.py` — sheet generator
-- `reference/` — county forms and the assessor's map
+- `CLAUDE.md` — full context, decision log, open items. Read first.
+- `SUBMITTAL.md` — what to do at the county counter.
+- `research/FINDINGS.md` — §6157 verbatim, §4810 Schedule C, §4842, the SanGIS zoning box.
+- `data/` — parcel boundary, ag zone polygons, area table, site features.
+- `scripts/` — sheet generator, aerial overlay, print-fidelity check.
+- `reference/` — county forms and the assessor's map.
+- `output/` — the sheet and the verification overlays.
 
-## The one-line status
+## Three traps
 
-Ag area totals 57,696 SF = 36.7% of net parcel, against a 25% / 39,313 SF
-requirement. Compliance is met with 18,383 SF of margin. What's left is document
-retrieval (recorded PM 5062, title report), two agency confirmations, and three
-sheet items: fence heights, verified setbacks, stormwater BMPs.
-
-## Two traps
-
-1. **Reference PDFs are ZIP archives of JPEGs**, not real PDFs. If `pdfinfo`
-   errors, run `file` on it, then `unzip` and read the page images.
+1. **Print at 100%, never "fit to page."** The scale bar must measure exactly
+   3 inches from 0 to 120. `verify_sheet.py` asserts this on the PDF.
 2. **`Original_Parcel_Doc_PM_69370.pdf` is the assessor's map**, not the recorded
-   Parcel Map PM 5062. Getting the actual recorded map is an open blocker.
+   Parcel Map PM 5062. Getting the recorded map is still open.
+3. **Check the aerial overlay after any geometry change.** Abstract line drawings
+   hide siting errors; the overlay caught the parking bay drawn on grass.
