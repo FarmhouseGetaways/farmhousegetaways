@@ -90,51 +90,96 @@
   var ROSTER = [
 
     /* =====================================================================
-       1 — the all-rounder. Fireball, dragon punch, spin kick.
+       1 — GRACIE. The first of the real cats.
+
+       Old and wise, so she does not scramble: she takes up space with a
+       growl that carries and a tail that reaches further than anything else
+       on the ground, and lets the young ones come to her.
+
+       Colours read from her photograph: a warm solid grey with a silver
+       undercoat coming through on the chest, a pale muzzle, dark mauve paw
+       pads and no tabby striping anywhere.
        ===================================================================== */
     {
-      id: 'mittens',
-      build: { s: 1.00, girth: 1.00, limb: 1.00, head: 1.00 },
-      displayName: 'MITTENS',
-      subtitle: 'The All-Rounder',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      id: 'gracie',
+      build: { s: 1.02, girth: 1.07, limb: 0.99, head: 1.02 },
+      displayName: 'GRACIE',
+      subtitle: 'The Elder',
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
-      blurb: 'Fireballs, an invincible uppercut, and no bad matchups.\nStart here.',
-      difficulty: 1,
+      blurb: 'Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.\nLet them come to you.',
+      difficulty: 2,
       palette: {
-        fur: '#b9b3a8', fur2: '#9a948a', belly: '#f2efe8', marks: '#6b6359',
-        eye: '#7ad14f', nose: '#d98a94', inner: '#e8a6ad',
-        accent: '#c0392b', accessory: 'headband', pattern: 'tabby',
-        tailTip: '#f2efe8', line: 'rgba(38,30,24,.55)'
+        fur: '#8d887f', fur2: '#6f6b64', belly: '#b9b3a6', marks: '#5e5a54',
+        silver: '#d6d1c4', eye: '#7fc24a', nose: '#7d6f6c', inner: '#b89a95',
+        accent: '#8a7f70', accessory: 'none', pattern: 'solid',
+        tailTip: '#8d887f', elder: true, line: 'rgba(38,34,30,.55)'
       },
-      stats: { walkF: 1.55, walkB: 1.25, jumpVy: 9.6, jumpVx: 3.2, gravity: 0.46,
-               health: 1000, stunMax: 100, weight: 1.0, hasDash: true },
-      mod: { reach: 1.0, damage: 1.0, speed: 1.0 },
+      stats: { walkF: 1.30, walkB: 1.22, jumpVy: 9.2, jumpVx: 2.8, gravity: 0.48,
+               health: 1050, stunMax: 116, weight: 1.10, hasDash: false },
+      mod: { reach: 1.09, damage: 1.10, speed: 1.08 },
       specials: [
-        fireballSpecial({ name: 'Hairball', color: '#f2a54a', color2: '#ffe6b4' }),
-        uppercutSpecial({ name: 'Cat Scratch Fever' }),
-        spinKickSpecial({ name: 'Tumbleweed Kick' })
+        {
+          id: 'growl', name: 'Growl of Energy', kind: 'special',
+          motion: 'qcf', buttons: ['LP', 'MP', 'HP'], stance: ['stand', 'crouch'],
+          startup: 12, active: 3, recovery: 27,
+          mouth: 'open', mouthFrom: 8,
+          meterGain: 16, meterOnHit: 8,
+          anim: [{ at: 0, p: Ps.stand }, { at: 7, p: Ps.growlWind },
+                 { at: 12, p: Ps.growlOut }, { at: 20, p: Ps.growlHold },
+                 { at: 42, p: Ps.stand }],
+          spawn: function (f, strength) {
+            return {
+              kind: 'fireball',
+              x: f.x + f.facing * 32, y: 56,
+              vx: f.facing * [2.4, 3.2, 4.2][strength],
+              w: 34, h: 26,
+              damage: [26, 30, 34][strength], chip: 6,
+              hitstun: 19, blockstun: 13, stun: 6,
+              pushback: 2.8, blockPushback: 3.2,
+              life: 240, owner: f.side, facing: f.facing,
+              color: '#f0c36a', color2: '#fff4d2', style: 'wave'
+            };
+          }
+        },
+        {
+          id: 'tailwhip', name: 'Tail Whip', kind: 'special',
+          motion: 'qcb', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
+          startup: 10, active: 6, recovery: 24,
+          damage: [30, 34, 38], stun: [10, 12, 14], chip: 6,
+          hitstun: 18, blockstun: 12,
+          /* It comes along the floor, so it must be blocked low — and it puts
+             them down, which is how she buys herself room to breathe. */
+          hitLevel: 'low', knockdown: 'soft',
+          pushback: 3.2, blockPushback: 3.6,
+          hitbox: { x: 14, y: 1, w: 58, h: 22 },
+          meterGain: 16, meterOnHit: 8,
+          anim: [{ at: 0, p: Ps.stand }, { at: 6, p: Ps.whipWind },
+                 { at: 9, p: Ps.whipMid }, { at: 11, p: Ps.whipOut },
+                 { at: 15, p: Ps.whipOut }, { at: 20, p: Ps.whipEnd },
+                 { at: 40, p: Ps.stand }]
+        }
       ],
       supers: [{
-        id: 'superFire', name: 'HAIRBALL BARRAGE', motion: 'qcfx2',
+        id: 'superGrowl', name: 'THE LAST WORD', motion: 'qcfx2',
         buttons: ['LP', 'MP', 'HP'], cost: 100,
-        startup: 10, active: 6, recovery: 40, freeze: 26,
-        meterGain: 0, invuln: [0, 10],
-        anim: [{ at: 0, p: Ps.stand }, { at: 6, p: Ps.fireWind },
-               { at: 10, p: Ps.fireRelease }, { at: 24, p: Ps.fireRelease },
-               { at: 56, p: Ps.stand }],
-        spawnMany: [
-          { at: 10, dy: 0 }, { at: 16, dy: 14 }, { at: 22, dy: -8 }
-        ],
-        spawn: function (f, strength, dy) {
+        startup: 12, active: 6, recovery: 44, freeze: 28,
+        mouth: 'open', mouthFrom: 6,
+        meterGain: 0, invuln: [0, 14],
+        anim: [{ at: 0, p: Ps.growlWind }, { at: 8, p: Ps.growlWind },
+               { at: 12, p: Ps.growlOut }, { at: 34, p: Ps.growlOut },
+               { at: 62, p: Ps.stand }],
+        spawnMany: [{ at: 12, dy: 0 }, { at: 18, dy: 0 }, { at: 24, dy: 0 }],
+        spawn: function (f) {
           return {
             kind: 'fireball', super: true,
-            x: f.x + f.facing * 34, y: 54 + (dy || 0),
-            vx: f.facing * 4.2, w: 34, h: 28,
-            damage: 60, chip: 12, hitstun: 22, blockstun: 14, stun: 8,
-            pushback: 3.0, blockPushback: 3.4, life: 240,
+            x: f.x + f.facing * 34, y: 56,
+            vx: f.facing * 3.6, w: 52, h: 40,
+            damage: 55, chip: 11, hitstun: 24, blockstun: 15, stun: 8,
+            pushback: 3.2, blockPushback: 3.8, life: 240,
+            knockdown: false,
             owner: f.side, facing: f.facing,
-            color: '#ffd166', color2: '#fff6d8', style: 'ball'
+            color: '#ffd166', color2: '#fffaf0', style: 'wave'
           };
         }
       }]
@@ -148,7 +193,7 @@
       build: { s: 1.07, girth: 1.34, limb: 0.94, head: 1.06 },
       displayName: 'BISCUIT',
       subtitle: 'The Heavyweight',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
       blurb: 'Walks slowly. Hits like a falling bookcase.\nGet in close and the round is over.',
       difficulty: 3,
@@ -221,7 +266,7 @@
       build: { s: 1.03, girth: 0.94, limb: 1.05, head: 0.96 },
       displayName: 'SHADOW',
       subtitle: 'The Gatekeeper',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
       blurb: 'Hold back to charge a boomerang, hold down for a flash kick.\nPatient cats win rounds.',
       difficulty: 2,
@@ -317,7 +362,7 @@
       build: { s: 0.92, girth: 0.94, limb: 0.95, head: 1.08 },
       displayName: 'PEPPER',
       subtitle: 'The Blur',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
       blurb: 'Fastest paws on the ranch. Mash a kick for the leg flurry.\nLow damage, endless pressure.',
       difficulty: 2,
@@ -407,7 +452,7 @@
       build: { s: 1.02, girth: 0.78, limb: 1.22, head: 0.92 },
       displayName: 'NOODLE',
       subtitle: 'The Long Cat',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
       blurb: 'Limbs that reach halfway across the barn, plus a teleport.\nKeep them out. Panic if they get in.',
       difficulty: 3,
@@ -509,7 +554,7 @@
       build: { s: 1.02, girth: 1.16, limb: 1.00, head: 1.02 },
       displayName: 'TIGER',
       subtitle: 'The Wild One',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'mittens.jpg'. */
+      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
       photo: null,
       blurb: 'Mash punch for static, charge back for the rolling ball.\nAll offence, no manners.',
       difficulty: 2,

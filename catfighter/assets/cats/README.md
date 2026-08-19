@@ -4,8 +4,8 @@ Put a picture of each cat in this folder, then name the file on that cat in
 `src/characters.js`:
 
 ```js
-id: 'mittens',
-photo: 'mittens.jpg',
+id: 'gracie',
+photo: 'gracie.jpg',
 ```
 
 The photo shows up on the character-select card and on the winner screen.

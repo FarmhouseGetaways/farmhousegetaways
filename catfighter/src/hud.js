@@ -272,6 +272,38 @@
       ctx.beginPath();
       ctx.moveTo(11, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4);
       ctx.closePath(); ctx.fill();
+    } else if (p.style === 'wave') {
+      /* A growl, drawn as sound rather than as a ball: nested arcs racing
+         forward off a bright core, breathing in and out as they travel. */
+      ctx.scale(p.facing, 1);
+      var rings = p.super ? 5 : 4;
+      for (var k = 0; k < rings; k++) {
+        var rr = (p.w * 0.30) + k * (p.w * 0.20) + Math.sin(t * 0.22 - k * 0.8) * 1.6;
+        ctx.globalAlpha = (0.85 - k * 0.15) * (p.super ? 1 : 0.9);
+        ctx.strokeStyle = k === 0 ? p.color2 : p.color;
+        ctx.lineWidth = (p.super ? 3.4 : 2.6) - k * 0.45;
+        ctx.beginPath();
+        ctx.arc(-k * (p.w * 0.13), 0, rr, -1.05, 1.05);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.9;
+      var cg = ctx.createRadialGradient(0, 0, 0, 0, 0, p.h * 0.42);
+      cg.addColorStop(0, p.color2);
+      cg.addColorStop(0.6, p.color);
+      cg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.ellipse(0, 0, p.h * 0.34, p.h * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+      /* a short trail so it reads as travelling */
+      ctx.globalAlpha = 0.30;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 1.6;
+      for (var q = -1; q <= 1; q += 2) {
+        ctx.beginPath();
+        ctx.moveTo(-p.w * 0.28, q * p.h * 0.16);
+        ctx.lineTo(-p.w * 0.72, q * p.h * 0.30);
+        ctx.stroke();
+      }
+
     } else if (p.style === 'fluff') {
       ctx.globalAlpha = 0.5;
       ctx.fillStyle = p.color;

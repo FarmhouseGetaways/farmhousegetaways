@@ -2,7 +2,7 @@
    Cat Fighter II — real photographs of the real cats
 
    Two steps: drop a picture into assets/cats/, then name it on that cat in
-   characters.js — `photo: 'mittens.jpg'`. It then appears on the
+   characters.js — `photo: 'gracie.jpg'`. It then appears on the
    character-select card and on the winner screen.
 
    Naming it explicitly rather than guessing at filenames means the game never

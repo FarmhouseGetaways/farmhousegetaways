@@ -532,7 +532,7 @@
         damage: p.damage, stun: p.stun, chip: p.chip,
         hitstun: p.hitstun, blockstun: p.blockstun,
         hitLevel: 'mid', pushback: p.pushback, blockPushback: p.blockPushback,
-        knockdown: p.super ? 'soft' : false, fxY: p.y
+        knockdown: p.knockdown || (p.super ? 'soft' : false), fxY: p.y
       });
       if (res !== 'block') {
         atk.meter = Math.min(atk.maxMeter, atk.meter + 6);
@@ -1071,7 +1071,7 @@
     var order = (this.p1.y > this.p2.y) ? [this.p2, this.p1] : [this.p1, this.p2];
     for (var k = 0; k < 2; k++) {
       var ff = order[k];
-      var opts = { eyes: ff.eyeState() };
+      var opts = { eyes: ff.eyeState(), mouth: ff.mouthState() };
       if (ff.flash > 2) opts.flash = 'white';
       if (ff.state === 'move' && ff.move && ff.move.kind === 'super' && ff.superFreeze > 0) {
         opts.flash = (this.t % 4 < 2) ? 'white' : null;

@@ -69,10 +69,15 @@
 
     var head = pt(neck.x + pose.head[0] * s, neck.y + pose.head[1] * s * (B.head || 1));
 
+    /* `tailLen` stretches the tail. A tail whip has to actually reach the
+       thing it hits, and a cat's tail at rest is nowhere near long enough —
+       so the pose lengthens it through the swing, which reads as a whip
+       cracking rather than as a cheat. */
+    var tl = pose.tailLen === undefined ? 1 : pose.tailLen;
     var tailRoot = pt(pelvis.x - 13 * s * (B.girth || 1), pelvis.y + 4 * s);
-    var t1 = seg(tailRoot, pose.tail[0], L(P.tail[0]));
-    var t2 = seg(t1, pose.tail[0] + pose.tail[1], L(P.tail[1]));
-    var t3 = seg(t2, pose.tail[0] + pose.tail[1] + pose.tail[2], L(P.tail[2]));
+    var t1 = seg(tailRoot, pose.tail[0], L(P.tail[0]) * tl);
+    var t2 = seg(t1, pose.tail[0] + pose.tail[1], L(P.tail[1]) * tl);
+    var t3 = seg(t2, pose.tail[0] + pose.tail[1] + pose.tail[2], L(P.tail[2]) * tl);
 
     return {
       s: s, girth: (B.girth || 1), pose: pose,
@@ -162,21 +167,27 @@
     var G = j.girth || 1;
     var limbR = 6.2 * j.s * G, limbR2 = 4.7 * j.s * G;
 
-    /* --- tail (behind everything) --- */
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(j.tail[0].x, j.tail[0].y);
-    ctx.quadraticCurveTo(j.tail[1].x, j.tail[1].y, j.tail[2].x, j.tail[2].y);
-    ctx.quadraticCurveTo(j.tail[2].x, j.tail[2].y, j.tail[3].x, j.tail[3].y);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = line; ctx.lineWidth = 9.4 * j.s * G; ctx.stroke();
-    ctx.strokeStyle = fur2; ctx.lineWidth = 8.0 * j.s * G; ctx.stroke();
-    ctx.strokeStyle = fur; ctx.lineWidth = 5.2 * j.s * G; ctx.stroke();
-    if (c.tailTip) {
-      ctx.beginPath(); ctx.arc(j.tail[3].x, j.tail[3].y, 4.0 * j.s * G, 0, Math.PI * 2);
-      ctx.fillStyle = flash === 'white' ? '#fff' : c.tailTip; ctx.fill();
+    /* The tail normally hangs behind the cat. A pose can set `tailFront` to
+       bring it over the body instead, which is what a tail whip needs —
+       otherwise the business end of the attack is hidden behind the torso. */
+    function drawTail(front) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(j.tail[0].x, j.tail[0].y);
+      ctx.quadraticCurveTo(j.tail[1].x, j.tail[1].y, j.tail[2].x, j.tail[2].y);
+      ctx.quadraticCurveTo(j.tail[2].x, j.tail[2].y, j.tail[3].x, j.tail[3].y);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = line; ctx.lineWidth = 9.4 * j.s * G; ctx.stroke();
+      ctx.strokeStyle = front ? fur : fur2; ctx.lineWidth = 8.0 * j.s * G; ctx.stroke();
+      ctx.strokeStyle = front ? belly : fur; ctx.lineWidth = 5.2 * j.s * G; ctx.stroke();
+      if (c.tailTip) {
+        ctx.beginPath(); ctx.arc(j.tail[3].x, j.tail[3].y, 4.0 * j.s * G, 0, Math.PI * 2);
+        ctx.fillStyle = flash === 'white' ? '#fff' : c.tailTip; ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
+    var tailUp = (j.pose && j.pose.tailFront > 0.5);
+    if (!tailUp) drawTail(false);
 
     /* --- back limbs --- */
     capsule(ctx, j.hipB, j.kneeB, limbR * 1.15, limbR2, fur2, null);
@@ -226,6 +237,8 @@
     blob(ctx, j.handF.x, j.handF.y, 6.4 * j.s * G, 5.9 * j.s * G, 0, fur, line);
     if (c.gloves) blob(ctx, j.handF.x, j.handF.y, 6.8 * j.s, 6.3 * j.s, 0, c.gloves, line);
     if (c.gloves) blob(ctx, j.handB.x, j.handB.y, 6.0 * j.s, 5.6 * j.s, 0, c.gloves, null);
+
+    if (tailUp) drawTail(true);
 
     /* --- head --- */
     drawHead(ctx, j, c, fur, fur2, belly, line, opts);
@@ -284,10 +297,36 @@
       ctx.globalAlpha = 1;
     }
 
-    /* muzzle */
+    /* muzzle. An elder cat's goes pale and spreads up the cheeks — the one
+       marking that reads as age without needing a single grey hair drawn. */
+    if (c.elder) {
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.36, -r * 0.28, r * 0.66, r * 0.50, 0, 0, Math.PI * 2);
+      ctx.fillStyle = c.silver || '#d8d3c8'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     ctx.beginPath();
     ctx.ellipse(r * 0.42, -r * 0.34, r * 0.56, r * 0.42, 0, 0, Math.PI * 2);
     ctx.fillStyle = belly; ctx.fill();
+
+    /* an open mouth, for a cat that is making a noise */
+    if (opts.mouth === 'open') {
+      ctx.beginPath();
+      ctx.ellipse(r * 0.56, -r * 0.46, r * 0.23, r * 0.18, -0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a2026'; ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(r * 0.56, -r * 0.41, r * 0.14, r * 0.095, -0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#c9707e'; ctx.fill();
+      /* two small fangs, hanging from the top lip */
+      ctx.fillStyle = '#fdfbf5';
+      ctx.beginPath();
+      ctx.moveTo(r * 0.40, -r * 0.36); ctx.lineTo(r * 0.47, -r * 0.36);
+      ctx.lineTo(r * 0.435, -r * 0.47); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(r * 0.66, -r * 0.36); ctx.lineTo(r * 0.73, -r * 0.36);
+      ctx.lineTo(r * 0.695, -r * 0.47); ctx.closePath(); ctx.fill();
+    }
 
     /* nose */
     ctx.beginPath();
@@ -338,12 +377,28 @@
       ctx.stroke();
     }
 
+    if (c.elder) {
+      /* silvered brows — a few hairs, not two painted dashes */
+      ctx.save();
+      ctx.globalAlpha = 0.42;
+      ctx.strokeStyle = c.silver || '#e8e4da';
+      ctx.lineWidth = 0.85 * es;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(r * 0.22, r * 0.56); ctx.quadraticCurveTo(r * 0.46, r * 0.64, r * 0.64, r * 0.52);
+      ctx.moveTo(-r * 0.46, r * 0.50); ctx.quadraticCurveTo(-r * 0.26, r * 0.62, -r * 0.06, r * 0.58);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     /* whiskers */
     ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.8 * es;
+    ctx.lineCap = 'round';
     for (var w = -1; w <= 1; w++) {
       ctx.beginPath();
-      ctx.moveTo(r * 0.62, -r * 0.28 + w * 1.8);
-      ctx.quadraticCurveTo(r * 1.3, -r * 0.3 + w * 4.4, r * 1.75, -r * 0.24 + w * 6.2);
+      ctx.moveTo(r * 0.62, -r * 0.28 + w * r * 0.10);
+      ctx.quadraticCurveTo(r * 1.3, -r * 0.30 + w * r * 0.26,
+                           r * 1.75, -r * 0.24 + w * r * 0.37);
       ctx.stroke();
     }
 

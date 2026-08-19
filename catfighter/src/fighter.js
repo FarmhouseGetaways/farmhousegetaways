@@ -754,6 +754,19 @@
     return Ps.stand;
   };
 
+  /* Open the mouth when the move says to — a growl should look like one —
+     and when a heavy hit lands, which reads as a yowl. */
+  Fighter.prototype.mouthState = function () {
+    if (this.state === 'move' && this.move && this.move.mouth) {
+      if (this.moveFrame >= (this.move.mouthFrom !== undefined ? this.move.mouthFrom : this.move.startup - 3)) {
+        return this.move.mouth;
+      }
+    }
+    if (this.state === 'hitstun' && this.lastHitHeavy) return 'open';
+    if (this.state === 'ko' && !this.grounded) return 'open';
+    return null;
+  };
+
   Fighter.prototype.eyeState = function () {
     if (this.state === 'ko') return 'ko';
     if (this.state === 'dizzy') return 'ko';

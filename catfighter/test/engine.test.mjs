@@ -416,7 +416,8 @@ test('parallax layers tile far enough to cover the widest camera offset', () => 
 
 test('a dragon punch that ends on forward is not read as a fireball', () => {
   const port = new CF.Input.Port('p1');
-  const f = new CF.Fighter(CF.byId('mittens'), 0, port, []);
+  /* a cat who owns both a quarter circle and a dragon punch on punch */
+  const f = new CF.Fighter(CF.byId('noodle'), 0, port, []);
   f.other = new CF.Fighter(CF.byId('biscuit'), 1, new CF.Input.Port('p2'), []);
   f.setState('idle');
 
@@ -428,13 +429,13 @@ test('a dragon punch that ends on forward is not read as a fireball', () => {
   f.inputBuf.push({ btn: 'HP', frame: f.frame });
 
   assert.equal(f.trySpecial('stand', false), true, 'something should have come out');
-  assert.equal(f.move.id, 'uppercut',
-    `expected the uppercut, got "${f.move.name}" — motion priority is wrong`);
+  assert.equal(f.move.id, 'teleport',
+    `expected the dragon-punch move, got "${f.move.name}" — motion priority is wrong`);
 });
 
 test('a plain fireball motion still gives a fireball', () => {
   const port = new CF.Input.Port('p1');
-  const f = new CF.Fighter(CF.byId('mittens'), 0, port, []);
+  const f = new CF.Fighter(CF.byId('gracie'), 0, port, []);
   f.setState('idle');
   [5, 2, 3].forEach(d => port.apply(d, {}, false));
   port.apply(6, { LP: true }, false);
@@ -442,13 +443,13 @@ test('a plain fireball motion still gives a fireball', () => {
   f.inputBuf.push({ btn: 'LP', frame: f.frame });
 
   assert.equal(f.trySpecial('stand', false), true);
-  assert.equal(f.move.id, 'fireball', `expected the fireball, got "${f.move.name}"`);
+  assert.equal(f.move.id, 'growl', `expected the growl, got "${f.move.name}"`);
 });
 
 test('a full circle beats every motion hiding inside it', () => {
   const port = new CF.Input.Port('p1');
   const f = new CF.Fighter(CF.byId('biscuit'), 0, port, []);
-  f.other = new CF.Fighter(CF.byId('mittens'), 1, new CF.Input.Port('p2'), []);
+  f.other = new CF.Fighter(CF.byId('gracie'), 1, new CF.Input.Port('p2'), []);
   f.setState('idle');
   [6, 2, 4].forEach(d => port.apply(d, {}, false));
   port.apply(8, { HP: true }, false);
@@ -646,4 +647,114 @@ test('rumble on a pad that cannot buzz is harmless', () => {
   G.Input.refreshPadOrder();
   const port = new G.Input.Port('p1');
   assert.doesNotThrow(() => port.rumble(1, 200));
+});
+
+/* ---- the real cats ------------------------------------------------------ */
+
+test('Gracie is on the roster with the moves she was given', () => {
+  const g = CF.byId('gracie');
+  assert.equal(g.displayName, 'GRACIE');
+  const names = g.specials.map(m => m.name);
+  assert.ok(names.includes('Growl of Energy'), 'the growl is missing');
+  assert.ok(names.includes('Tail Whip'), 'the tail whip is missing');
+  assert.equal(g.supers.length, 1);
+});
+
+test('the growl travels and the tail whip must be blocked low', () => {
+  const g = CF.byId('gracie');
+  const growl = g.specials.find(m => m.id === 'growl');
+  for (let s = 0; s < 3; s++) {
+    const shot = growl.spawn({ x: 0, facing: 1, side: 0, fx: [] }, s, 0);
+    assert.ok(shot.vx > 0, `growl at strength ${s} does not travel`);
+    assert.equal(shot.style, 'wave', 'a growl should be drawn as sound, not as a ball');
+  }
+  /* faster buttons should make a faster growl */
+  const speeds = [0, 1, 2].map(s => growl.spawn({ x: 0, facing: 1, side: 0, fx: [] }, s, 0).vx);
+  assert.ok(speeds[0] < speeds[1] && speeds[1] < speeds[2], 'button strength should pick the speed');
+
+  const whip = g.specials.find(m => m.id === 'tailwhip');
+  assert.equal(whip.hitLevel, 'low', 'a tail along the floor must be blocked low');
+  assert.ok(whip.hitbox.y < 12, 'the tail whip should come in at ankle height');
+  assert.ok(whip.knockdown, 'the tail whip should put them down');
+});
+
+test('a pose can bring the tail in front of the body', () => {
+  /* The tail whip is invisible without this — the business end of the attack
+     would be hidden behind the torso. */
+  assert.equal(CF.Anim.BASE.tailFront, 0, 'poses default to the tail behind');
+  assert.ok(CF.Pose.whipOut.tailFront > 0.5, 'the whip should throw the tail forward');
+  const mid = CF.Anim.blend(CF.Pose.whipWind, CF.Pose.whipOut, 0.9);
+  assert.ok(typeof mid.tailFront === 'number', 'tailFront must survive a blend');
+});
+
+test('the CPU understands every cat without being told about her by name', () => {
+  /* The AI classifies specials by what they do. If a cat ends up with no role
+     at all, the computer will never use a single one of her special moves. */
+  for (const c of CF.ROSTER) {
+    const f = new CF.Fighter(c, 0, new CF.Input.Port('p1'), []);
+    const ai = new CF.AI(f, 3);
+    const roles = ai.roles();
+    const total = Object.values(roles).reduce((n, list) => n + list.length, 0);
+    assert.ok(total > 0, `${c.id}: the CPU can see no role for any of her specials`);
+    assert.ok(ai.pick('projectile', 'antiAir', 'rush', 'grab', 'low', 'poke'),
+      `${c.id}: the CPU cannot pick any special to use`);
+  }
+});
+
+test('a projectile can carry its own knockdown', () => {
+  /* Supers need it; ordinary fireballs must not accidentally gain it. */
+  const g = CF.byId('gracie');
+  const sup = g.supers[0].spawn({ x: 0, facing: 1, side: 0, fx: [] }, 2, 0);
+  assert.equal(sup.super, true);
+  assert.equal(sup.knockdown, false, 'the growl super should keep them standing for the next wave');
+  const plain = g.specials.find(m => m.id === 'growl').spawn({ x: 0, facing: 1, side: 0, fx: [] }, 0, 0);
+  assert.equal(plain.knockdown, undefined);
+});
+
+test('a move can open the cat\'s mouth, and most moves do not', () => {
+  const g = CF.byId('gracie');
+  const f = new CF.Fighter(g, 0, new CF.Input.Port('p1'), []);
+
+  f.startMove(g.specials.find(m => m.id === 'growl'), 2);
+  f.moveFrame = 10;
+  assert.equal(f.mouthState(), 'open', 'the growl should open her mouth');
+  f.moveFrame = 0;
+  assert.equal(f.mouthState(), null, 'not before she has drawn breath');
+
+  f.startMove(g.moves.stHP, 2);
+  f.moveFrame = 10;
+  assert.equal(f.mouthState(), null, 'an ordinary punch should not');
+});
+
+test('the tail whip is drawn reaching as far as it hits', () => {
+  /* A move whose picture falls short of its hitbox feels like a cheat. The
+     tail stretches through the swing so the two agree. */
+  const g = CF.byId('gracie');
+  const whip = g.specials.find(m => m.id === 'tailwhip');
+  const j = CF.Rig.solve(CF.Pose.whipOut, 1, g.build);
+  const tip = j.tail[3].x;
+  const reach = whip.hitbox.x + whip.hitbox.w;
+  assert.ok(tip > reach * 0.75,
+    `the tail reaches ${tip.toFixed(1)} but the hitbox reaches ${reach} — the picture is short`);
+  assert.ok(tip < reach * 1.25,
+    `the tail reaches ${tip.toFixed(1)} past a hitbox that ends at ${reach} — it looks like it should hit and does not`);
+
+  /* it must arrive at the height it claims to hit, not sail over the top */
+  const box = whip.hitbox;
+  assert.ok(j.tail[3].y >= box.y - 4 && j.tail[3].y <= box.y + box.h + 4,
+    `the tail tip is at y ${j.tail[3].y.toFixed(1)} but the hitbox spans ${box.y}–${box.y + box.h}`);
+
+  /* and it must be back to normal length when she is just standing */
+  assert.equal(CF.Pose.stand.tailLen, 1, 'a resting tail should not be stretched');
+  assert.equal(CF.Anim.BASE.tailLen, 1);
+});
+
+test('the tail whip is swinging on the frames it can hit', () => {
+  const g = CF.byId('gracie');
+  const whip = g.specials.find(m => m.id === 'tailwhip');
+  for (let f = whip.startup; f < whip.startup + whip.active; f++) {
+    const pose = CF.Anim.sample(whip.anim, f);
+    assert.ok(pose.tailFront > 0.5, `frame ${f} is active but the tail is still behind her`);
+    assert.ok(pose.tailLen > 1.5, `frame ${f} is active but the tail is not extended`);
+  }
 });

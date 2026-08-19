@@ -105,7 +105,7 @@
 
     /* ---- 2. anti-air ---------------------------------------------------- */
     if (!o.grounded && o.vy < 3 && dist < 90 && this.r() < L.aaOdds) {
-      var aa = this.findSpecial(['uppercut', 'flashkick', 'pounce', 'upball', 'spinBird']);
+      var aa = this.pick('antiAir');
       if (aa) { this.doSpecial(aa, q, qb, 2); this.cool = 4; return; }
       qb(2, 'HP', 3); this.cool = 6; return;     // crouching heavy as backup
     }
@@ -113,7 +113,7 @@
     /* ---- 3. punish a whiff ---------------------------------------------- */
     if (o.state === 'move' && o.move && o.moveFrame > o.move.startup + o.move.active &&
         dist < 62 && this.r() < L.punish) {
-      var pun = this.findSpecial(['uppercut', 'spinPile', 'flashkick', 'flurry', 'pounce']);
+      var pun = this.pick('antiAir', 'grab', 'poke');
       if (pun && this.r() < 0.6) { this.doSpecial(pun, q, qb, this.r() < 0.4 ? 2 : 1); }
       else qb(5, this.r() < 0.5 ? 'HP' : 'HK', 3);
       this.cool = 5; return;
@@ -127,7 +127,7 @@
 
     /* ---- 5. offence by range -------------------------------------------- */
     if (dist > 150) {
-      var proj = this.findSpecial(['fireball', 'boomerang', 'slowball']);
+      var proj = this.pick('projectile');
       if (proj && this.r() < L.spOdds) { this.doSpecial(proj, q, qb, (this.r() * 3) | 0); this.cool = 10; return; }
       if (this.r() < L.aggro) { q(6, 22); this.cool = 3; return; }
       q(5, 12); this.cool = 4; return;
@@ -135,8 +135,13 @@
 
     if (dist > 74) {
       if (this.r() < L.aggro * 0.55) {
-        var rush = this.findSpecial(['roll', 'headbutt', 'slide', 'drill', 'spinkick']);
+        var rush = this.pick('rush', 'low');
         if (rush && this.r() < L.spOdds * 0.8) { this.doSpecial(rush, q, qb, 2); this.cool = 10; return; }
+      }
+      /* a pure zoner keeps throwing from here rather than idling */
+      if (!this.roles().rush.length && this.r() < L.spOdds * 0.5) {
+        var mid = this.pick('projectile');
+        if (mid) { this.doSpecial(mid, q, qb, 0); this.cool = 12; return; }
       }
       if (this.r() < 0.30) { q(9, 3); q(5, 22); this.cool = 6; return; }   // jump in
       if (this.r() < L.aggro) { q(6, 16); this.cool = 3; return; }
@@ -145,7 +150,7 @@
 
     /* close range */
     if (dist < 46 && this.r() < 0.22) {
-      var grab = this.findSpecial(['spinPile']);
+      var grab = this.pick('grab');
       if (grab) { this.doSpecial(grab, q, qb, 2); this.cool = 8; return; }
       qb(6, 'HP', 3); this.cool = 8; return;      // throw attempt
     }
@@ -155,7 +160,7 @@
       else if (pick < 0.55) { qb(5, 'LP', 2); qb(5, 'MP', 3); }
       else if (pick < 0.75) { qb(2, 'HK', 3); }
       else {
-        var sp = this.findSpecial(['uppercut', 'spinkick', 'flurry', 'static', 'drill', 'slide']);
+        var sp = this.pick('low', 'poke', 'rush');
         if (sp) this.doSpecial(sp, q, qb, 1); else qb(5, 'MK', 3);
       }
       this.cool = L.think;
@@ -187,10 +192,37 @@
     return null;
   };
 
-  AI.prototype.findSpecial = function (ids) {
+  /* The CPU used to look its specials up by name, from a hard-coded list. That
+     meant every new cat had to be added here by hand or the computer would
+     simply never use her moves. It now works them out from what the moves
+     actually DO, so a cat added tomorrow is understood the moment she exists. */
+  AI.prototype.roles = function () {
+    if (this._roles) return this._roles;
     var sp = this.f.chr.specials;
-    for (var i = 0; i < ids.length; i++) {
-      for (var k = 0; k < sp.length; k++) if (sp[k].id === ids[i]) return sp[k];
+    var r = { projectile: [], antiAir: [], rush: [], grab: [], low: [], poke: [] };
+    for (var i = 0; i < sp.length; i++) {
+      var m = sp[i];
+      if (m.noAttack) continue;
+      if (m.spawn) r.projectile.push(m);
+      if (m.isCommandThrow) r.grab.push(m);
+      if (m.hitLevel === 'low') r.low.push(m);
+      /* rises off the ground, or is invincible on the way up */
+      if ((m.invuln || m.airborne) && m.hitbox && m.hitbox.y >= 24) r.antiAir.push(m);
+      /* carries itself forward */
+      if (m.moveSelf && !m.spawn) r.rush.push(m);
+      /* anything with a hitbox is at least a poke */
+      if (m.hitbox) r.poke.push(m);
+    }
+    this._roles = r;
+    return r;
+  };
+
+  /* One special that fills the given role, or null. */
+  AI.prototype.pick = function () {
+    var roles = this.roles();
+    for (var a = 0; a < arguments.length; a++) {
+      var list = roles[arguments[a]];
+      if (list && list.length) return list[(this.r() * list.length) | 0];
     }
     return null;
   };

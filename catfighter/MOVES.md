@@ -27,49 +27,48 @@ cat turns around.
 
 ---
 
-## MITTENS — The All-Rounder
+## GRACIE — The Elder
 
-Fireballs, an invincible uppercut, and no bad matchups.  
-Start here.
+Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.  
+Let them come to you.
 
-**Health** 1000 · **Stun** 100 · **Walk** 1.55 forward, 1.25 back · **Jump** 9.6 · **Weight** 1 · has a dash
+**Health** 1050 · **Stun** 116 · **Walk** 1.3 forward, 1.22 back · **Jump** 9.2 · **Weight** 1.1
 
 ### Specials
 
 | Move | Input | Damage | Startup | Active | Recovery | Notes |
 |---|---|---|---|---|---|---|
-| **Hairball** | down, down-forward, forward + LP / MP / HP | 26 / 30 / 34 | 11 | 3 | 26 | projectile |
-| **Cat Scratch Fever** | forward, down, down-forward + LP / MP / HP | 90 / 110 / 130 | 4 | 14 | 22 | hard knockdown; invincible frames 0–6; hits 1× |
-| **Tumbleweed Kick** | down, down-back, back + LK / MK / HK | 22 / 24 / 26 | 6 | 22 | 16 | hits 3× |
+| **Growl of Energy** | down, down-forward, forward + LP / MP / HP | 26 / 30 / 34 | 12 | 3 | 27 | projectile |
+| **Tail Whip** | down, down-back, back + LK / MK / HK | 30 / 34 / 38 | 10 | 6 | 24 | must be blocked low; knockdown |
 
 ### Super
 
 | Move | Input | Damage | Startup | Active | Recovery | Notes |
 |---|---|---|---|---|---|---|
-| **HAIRBALL BARRAGE** | fireball motion twice + LP / MP / HP | 60 | 10 | 6 | 40 | invincible frames 0–10; projectile; costs 100 meter |
+| **THE LAST WORD** | fireball motion twice + LP / MP / HP | 55 | 12 | 6 | 44 | invincible frames 0–14; projectile; costs 100 meter |
 
 ### Normals
 
 | Stance | Button | Move | Damage | Startup | Active | Recovery | On hit | On block | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| Standing | LP | Paw Jab | 14 | 3 | 2 | 6 | +5 | +2 | cancels into special / super |
-| Standing | MP | Straight Paw | 24 | 5 | 3 | 11 | +2 | -2 | cancels into special / super |
-| Standing | HP | Heavy Swipe | 34 | 8 | 4 | 17 | -1 | -7 | cancels into super |
-| Standing | LK | Quick Kick | 15 | 4 | 3 | 7 | +3 | +0 | cancels into special / super |
-| Standing | MK | Side Kick | 26 | 7 | 3 | 12 | +2 | -3 | cancels into special / super |
-| Standing | HK | Roundhouse | 36 | 10 | 4 | 19 | -2 | -8 | knockdown; cancels into super |
-| Crouching | down + LP | Low Jab | 12 | 3 | 2 | 6 | +5 | +2 | cancels into special / super |
-| Crouching | down + MP | Low Straight | 22 | 5 | 3 | 11 | +2 | -2 | cancels into special / super |
-| Crouching | down + HP | Rising Claw | 32 | 7 | 4 | 17 | -2 | -7 | knockdown; anti-air; cancels into super |
-| Crouching | down + LK | Toe Poke | 12 | 4 | 2 | 6 | +5 | +2 | must be blocked low; cancels into special / super |
-| Crouching | down + MK | Low Kick | 22 | 6 | 3 | 11 | +2 | -2 | must be blocked low; cancels into special / super |
-| Crouching | down + HK | Tail Sweep | 30 | 8 | 4 | 20 | -5 | -10 | must be blocked low; hard knockdown |
-| In the air | LP | Air Jab | 16 | 4 | 8 | 4 | +3 | -1 | must be blocked standing |
-| In the air | MP | Air Swipe | 26 | 5 | 10 | 4 | +3 | -2 | must be blocked standing |
-| In the air | HP | Dive Paw | 34 | 6 | 12 | 4 | +4 | -2 | must be blocked standing |
-| In the air | LK | Air Kick | 16 | 4 | 9 | 4 | +2 | -2 | must be blocked standing |
-| In the air | MK | Air Side Kick | 26 | 5 | 11 | 4 | +2 | -3 | must be blocked standing |
-| In the air | HK | Jump Roundhouse | 34 | 6 | 13 | 4 | +3 | -3 | must be blocked standing |
+| Standing | LP | Paw Jab | 15 | 3 | 2 | 6 | +5 | +2 | cancels into special / super |
+| Standing | MP | Straight Paw | 26 | 5 | 3 | 11 | +2 | -2 | cancels into special / super |
+| Standing | HP | Heavy Swipe | 37 | 9 | 4 | 17 | -1 | -7 | cancels into super |
+| Standing | LK | Quick Kick | 17 | 4 | 3 | 7 | +3 | +0 | cancels into special / super |
+| Standing | MK | Side Kick | 29 | 8 | 3 | 12 | +2 | -3 | cancels into special / super |
+| Standing | HK | Roundhouse | 40 | 11 | 4 | 19 | -2 | -8 | knockdown; cancels into super |
+| Crouching | down + LP | Low Jab | 13 | 3 | 2 | 6 | +5 | +2 | cancels into special / super |
+| Crouching | down + MP | Low Straight | 24 | 5 | 3 | 11 | +2 | -2 | cancels into special / super |
+| Crouching | down + HP | Rising Claw | 35 | 8 | 4 | 17 | -2 | -7 | knockdown; anti-air; cancels into super |
+| Crouching | down + LK | Toe Poke | 13 | 4 | 2 | 6 | +5 | +2 | must be blocked low; cancels into special / super |
+| Crouching | down + MK | Low Kick | 24 | 6 | 3 | 11 | +2 | -2 | must be blocked low; cancels into special / super |
+| Crouching | down + HK | Tail Sweep | 33 | 9 | 4 | 20 | -5 | -10 | must be blocked low; hard knockdown |
+| In the air | LP | Air Jab | 18 | 4 | 8 | 4 | +3 | -1 | must be blocked standing |
+| In the air | MP | Air Swipe | 29 | 5 | 10 | 4 | +3 | -2 | must be blocked standing |
+| In the air | HP | Dive Paw | 37 | 6 | 12 | 4 | +4 | -2 | must be blocked standing |
+| In the air | LK | Air Kick | 18 | 4 | 9 | 4 | +2 | -2 | must be blocked standing |
+| In the air | MK | Air Side Kick | 29 | 5 | 11 | 4 | +2 | -3 | must be blocked standing |
+| In the air | HK | Jump Roundhouse | 37 | 6 | 13 | 4 | +3 | -3 | must be blocked standing |
 
 ---
 

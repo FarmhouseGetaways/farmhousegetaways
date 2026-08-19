@@ -555,10 +555,21 @@ the frame data. `catfighter/README.md` explains all of it.
 
 Three things a later session needs to know:
 
-- **The names, looks and moves are placeholders.** They all live in
-  `catfighter/src/characters.js`, one block per cat, and are meant to be
-  replaced once the owner supplies the real six. Photographs go in
-  `catfighter/assets/cats/` and are named on the cat with `photo:`.
+- **The real cats are being added one at a time**, as the owner sends each one.
+  **GRACIE went in on 19 Aug 2026** — old and wise, a warm solid grey, with the
+  two moves the owner named: a Growl of Energy (quarter-circle punch, a sound
+  wave) and a Tail Whip (quarter-circle kick, hits low, knocks down). Her super,
+  THE LAST WORD, was invented rather than given, and the owner has been asked
+  about it. **Five placeholders remain**: BISCUIT, SHADOW, PEPPER, NOODLE,
+  TIGER. All of it is in `catfighter/src/characters.js`, one block per cat.
+  Photographs go in `catfighter/assets/cats/` and are named on the cat with
+  `photo:` — the owner pastes them into the chat, which a session can see but
+  cannot save, so **ask for a zip or a Drive folder** if the photo itself is
+  wanted on the select screen.
+- **Do not teach the CPU about a cat by name.** `ai.js` classifies specials by
+  what they do — spawns something, rises with invincibility, travels forward,
+  is a command grab, hits low — so a cat added tomorrow is understood without
+  touching it. A test fails if any cat ends up with no role the CPU can see.
 - **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**

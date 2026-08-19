@@ -3,8 +3,14 @@
 A six-button arcade fighting game in the mould of Street Fighter II, with six
 cats instead of six martial artists.
 
-Everything here is placeholder except the engine. **The names, the looks and
-the special moves are meant to be replaced** with the real six cats — see
+**The roster is being filled in with the real cats, one at a time.**
+
+| Slot | Cat | State |
+|---|---|---|
+| 1 | **GRACIE — The Elder** | Real. Growl of Energy, Tail Whip. |
+| 2–6 | BISCUIT, SHADOW, PEPPER, NOODLE, TIGER | Placeholders, waiting on their names, looks and moves |
+
+Replacing one is three blocks of plain data in `src/characters.js` — see
 [Making it your cats](#making-it-your-cats) below.
 
 ---
@@ -142,14 +148,20 @@ and hitboxes are on the title screen.
 
 ## Making it your cats
 
-Three files, and you never have to touch the engine.
+One file, and you never have to touch the engine. Gracie is the worked example
+— read her block in `src/characters.js` and the rest follow the same shape.
+
+Nothing else in the game needs telling about a new cat. The CPU works out what
+her specials are for from what they do (a move that spawns something is a
+projectile, a move that rises with invincibility is an anti-air, and so on), so
+she is understood by the computer the moment she exists.
 
 ### 1. Names and personalities
 
 `src/characters.js`, at the top of each entry:
 
 ```js
-id: 'mittens',
+id: 'gracie',
 displayName: 'MITTENS',
 subtitle: 'The All-Rounder',
 blurb: 'Fireballs, an invincible uppercut, and no bad matchups.\nStart here.',

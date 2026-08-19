@@ -14,7 +14,9 @@
     head: [3, 15, 0],
     armF: [40, 95], armB: [25, 100],
     legF: [14, -14], legB: [-8, 6],
-    tail: [240, -35, -32]
+    tail: [240, -35, -32],
+    tailFront: 0,     /* >0.5 draws the tail over the body — see rig.js */
+    tailLen: 1        /* stretches the tail, for a whip that has to reach */
   };
 
   function P(o) { return U.deepMerge(BASE, o || {}); }
@@ -186,6 +188,43 @@
                     legF: [12, -14], legB: [-14, 12], tail: [202, 16.8, 28.8] });
   L.koPose    = P({ py: 10, torso: -86, head: [-16, 11, -90], armF: [-92, 6], armB: [-100, 4],
                     legF: [-78, 66], legB: [-90, 74], tail: [156, 44.8, 51.2] });
+
+  /* ---- Gracie: the growl and the tail whip --------------------------------
+
+     The growl is drawn from the chest — she sinks, gathers, then throws her
+     head forward with her mouth open. The tail whip coils the tail hard back
+     and then snaps it through, and sets `tailFront` so the tail passes over
+     the body instead of hiding behind it.                                  */
+
+  L.growlWind = P({ py: 36, torso: 22, head: [6, 13.5, 12],
+                    armF: [22, 74], armB: [16, 80],
+                    legF: [52, -90], legB: [-40, 80],
+                    tail: [272, -48, -36] });
+  L.growlOut  = P({ py: 42, torso: 6, px: 2, head: [9, 15, 2],
+                    armF: [66, 42], armB: [54, 50],
+                    legF: [28, -32], legB: [-30, 26],
+                    tail: [238, -34, -52] });
+  L.growlHold = P({ py: 41, torso: 9, px: 1, head: [8, 15, 4],
+                    armF: [60, 50], armB: [50, 56],
+                    legF: [24, -28], legB: [-26, 22],
+                    tail: [244, -38, -46] });
+
+  L.whipWind = P({ py: 40, torso: -14, head: [0, 15, -10],
+                   armF: [26, 112], armB: [18, 116],
+                   legF: [8, -10], legB: [-20, 18],
+                   tail: [292, -58, -42] });
+  L.whipMid  = P({ py: 35, torso: 8, px: 1, head: [4, 14, 6],
+                   armF: [48, 86], armB: [40, 92],
+                   legF: [38, -58], legB: [-32, 50],
+                   tail: [124, -20, -10], tailFront: 1, tailLen: 1.7 });
+  L.whipOut  = P({ py: 31, torso: 18, px: 3, head: [6, 13, 10],
+                   armF: [60, 66], armB: [50, 72],
+                   legF: [52, -80], legB: [-40, 68],
+                   tail: [78, 4, 6], tailFront: 1, tailLen: 2.5 });
+  L.whipEnd  = P({ py: 37, torso: 4, px: 1, head: [3, 14.5, 2],
+                   armF: [42, 94], armB: [34, 98],
+                   legF: [24, -28], legB: [-24, 22],
+                   tail: [166, -18, -12], tailFront: 1, tailLen: 1.3 });
 
   /* ---- blending --------------------------------------------------------- */
   function blend(a, b, t) {
