@@ -16,32 +16,56 @@ limitation of the free forwarding tool, not a misconfiguration.
 
 ## The fix
 
-Delegate both domains to Netlify DNS. Netlify then serves the apex directly,
-issues and auto-renews certificates for all four hostnames, and handles the
-redirects to the primary domain.
+Two routes, both ending with Netlify serving all four hostnames over HTTPS with
+free auto-renewing certificates. Either way `farmstand.tv` is the primary domain
+and `www.farmstand.tv`, `farmstandtv.com`, `www.farmstandtv.com` redirect to it.
 
 Neither domain has any MX or TXT records, so **no email or verification records
-can break** by moving the nameservers. That is what makes the clean option safe.
+can break** by changing DNS.
 
-`farmstand.tv` is the primary domain; `www.farmstand.tv`, `farmstandtv.com` and
-`www.farmstandtv.com` are aliases that redirect to it.
+### Route A — leave DNS at Directnic (fewest moving parts)
 
-## The two halves
+Every value is fixed and known in advance, so nothing has to be fetched from
+Netlify first and there is no back-and-forth. In Directnic, per domain: turn
+**off** URL forwarding, then add
 
-**Netlify — automatable.** Sets the primary domain and aliases, creates a DNS
-zone per registrable domain, and prints the nameservers:
+| Type | Host | Value |
+|---|---|---|
+| A | `@` | `75.2.60.5` |
+| CNAME | `www` | `farmstandtv.netlify.app` |
+
+In Netlify, add both domains to the `farmstandtv` project (Domain management →
+Add a domain), choosing the "already have DNS" / external option, and set
+`farmstand.tv` as primary. Netlify issues certificates once the records resolve.
+
+The cost: an apex on an A record misses Netlify's direct CDN routing, and every
+future record is a manual edit at a registrar with no API. For a small
+marketing site that is a fair trade for getting it working today.
+
+### Route B — delegate to Netlify DNS (technically better)
+
+Netlify serves the apex properly and future records are managed in one place.
+The catch is that the nameservers are assigned per zone, so they must be read
+out of Netlify before Directnic can be touched.
 
     NETLIFY_TOKEN=nfp_xxx node tools/farmstand-netlify-domains.mjs
 
-Idempotent. A personal access token comes from Netlify → User settings →
-Applications → Personal access tokens. Delete it afterwards; it is only needed
-for this one run.
+This sets the primary domain and aliases, creates a DNS zone per registrable
+domain, turns on forced HTTPS, and prints the four nameservers for each domain.
+Idempotent. A token comes from Netlify → User settings → Applications →
+Personal access tokens, and should be deleted after the run. The same thing can
+be done by hand through Domain management → Add a domain → "Set up Netlify DNS".
 
-**Directnic — by hand.** Directnic publishes no API, so this part is browser
-work and cannot be scripted or driven from a Claude Code session. For each
-domain: turn **off** URL forwarding, then replace the nameservers
-(`ns0`–`ns3.directnic.com`) with the four the script printed for that domain.
-The two domains may get different nameserver sets — do not mix them up.
+Then in Directnic, per domain: turn **off** URL forwarding and replace
+`ns0`–`ns3.directnic.com` with the four nameservers printed for *that* domain.
+The two domains may get different sets — do not mix them up.
+
+## Directnic is manual either way
+
+Directnic publishes no API — only a web control panel. So the registrar side is
+browser work no matter which route is taken, and cannot be scripted or driven
+from a Claude Code session, which runs in a cloud container with no link to the
+owner's browser.
 
 ## Verifying
 
@@ -49,11 +73,6 @@ The two domains may get different nameserver sets — do not mix them up.
 
 Checks nameserver delegation, the A/CNAME records, that HTTPS serves a real
 response on all four hostnames, that each lands on the site or redirects to the
-primary, and that the old forwarding IPs are gone. Exits non-zero until
-everything passes. Nameserver changes can take up to 24 hours.
-
-## Do not use the external-DNS route unless forced
-
-Keeping DNS at Directnic and adding `A @ 75.2.60.5` plus `CNAME www` works, but
-the apex then misses Netlify's direct CDN routing, and every future record is a
-manual edit at a registrar with no API. Only worth it if delegation is refused.
+primary, and that the old forwarding IPs are gone. It accepts either route.
+Exits non-zero until everything passes. DNS changes can take up to 24 hours,
+though a records-only change at Directnic is usually minutes.

@@ -36,12 +36,15 @@ const note = (pass, msg) => {
 
 console.log(`\nFarmstand.TV domain check  ->  ${TARGET}\n${'='.repeat(52)}`);
 
+// Either route is a pass: nameservers delegated to Netlify DNS, or the
+// records left at the registrar pointing at Netlify's load balancer.
+const delegated = {};
 for (const domain of [PRIMARY, 'farmstandtv.com']) {
   const ns = await doh(domain, 'NS');
-  const onNetlify = ns.some((n) => n.includes('nsone.net'));
+  delegated[domain] = ns.some((n) => n.includes('nsone.net'));
   console.log(`\n${domain}  nameservers`);
   ns.forEach((n) => console.log(`     ${n}`));
-  note(onNetlify, onNetlify ? 'delegated to Netlify DNS' : 'NOT on Netlify DNS yet');
+  console.log(`     -> ${delegated[domain] ? 'Netlify DNS' : 'registrar DNS (external route)'}`);
 }
 
 console.log(`\nRecords and live responses`);
@@ -62,6 +65,18 @@ for (const h of HOSTS) {
   note(landsRight, `lands on the Netlify site or redirects to ${PRIMARY}`);
   const forwardingGone = !a.some((ip) => ip.startsWith('104.143.9.'));
   note(forwardingGone, 'Directnic URL forwarding is gone');
+
+  const apex = !h.startsWith('www.');
+  const pointsAtNetlify = apex
+    ? a.some((ip) => NETLIFY_APEX_IPS.includes(ip))
+    : cname.some((c) => c.includes('netlify.app') || c.includes('netlifyglobalcdn'));
+  const registrarRoute = !delegated[h.replace(/^www\./, '')];
+  if (registrarRoute) {
+    note(
+      pointsAtNetlify,
+      apex ? `A record points at ${NETLIFY_APEX_IPS[0]}` : 'CNAME points at Netlify'
+    );
+  }
 }
 
 console.log(
