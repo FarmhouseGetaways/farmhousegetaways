@@ -3,12 +3,37 @@
 A six-button arcade fighting game in the mould of Street Fighter II, with six
 cats instead of six martial artists.
 
-**The roster is being filled in with the real cats, one at a time.**
+**The roster is the six real cats.**
 
-| Slot | Cat | State |
+| Cat | Class | Specials |
 |---|---|---|
-| 1 | **GRACIE — The Elder** | Real. Growl of Energy, Tail Whip. |
-| 2–6 | BISCUIT, SHADOW, PEPPER, NOODLE, TIGER | Placeholders, waiting on their names, looks and moves |
+| **GRACIE — The Elder** | Medium | Growl of Energy, Tail Whip |
+| **MARIO — The Immovable** | Heavy | Belly Bump, The Smother |
+| **LUIGI — The Twin** | Light | Flying Body Attack, Leg Sweep |
+| **LILLY — The Acrobat** | Light | Flip Attack, Crane Kick |
+| **FIGURO — The Boxer** | Medium | Rapid Paws, Cut and Run |
+| **RUBY — The Jaw** | Heavy | Crushing Bite, Flip Kick |
+
+Every super is marked with an asterisk in [MOVES.md](MOVES.md) — those were
+invented rather than given, and are the first thing to change.
+
+## Weight classes
+
+The trade the whole roster is built on:
+
+| Class | Takes | Stun | Knockback | In exchange |
+|---|---|---|---|---|
+| **Light** | 15% more damage | rattles easily | flies further | fastest walk, biggest jump |
+| **Medium** | baseline | baseline | baseline | no bad matchups |
+| **Heavy** | **14% less damage** | hard to stun | barely moves | slowest, most health |
+
+A heavy cat is hard to hurt and hard to shift but takes a while to arrive. A
+light one is all over you until she gets caught, at which point she folds.
+It shows on the select screen, and tests hold it true in both directions so a
+later balance tweak cannot quietly undo it.
+
+Across 180 CPU-vs-CPU matches — every pairing, six random seeds — the roster
+sits between **48% and 53%** win rate. Nobody is a trap pick.
 
 Replacing one is three blocks of plain data in `src/characters.js` — see
 [Making it your cats](#making-it-your-cats) below.

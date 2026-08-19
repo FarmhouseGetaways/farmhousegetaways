@@ -350,20 +350,23 @@ test('no cat is strictly better than another on raw stats', () => {
 });
 
 test('heavier cats hit harder and slower than lighter ones', () => {
-  const heavy = CF.byId('biscuit'), light = CF.byId('pepper');
+  const heavy = CF.byId('mario'), light = CF.byId('lilly');
   assert.ok(heavy.mod.damage > light.mod.damage, 'the heavyweight should hit harder');
   assert.ok(heavy.stats.walkF < light.stats.walkF, 'the heavyweight should walk slower');
   assert.ok(heavy.moves.stHP.damage > light.moves.stHP.damage);
   assert.ok(heavy.moves.stHP.startup >= light.moves.stHP.startup);
 });
 
-test('the long cat genuinely out-ranges everyone', () => {
-  const noodle = CF.byId('noodle');
-  const reachOf = c => c.moves.stHP.hitbox.x + c.moves.stHP.hitbox.w;
-  const mine = reachOf(noodle);
+test('no two cats play the same way', () => {
+  /* Six cats, six sets of specials. If two share every motion they are the
+     same character with a different coat. */
+  const seen = new Set();
   for (const c of CF.ROSTER) {
-    if (c.id === 'noodle') continue;
-    assert.ok(mine > reachOf(c), `noodle should out-range ${c.id}`);
+    const shape = c.specials
+      .map(m => (m.charge ? 'chg-' + m.charge : m.motion) + ':' + m.buttons.join(''))
+      .sort().join(' ');
+    assert.ok(!seen.has(shape), `${c.id} has the same move set as another cat`);
+    seen.add(shape);
   }
 });
 
@@ -416,21 +419,22 @@ test('parallax layers tile far enough to cover the widest camera offset', () => 
 
 test('a dragon punch that ends on forward is not read as a fireball', () => {
   const port = new CF.Input.Port('p1');
-  /* a cat who owns both a quarter circle and a dragon punch on punch */
-  const f = new CF.Fighter(CF.byId('noodle'), 0, port, []);
-  f.other = new CF.Fighter(CF.byId('biscuit'), 1, new CF.Input.Port('p2'), []);
+  /* Lilly owns both a quarter circle and a dragon punch, on the same three
+     buttons — the exact case where the wrong one comes out. */
+  const f = new CF.Fighter(CF.byId('lilly'), 0, port, []);
+  f.other = new CF.Fighter(CF.byId('mario'), 1, new CF.Input.Port('p2'), []);
   f.setState('idle');
 
   /* forward, down, down-forward, and then forward again — which is what
      nearly everybody actually does on a stick or a d-pad. */
   [6, 5, 2, 3, 6].forEach(d => port.apply(d, {}, false));
-  port.apply(6, { HP: true }, false);
+  port.apply(6, { HK: true }, false);
   f.frame++;
-  f.inputBuf.push({ btn: 'HP', frame: f.frame });
+  f.inputBuf.push({ btn: 'HK', frame: f.frame });
 
   assert.equal(f.trySpecial('stand', false), true, 'something should have come out');
-  assert.equal(f.move.id, 'teleport',
-    `expected the dragon-punch move, got "${f.move.name}" — motion priority is wrong`);
+  assert.equal(f.move.id, 'flipattack',
+    `expected the Flip Attack, got "${f.move.name}" — motion priority is wrong`);
 });
 
 test('a plain fireball motion still gives a fireball', () => {
@@ -446,18 +450,22 @@ test('a plain fireball motion still gives a fireball', () => {
   assert.equal(f.move.id, 'growl', `expected the growl, got "${f.move.name}"`);
 });
 
-test('a full circle beats every motion hiding inside it', () => {
+test('a half circle beats the quarter circle hiding inside it', () => {
+  /* Mario's Smother is a half circle forward, which contains a quarter
+     circle forward. On the same buttons, the harder motion must win. */
   const port = new CF.Input.Port('p1');
-  const f = new CF.Fighter(CF.byId('biscuit'), 0, port, []);
+  const f = new CF.Fighter(CF.byId('mario'), 0, port, []);
   f.other = new CF.Fighter(CF.byId('gracie'), 1, new CF.Input.Port('p2'), []);
   f.setState('idle');
-  [6, 2, 4].forEach(d => port.apply(d, {}, false));
-  port.apply(8, { HP: true }, false);
-  f.frame++;
-  f.inputBuf.push({ btn: 'HP', frame: f.frame });
+  assert.ok(f.motionPriority({ motion: 'hcf' }) > f.motionPriority({ motion: 'qcf' }),
+    'a half circle must outrank a quarter circle');
 
+  [4, 1, 2, 3].forEach(d => port.apply(d, {}, false));
+  port.apply(6, { HK: true }, false);
+  f.frame++;
+  f.inputBuf.push({ btn: 'HK', frame: f.frame });
   assert.equal(f.trySpecial('stand', false), true);
-  assert.equal(f.move.id, 'spinPile', `expected the command grab, got "${f.move.name}"`);
+  assert.equal(f.move.id, 'smother', `expected the Smother, got "${f.move.name}"`);
 });
 
 test('every motion the roster uses has a declared priority', () => {
@@ -756,5 +764,203 @@ test('the tail whip is swinging on the frames it can hit', () => {
     const pose = CF.Anim.sample(whip.anim, f);
     assert.ok(pose.tailFront > 0.5, `frame ${f} is active but the tail is still behind her`);
     assert.ok(pose.tailLen > 1.5, `frame ${f} is active but the tail is not extended`);
+  }
+});
+
+/* ---- weight classes -----------------------------------------------------
+   The trade the roster is built on: heavy is harder to hurt but slower,
+   light is fast but folds. These tests hold that true in both directions,
+   so a later balance tweak cannot quietly undo it.                        */
+
+test('every cat declares a weight class the engine knows', () => {
+  for (const c of CF.ROSTER) {
+    assert.ok(CF.CLASSES[c.weightClass],
+      `${c.id}: weightClass "${c.weightClass}" is not one of light/medium/heavy`);
+  }
+  const used = new Set(CF.ROSTER.map(c => c.weightClass));
+  for (const k of ['light', 'medium', 'heavy']) {
+    assert.ok(used.has(k), `nobody on the roster is ${k} — the trade is invisible`);
+  }
+});
+
+test('the class multipliers run the right way round', () => {
+  const { light, medium, heavy } = CF.CLASSES;
+  assert.ok(heavy.damageTaken < medium.damageTaken, 'heavy should take less damage');
+  assert.ok(medium.damageTaken < light.damageTaken, 'light should take more damage');
+  assert.ok(heavy.stunTaken < light.stunTaken, 'heavy should be harder to stun');
+  assert.ok(heavy.pushed < light.pushed, 'heavy should be harder to shift');
+});
+
+test('the identical punch hurts a light cat more than a heavy one', () => {
+  function takeIt(id) {
+    const f = new CF.Fighter(CF.byId(id), 0, new CF.Input.Port('p1'), []);
+    f.other = new CF.Fighter(CF.byId('gracie'), 1, new CF.Input.Port('p2'), []);
+    f.setState('idle');
+    const before = f.health;
+    f.takeHit(f.other, { damage: 100, stun: 20, hitLevel: 'mid', hitstun: 12, pushback: 3 });
+    return { lost: before - f.health, stun: f.stun, vx: Math.abs(f.vx) };
+  }
+  const heavy = takeIt('mario'), medium = takeIt('gracie'), light = takeIt('lilly');
+
+  assert.ok(heavy.lost < medium.lost, `heavy lost ${heavy.lost}, medium lost ${medium.lost}`);
+  assert.ok(medium.lost < light.lost, `medium lost ${medium.lost}, light lost ${light.lost}`);
+  assert.ok(heavy.stun < light.stun, 'the same hit should rattle a light cat more');
+  assert.ok(heavy.vx < light.vx, 'the same hit should shift a light cat further');
+});
+
+test('and the light cats are genuinely faster in exchange', () => {
+  const byClass = k => CF.ROSTER.filter(c => c.weightClass === k);
+  const avg = (list, pick) => list.reduce((n, c) => n + pick(c), 0) / list.length;
+
+  const lightSpeed = avg(byClass('light'), c => c.stats.walkF);
+  const heavySpeed = avg(byClass('heavy'), c => c.stats.walkF);
+  assert.ok(lightSpeed > heavySpeed * 1.25,
+    `light cats walk ${lightSpeed.toFixed(2)}, heavy ${heavySpeed.toFixed(2)} — not enough of a gap to feel`);
+
+  const lightHp = avg(byClass('light'), c => c.stats.health);
+  const heavyHp = avg(byClass('heavy'), c => c.stats.health);
+  assert.ok(heavyHp > lightHp, 'heavy cats should also carry more health');
+
+  /* nobody gets to be both */
+  for (const c of CF.ROSTER) {
+    if (c.weightClass === 'light') {
+      assert.ok(c.stats.health <= 950, `${c.id} is light but has ${c.stats.health} health`);
+      assert.ok(c.stats.walkF >= 1.7, `${c.id} is light but walks at ${c.stats.walkF}`);
+    }
+    if (c.weightClass === 'heavy') {
+      assert.ok(c.stats.health >= 1050, `${c.id} is heavy but has only ${c.stats.health} health`);
+      assert.ok(c.stats.walkF <= 1.35, `${c.id} is heavy but walks at ${c.stats.walkF}`);
+    }
+  }
+});
+
+/* ---- the real roster ---------------------------------------------------- */
+
+test('all six cats are the real ones, with the moves they were given', () => {
+  const expected = {
+    gracie: ['Growl of Energy', 'Tail Whip'],
+    mario:  ['Belly Bump', 'The Smother'],
+    luigi:  ['Flying Body Attack', 'Leg Sweep'],
+    lilly:  ['Flip Attack', 'Crane Kick'],
+    figuro: ['Rapid Paws', 'Cut and Run'],
+    ruby:   ['Crushing Bite', 'Flip Kick']
+  };
+  assert.equal(CF.ROSTER.length, 6);
+  for (const [id, moves] of Object.entries(expected)) {
+    const c = CF.byId(id);
+    assert.equal(c.id, id, `${id} is not on the roster`);
+    const names = c.specials.map(m => m.name);
+    for (const m of moves) assert.ok(names.includes(m), `${id} is missing ${m}`);
+    assert.equal(names.length, moves.length, `${id} has a special nobody asked for`);
+  }
+});
+
+test('the twins look alike but are told apart at a glance', () => {
+  const m = CF.byId('mario'), l = CF.byId('luigi');
+  assert.equal(m.palette.pattern, 'tuxedo');
+  assert.equal(l.palette.pattern, 'tuxedo');
+  assert.ok(m.palette.longhair && l.palette.longhair, 'both twins are long-haired');
+  assert.ok(l.palette.sock, 'Luigi is the one with the white sleeve');
+  assert.ok(!m.palette.sock, 'Mario has no sleeve');
+  assert.ok(m.build.girth > l.build.girth * 1.3, 'Mario should be visibly the bigger cat');
+  assert.notEqual(m.weightClass, l.weightClass, 'and they should not play the same');
+});
+
+test('Lilly is drawn as a seal point', () => {
+  const l = CF.byId('lilly');
+  assert.equal(l.palette.pattern, 'siamese');
+  assert.ok(l.palette.points, 'her ears, legs and tail should be dark');
+  assert.ok(l.palette.eye.match(/^#/), 'and she has blue eyes');
+});
+
+test('Figuro can genuinely escape, and it costs him his offence', () => {
+  const f = CF.byId('figuro').specials.find(m => m.id === 'cutandrun');
+  assert.ok(f.noAttack, 'the retreat should not hit anything');
+  assert.ok(f.invuln, 'it should be invincible, or it is just a back dash');
+  assert.ok(f.moveSelf, 'and it should actually take him somewhere');
+});
+
+test('Ruby has to hold a charge for her anti-air', () => {
+  const k = CF.byId('ruby').specials.find(m => m.id === 'flipkick');
+  assert.equal(k.charge, 'du');
+  assert.ok(k.chargeFrames >= 30, 'a charge that short is not a commitment');
+  assert.ok(k.invuln, 'an anti-air needs invincible frames to be worth pressing');
+});
+
+/* ---- moves that work on paper but not in practice ------------------------
+   A move can have perfect frame data and still do nothing, because the
+   fighter travels out of her own hitbox, or the opponent falls out of it
+   between hits. The only way to catch that is to run the match.           */
+import { tryMove } from './harness.mjs';
+
+test('every special actually connects when it is thrown at the right range', () => {
+  for (const c of CF.ROSTER) {
+    for (const m of c.specials) {
+      if (m.noAttack) continue;
+      const dist = m.isCommandThrow ? 30 : (m.spawn ? 150 : 50);
+      const r = tryMove(CF, c.id, m, { dist });
+      assert.ok(r.damage > 0,
+        `${c.id}: "${m.name}" landed no damage at ${dist} units — it looks fine on paper and does nothing`);
+    }
+  }
+});
+
+test('every super is worth the meter it costs', () => {
+  /* A full bar should be worth roughly a heavy special or better. This is
+     the test that caught Lilly rising up and away from her own super. */
+  for (const c of CF.ROSTER) {
+    for (const m of c.supers) {
+      const dist = m.isCommandThrow ? 30 : 50;
+      const r = tryMove(CF, c.id, m, { dist });
+      assert.ok(r.damage >= 110,
+        `${c.id}: "${m.name}" only landed ${r.damage} for a full meter`);
+      assert.ok(r.damage <= 420,
+        `${c.id}: "${m.name}" landed ${r.damage} — that is most of a life bar`);
+    }
+  }
+});
+
+test('a heavy cat really does survive longer than a light one', () => {
+  /* End to end, through the real match loop rather than the damage formula. */
+  const punish = id => {
+    const r = tryMove(CF, 'mario', CF.byId('mario').specials.find(m => m.id === 'bellybump'),
+                      { against: id, dist: 40 });
+    return r.damage;
+  };
+  const onLight = punish('lilly');
+  const onHeavy = punish('ruby');
+  assert.ok(onLight > onHeavy,
+    `the same Belly Bump took ${onLight} from Lilly and ${onHeavy} from Ruby — the weight classes are not biting`);
+});
+
+test('the CPU only calls a move an anti-air if it can actually answer a jump', () => {
+  /* A forward-leaping overhead is airborne too. Using it to answer a jump-in
+     loses every time, so it must not be classified as an anti-air. */
+  const lilly = CF.byId('lilly');
+  const f = new CF.Fighter(lilly, 0, new CF.Input.Port('p1'), []);
+  const roles = new CF.AI(f, 3).roles();
+  const aa = roles.antiAir.map(m => m.id);
+  assert.ok(aa.includes('flipattack'), 'the invincible rising flip is her anti-air');
+  assert.ok(!aa.includes('cranekick'), 'the forward-leaping crane kick is not');
+
+  for (const c of CF.ROSTER) {
+    const ff = new CF.Fighter(c, 0, new CF.Input.Port('p1'), []);
+    for (const m of new CF.AI(ff, 3).roles().antiAir) {
+      assert.ok(m.invuln, `${c.id}: "${m.name}" is used as an anti-air but has no invincible frames`);
+    }
+  }
+});
+
+test('the CPU knows what an escape is', () => {
+  const f = new CF.Fighter(CF.byId('figuro'), 0, new CF.Input.Port('p1'), []);
+  const roles = new CF.AI(f, 3).roles();
+  assert.equal(roles.escape.length, 1, 'Figuro should have exactly one escape');
+  assert.equal(roles.escape[0].id, 'cutandrun');
+
+  /* and nobody else on the roster has one, so it stays his */
+  for (const c of CF.ROSTER) {
+    if (c.id === 'figuro') continue;
+    const ff = new CF.Fighter(c, 0, new CF.Input.Port('p1'), []);
+    assert.equal(new CF.AI(ff, 3).roles().escape.length, 0, `${c.id} should not have an escape`);
   }
 });

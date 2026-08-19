@@ -21,12 +21,27 @@
   var THROW_RANGE = 46;
   var PUSHBOX_W = 30;
 
+  /* ---- weight classes -----------------------------------------------------
+
+     The trade every fighting game is built on: a heavy cat is hard to shift
+     and hard to hurt but slow to get anywhere, and a light one is all over
+     you until she gets caught, at which point she folds.
+
+     These multiply what a fighter RECEIVES. What she deals is her own
+     business — that lives in `mod.damage` on the character.               */
+  var CLASSES = {
+    light:  { damageTaken: 1.15, stunTaken: 1.14, pushed: 1.22, label: 'LIGHT' },
+    medium: { damageTaken: 1.00, stunTaken: 1.00, pushed: 1.00, label: 'MEDIUM' },
+    heavy:  { damageTaken: 0.86, stunTaken: 0.86, pushed: 0.80, label: 'HEAVY' }
+  };
+
   function Fighter(chr, side, port, fxArray) {
     this.chr = chr;
     this.side = side;                       // 0 = left start, 1 = right start
     this.port = port;
     this.fx = fxArray || [];
     this.stats = chr.stats;
+    this.cls = CLASSES[chr.weightClass] || CLASSES.medium;
 
     this.maxHealth = chr.stats.health;
     this.health = this.maxHealth;
@@ -590,7 +605,7 @@
       this.blockstunTimer = hit.blockstun || 10;
       this.setState('blockstun');
       this.blockstunTimer = hit.blockstun || 10;
-      this.vx = -this.facing * (hit.blockPushback || 2.5);
+      this.vx = -this.facing * (hit.blockPushback || 2.5) * this.cls.pushed;
       this.blockFlash = 6;
       this.meter = Math.min(this.maxMeter, this.meter + 3);
       this.fx.push({ kind: 'guard', x: this.x + this.facing * 20, y: hit.fxY || 46, t: 0 });
@@ -601,11 +616,12 @@
     /* counter-hit: caught during another move's startup */
     var counter = (this.state === 'move' && this.move && this.moveFrame < this.move.startup);
 
-    var dmg = this.scaleDamage(hit.damage * (counter ? 1.15 : 1));
+    /* a heavy cat shrugs off what folds a light one */
+    var dmg = this.scaleDamage(hit.damage * (counter ? 1.15 : 1) * this.cls.damageTaken);
     this.health = Math.max(0, this.health - dmg);
     this.comboCount++;
     this.comboDamage += dmg;
-    this.stun += (hit.stun || 5) * (counter ? 1.3 : 1);
+    this.stun += (hit.stun || 5) * (counter ? 1.3 : 1) * this.cls.stunTaken;
     this.stunDecay = 0;
     this.flash = 5;
     this.wasHitThisFrame = true;
@@ -614,6 +630,7 @@
     this.lastHitLevel = hit.hitLevel || 'mid';
     this.lastHitHeavy = (hit.damage >= 30);
 
+    var push = (hit.pushback || 2) * this.cls.pushed;
     var kd = hit.knockdown;
     if (this.health <= 0) {
       this.setState('ko');
@@ -627,30 +644,30 @@
     if (kd === 'hard' || kd === 'launch') {
       this.knockdownTimer = 40;
       this.setState('knockdown');
-      this.vx = -this.facing * (hit.pushback || 3) * 1.4;
+      this.vx = -this.facing * push * 1.4;
       this.vy = kd === 'launch' ? 7.0 : 5.0;
       this.grounded = false;
     } else if (kd === 'soft' && !this.grounded) {
       this.knockdownTimer = 34;
       this.setState('knockdown');
-      this.vx = -this.facing * (hit.pushback || 3) * 1.2;
+      this.vx = -this.facing * push * 1.2;
       this.vy = 4.0;
     } else if (!this.grounded) {
       this.knockdownTimer = 32;
       this.setState('knockdown');
-      this.vx = -this.facing * (hit.pushback || 3);
+      this.vx = -this.facing * push;
       this.vy = 3.4;
     } else if (kd === 'soft') {
       this.knockdownTimer = 34;
       this.setState('knockdown');
-      this.vx = -this.facing * (hit.pushback || 3) * 1.2;
+      this.vx = -this.facing * push * 1.2;
       this.vy = 4.6;
       this.grounded = false;
     } else {
       this.hitstunTimer = hit.hitstun || 12;
       this.setState('hitstun');
       this.hitstunTimer = hit.hitstun || 12;
-      this.vx = -this.facing * (hit.pushback || 2);
+      this.vx = -this.facing * push;
     }
 
     /* dizzy check */
@@ -835,4 +852,5 @@
 
   CF.Fighter = Fighter;
   CF.GROUND = GROUND;
+  CF.CLASSES = CLASSES;
 })();

@@ -177,9 +177,12 @@
       ctx.quadraticCurveTo(j.tail[1].x, j.tail[1].y, j.tail[2].x, j.tail[2].y);
       ctx.quadraticCurveTo(j.tail[2].x, j.tail[2].y, j.tail[3].x, j.tail[3].y);
       ctx.lineCap = 'round';
-      ctx.strokeStyle = line; ctx.lineWidth = 9.4 * j.s * G; ctx.stroke();
-      ctx.strokeStyle = front ? fur : fur2; ctx.lineWidth = 8.0 * j.s * G; ctx.stroke();
-      ctx.strokeStyle = front ? belly : fur; ctx.lineWidth = 5.2 * j.s * G; ctx.stroke();
+      var tw = (c.longhair ? 1.35 : 1) * j.s * G;
+      var tailFur = c.points ? c.marks : fur;
+      var tailFur2 = c.points ? c.marks : fur2;
+      ctx.strokeStyle = line; ctx.lineWidth = 9.4 * tw; ctx.stroke();
+      ctx.strokeStyle = front ? tailFur : tailFur2; ctx.lineWidth = 8.0 * tw; ctx.stroke();
+      ctx.strokeStyle = front ? belly : tailFur; ctx.lineWidth = 5.2 * tw; ctx.stroke();
       if (c.tailTip) {
         ctx.beginPath(); ctx.arc(j.tail[3].x, j.tail[3].y, 4.0 * j.s * G, 0, Math.PI * 2);
         ctx.fillStyle = flash === 'white' ? '#fff' : c.tailTip; ctx.fill();
@@ -191,8 +194,8 @@
 
     /* --- back limbs --- */
     capsule(ctx, j.hipB, j.kneeB, limbR * 1.15, limbR2, fur2, null);
-    capsule(ctx, j.kneeB, j.footB, limbR2, limbR2 * 0.9, fur2, null);
-    blob(ctx, j.footB.x, j.footB.y, 6.4 * j.s * G, 4.2 * j.s * G, 0, fur2);
+    capsule(ctx, j.kneeB, j.footB, limbR2, limbR2 * 0.9, c.points ? c.marks : fur2, null);
+    blob(ctx, j.footB.x, j.footB.y, 6.4 * j.s * G, 4.2 * j.s * G, 0, c.points ? c.marks : fur2);
 
     capsule(ctx, j.shB, j.elbB, limbR * 0.95, limbR2 * 0.9, fur2, null);
     capsule(ctx, j.elbB, j.handB, limbR2 * 0.9, limbR2 * 0.85, fur2, null);
@@ -200,6 +203,30 @@
 
     /* --- torso --- */
     var hipW = 12.8 * j.s * G, chestW = 14.2 * j.s * G;
+
+    /* A long-haired cat is mostly outline. Drawing a bigger, softer body
+       underneath the real one — with tufts breaking the edge — is what
+       separates the fluffy cats from the sleek ones at a glance. */
+    if (c.longhair) {
+      capsule(ctx, j.pelvis, j.neck, hipW * 1.24, chestW * 1.26, fur2, null);
+      var fx0 = j.pelvis.x, fy0 = j.pelvis.y, fx1 = j.neck.x, fy1 = j.neck.y;
+      var fdx = fx1 - fx0, fdy = fy1 - fy0;
+      var flen = Math.hypot(fdx, fdy) || 1;
+      var fnx = -fdy / flen, fny = fdx / flen;
+      ctx.fillStyle = fur2;
+      for (var tuf = 0; tuf <= 6; tuf++) {
+        var tk = tuf / 6;
+        var bx = fx0 + fdx * tk, by = fy0 + fdy * tk;
+        var w2 = (hipW + (chestW - hipW) * tk) * 1.28;
+        for (var side2 = -1; side2 <= 1; side2 += 2) {
+          ctx.beginPath();
+          ctx.ellipse(bx + fnx * w2 * side2, by + fny * w2 * side2,
+                      4.4 * j.s * G, 3.0 * j.s * G, Math.atan2(fdy, fdx), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
     capsule(ctx, j.pelvis, j.neck, hipW, chestW, fur, line);
     drawPattern(ctx, c, j, 'torso');
     // belly highlight
@@ -228,8 +255,12 @@
 
     /* --- front limbs --- */
     capsule(ctx, j.hipF, j.kneeF, limbR * 1.2, limbR2, fur, line);
-    capsule(ctx, j.kneeF, j.footF, limbR2, limbR2 * 0.95, fur, line);
-    blob(ctx, j.footF.x, j.footF.y, 7.0 * j.s * G, 4.4 * j.s * G, 0, fur, line);
+    /* Points darken the lower leg; a sock lightens it. Same slot, opposite
+       markings — a seal-point Siamese and a tuxedo with one white sleeve. */
+    var shinF = c.points ? c.marks : (c.sock ? (c.sockColor || belly) : fur);
+    capsule(ctx, j.kneeF, j.footF, limbR2, limbR2 * 0.95, shinF, line);
+    blob(ctx, j.footF.x, j.footF.y, 7.0 * j.s * G, 4.4 * j.s * G, 0,
+         c.points ? c.marks : shinF, line);
 
     capsule(ctx, j.shF, j.elbF, limbR, limbR2 * 0.95, fur, line);
     capsule(ctx, j.elbF, j.handF, limbR2 * 0.95, limbR2 * 0.9, fur, line);
@@ -258,8 +289,24 @@
       ctx.lineTo(sx * r * 0.98, r * 1.62);
       ctx.lineTo(sx * r * 1.02, r * 0.42);
       ctx.closePath();
-      ctx.fillStyle = fur; ctx.fill();
+      ctx.fillStyle = c.points ? c.marks : fur; ctx.fill();
       ctx.strokeStyle = line; ctx.lineWidth = 1.1 * es; ctx.stroke();
+      if (c.longhair) {
+        /* the wisps that stick out of a long-haired cat's ears */
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,.6)';
+        ctx.lineWidth = 0.62 * es;
+        ctx.lineCap = 'round';
+        for (var wisp = 0; wisp < 3; wisp++) {
+          var wb = 0.56 + wisp * 0.11;
+          ctx.beginPath();
+          ctx.moveTo(sx * r * wb, r * (0.66 + wisp * 0.12));
+          ctx.quadraticCurveTo(sx * r * (wb + 0.10), r * (0.92 + wisp * 0.14),
+                               sx * r * (wb + 0.13), r * (1.10 + wisp * 0.16));
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       ctx.beginPath();
       ctx.moveTo(sx * r * 0.52, r * 0.66);
       ctx.lineTo(sx * r * 0.88, r * 1.32);
@@ -286,11 +333,33 @@
       }
       ctx.globalAlpha = 1;
     } else if (c.pattern === 'tuxedo') {
+      /* The white runs up the bridge of the nose in a wedge between the
+         eyes. Filling the whole lower face instead just makes a white
+         dinner plate with two eyes above it. */
+      ctx.fillStyle = belly;
       ctx.beginPath();
-      ctx.ellipse(r * 0.28, -r * 0.28, r * 0.62, r * 0.6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = belly; ctx.fill();
-    } else if (c.pattern === 'siamese' || c.pattern === 'calico' || c.pattern === 'tortie') {
-      ctx.globalAlpha = c.pattern === 'siamese' ? 0.55 : 0.9;
+      ctx.moveTo(r * 0.00, r * 0.80);
+      ctx.quadraticCurveTo(r * 0.22, r * 0.36, r * 0.10, -r * 0.16);
+      ctx.lineTo(r * 0.62, -r * 0.16);
+      ctx.quadraticCurveTo(r * 0.50, r * 0.38, r * 0.30, r * 0.78);
+      ctx.closePath();
+      ctx.fill();
+    } else if (c.pattern === 'siamese') {
+      /* A seal point's mask covers the muzzle and eyes and fades out across
+         the cheek — it is the single most recognisable thing about her. */
+      var mg = ctx.createRadialGradient(r * 0.36, -r * 0.10, r * 0.10,
+                                        r * 0.36, -r * 0.10, r * 1.24);
+      mg.addColorStop(0, c.marks);
+      mg.addColorStop(0.62, c.marks);
+      mg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = mg;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.26, -r * 0.06, r * 0.98, r * 0.86, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (c.pattern === 'calico' || c.pattern === 'tortie') {
+      ctx.globalAlpha = 0.9;
       ctx.beginPath();
       ctx.ellipse(-r * 0.45, r * 0.2, r * 0.6, r * 0.66, 0.3, 0, Math.PI * 2);
       ctx.fillStyle = c.marks; ctx.fill();
@@ -308,7 +377,9 @@
     }
     ctx.beginPath();
     ctx.ellipse(r * 0.42, -r * 0.34, r * 0.56, r * 0.42, 0, 0, Math.PI * 2);
-    ctx.fillStyle = belly; ctx.fill();
+    /* A seal point's muzzle is part of the mask, not a pale patch — painting
+       the usual light muzzle over it hides the one marking that says Siamese. */
+    ctx.fillStyle = c.muzzleColor || belly; ctx.fill();
 
     /* an open mouth, for a cat that is making a noise */
     if (opts.mouth === 'open') {

@@ -63,13 +63,17 @@
     5: { name: 'BRUTAL',  think: 8,  react: 6,  blockOdds: 0.92, aggro: 0.80, aaOdds: 0.85, spOdds: 0.76, punish: 0.82 }
   };
 
-  function AI(fighter, level) {
+  /* `seed` is optional and exists for balance testing: the CPU is otherwise
+     fully deterministic, which makes a round robin a regression check rather
+     than a sample. Vary the seed and the same thirty matches become thirty
+     different fights. */
+  function AI(fighter, level, seed) {
     this.f = fighter;
     this.port = fighter.port;
     this.level = LEVELS[level] || LEVELS[3];
     this.levelNum = level || 3;
     this.cool = 0;
-    this.rnd = CF.util.rng(0x9e37 + (level || 3) * 7919);
+    this.rnd = CF.util.rng((seed === undefined ? 0x9e37 : seed) + (level || 3) * 7919);
     this.chargeFrames = 0;
   }
 
@@ -95,6 +99,14 @@
 
     /* ---- 1. defend ------------------------------------------------------ */
     var threat = this.incomingThreat(game, dist);
+
+    /* a cat who can simply leave sometimes should */
+    if (threat && dist < 80 && this.roles().escape.length && this.r() < L.blockOdds * 0.4) {
+      this.doSpecial(this.pick('escape'), q, qb, 2);
+      this.cool = 6;
+      return;
+    }
+
     if (threat && this.r() < L.blockOdds) {
       var low = threat === 'low';
       p.holdDir = mirror(low ? 1 : 4, face);
@@ -199,15 +211,22 @@
   AI.prototype.roles = function () {
     if (this._roles) return this._roles;
     var sp = this.f.chr.specials;
-    var r = { projectile: [], antiAir: [], rush: [], grab: [], low: [], poke: [] };
+    var r = { projectile: [], antiAir: [], rush: [], grab: [], low: [], poke: [], escape: [] };
     for (var i = 0; i < sp.length; i++) {
       var m = sp[i];
-      if (m.noAttack) continue;
+      /* a move that does not hit but goes invincible is an escape, and it is
+         the only thing on the roster worth pressing while being hit */
+      if (m.noAttack) {
+        if (m.invuln && m.moveSelf) r.escape.push(m);
+        continue;
+      }
       if (m.spawn) r.projectile.push(m);
       if (m.isCommandThrow) r.grab.push(m);
       if (m.hitLevel === 'low') r.low.push(m);
-      /* rises off the ground, or is invincible on the way up */
-      if ((m.invuln || m.airborne) && m.hitbox && m.hitbox.y >= 24) r.antiAir.push(m);
+      /* An anti-air must be invincible AND swing upward. Being merely
+         airborne is not enough — a forward-leaping overhead is in the air
+         too, and using it to answer a jump-in loses every time. */
+      if (m.invuln && m.hitbox && m.hitbox.y >= 28) r.antiAir.push(m);
       /* carries itself forward */
       if (m.moveSelf && !m.spawn) r.rush.push(m);
       /* anything with a hitbox is at least a poke */

@@ -777,16 +777,26 @@
       HUD.text(ctx, lines[L], 86, by + 39 + L * 9, 7.6, 'rgba(255,240,220,.78)', 'left', 600, 0.3);
     }
 
+    /* weight class — the trade the whole roster is built on */
+    var cls = CF.CLASSES[sel.weightClass] || CF.CLASSES.medium;
+    var clsCol = sel.weightClass === 'heavy' ? '#ff9d6a'
+               : (sel.weightClass === 'light' ? '#8fe6ff' : '#c9d96a');
+    HUD.text(ctx, 'WEIGHT', infoX, by + 14, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
+    HUD.text(ctx, cls.label, infoX + 40, by + 14, 8.5, clsCol, 'left', 800, 0.8);
+
+    /* the two numbers that follow from it */
+    var tough = Math.round((1 / cls.damageTaken) * 100 - 100);
+    HUD.text(ctx, (tough >= 0 ? 'TAKES ' + tough + '% LESS' : 'TAKES ' + (-tough) + '% MORE'),
+             infoX, by + 24, 6.6, 'rgba(255,240,220,.55)', 'left', 600, 0.2);
+
     /* difficulty pips */
-    HUD.text(ctx, 'DIFFICULTY', infoX, by + 16, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
+    HUD.text(ctx, 'DIFFICULTY', infoX, by + 38, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
     for (var d = 0; d < 3; d++) {
       ctx.fillStyle = d < sel.difficulty ? '#ffd24a' : 'rgba(255,255,255,.18)';
-      ctx.fillRect(infoX + d * 11, by + 20, 8, 4);
+      ctx.fillRect(infoX + d * 11, by + 42, 8, 4);
     }
-    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', infoX, by + 40, 7.5,
+    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', infoX, by + 56, 7.5,
              '#8fd6ff', 'left', 800, 0.6);
-    HUD.text(ctx, 'PUNCH TO LOCK IN', infoX, by + 54, 7,
-             'rgba(255,240,220,.6)', 'left', 700, 0.4);
   };
 
   /* ---- stage select --------------------------------------------------------

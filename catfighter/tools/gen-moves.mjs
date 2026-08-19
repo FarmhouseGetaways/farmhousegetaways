@@ -132,7 +132,7 @@ ${c.blurb.replace(/\n/g, '  \n')}
     out += `| **${m.name}** | ${inputOf(m)} | ${dmgOf(m)} | ${m.startup} | ${m.active} | ${m.recovery} | ${notesOf(m)} |\n`;
   }
   out += `
-### Super
+### Super *
 
 | Move | Input | Damage | Startup | Active | Recovery | Notes |
 |---|---|---|---|---|---|---|
@@ -156,6 +156,12 @@ ${c.blurb.replace(/\n/g, '  \n')}
 }
 
 out += `---
+
+\\* **Every super was invented, not given.** The owner named two special moves
+per cat and nothing else, so the supers are a first guess and are the first
+thing to change on request.
+
+---
 
 ## Stages
 

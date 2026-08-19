@@ -555,17 +555,23 @@ the frame data. `catfighter/README.md` explains all of it.
 
 Three things a later session needs to know:
 
-- **The real cats are being added one at a time**, as the owner sends each one.
-  **GRACIE went in on 19 Aug 2026** — old and wise, a warm solid grey, with the
-  two moves the owner named: a Growl of Energy (quarter-circle punch, a sound
-  wave) and a Tail Whip (quarter-circle kick, hits low, knocks down). Her super,
-  THE LAST WORD, was invented rather than given, and the owner has been asked
-  about it. **Five placeholders remain**: BISCUIT, SHADOW, PEPPER, NOODLE,
-  TIGER. All of it is in `catfighter/src/characters.js`, one block per cat.
-  Photographs go in `catfighter/assets/cats/` and are named on the cat with
-  `photo:` — the owner pastes them into the chat, which a session can see but
-  cannot save, so **ask for a zip or a Drive folder** if the photo itself is
-  wanted on the select screen.
+- **All six cats are the real ones**, added 19 Aug 2026. GRACIE (medium,
+  growl + tail whip), MARIO (heavy, belly bump + smother), LUIGI (light,
+  flying body + leg sweep), LILLY (light, flip attack + crane kick), FIGURO
+  (medium, rapid paws + an invincible retreat), RUBY (heavy, crushing bite +
+  charge flip kick). Each block is in `catfighter/src/characters.js`.
+  **Every super was invented, not given** — the owner has been asked about all
+  six and has not answered yet. So were Gracie's eye colour and the spelling of
+  FIGURO (it may be Figaro). Do not treat any of those as settled.
+- **Weight classes are the balance backbone.** `weightClass` on each cat picks
+  a row of `CLASSES` in `fighter.js`, which multiplies damage taken, stun taken
+  and knockback. Heavy takes 14% less and barely moves; light takes 15% more
+  and flies. Tests assert the ordering in both directions and that a light cat
+  cannot also be tough. Do not add a cat without a class.
+- **Photographs**: the owner pastes them into the chat, which a session can see
+  but cannot save. Colours were read by eye. **Ask for a zip or a Drive folder**
+  if the actual photographs are wanted on the select screen (`photo:` on the
+  cat, files in `catfighter/assets/cats/`).
 - **Do not teach the CPU about a cat by name.** `ai.js` classifies specials by
   what they do — spawns something, rises with invincibility, travels forward,
   is a command grab, hits low — so a cat added tomorrow is understood without

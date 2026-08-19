@@ -226,6 +226,104 @@
                    legF: [24, -28], legB: [-24, 22],
                    tail: [166, -18, -12], tailFront: 1, tailLen: 1.3 });
 
+  /* ---- Mario: the belly bump and the smother ------------------------------ */
+
+  L.bellyWind = P({ py: 37, torso: -18, px: -3, head: [-1, 14, -12],
+                    armF: [-16, 84], armB: [-24, 88],
+                    legF: [26, -44], legB: [-34, 56], tail: [268, -42, -30] });
+  L.bellyHit  = P({ py: 34, torso: 30, px: 6, head: [8, 13, 18],
+                    armF: [-44, 52], armB: [-52, 46],
+                    legF: [60, -92], legB: [-42, 74], tail: [212, -18, -14] });
+  L.bellyEnd  = P({ py: 38, torso: 10, px: 2, head: [5, 14, 6],
+                    armF: [10, 78], armB: [2, 82],
+                    legF: [34, -48], legB: [-30, 44], tail: [232, -28, -22] });
+
+  L.smotherWind = P({ py: 44, torso: -22, head: [-2, 16, -14],
+                      armF: [-58, 40], armB: [-66, 36],
+                      legF: [4, -8], legB: [-16, 14], tail: [280, -50, -34] });
+  L.smotherDrop = P({ py: 16, torso: 46, px: 6, head: [11, 10, 34],
+                      armF: [92, 10], armB: [84, 16],
+                      legF: [82, -140], legB: [-58, 128], tail: [196, -8, -6] });
+
+  /* ---- Luigi: the flying body attack and the leg sweep -------------------- */
+
+  L.flyWind = P({ py: 30, torso: 16, head: [4, 13, 8],
+                  armF: [18, 96], armB: [10, 100],
+                  legF: [54, -96], legB: [-42, 86], tail: [274, -44, -32] });
+  L.flyBody = P({ py: 42, torso: 74, px: 4, head: [14, 13, 46],
+                  armF: [116, -18], armB: [104, -10],
+                  legF: [-64, 34], legB: [-78, 40], tail: [176, -6, -4] });
+  L.flyLand = P({ py: 26, torso: 16, px: 2, head: [5, 13, 8],
+                  armF: [48, 74], armB: [40, 80],
+                  legF: [56, -104], legB: [-44, 94], tail: [222, -24, -18] });
+
+  L.sweepWindL = P({ py: 24, torso: 20, head: [4, 13, 8],
+                     armF: [58, 70], armB: [46, 78],
+                     legF: [38, -92], legB: [-46, 104], tail: [258, -36, -26] });
+  L.sweepLow   = P({ py: 13, torso: 34, px: 3, head: [7, 11, 20],
+                     armF: [82, 34], armB: [66, 46],
+                     legF: [116, -104], legB: [-60, 124], tail: [204, -14, -10] });
+
+  /* ---- Lilly: the flip attack and the crane kick -------------------------- */
+
+  L.flipWind = P({ py: 27, torso: 22, head: [5, 13, 10],
+                   armF: [16, 92], armB: [8, 98],
+                   legF: [58, -104], legB: [-46, 94], tail: [270, -40, -28] });
+  L.flipUp   = P({ py: 46, torso: -70, px: -1, head: [-10, 14, -66],
+                   armF: [-84, 30], armB: [-92, 26],
+                   legF: [-40, 96], legB: [-58, 104], tail: [150, 14, 18] });
+  L.flipOver = P({ py: 44, torso: -150, px: -3, head: [-14, 13, -148],
+                   armF: [-140, 20], armB: [-148, 16],
+                   legF: [-96, 70], legB: [-112, 78], tail: [110, 26, 26] });
+  L.flipDown = P({ py: 34, torso: -18, head: [-2, 14, -14],
+                   armF: [-24, 66], armB: [-32, 62],
+                   legF: [44, -76], legB: [-34, 66], tail: [214, -20, -14] });
+
+  L.craneUp   = P({ py: 44, torso: -6, head: [1, 16, -4],
+                    armF: [-38, 120], armB: [-46, 116],
+                    legF: [72, -128], legB: [-8, 8], tail: [188, -8, 6] });
+  L.craneKick = P({ py: 47, torso: -22, px: 3, head: [-2, 16, -16],
+                    armF: [-58, 96], armB: [-66, 92],
+                    legF: [126, -12], legB: [-14, 10], tail: [172, 4, 14] });
+
+  /* ---- Figuro: back-leg boxing and the retreat ---------------------------- */
+
+  L.boxStance = P({ py: 46, torso: -14, head: [0, 16, -10],
+                    armF: [24, 118], armB: [16, 122],
+                    legF: [6, -8], legB: [-14, 12], tail: [214, -20, -16] });
+  L.boxA      = P({ py: 46, torso: -6, px: 1, head: [2, 16, -6],
+                    armF: [92, 6], armB: [14, 124],
+                    legF: [8, -10], legB: [-14, 12], tail: [220, -24, -18] });
+  L.boxB      = P({ py: 46, torso: -10, px: 1, head: [1, 16, -8],
+                    armF: [20, 120], armB: [88, 10],
+                    legF: [6, -8], legB: [-16, 14], tail: [208, -18, -14] });
+
+  L.retreatWind = P({ py: 34, torso: 18, head: [5, 14, 8],
+                      armF: [30, 100], armB: [22, 104],
+                      legF: [50, -88], legB: [-38, 78], tail: [262, -38, -28] });
+  L.retreatAir  = P({ py: 42, torso: -30, px: -3, head: [-4, 15, -24],
+                      armF: [-48, 62], armB: [-56, 58],
+                      legF: [-24, 60], legB: [-40, 72], tail: [156, 12, 16] });
+
+  /* ---- Ruby: the crushing bite and the flip kick -------------------------- */
+
+  L.biteWind = P({ py: 36, torso: -16, px: -2, head: [-3, 14, -14],
+                   armF: [-10, 96], armB: [-18, 100],
+                   legF: [24, -40], legB: [-32, 50], tail: [274, -44, -32] });
+  L.biteOut  = P({ py: 38, torso: 34, px: 6, head: [12, 12, 26],
+                   armF: [58, 54], armB: [48, 60],
+                   legF: [52, -76], legB: [-36, 58], tail: [216, -20, -16] });
+
+  L.flipKickWind = P({ py: 22, torso: 22, head: [4, 13, 10],
+                       armF: [24, 96], armB: [16, 100],
+                       legF: [62, -118], legB: [-48, 106], tail: [266, -38, -26] });
+  L.flipKickUp   = P({ py: 50, torso: -34, px: 1, head: [-6, 15, -30],
+                       armF: [-52, 54], armB: [-60, 50],
+                       legF: [152, -16], legB: [-30, 42], tail: [146, 18, 22] });
+  L.flipKickDown = P({ py: 42, torso: -6, head: [1, 15, -4],
+                       armF: [-14, 82], armB: [-22, 78],
+                       legF: [58, -70], legB: [-20, 40], tail: [198, -12, -8] });
+
   /* ---- blending --------------------------------------------------------- */
   function blend(a, b, t) {
     var out = {}, k;
