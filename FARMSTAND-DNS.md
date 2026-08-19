@@ -1,18 +1,45 @@
 # Pointing farmstand.tv and farmstandtv.com at Netlify
 
-Status as of 19 Aug 2026: **not done yet.** Both domains still sit on
-Directnic's URL forwarding. Two scripts in `tools/` carry the work.
+Status as of 19 Aug 2026: **done.** Both domains serve the Netlify site over
+HTTPS with a valid certificate. Route A below is what was used — DNS stayed at
+Directnic, records point at Netlify.
 
-## What is wrong today
+Live configuration:
 
-Both domains resolve to `104.143.9.210` / `.211` — Directnic's free URL
-forwarding boxes — and 301 every hostname to `https://rockstarsites.wixsite.com/farmstandtv`,
-the old Wix site. Nothing reaches the Netlify site at all.
+| Hostname | Record | Value | Result |
+|---|---|---|---|
+| `farmstand.tv` | A | `75.2.60.5` | serves the site (primary) |
+| `www.farmstand.tv` | CNAME | `farmstandtv.netlify.app` | 301 to `farmstand.tv` |
+| `farmstandtv.com` | A | `75.2.60.5` | serves the site |
+| `www.farmstandtv.com` | CNAME | `farmstandtv.netlify.app` | serves the site |
 
-Worse, URL forwarding is HTTP-only. Port 443 has no certificate, so
-`https://farmstand.tv` fails outright. Since browsers now try HTTPS first for
-typed domains, most visitors simply get an error. Directnic confirmed this is a
+The certificate is issued to `farmstand.tv` with the other three as SANs.
+
+Two things worth knowing. **The old A records had a 24-hour TTL**, so for a few
+hours after the change some resolvers still handed out Directnic's parking IP
+while others had the new one. That is cache expiry, not a fault, and the
+checker tolerates it. And **`farmstandtv.com` serves the site directly rather
+than redirecting to `farmstand.tv`** — both domains answer with identical
+content. If that matters for search, set the redirect in Netlify's domain
+settings rather than in DNS.
+
+## What was wrong before
+
+Both domains resolved to `104.143.9.210` / `.211` — Directnic's free URL
+forwarding boxes — and 301'd every hostname to `https://rockstarsites.wixsite.com/farmstandtv`,
+the old Wix site. Nothing reached the Netlify site at all.
+
+Worse, URL forwarding is HTTP-only. Port 443 had no certificate, so
+`https://farmstand.tv` failed outright. Since browsers now try HTTPS first for
+typed domains, most visitors simply got an error. Directnic confirmed this is a
 limitation of the free forwarding tool, not a misconfiguration.
+
+A trap worth remembering: deleting the forwarding is not enough. The A records
+it installed stay behind and start serving a **Directnic parking page**, which
+looks even more broken than the old redirect. Those records must be deleted,
+not just added alongside. A `www` host briefly carried both an A record and a
+CNAME, which is invalid — a CNAME cannot coexist with other records on the same
+name, and the A record wins, so the CNAME did nothing.
 
 ## The fix
 
