@@ -541,6 +541,37 @@ Run it after any change to the encoding. Two rules the tests hold in place:
 `tolerant()` also matches `&nbsp;` in the *source*, so a page damaged by the old
 bug can still be edited back out through the editor.
 
+## The game in `catfighter/` — not the website
+
+Added 19 Aug 2026, on branch `claude/street-fighter-cats-game-tk1d55`. The owner
+asked for a Street Fighter II style fighting game starring their six cats, to
+run on Windows or Steam. It lives entirely in `catfighter/` and shares nothing
+with the site — no CSS, no markup, no build step in common.
+
+It is a complete working game: six characters with their own specials, a full
+six-button control scheme with quarter-circle and charge motions, best-of-three
+rounds, an arcade ladder, five CPU difficulties, six stages, and 32 tests over
+the frame data. `catfighter/README.md` explains all of it.
+
+Three things a later session needs to know:
+
+- **The names, looks and moves are placeholders.** They all live in
+  `catfighter/src/characters.js`, one block per cat, and are meant to be
+  replaced once the owner supplies the real six. Photographs go in
+  `catfighter/assets/cats/` and are named on the cat with `photo:`.
+- **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
+  data and regenerate; never edit it by hand.
+- **`.github/workflows/catfighter-windows.yml` builds the Windows version.**
+  It only fires for changes under `catfighter/`, so it cannot slow down or
+  interfere with a site deploy. Actions tab → Run workflow → download the
+  artifact.
+
+**If this branch is ever merged to `main`, the game ships with the site.**
+`netlify.toml` sets `publish = "."`, so `catfighter/` would go live at
+`farmhousegetaways.netlify.app/catfighter/` and add about 350 KB to the deploy.
+That may well be wanted — it is the easiest way for the owner to play it — but
+it is the owner's call, not a thing to do silently. Ask before merging.
+
 ## Access
 
 The Claude GitHub App is installed on this repo with write access, so a cloud
