@@ -40,7 +40,7 @@
     this.menuIndex = 0;
     this.menuItems = ['ARCADE', 'VERSUS', 'TRAINING', 'CONTROLS', 'OPTIONS'];
     this.optIndex = 0;
-    this.select = { cursor: [0, 3], locked: [false, false], stage: 0 };
+    this.select = { cursor: [0, 3], locked: [false, false], stage: 0, phase: 'chars' };
     this.arcade = { step: 0, order: [] };
     this.ghost = [0, 0];
     this.announce = null;
@@ -168,6 +168,7 @@
         this.scene = 'select';
         this.select.locked = [false, false];
         this.select.cursor = [0, 3];
+        this.select.phase = 'chars';
         this.select.stage = (Math.random() * CF.Stages.length) | 0;
       }
     }
@@ -225,11 +226,17 @@
     }
   };
 
-  /* ---- character select --------------------------------------------------- */
+  /* ---- character select ---------------------------------------------------
+
+     Two phases: pick your cat, then pick where the fight happens. The stage
+     is worth a screen of its own — there are six of them and they are the
+     part of the game that moves.                                          */
+
   Game.prototype.stepSelect = function () {
-    var self = this;
     var players = this.settings.mode === 'versus' ? 2 : 1;
     if (this._navCool > 0) this._navCool--;
+
+    if (this.select.phase === 'stage') { this.stepStageSelect(); return; }
 
     for (var i = 0; i < 2; i++) {
       if (i >= players) continue;
@@ -250,24 +257,50 @@
       }
     }
 
-    if (players === 1 && this.select.locked[0]) {
-      /* arcade: build a ladder of the other five, in a fixed order */
+    var ready = this.select.locked[0] && (players === 1 || this.select.locked[1]);
+    if (ready) {
+      this.select.phase = 'stage';
+      this._navCool = 14;
+    }
+  };
+
+  /* index === CF.Stages.length means "surprise me" */
+  Game.prototype.stepStageSelect = function () {
+    var p = this.ports[0], n = CF.Stages.length + 1;
+    if (!this._navCool) {
+      if (p.dir === 4 || p.dir === 7 || p.dir === 1) {
+        this.select.stage = (this.select.stage + n - 1) % n;
+        this._navCool = 11; CF.Audio.play('cursor');
+      }
+      if (p.dir === 6 || p.dir === 9 || p.dir === 3) {
+        this.select.stage = (this.select.stage + 1) % n;
+        this._navCool = 11; CF.Audio.play('cursor');
+      }
+      /* back out and change your cat */
+      if (p.pressed.LK || p.pressed.MK || p.pressed.HK) {
+        this.select.phase = 'chars';
+        this.select.locked = [false, false];
+        this._navCool = 12; CF.Audio.play('cursor');
+        return;
+      }
+    }
+    if (p.startPressed || p.pressed.LP || p.pressed.MP || p.pressed.HP) {
+      var stage = this.select.stage;
+      if (stage >= CF.Stages.length) stage = (Math.random() * CF.Stages.length) | 0;
+      this.select.stage = stage;
+      CF.Audio.play('select');
+
       var mine = this.select.cursor[0];
-      if (this.settings.mode === 'arcade') {
+      if (this.settings.mode === 'versus') {
+        this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.select.cursor[1]], stage, 'versus');
+      } else if (this.settings.mode === 'arcade') {
         this.arcade.order = [];
         for (var k = 1; k <= 5; k++) this.arcade.order.push((mine + k) % 6);
         this.arcade.step = 0;
-        this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.arcade.order[0]],
-                        this.select.stage, 'arcade');
+        this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.arcade.order[0]], stage, 'arcade');
       } else {
-        this.startMatch(CF.ROSTER[mine], CF.ROSTER[(mine + 1) % 6],
-                        this.select.stage, 'training');
+        this.startMatch(CF.ROSTER[mine], CF.ROSTER[(mine + 1) % 6], stage, 'training');
       }
-      return;
-    }
-    if (players === 2 && this.select.locked[0] && this.select.locked[1]) {
-      this.startMatch(CF.ROSTER[this.select.cursor[0]], CF.ROSTER[this.select.cursor[1]],
-                      this.select.stage, 'versus');
     }
   };
 
@@ -597,7 +630,8 @@
 
     switch (this.scene) {
       case 'title':    this.drawTitle(ctx); break;
-      case 'select':   this.drawSelect(ctx); break;
+      case 'select':   if (this.select.phase === 'stage') this.drawStageSelect(ctx);
+                       else this.drawSelect(ctx); break;
       case 'controls': this.drawControls(ctx); break;
       case 'options':  this.drawOptions(ctx); break;
       case 'fight':    this.drawFight(ctx); break;
@@ -749,11 +783,61 @@
       ctx.fillStyle = d < sel.difficulty ? '#ffd24a' : 'rgba(255,255,255,.18)';
       ctx.fillRect(infoX + d * 11, by + 20, 8, 4);
     }
-    HUD.text(ctx, 'STAGE', infoX, by + 36, 7, 'rgba(255,240,220,.6)', 'left', 700, 0.6);
-    HUD.text(ctx, CF.Stages[this.select.stage].name, infoX, by + 45, 7,
-             'rgba(255,240,220,.85)', 'left', 700, 0.2);
-    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', infoX, by + 58, 7.5,
+    HUD.text(ctx, this.settings.mode.toUpperCase() + ' MODE', infoX, by + 40, 7.5,
              '#8fd6ff', 'left', 800, 0.6);
+    HUD.text(ctx, 'PUNCH TO LOCK IN', infoX, by + 54, 7,
+             'rgba(255,240,220,.6)', 'left', 700, 0.4);
+  };
+
+  /* ---- stage select --------------------------------------------------------
+     A live preview rather than a thumbnail: the stages are worth showing
+     moving, since moving is the whole point of them.                       */
+
+  Game.prototype.drawStageSelect = function (ctx) {
+    var t = this.t, n = CF.Stages.length, pick = this.select.stage;
+    var random = pick >= n;
+    var stage = CF.Stages[random ? (Math.floor(t / 90) % n) : pick];
+
+    ctx.fillStyle = '#15111f'; ctx.fillRect(0, 0, W, H);
+    HUD.text(ctx, 'SELECT STAGE', W / 2, 18, 13, '#ffe07a', 'center', 800, 2);
+
+    /* live preview */
+    var pw = 250, ph = 146, px = (W - pw) / 2, py = 28;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
+    ctx.translate(px, py);
+    ctx.scale(pw / W, ph / H);
+    var camX = -190 + Math.sin(t * 0.006) * 120;
+    stage.drawBack(ctx, camX, t, 0.55);
+    var a = CF.ROSTER[this.select.cursor[0]];
+    var b = CF.ROSTER[this.settings.mode === 'versus' ? this.select.cursor[1] : (this.select.cursor[0] + 1) % 6];
+    drawFighterAt(ctx, a, CF.Anim.cycle([CF.Pose.stand, CF.Pose.standB], 22, t), 140, FLOOR_Y, 1, 1, { eyes: 'angry' });
+    drawFighterAt(ctx, b, CF.Anim.cycle([CF.Pose.stand, CF.Pose.standC], 20, t + 30), 244, FLOOR_Y, 1, -1, { eyes: 'angry' });
+    if (stage.drawFore) stage.drawFore(ctx, camX, t, 0.55);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,224,122,.55)'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(px - 0.75, py - 0.75, pw + 1.5, ph + 1.5);
+
+    /* arrows */
+    var ax = 0.5 + 0.5 * Math.sin(t * 0.12);
+    HUD.text(ctx, '◀', px - 14, py + ph / 2 + 4, 15, 'rgba(255,224,122,' + (0.45 + ax * 0.5) + ')', 'center', 800);
+    HUD.text(ctx, '▶', px + pw + 14, py + ph / 2 + 4, 15, 'rgba(255,224,122,' + (0.45 + ax * 0.5) + ')', 'center', 800);
+
+    /* name and blurb */
+    HUD.text(ctx, random ? 'RANDOM' : stage.name, W / 2, 190, 13, '#ffe07a', 'center', 800, 1.6);
+    HUD.text(ctx, random ? 'let the farm decide' : (stage.blurb || ''), W / 2, 200, 7.4,
+             'rgba(255,240,220,.7)', 'center', 600, 0.3);
+
+    /* position dots */
+    var total = n + 1, dx = W / 2 - (total - 1) * 5;
+    for (var i = 0; i < total; i++) {
+      var on = (i === pick);
+      ctx.fillStyle = on ? '#ffe07a' : 'rgba(255,255,255,.22)';
+      ctx.beginPath(); ctx.arc(dx + i * 10, 208, on ? 2.8 : 2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    HUD.text(ctx, 'LEFT / RIGHT TO CHOOSE   •   PUNCH TO FIGHT   •   KICK TO GO BACK',
+             W / 2, H - 4, 7, 'rgba(255,240,220,.6)', 'center', 700, 0.6);
   };
 
   /* ---- controls -----------------------------------------------------------

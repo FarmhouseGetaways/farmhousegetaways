@@ -115,6 +115,11 @@ something moving in every one of them:
 | **The Farmhouse Kitchen** | A pot steaming on the range, the oven glowing, a clock whose hands move, pans swinging overhead, a cat on the counter batting something towards the edge |
 | **The Front Porch** | A windmill turning on the ridge, a rocking chair rocking, moths at the lantern, wind chimes, hanging ferns |
 
+**You pick the stage.** After both cats are locked in, the stage select shows
+a live, moving preview of each one with your two fighters standing in it —
+they are worth seeing move rather than as a thumbnail. There is a RANDOM slot
+at the end, and a kick takes you back to change your cat.
+
 **The crowd watches the fight.** Spectators bob along idly, and when a combo
 lands or someone is nearly out they get on their feet and cheer. A knockout
 brings the house down.

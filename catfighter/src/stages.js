@@ -23,6 +23,7 @@
      ======================================================================= */
   var barn = {
     id: 'barn', name: 'THE GAME BARN',
+    blurb: 'Arcade cabinets, string lights, and a full house on the hay bales.',
     init: function () {
       this.dust = new P({ count: 30, kind: 'dust', depth: 0.75, seed: 11,
                           band: [24, FLOOR_Y - 6], vx: 0.06, vy: -0.03,
@@ -138,6 +139,7 @@
      ======================================================================= */
   var pool = {
     id: 'pool', name: 'THE POOL DECK',
+    blurb: 'Hot, blue, and somebody is asleep on the flamingo.',
     init: function () {
       this.sparkle = new P({ count: 20, kind: 'sparkle', depth: 0.9, seed: 22,
                              band: [FLOOR_Y - 22, FLOOR_Y - 4], vx: 0.05, vy: 0,
@@ -261,6 +263,7 @@
      ======================================================================= */
   var orchard = {
     id: 'orchard', name: 'THE ORCHARD',
+    blurb: 'Golden hour, falling blossom, and chickens who are not watching.',
     init: function () {
       this.petals = new P({ count: 30, kind: 'petal', depth: 0.85, seed: 33,
                             band: [10, FLOOR_Y + 10], vx: 0.28, vy: 0.20,
@@ -369,6 +372,7 @@
      ======================================================================= */
   var retreat = {
     id: 'retreat', name: 'MOUNTAIN RETREAT',
+    blurb: 'Night on the granite. Firelight, fireflies, and bats over the moon.',
     init: function () {
       this.flies = new P({ count: 26, kind: 'firefly', depth: 0.8, seed: 44,
                            band: [96, FLOOR_Y + 14], vx: 0.07, vy: -0.03,
@@ -490,14 +494,18 @@
       this.flies.update();  this.flies.draw(ctx, camX, t);
     },
     drawFore: function (ctx, camX, t) {
-      /* low mist rolling across the fighters' ankles */
+      /* Low mist rolling across the fighters' ankles. Many thin, faint bands
+         rather than a few fat ones — four big ellipses read as a grey smear,
+         which is worse than no mist at all. */
       ctx.save();
-      ctx.globalAlpha = 0.16;
       ctx.fillStyle = '#b9c6e0';
-      for (var i = 0; i < 4; i++) {
-        var mx = ((t * (0.16 + i * 0.05) - camX * 1.1) % (W + 160) + W + 160) % (W + 160) - 80;
+      for (var i = 0; i < 9; i++) {
+        var span = W + 240;
+        var mx = ((t * (0.13 + i * 0.035) - camX * 1.08) % span + span) % span - 120;
+        var my = FLOOR_Y + 10 + i * 5.5;
+        ctx.globalAlpha = 0.055 + 0.035 * Math.sin(t * 0.02 + i * 1.7);
         ctx.beginPath();
-        ctx.ellipse(mx, FLOOR_Y + 16 + i * 7, 84, 8 - i, 0, 0, Math.PI * 2);
+        ctx.ellipse(mx, my, 62 + (i % 3) * 26, 4.2 - i * 0.25, 0, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -511,6 +519,7 @@
      ======================================================================= */
   var kitchen = {
     id: 'kitchen', name: 'THE FARMHOUSE KITCHEN',
+    blurb: 'Something is on the stove and something is going off the counter.',
     init: function () {
       this.flour = new P({ count: 22, kind: 'dust', depth: 0.7, seed: 55,
                            band: [30, FLOOR_Y], vx: 0.05, vy: 0.06,
@@ -654,6 +663,7 @@
      ======================================================================= */
   var porch = {
     id: 'porch', name: 'THE FRONT PORCH',
+    blurb: 'Sunset, a windmill turning, and moths around the lantern.',
     init: function () {
       this.moths = new P({ count: 12, kind: 'moth', depth: 0.95, seed: 66,
                            band: [26, 96], vx: 0.06, vy: 0.02,
