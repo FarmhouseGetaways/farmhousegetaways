@@ -37,12 +37,17 @@ You will still need:
 | | |
 |---|---:|
 | Total gross area of the premises | 164,443 SF (3.78 ac) |
-| §6157(b)(i) — 50% suitable & available | 82,222 SF required |
-| Provided (gross less residential/domestic) | **137,151 SF = 83.4%** |
-| §6157(b)(ii) — 25% in active agricultural use | 41,111 SF required |
-| Provided (crops 51,365 + poultry 6,331) | **57,696 SF = 35.1%** |
-| Margin over the 25% test | **+16,585 SF** |
+| §6157.a.2.b.i — 50% suitable & available | 82,222 SF required |
+| Provided (gross less residential/domestic) | **137,125 SF = 83.4%** |
+| §6157.a.2.b.ii — 25% in active agricultural use | 41,111 SF required |
+| Provided (crops 46,749 + poultry 6,315) | **53,063 SF = 32.3%** |
+| Margin over the 25% test | **+11,952 SF** |
+| Record parcel per the assessor's map | 157,212 SF — ag use 33.8% |
 | Net area excl. road easements (PDS 090 item 12) | 157,251 SF (3.61 ac) |
+
+Crop areas are **clipped to the property line**. About 3,134 SF of the traced
+areas fell outside the boundary and is no longer counted, which is why the total
+moved from 57,696 SF. It still clears the requirement by nearly 12,000 SF.
 
 **The denominator is gross, not net.** §6157(b)(ii) says "25 percent of the total
 gross area of the premises." This settles the gross-vs-net question that was open
@@ -65,8 +70,15 @@ The parcel's zoning box, pulled live from SanGIS, is
 The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
-**The barn holding the store clears every line by 104', 111' and 112'**, so the
-store site conforms no matter which frontage the county calls the front yard.
+**The barn holding the store clears every yard by a wide margin** — 89' to the
+Whirlwind centreline, 109' and 105' to the side lines, 413' to the rear — so the
+store site conforms no matter which frontage the county calls the front.
+
+Four existing structures do sit inside a required yard: the garage/accessory at
+12.7', the NE canopy at 0.9' and the NE shed on the north line (15' required),
+and the tiny home 13.5' from the Whirlwind centreline (40' required). All are
+existing and no new work is proposed in any yard. The sheet discloses them in
+note 5. Removing the tiny home, already planned, clears one of the four.
 
 ## The three questions to ask at the counter
 
@@ -87,7 +99,10 @@ fronting a private easement under 40' wide. Nothing on the plan changes either
 way, but it is worth having on the record.
 
 **3. Confirm no Zoning Verification Permit is required** for the small store post
-Update 102 — and what the building permit path is for the public areas.
+Update 102 — and what the building permit path is for the public areas. Ask at
+the same time about the **existing structures inside the side yard** (note 5):
+whether they are accepted as legal nonconforming, and whether a surveyor's
+setback certificate will be required.
 
 PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
@@ -95,16 +110,20 @@ PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
 These are on the sheet as notes rather than hidden:
 
-- **Recorded Parcel Map PM 5062** has not been obtained. The document in
-  `reference/` is the *assessor's map* (Book 278 Page 36), not the recorded map.
-  The Handlebar Rd easement width and the Whirlwind Ln centerline position both
-  come from it. The sheet says so in notes 10 and 12.
+- **Recorded Parcel Map PM 5062 has not been obtained, and this is now the top
+  item.** The assessor's map shows the record parcel as a rectangle
+  **550.50' × 285.58' = 157,212 SF**. The county GIS polygon the sheet is drawn
+  from is **164,443 SF** and an irregular shape. PDS 090 item 1 says the plot
+  plan must match the legal lot plat 100%, so a counter tech may well catch this.
+  Note 1 discloses it and the ag tests are shown passing on both bases, but
+  getting the recorded map is what actually settles it.
 - **Preliminary title report** — not obtained. Definitive easement locations.
-- **Fence heights** — PDS 090 item 8 asks for the height of free-standing fences,
-  walls and gates. Note 13 says existing fencing only, heights to be
-  field-verified, none proposed. Measure them on your next walk and they can go
-  on the sheet.
-- **Tiny home** sits 29' from the west line, inside the 35' exterior side yard.
+- **Fence heights — a straight rejection item.** PDS 090 item 8 requires the
+  height of every free-standing fence, wall and gate to be shown and labelled.
+  Nothing is drawn. Note 10 defers it. Walk the property with a tape, note the
+  pool barrier, the bird garden and the perimeter runs, and send me the heights
+  and rough locations; they go on the sheet in one pass.
+- **Tiny home** sits 13.5' from the Whirlwind centreline, inside the 40' front yard.
   Removing it — already the plan — resolves the encroachment. Better to remove it
   before submitting so it comes off the sheet entirely.
 - **Greenhouse** is shown honestly as as-built/unpermitted. Ask whether it

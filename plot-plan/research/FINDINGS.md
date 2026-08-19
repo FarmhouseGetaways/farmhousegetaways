@@ -82,31 +82,49 @@ The owner's "35' from the centerline of Whirlwind Lane" matches the Schedule C
 
 Measured clearances from each structure to the property lines:
 
-| Structure | to W | to E | to S | to N |
+Measured to the **actual lot lines** (rev 6 measured to the parcel's bounding
+box, which was wrong — see the correction note below):
+
+| Structure | N side (15') | S side (15') | Rear E (25') | Front, to Whirlwind ℄ (40') |
 |---|---:|---:|---:|---:|
-| Barn / **proposed store** | **104'** | 415' | **112'** | **111'** |
-| SFD | 322' | 159' | 216' | 27' |
-| Garage / accessory | 433' | 104' | 222' | 22' |
-| Shed NW | 67' | 496' | 225' | 49' |
-| Trellis garden | 230' | 325' | 112' | 157' |
-| Greenhouse | 294' | 269' | 96' | 186' |
-| Coop / run | 326' | 245' | 75' | 189' |
-| Shed NE | 474' | 95' | 277' | **5'** |
-| Canopy NE | 495' | 66' | 270' | **12'** |
-| Tiny home (to be removed) | **29'** | 533' | 112' | 131' |
+| Barn / **proposed store** | **109'** | **105'** | **413'** | **89'** |
+| SFD | 19.6' | 213' | 159' | 307' |
+| Garage / accessory | **12.7'** ✗ | 219' | 104' | 418' |
+| Shed NW | 46.6' | 218' | 495' | 51.7' |
+| Trellis garden | 152' | 105' | 323' | 215' |
+| Greenhouse | 179' | 90' | 267' | 279' |
+| Coop / run | 182' | 70' | 243' | 311' |
+| Shed NE | **0.0'** ✗ | 275' | 95' | 459' |
+| Canopy NE | **0.9'** ✗ | 268' | 66' | 480' |
+| Tiny home (to be removed) | 130' | 105' | 531' | **13.5'** ✗ |
 
-The **barn clears every setback under every interpretation** — the store site is
-safe whichever frontage PDS calls the front.
+**The barn clears every yard by a wide margin, so the store site is safe under
+any frontage determination.** That is the finding that matters.
 
-Two structures sit inside the 15' interior side setback, and both are legal:
-**§4842** allows detached accessory buildings in a required setback provided
-walls are ≥3' from the line and their **combined area within the setback does not
-exceed 1,000 SF**. Shed NE (165 SF) + canopy NE (285 SF) = **450 SF**, both ≥3'
-off the line. Compliant, and now cited on the sheet.
+Four existing structures do encroach:
 
-The **tiny home at 29' from the west line encroaches the 35' exterior side
-setback** — removal (already planned) resolves it. This is a further reason to
-remove it before submittal.
+- **Garage/accessory 12.7'**, **NE canopy 0.9'**, and the **NE shed sitting on the
+  north line** — all inside the 15' interior side yard.
+- **Tiny home 13.5' from the Whirlwind centreline** against a 40' front yard.
+  Removal, already planned, resolves it.
+
+All are existing, and no new work is proposed in any yard. The sheet states this
+plainly (note 5) rather than claiming compliance.
+
+### Correction — rev 6 got these clearances wrong
+
+Rev 6 measured every clearance to the parcel's **bounding box** instead of its
+actual sloping property lines, and drew the setback lines the same way. That
+produced a table showing the NE shed 5' inside the line when it is in fact *on*
+it, the canopy at 12' when it is at 0.9', and a north setback line that
+converged to about 2.6' of the property line at the NE corner instead of holding
+15'. It also let rev 6 assert "all structures clear every yard", which is false.
+
+Rev 7 computes everything against the real lot lines with shapely, and draws the
+setbacks as a true buildable envelope. **An earlier §4842 argument — that the NE
+shed and canopy were legal because their walls are ≥3' from the line — does not
+hold**, because neither is: §4842(a) requires 3' and they are at 0.0' and 0.9'.
+That claim has been removed from the sheet.
 
 ## 4. The one real obstacle: building size
 
@@ -131,7 +149,25 @@ Three ways forward, cheapest first:
 larger building satisfies ¶e, or whether the whole building must be ≤1,500 SF.
 This is the single question that decides the farm store path.
 
-## 5. Owners of record
+## 5. The boundary discrepancy
+
+The sheet draws the **county GIS parcel polygon**: an irregular figure
+583.1' × 293.9' enclosing **164,443 SF**.
+
+The **assessor's map** (Book 278, Page 36) shows the record parcel as a clean
+rectangle **550.50' × 285.58' = 157,212 SF (3.61 AC)**, side lines N0°43'E, end
+lines N89°32'W — which matches the assessor's stated acreage exactly.
+
+The two disagree by about 32.6' in width and 7,231 SF in area. PDS 090 item 1
+requires the plot plan to "match the legal lot plat/map to 100%", so this is an
+acceptance risk at the counter, and **recorded PM 5062 governs**. It has not been
+obtained — still the top blocking item.
+
+The sheet discloses this in note 1 and demonstrates the ag tests on **both**
+bases (32.3% of GIS gross, 33.8% of the record parcel), so the outcome does not
+turn on which is used.
+
+## 6. Owners of record
 
 SanGIS Assessor Parcels layer: **DZBINSKI CORY J** and **ULTSCH CARISSA**,
 17054 Handlebar Rd, Ramona CA 92065. Doc 512661, 07/19/2021. Now on the title

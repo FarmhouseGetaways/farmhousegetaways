@@ -16,7 +16,7 @@ PARCEL_W, PARCEL_H = 583.1, 294.1 # ft, parcel bounding box
 BAR_FT = 120.0                    # graphic scale bar span
 
 _here = os.path.dirname(os.path.abspath(__file__))
-PDF = os.path.join(_here, '..', 'output', 'Ag_Plot_Plan_17054_Handlebar_rev6.pdf')
+PDF = os.path.join(_here, '..', 'output', 'Ag_Plot_Plan_17054_Handlebar_rev7.pdf')
 
 fails = []
 def check(label, ok, detail):

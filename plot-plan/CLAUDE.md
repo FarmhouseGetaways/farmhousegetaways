@@ -16,7 +16,7 @@ Quality (DEHQ). **Both are now on one sheet** — rev 6 documents the agricultur
 operations and the proposed store together, which is what qualifies the parcel
 under ZO §6157. See §16.
 
-**Current status: plot plan REV 6 generated — the submittal sheet. It now carries
+**Current status: plot plan REV 7 generated — the submittal sheet. It now carries
 the Small Agricultural Store itself (1,500 SF in the barn, 6 parking spaces) and
 the §6157 compliance block, not just the ag percentage. Compliance is met with
 large margin on the correct (gross) basis. See `SUBMITTAL.md` for the
@@ -24,9 +24,10 @@ take-to-county packet and `research/FINDINGS.md` for every citation.**
 
 **Two things previously open are now RESOLVED and must not be re-litigated:**
 
-1. **Gross vs net (was §6, "unresolved").** ZO §6157(b)(ii) says "25 percent of
+1. **Gross vs net (was §6, "unresolved").** ZO §6157.a.2.b.ii says "25 percent of
    the **total gross area** of the premises." The denominator is **gross**:
-   164,443 SF, so the threshold is **41,111 SF**. Ag total 57,696 SF = **35.1%**.
+   164,443 SF, so the threshold is **41,111 SF**. Ag total (clipped to the
+   parcel) **53,063 SF = 32.3%**.
 2. **A70 setbacks (was §13.3, "confirm with PDS").** The parcel's zoning box from
    SanGIS is **A70 / L / 2AC / C / G / C / C** — setback designator **C**.
    ZO §4810 Schedule C row C: front **60'** from ℄, interior side **15'** from lot
@@ -165,14 +166,14 @@ of the total gross area of the premises**) shall be in actual active
 agricultural, horticultural, or animal husbandry use."
 
 **Gross is the denominator.** Gross = the county GIS parcel polygon,
-**164,443 SF**, so the requirement is **41,111 SF**. Ag total 57,696 SF =
-**35.1% of gross**, margin **+16,585 SF**.
+**164,443 SF**, so the requirement is **41,111 SF**. Ag total **53,063 SF =
+32.3% of gross**, margin **+11,952 SF**. (Rev 7 clips crop polygons to the
+parcel; ~3,134 SF of traced area lay outside the boundary and had been counted.)
 
 There is a second test people miss — §6157(b)(i): **50% of gross** must be
 "suitable and available for agricultural, horticultural, animal husbandry or open
 space use" = 82,222 SF. Gross less the residential/domestic area (27,292 SF)
-leaves **137,151 SF = 83.4%**. Passes comfortably. Both tests are now on the
-sheet.
+leaves **137,125 SF = 83.4%**. Passes comfortably. Both tests are on the sheet.
 
 PDS 090 item 12 still requires **net** area exclusive of road easements
 (157,251 SF) to be stated, so both figures belong on the plan for different
@@ -428,14 +429,20 @@ project**. Ask PDS Zoning before spending money. If they require a standalone
 building, the store moves to a separate ≤1,500 SF structure and the sheet
 changes accordingly.
 
-### Setback compliance is not at risk
+### Setback compliance — the store is safe, four existing structures are not
 
-The barn clears the west line by 104', the north by 111' and the south by 112'.
-Whichever frontage PDS calls the front yard, the store site conforms. Two minor
-structures — the NE shed (165 SF) and canopy (285 SF) — do sit inside the 15'
-interior side yard, and both are legal under **ZO §4842**: walls ≥3' from the lot
-line, combined area within the setback 450 SF against a 1,000 SF limit. Note 5
-says so on the sheet.
+The barn holding the store clears **89' to the Whirlwind centreline, 109' and
+105' to the side lines, 413' to the rear**. Whichever frontage PDS calls the
+front, the store conforms.
+
+Four existing structures encroach and the sheet says so in note 5:
+garage/accessory **12.7'**, NE canopy **0.9'** and the NE shed **on the north
+line** against a 15' interior side yard; tiny home **13.5'** from the Whirlwind
+centreline against a 40' front yard. All existing, no new work in any yard.
+
+**Do not reinstate the old §4842 argument.** Rev 6 claimed the NE shed and canopy
+were legal because their walls sit ≥3' from the lot line. They do not — §4842(a)
+requires 3' and they are at 0.0' and 0.9'. That claim was removed.
 
 ---
 
@@ -491,3 +498,50 @@ reference/                    county forms and the assessor's map
 source/                       owner aerial + well/septic markup
 output/                       rev5 + rev6 PDFs, overlays v2 and v3
 ```
+
+
+---
+
+## 19. Rev 7 — geometry corrected against the true lot lines
+
+A QA pass found that rev 6 offset every setback and clearance from the parcel's
+**bounding box** rather than its actual sloping property lines. One root cause,
+several visible symptoms. Rev 7 fixes all of them; `scripts/build_plot_plan.py`
+now computes geometry with **shapely**.
+
+What changed:
+
+- **Setbacks are a true buildable envelope**, built by subtracting each lot line
+  buffered by its required yard. The old north setback line converged to about
+  2.6' of the property line at the NE corner while claiming 15'.
+- **Yard assignment is now coherent.** Front on Whirlwind (west) at 40' from
+  centreline under Schedule C footnote (d) — a private easement under 40' wide;
+  rear east 25'; interior sides north and south 15'. Rev 6 had an exterior side
+  yard on the west and a rear on the east, which left the parcel with no front
+  yard at all — and PDS 090 requires all four named.
+- **Crop polygons are clipped to the parcel.** ~3,134 SF of traced crop area lay
+  outside the boundary and was being counted, and it was visible on the sheet:
+  AG-11 spilled 1,896 SF, AG-3 647 SF. Tabulated areas are now the clipped ones
+  and are **computed from the geometry**, so the tables and the drawing cannot
+  disagree.
+- **Clearances recomputed** — see §16 above. The blanket "all structures clear
+  every yard" claim was false and is gone.
+- **Every property line segment is dimensioned**, including the 13.1', 20.0' and
+  1.0' courses that the old code skipped with a `d < 22` filter.
+- **The boundary discrepancy is disclosed** (note 1): the drawn GIS polygon is
+  164,443 SF, the record parcel per the assessor's map is 550.50' × 285.58' =
+  157,212 SF. PDS 090 item 1 wants a 100% match to the legal lot plat, so
+  obtaining recorded PM 5062 is now the top blocking item. Compliance is shown on
+  both bases.
+- **Accessible route drawn** from the van stall to the store entrance, with the
+  stall, aisle and route called out as a stable, firm, slip-resistant surface —
+  §6157.a.2.h requires CBC ch. 11B compliance even though gravel is fine for the
+  rest of the bay. A 24' drive aisle is dimensioned.
+- **Citations are in the county's own form**, §6157.a.2.(x), and the compliance
+  table now carries criterion (f) and the "commercial agriculture must be the
+  principal use" preamble.
+
+Still outstanding on the sheet, honestly flagged rather than hidden: recorded
+PM 5062, fence/wall/gate heights (PDS 090 item 8 — nothing is drawn, and this is
+a straight rejection item), the §6157.a.2.e store-size question, and the frontage
+determination.

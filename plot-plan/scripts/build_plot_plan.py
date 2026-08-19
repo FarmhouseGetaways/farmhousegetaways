@@ -2,7 +2,7 @@
 """Agricultural Operations & Small Agricultural Store Plot Plan
 17054 Handlebar Rd, Ramona, CA 92065 — APN 278-361-08-00.
 
-REV 6. 24"x18" sheet, engineer scale 1"=40'. Coordinates in feet, origin at the
+REV 7. 24"x18" sheet, engineer scale 1"=40'. Coordinates in feet, origin at the
 SW corner of the parcel bounding box, north up. Zone polygons were extracted with
 origin at NW (y measured down from the north PL) and are already flipped in the
 JSON, so y is measured north-up from the south bbox edge. Do not flip again.
@@ -18,9 +18,29 @@ corrects the setbacks, both grounded in research/FINDINGS.md:
     and a compliance block testing each ordinance criterion.
   * Agricultural percentage now computed on the GROSS basis the ordinance
     specifies ("25 percent of the total gross area of the premises").
+
+REV 7 corrects geometry errors found in QA. All of them had one root cause:
+setbacks and clearances had been offset from the parcel's BOUNDING BOX instead
+of its actual (sloping) property lines.
+
+  * Setbacks are now true offsets from the real lot lines, drawn as a buildable
+    envelope, computed with shapely. Yard assignment is now coherent: front on
+    Whirlwind (west), rear east, interior sides north and south.
+  * Ag zone polygons are CLIPPED to the parcel. About 3,134 SF of traced crop
+    area lay outside the boundary and was being counted. Tabulated areas are now
+    the clipped, in-parcel areas: 53,063 SF = 32.3% of gross. Still passes.
+  * Structure clearances recomputed against the real lot lines. Three existing
+    accessory structures encroach the north interior side yard; the sheet now
+    says so instead of claiming everything clears.
+  * Every property line segment is dimensioned, including the short ones.
+  * The record parcel (550.50' x 285.58' = 157,212 SF per the assessor's map)
+    differs from the county GIS polygon used here (164,443 SF). Disclosed in a
+    boundary note, with compliance shown on both bases.
 """
 import json, math, os
 import numpy as np
+from shapely.geometry import Polygon as SPoly, LineString, Point
+from shapely.ops import unary_union
 import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['hatch.linewidth'] = 0.45   # keep ag stipple under the linework
@@ -32,18 +52,17 @@ SHEET_W, SHEET_H = 24.0, 18.0
 DATE = "8/19/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
+# Areas are COMPUTED from the geometry below, not typed in, so the tables and
+# the drawing can never disagree.
 GROSS_SF   = 164443     # county GIS parcel polygon = "total gross area of the premises"
 NET_SF     = 157251     # assessor net, for PDS 090 item 12
-REQ_25_SF  = 41111      # ZO 6157(b)(ii)  25% of gross
-REQ_50_SF  = 82222      # ZO 6157(b)(i)   50% of gross
-AG_TOTAL   = 57696
-CROP_SF    = 51365
-POULTRY_SF = 6331
-RES_SF     = 27292
-AVAIL_SF   = GROSS_SF - RES_SF          # suitable & available for ag / open space
-PCT_AG     = AG_TOTAL / GROSS_SF * 100
-PCT_AVAIL  = AVAIL_SF / GROSS_SF * 100
+RECORD_SF  = 157212     # 550.50' x 285.58' per the assessor's map (record dimensions)
+REQ_25_SF  = round(GROSS_SF * 0.25)     # ZO 6157.a.2.b.ii
+REQ_50_SF  = round(GROSS_SF * 0.50)     # ZO 6157.a.2.b.i
 STORE_SF   = 1500
+SB_SIDE, SB_REAR, SB_FRONT = 15.0, 25.0, 40.0   # ZO 4810 Schedule C, designator C
+ESMT_W     = 30.0       # Whirlwind Ln road easement along the west boundary
+WL_CL_X    = ESMT_W / 2 # its centreline, assumed at mid-easement (see note)
 
 _here = os.path.dirname(os.path.abspath(__file__))
 _zp = 'zone_polys.json' if os.path.exists('zone_polys.json') else os.path.join(_here, '..', 'data', 'zone_polys.json')
@@ -61,6 +80,50 @@ SP = [(6353226.9968340546,1952258.6981569827),(6353223.028009966,1951977.0189303
 (6353226.9968340546,1952258.6981569827)]
 minx = min(p[0] for p in SP); miny = min(p[1] for p in SP)
 PB = [(p[0]-minx, p[1]-miny) for p in SP]
+
+# ---- geometry engine -------------------------------------------------------
+# The parcel is NOT an axis-aligned rectangle. Everything derived from it —
+# setbacks, clearances, clipped crop areas — is computed against the real lot
+# lines. Offsetting from the bounding box was the rev 6 error.
+PARCEL = SPoly(PB)
+IDX_N = [10, 11, 12, 13, 14, 15, 0]      # north property line chain
+IDX_S = [1, 2, 3, 4, 5, 6, 7]            # south property line chain
+LINE_N = LineString([PB[i] for i in IDX_N])
+LINE_S = LineString([PB[i] for i in IDX_S])
+LINE_E = LineString([PB[0], PB[1]])      # east (rear) line
+LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind centreline
+
+# Buildable envelope: the parcel less everything within each required yard.
+# Subtracting a line buffered by d leaves exactly the ground more than d away
+# from that line, which is the definition of the setback.
+ENVELOPE = (PARCEL
+            .difference(LINE_N.buffer(SB_SIDE))
+            .difference(LINE_S.buffer(SB_SIDE))
+            .difference(LINE_E.buffer(SB_REAR))
+            .difference(LINE_WCL.buffer(SB_FRONT)))
+
+# Clip every crop / poultry / residential polygon to the parcel and use the
+# clipped area as the tabulated figure.
+ZONE_KEYS = ['1','2','3','4','6','7','8','9','10','11','12']
+clipped, ZONE_SF = {}, {}
+for k, poly in zones.items():
+    g = SPoly(poly).buffer(0).intersection(PARCEL)
+    clipped[k] = g
+    ZONE_SF[k] = g.area
+CROP_SF   = sum(ZONE_SF[k] for k in ZONE_KEYS)
+POULTRY_SF = ZONE_SF['BG']
+AG_TOTAL  = CROP_SF + POULTRY_SF
+RES_SF    = ZONE_SF['RES']
+AVAIL_SF  = GROSS_SF - RES_SF
+PCT_AG    = AG_TOTAL / GROSS_SF * 100
+PCT_AVAIL = AVAIL_SF / GROSS_SF * 100
+PCT_AG_RECORD = AG_TOTAL / RECORD_SF * 100
+
+def rings(geom):
+    """Polygon or MultiPolygon -> list of exterior coordinate rings."""
+    if geom.is_empty: return []
+    gs = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
+    return [list(g.exterior.coords) for g in gs if not g.is_empty]
 
 fig = plt.figure(figsize=(SHEET_W, SHEET_H))
 
@@ -93,58 +156,70 @@ def bearing(p, q):
     if mn == 60: dg += 1; mn = 0
     return f"{ns}{dg:02d}°{mn:02d}'{ew}  {d:.1f}'", d
 
-for i in range(len(PB)-1):
-    p, q = PB[i], PB[i+1]
+# Every segment is dimensioned (PDS 090: "show all property line dimensions").
+# Short segments get a leader so the text does not overlap its neighbours.
+PB_CLOSED = PB + [PB[0]]
+for i in range(len(PB_CLOSED)-1):
+    p, q = PB_CLOSED[i], PB_CLOSED[i+1]
     label, d = bearing(p, q)
-    if d < 22: continue
+    if d < 0.9:
+        continue
     mxp, myp = (p[0]+q[0])/2, (p[1]+q[1])/2
     ang = math.degrees(math.atan2(q[1]-p[1], q[0]-p[0]))
     if ang > 90 or ang < -90: ang += 180
     cx0, cy0 = 291, 147
     vx, vy = mxp-cx0, myp-cy0
-    nl = math.hypot(vx, vy)
-    off = 15
-    ax.text(mxp+vx/nl*off, myp+vy/nl*off, label, fontsize=7.5, ha='center', va='center',
-            rotation=ang, rotation_mode='anchor', zorder=6)
+    nl = math.hypot(vx, vy) or 1.0
+    if d >= 30:
+        ax.text(mxp+vx/nl*16, myp+vy/nl*16, label, fontsize=7.2, ha='center',
+                va='center', rotation=ang, rotation_mode='anchor', zorder=6)
+    else:
+        # short course — leader out to clear text
+        ax.annotate(label, (mxp, myp), (mxp+vx/nl*46, myp+vy/nl*46), fontsize=6.6,
+                    ha='center', va='center', zorder=6,
+                    arrowprops=dict(arrowstyle='-', lw=0.6),
+                    bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
 # ---- ag areas
-crop_info = {
- '1': ("ORCHARD (FRUIT TREES)", 688), '2': ("ORCHARD (FRUIT TREES)", 4672),
- '3': ("ORCHARD (FRUIT TREES)", 1814), '4': ("VINEYARD", 2074),
- '6': ("PEPPER + NUT TREES", 1896), '7': ("LUFFA + VEGETABLES", 2844),
- '8': ("VEGETABLES + FLOWERS", 2521), '9': ("ORCHARD 2 (FRUIT TREES)", 17125),
- '10': ("FRUIT TREES + PUMPKIN", 7530), '11': ("FRUIT TREES + PUMPKIN", 8467),
- '12': ("ROSEMARY (HERBS)", 1734)}
-lab_pos = {'1': (55,215), '2': None, '3': None, '4': None, '6': None, '7': (250,105),
-           '8': None, '9': None, '10': (25,100), '11': (300,4), '12': (492,32)}
-for k, poly in zones.items():
-    if k in ('BG','RES'): continue
-    ax.add_patch(MPoly(poly, closed=True, fc='none', ec='#8B0000', lw=1.1,
-                       hatch='...', zorder=3))
-for k, (crop, sf) in crop_info.items():
-    poly = zones[k]
-    xs = [p[0] for p in poly]; ys = [p[1] for p in poly]
-    cx, cy = sum(xs)/len(xs), sum(ys)/len(ys)
+crop_name = {
+ '1': "ORCHARD (FRUIT TREES)", '2': "ORCHARD (FRUIT TREES)",
+ '3': "ORCHARD (FRUIT TREES)", '4': "VINEYARD",
+ '6': "PEPPER + NUT TREES", '7': "LUFFA + VEGETABLES",
+ '8': "VEGETABLES + FLOWERS", '9': "ORCHARD 2 (FRUIT TREES)",
+ '10': "FRUIT TREES + PUMPKIN", '11': "FRUIT TREES + PUMPKIN",
+ '12': "ROSEMARY (HERBS)"}
+lab_pos = {'1': (60,228), '4': (166,200), '7': (250,105), '10': (25,100),
+           '11': (300,4), '12': (492,32)}
+for k in ZONE_KEYS:
+    for ring in rings(clipped[k]):
+        ax.add_patch(MPoly(ring, closed=True, fc='none', ec='#8B0000', lw=1.1,
+                           hatch='...', zorder=3))
+for k in ZONE_KEYS:
+    g = clipped[k]
+    cx, cy = g.representative_point().x, g.representative_point().y
     if lab_pos.get(k): cx, cy = lab_pos[k]
+    txt = f"AG-{k}\n{crop_name[k]}\n{ZONE_SF[k]:,.0f} SF"
     if k == '3':
-        ax.annotate(f"AG-3  {crop}  {sf:,} SF", (cx, 290), (360, 312), fontsize=6.4, ha='center',
-                    color='#7a0000', fontweight='bold', zorder=7,
+        ax.annotate(f"AG-3  {crop_name[k]}  {ZONE_SF[k]:,.0f} SF", (cx, 288), (360, 316),
+                    fontsize=6.6, ha='center', color='#7a0000', fontweight='bold', zorder=7,
                     arrowprops=dict(arrowstyle='-', lw=0.7, color='#7a0000'),
                     bbox=dict(fc='white', alpha=0.9, ec='#8B0000', lw=0.6, pad=1.6))
         continue
-    ax.text(cx, cy, f"AG-{k}\n{crop}\n{sf:,} SF", fontsize=6.4, ha='center', va='center',
+    ax.text(cx, cy, txt, fontsize=6.6, ha='center', va='center',
             color='#7a0000', fontweight='bold', zorder=7,
-            bbox=dict(fc='white', alpha=0.88, ec='#8B0000', lw=0.6, pad=1.6))
+            bbox=dict(fc='white', alpha=0.9, ec='#8B0000', lw=0.6, pad=1.6))
 
-ax.add_patch(MPoly(zones['BG'], closed=True, fc='none', ec='#a07800', lw=1.3, hatch='xx', zorder=3))
-bx = [p[0] for p in zones['BG']]; by = [p[1] for p in zones['BG']]
-ax.text(sum(bx)/len(bx)+5, min(by)+16, "BIRD GARDEN (POULTRY)\n6,331 SF", fontsize=6.6,
-        ha='center', va='center', color='#6b5000', fontweight='bold', zorder=7,
-        bbox=dict(fc='white', alpha=0.88, ec='#a07800', lw=0.6, pad=1.6))
-ax.add_patch(MPoly(zones['RES'], closed=True, fc='none', ec='#006400', lw=1.3, ls='--', zorder=3))
-ax.text(252, 203, "RESIDENTIAL / DOMESTIC AREA\n27,292 SF (EXCL. FROM AG CALC)", fontsize=6.8,
-        ha='center', va='center', color='#004d00', fontweight='bold', zorder=7,
-        bbox=dict(fc='white', alpha=0.88, ec='#006400', lw=0.6, pad=1.6))
+for ring in rings(clipped['BG']):
+    ax.add_patch(MPoly(ring, closed=True, fc='none', ec='#a07800', lw=1.3, hatch='xx', zorder=3))
+bgp = clipped['BG'].representative_point()
+ax.text(bgp.x+5, clipped['BG'].bounds[1]+16, f"BIRD GARDEN (POULTRY)\n{POULTRY_SF:,.0f} SF",
+        fontsize=6.8, ha='center', va='center', color='#6b5000', fontweight='bold', zorder=7,
+        bbox=dict(fc='white', alpha=0.9, ec='#a07800', lw=0.6, pad=1.6))
+for ring in rings(clipped['RES']):
+    ax.add_patch(MPoly(ring, closed=True, fc='none', ec='#006400', lw=1.3, ls='--', zorder=3))
+ax.text(252, 203, f"RESIDENTIAL / DOMESTIC AREA\n{RES_SF:,.0f} SF (EXCL. FROM AG CALC)",
+        fontsize=7, ha='center', va='center', color='#004d00', fontweight='bold', zorder=7,
+        bbox=dict(fc='white', alpha=0.9, ec='#006400', lw=0.6, pad=1.6))
 
 # ---- structures
 SXX, SYY = 583.1/2186, 294.1/1136
@@ -188,7 +263,7 @@ STORE = [p0,
          (p0[0]+30*w[0], p0[1]+30*w[1])]
 ax.add_patch(MPoly(STORE, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
 scx = sum(p[0] for p in STORE)/4; scy = sum(p[1] for p in STORE)/4
-ax.annotate("PROPOSED SMALL AGRICULTURAL STORE\n50' x 30' = 1,500 SF MAX (ZO §6157)\nWITHIN EXIST. BARN — SEE NOTE 14",
+ax.annotate("PROPOSED SMALL AGRICULTURAL STORE\n50' x 30' = 1,500 SF MAX (ZO §6157)\nWITHIN EXIST. BARN — SEE NOTE 11",
             (scx, scy), (300, 232), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
@@ -213,10 +288,26 @@ for lab, x0s, wid in PK_STALLS:
                 color='#0044aa', fontweight='bold', zorder=7)
 # Short label on the drawing face; the detail lives in the §6157(h) parking
 # block on the sheet, so the plan stays readable.
+# accessible route: van stall -> store entrance at the barn's east face
+ROUTE = [(180.0, PK_Y0+PK_D/2), (172.0, PK_Y0+PK_D/2), (166.0, 160.0)]
+ax.plot([p[0] for p in ROUTE], [p[1] for p in ROUTE], color='#0044aa', lw=1.6,
+        ls=(0,(1,1.6)), zorder=6)
+ax.plot([166.0], [160.0], marker='o', ms=3, color='#0044aa', zorder=7)
+# drive aisle serving the bay (existing driveway corridor)
+ax.annotate('', (180, PK_Y0+PK_D+24), (242, PK_Y0+PK_D+24),
+            arrowprops=dict(arrowstyle='<->', lw=0.8, color='#0044aa'), zorder=6)
+ax.text(211, PK_Y0+PK_D+26, "24' DRIVE AISLE", fontsize=5.6, ha='center',
+        color='#00337f', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+# Short label on the drawing face; the detail lives in the §6157.a.2.h parking
+# block on the sheet, so the plan stays readable.
 ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES",
-            (192, PK_Y0), (160, 233), fontsize=6.2, ha='center', color='#00337f',
+            (211, PK_Y0+PK_D), (330, 252), fontsize=6.4, ha='center', color='#00337f',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
             bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.2))
+ax.annotate("ACCESSIBLE ROUTE TO STORE ENTRY\n(STABLE, FIRM, SLIP-RESISTANT)",
+            (169, 161), (352, 176), fontsize=5.6, ha='center', color='#00337f',
+            zorder=9, arrowprops=dict(arrowstyle='-', lw=0.7, color='#0044aa'),
+            bbox=dict(fc='white', alpha=0.92, ec='none', pad=1.2))
 
 # trellis garden
 tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)
@@ -245,7 +336,7 @@ ax.text(pcx, pcy, "EXIST.\nPOOL", fontsize=5.6, ha='center', va='center', zorder
 th_poly = poly_px([(130,505),(188,520),(165,705),(107,690)])
 ax.add_patch(MPoly(th_poly, closed=True, fc='white', ec='black', lw=1.1, ls=(0,(4,3)), zorder=4))
 thx = sum(p[0] for p in th_poly)/4; thy = sum(p[1] for p in th_poly)/4
-ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 11)", (thx, thy-12), (thx+40, thy-52),
+ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 5)", (thx, thy-12), (thx+40, thy-52),
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
@@ -306,52 +397,62 @@ for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
-W_PL_X, WL_CL_X = 0.0, 0.0
-ESMT_W  = 30.0     # road easement along west boundary
-SB_EXT  = 35.0     # exterior side yard, from centerline
-SB_INT  = 15.0     # interior side yard, from lot line
-SB_REAR = 25.0     # rear yard, from lot line
-y_lo, y_hi = -14, 306
-
-ax.plot([WL_CL_X, WL_CL_X], [y_lo, y_hi], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
-ax.text(WL_CL_X-9, 250, "WHIRLWIND LN", fontsize=7, rotation=90, va='center', ha='center', fontweight='bold')
-ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
-ax.plot([W_PL_X+ESMT_W, W_PL_X+ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
-ax.text(W_PL_X+ESMT_W-4, 205, "30' ROAD ESMT.", fontsize=6, rotation=90, va='center',
-        ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.8, pad=0.8))
-
+# Front on Whirlwind Ln (west), rear east, interior sides north and south.
+# Drawn as a buildable envelope offset from the REAL lot lines.
 SB = '#0044aa'
-ax.plot([WL_CL_X+SB_EXT, WL_CL_X+SB_EXT], [y_lo, y_hi], color=SB, lw=1.2, ls=(0,(8,3,2,3)), zorder=4)
-ax.text(WL_CL_X+SB_EXT+4, 258, "EXTERIOR SIDE YARD SETBACK 35' FROM $\\mathcal{C}$L",
-        fontsize=6.2, rotation=90, va='center', color=SB, fontweight='bold',
-        bbox=dict(fc='white', ec='none', alpha=0.75, pad=0.6))
-ax.annotate('', (WL_CL_X, 300), (WL_CL_X+SB_EXT, 300),
-            arrowprops=dict(arrowstyle='<->', lw=0.8, color=SB), zorder=6)
-ax.text(WL_CL_X+SB_EXT/2, 303, "35'", fontsize=6.4, ha='center', color=SB, fontweight='bold')
+y_lo, y_hi = -16, 308
 
-for yv, xlab, ylab, lab in [(SB_INT, 105, SB_INT+3.5, "INTERIOR SIDE YARD SETBACK 15'"),
-                            (294.1-SB_INT, 300, 294.1-SB_INT-11, "INTERIOR SIDE YARD SETBACK 15'")]:
-    ax.plot([W_PL_X+SB_EXT, 583.1-SB_REAR], [yv, yv], color=SB, lw=0.9, ls=(0,(6,4)), zorder=4)
-    ax.text(xlab, ylab, lab, fontsize=5.9, ha='center', color=SB, fontweight='bold',
-            bbox=dict(fc='white', ec='none', alpha=0.8, pad=0.8))
-ax.plot([583.1-SB_REAR, 583.1-SB_REAR], [SB_INT, 294.1-SB_INT], color=SB, lw=0.9, ls=(0,(6,4)), zorder=4)
-ax.text(583.1-SB_REAR-5, 150, "REAR YARD SETBACK 25'", fontsize=5.9, rotation=90,
-        va='center', ha='right', color=SB, fontweight='bold')
+# Whirlwind Ln: 30' road easement inside the west line, centreline at its middle
+ax.plot([0, 0], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+ax.plot([ESMT_W, ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+ax.plot([WL_CL_X, WL_CL_X], [y_lo, y_hi], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
+ax.text(WL_CL_X, 252, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
+        ha='center', fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
+ax.text(WL_CL_X-6, 62, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.5))
+ax.text(ESMT_W+4, 246, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
+        ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
-# ---- setback / clearance dimensions for the store structure (PDS 090 convention)
-def dim(p, q, txt, off=(0,0), fs=6.0, color='black'):
+# buildable envelope
+for ring in rings(ENVELOPE):
+    ax.add_patch(MPoly(ring, closed=True, fc='none', ec=SB, lw=1.3,
+                       ls=(0,(7,3)), zorder=4))
+
+# yard labels along each edge
+ax.text(150, ENVELOPE.bounds[1]+9.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
+        fontsize=6.6, ha='center', color=SB, fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
+        fontsize=6.6, ha='center', color=SB, fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.text(ENVELOPE.bounds[0]+5, 232, f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L",
+        fontsize=6.6, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.text(ENVELOPE.bounds[2]-5, 96, f"REAR YARD SETBACK {SB_REAR:.0f}'",
+        fontsize=6.6, rotation=90, va='center', ha='right', color=SB, fontweight='bold',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+# front yard dimension tick, centreline to envelope
+
+# ---- clearances from the store building to the real lot lines (PDS 090 convention)
+BARN_G = SPoly(BARN)
+D_W = BARN_G.distance(LINE_WCL); D_N = BARN_G.distance(LINE_N)
+D_S = BARN_G.distance(LINE_S);   D_E = BARN_G.distance(LINE_E)
+def dim(p, q, txt, off=(0,0), fs=6.4, color='#8a4a00'):
     ax.annotate('', p, q, arrowprops=dict(arrowstyle='<->', lw=0.9, color=color), zorder=8)
     mx, my = (p[0]+q[0])/2+off[0], (p[1]+q[1])/2+off[1]
     ang = math.degrees(math.atan2(q[1]-p[1], q[0]-p[0]))
     if ang > 90 or ang < -90: ang += 180
     ax.text(mx, my, txt, fontsize=fs, ha='center', va='center', rotation=ang,
             rotation_mode='anchor', color=color, fontweight='bold', zorder=9,
-            bbox=dict(fc='white', ec='none', alpha=0.9, pad=1.2))
-# Clearances are measured to the BARN envelope, the structure containing the
-# store; this is the conservative figure a plan checker verifies (ZO §6157(e)).
-dim((0, 172), (104.0, 172), "104' STORE BLDG. TO W P.L.", off=(0, 5), color='#8a4a00')
-dim((138, 0), (138, 112.0), "112' STORE BLDG. TO S P.L.", off=(6, 0), color='#8a4a00')
-dim((124, 183.0), (124, 294.1), "111' STORE BLDG. TO N P.L.", off=(6, 0), color='#8a4a00')
+            bbox=dict(fc='white', ec='none', alpha=0.92, pad=1.2))
+_bx0, _by0, _bx1, _by1 = BARN_G.bounds
+dim((WL_CL_X, 172), (_bx0, 172), f"{D_W:.0f}' STORE BLDG. TO $\\mathcal{{C}}$L", off=(0, 5))
+dim((138, LINE_S.interpolate(LINE_S.project(Point(138, 0))).y),
+    (138, _by0), f"{D_S:.0f}' STORE BLDG. TO S P.L.", off=(6, 0))
+dim((124, _by1),
+    (124, LINE_N.interpolate(LINE_N.project(Point(124, 294))).y),
+    f"{D_N:.0f}' STORE BLDG. TO N P.L.", off=(6, 0))
 
 # ---- drainage arrows toward pond
 for (fx, fy) in [(280,55),(320,175),(150,255),(72,40)]:
@@ -377,34 +478,35 @@ C1, C2, C3, C4, CW = 0.55, 4.70, 8.85, 13.00, 4.00
 
 # ---- Col 1 top: agricultural use calculation
 ca = band_axes(C1, 2.20, CW, 5.35, lw=1.3)
-tl(ca, 0.965, "AGRICULTURAL USE CALCULATION", 9.5, True, x=0.5, ha='center')
-tl(ca, 0.905, "PER ZO §6157(b) — GROSS BASIS", 6.6, x=0.5, ha='center')
-cy = 0.845
+tl(ca, 0.968, "AGRICULTURAL USE CALCULATION", 9.5, True, x=0.5, ha='center')
+tl(ca, 0.912, "PER ZO §6157.a.2.b — GROSS BASIS", 6.8, x=0.5, ha='center')
+cy = 0.850
 for lab, val, bold in [
     ("TOTAL GROSS AREA OF PREMISES", f"{GROSS_SF:,} SF", False),
-    ("   (COUNTY GIS PARCEL POLYGON, 3.78 AC)", "", False),
     ("", "", False),
-    ("REQUIRED — 50% SUITABLE & AVAILABLE", f"{REQ_50_SF:,} SF", False),
-    ("PROVIDED — GROSS LESS RESIDENTIAL", f"{AVAIL_SF:,} SF", True),
-    (f"   = {PCT_AVAIL:.1f}% OF GROSS", "PASSES", True),
+    ("b.i  REQUIRED 50% SUITABLE / AVAILABLE", f"{REQ_50_SF:,} SF", False),
+    ("     PROVIDED (GROSS LESS RESIDENTIAL)", f"{AVAIL_SF:,.0f} SF", True),
+    (f"     = {PCT_AVAIL:.1f}% OF GROSS", "PASSES", True),
     ("", "", False),
-    ("REQUIRED — 25% ACTIVE AG USE", f"{REQ_25_SF:,} SF", False),
-    ("CROP AREAS AG-1 THRU AG-12", f"{CROP_SF:,} SF", False),
-    ("POULTRY (BIRD GARDEN)", f"{POULTRY_SF:,} SF", False),
-    ("PROVIDED — TOTAL ACTIVE AG USE", f"{AG_TOTAL:,} SF", True),
-    (f"   = {PCT_AG:.1f}% OF GROSS", "PASSES", True),
+    ("b.ii REQUIRED 25% IN ACTIVE AG USE", f"{REQ_25_SF:,} SF", False),
+    ("     CROP AREAS AG-1 THRU AG-12", f"{CROP_SF:,.0f} SF", False),
+    ("     POULTRY (BIRD GARDEN)", f"{POULTRY_SF:,.0f} SF", False),
+    ("     PROVIDED TOTAL ACTIVE AG USE", f"{AG_TOTAL:,.0f} SF", True),
+    (f"     = {PCT_AG:.1f}% OF GROSS", "PASSES", True),
     ("", "", False),
-    ("MARGIN OVER 25% REQUIREMENT", f"+{AG_TOTAL-REQ_25_SF:,} SF", True),
+    ("MARGIN OVER THE 25% REQUIREMENT", f"+{AG_TOTAL-REQ_25_SF:,.0f} SF", True),
 ]:
-    if not lab: cy -= 0.022; continue
-    tl(ca, cy, lab, 7.0, bold, x=0.05)
-    if val: tl(ca, cy, val, 7.0, bold, x=0.95, ha='right',
+    if not lab: cy -= 0.026; continue
+    tl(ca, cy, lab, 7.2, bold, x=0.04)
+    if val: tl(ca, cy, val, 7.2, bold, x=0.96, ha='right',
                color='#0a6b16' if val == "PASSES" else 'black')
-    cy -= 0.049
-ca.plot([0.05, 0.95], [cy+0.028, cy+0.028], color='black', lw=0.9, transform=ca.transAxes)
-tl(ca, cy-0.005, "BOTH ZO §6157(b) THRESHOLDS ARE MET", 8.2, True, x=0.5, ha='center')
-tl(ca, cy-0.062, f"NET AREA EXCL. ROAD ESMTS. (PDS 090 ITEM 12): {NET_SF:,} SF", 6.0, x=0.5, ha='center')
-tl(ca, cy-0.098, "ON THE NET BASIS AG USE IS 36.7% — MET EITHER WAY.", 6.0, x=0.5, ha='center')
+    cy -= 0.055
+cy -= 0.030
+ca.plot([0.04, 0.96], [cy+0.020, cy+0.020], color='black', lw=0.9, transform=ca.transAxes)
+tl(ca, cy, "BOTH ZO §6157.a.2.b THRESHOLDS ARE MET", 8.4, True, x=0.5, ha='center')
+tl(ca, cy-0.062, f"ON THE RECORD PARCEL ({RECORD_SF:,} SF — SEE BOUNDARY NOTE)", 6.4, x=0.5, ha='center')
+tl(ca, cy-0.098, f"AG USE IS {PCT_AG_RECORD:.1f}% — THE TESTS ARE MET ON EITHER BASIS.", 6.4, x=0.5, ha='center')
+tl(ca, cy-0.142, f"NET AREA EXCL. ROAD ESMTS. (PDS 090 ITEM 12): {NET_SF:,} SF", 6.4, x=0.5, ha='center')
 
 # ---- Col 1 bottom: north arrow + graphic scale
 sa = band_axes(C1, 0.45, CW, 1.55)
@@ -429,12 +531,13 @@ sa.text(bx0 + bw/2, 0.10, '(FEET)', fontsize=6.5, ha='center')
 # ---- Col 2: small agricultural store compliance
 fs_ = band_axes(C2, 0.45, CW, 7.10, lw=1.3)
 tl(fs_, 0.982, "SMALL AGRICULTURAL STORE", 9.5, True, x=0.5, ha='center')
-tl(fs_, 0.955, "COMPLIANCE — ZONING ORDINANCE §6157", 7.2, True, x=0.5, ha='center')
-tl(fs_, 0.933, "(ZO UPDATE 102, ADOPTED 3-26-2020)", 6.2, x=0.5, ha='center')
-fy = 0.905
+tl(fs_, 0.955, "COMPLIANCE — ZONING ORDINANCE §6157.a.2", 7.2, True, x=0.5, ha='center')
+tl(fs_, 0.933, "(ZO UPDATE 102, PUBLISHED 3-26-2020)", 6.2, x=0.5, ha='center')
+fy = 0.912
 fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 fy -= 0.012
 crit = [
+ ("§6157", "COMMERCIAL AG MUST BE THE PRINCIPAL USE", "SEE b.i / b.ii", True),
  ("a", "PERMITTED IN A70 USE REGS.", "A70 — NO MIN. LOT SIZE", True),
  ("", "NO ZONING VERIFICATION PERMIT REQ'D", "PERMITTED BY RIGHT", True),
  ("b.i", "≥50% OF GROSS SUITABLE/AVAILABLE", f"{PCT_AVAIL:.1f}% PROVIDED", True),
@@ -443,8 +546,10 @@ crit = [
  ("d", "ONE STORE PER LEGAL LOT; NO EXIST.", "NONE EXISTING", True),
  ("", "AG STAND OR LARGE AG STORE", "", None),
  ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "1,500 SF SHOWN", True),
- ("", "CONFORM TO §4810 SETBACKS", "CLEARS BY 104'/111'/112'", True),
- ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEH", "SEE NOTE 14", None),
+ ("", "CONFORM TO §4810 SETBACKS", "STORE CLEARS ALL YARDS", True),
+ ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEHQ", "SEE NOTE 11", None),
+ ("f", "RETAIL ONLY WITH ON-SITE PRODUCE / EGGS;", "ACKNOWLEDGED", True),
+ ("", "AG WEIGHTS & MEASURES REGS. APPLY", "", None),
  ("g", "≤200 SF FOR OFF-SITE PRODUCTS", "TO BE DESIGNATED", None),
  ("h", "MINIMUM 6 PARKING SPACES", "6 SHOWN, GRAVEL", True),
  ("", "DISABLED ACCESS PER CBC CH. 11B", "1 VAN ACCESSIBLE", True),
@@ -458,32 +563,32 @@ for ref, req, prov, ok in crit:
     if prov:
         tl(fs_, fy, prov, 6.2, True, x=0.97, ha='right',
            color='#0a6b16' if ok else '#8a4a00')
-    fy -= 0.0266
-fy -= 0.006
-fs_.plot([0.03, 0.97], [fy+0.02, fy+0.02], color='black', lw=0.7, transform=fs_.transAxes)
+    fy -= 0.0243
+fy -= 0.004
+fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
 for lab, val in [("PROPOSED STORE FLOOR AREA", "1,500 SF"),
                  ("   OF WHICH OFF-SITE PRODUCTS (MAX)", "200 SF"),
                  ("OPEN ROOFED DISPLAY AREA", "0 SF"),
-                 ("TOTAL PER §6157(e) — LIMIT 1,500 SF", "1,500 SF")]:
+                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "1,500 SF")]:
     b = lab.startswith("TOTAL")
     tl(fs_, fy, lab, 6.4, b, x=0.05); tl(fs_, fy, val, 6.4, b, x=0.97, ha='right')
-    fy -= 0.0272
-fy -= 0.010
-fs_.plot([0.03, 0.97], [fy+0.02, fy+0.02], color='black', lw=0.7, transform=fs_.transAxes)
-tl(fs_, fy, "PARKING — ZO §6157(h)", 8, True, x=0.04); fy -= 0.032
+    fy -= 0.0250
+fy -= 0.007
+fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
+tl(fs_, fy, "PARKING — ZO §6157.a.2.h", 8, True, x=0.04); fy -= 0.032
 for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
                  ("   STANDARD 9' x 18'", "5"), ("   VAN ACCESSIBLE 9' x 18' + 8' AISLE", "1"),
                  ("SURFACE — GRAVEL (EXPRESSLY ALLOWED)", "PROPOSED")]:
     tl(fs_, fy, lab, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.05)
     tl(fs_, fy, val, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.97, ha='right')
-    fy -= 0.0272
-fy -= 0.016
+    fy -= 0.0250
+fy -= 0.012
 fs_.add_patch(Rectangle((0.03, fy-0.115), 0.94, 0.125, fc='#fff4e0', ec='#a05a00',
                         lw=1.0, transform=fs_.transAxes))
 tl(fs_, fy-0.004, "OUTSTANDING — CONFIRM WITH PDS ZONING", 6.6, True, x=0.5, ha='center', color='#8a4a00')
-tl(fs_, fy-0.030, "§6157(e) LIMITS THE STORE TO 1,500 SF. THE EXIST. BARN IS", 5.9, x=0.05)
-tl(fs_, fy-0.053, "LARGER. CONFIRM A DEMISED ≤1,500 SF PORTION SATISFIES §6157(e),", 5.9, x=0.05)
+tl(fs_, fy-0.030, "§6157.a.2.e LIMITS THE STORE TO 1,500 SF. THE EXISTING BARN", 5.9, x=0.05)
+tl(fs_, fy-0.053, "IS LARGER. CONFIRM A DEMISED ≤1,500 SF PORTION SATISFIES IT,", 5.9, x=0.05)
 tl(fs_, fy-0.076, "OR SITE THE STORE IN A SEPARATE ≤1,500 SF STRUCTURE.", 5.9, x=0.05)
 if fy-0.115 < 0.004:
     raise SystemExit(f"LAYOUT: store-compliance box overruns its column (bottom {fy-0.115:.4f}).")
@@ -600,25 +705,22 @@ tline(y, "OWNER:  CORY J. DZBINSKI & CARISSA ULTSCH", 7, True, x=0.05); y -= 0.0
 tline(y, "        17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, x=0.05); y -= 0.0125
 tline(y, "        farmhousegetaways@gmail.com", 6.6, x=0.05); y -= 0.0125
 tline(y, "PREPARED BY:  OWNER", 7, True, x=0.05); y -= 0.0125
-hrule(y); y -= 0.011
+hrule(y); y -= 0.0098
 
 tline(y, "AGRICULTURAL USE SUMMARY", 9, True); y -= 0.0145
 tline(y, "ZONE", 6.5, True, x=0.05); tline(y, "USE / CROP", 6.5, True, x=0.16); tline(y, "AREA", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-rows = [("AG-1","ORCHARD (FRUIT TREES)","688 SF"),("AG-2","ORCHARD (FRUIT TREES)","4,672 SF"),
-        ("AG-3","ORCHARD (FRUIT TREES)","1,814 SF"),("AG-4","VINEYARD","2,074 SF"),
-        ("AG-6","PEPPER + NUT TREES","1,896 SF"),("AG-7","LUFFA + VEGETABLES","2,844 SF"),
-        ("AG-8","VEGETABLES + FLOWERS","2,521 SF"),("AG-9","ORCHARD 2 (FRUIT TREES)","17,125 SF"),
-        ("AG-10","FRUIT TREES + PUMPKIN","7,530 SF"),("AG-11","FRUIT TREES + PUMPKIN","8,467 SF"),
-        ("AG-12","ROSEMARY (HERBS)","1,734 SF"),("BG","BIRD GARDEN (POULTRY)","6,331 SF")]
+rows = [(f"AG-{k}", crop_name[k], f"{ZONE_SF[k]:,.0f} SF") for k in ZONE_KEYS]
+rows.append(("BG", "BIRD GARDEN (POULTRY)", f"{POULTRY_SF:,.0f} SF"))
 for r in rows:
     tline(y, r[0], 6.5, x=0.05); tline(y, r[1], 6.5, x=0.16); tline(y, r[2], 6.5, x=0.95, ha='right')
-    y -= 0.0095
+    y -= 0.0088
 hrule(y+0.002, 0.04, 0.96, 0.5); y -= 0.003
-tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.2, True, x=0.05); tline(y, f"{AG_TOTAL:,} SF", 7.2, True, x=0.95, ha='right'); y -= 0.0122
-tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157 REQ.: 25% = {REQ_25_SF:,} SF)", 6.8, True, x=0.05); y -= 0.0115
-tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES.", 5.8, x=0.05); y -= 0.0125
-hrule(y); y -= 0.011
+tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.4, True, x=0.05); tline(y, f"{AG_TOTAL:,.0f} SF", 7.4, True, x=0.95, ha='right'); y -= 0.0122
+tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157.a.2.b.ii REQ.: 25% = {REQ_25_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0115
+tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES. AREAS ARE", 6.0, x=0.05); y -= 0.0098
+tline(y, "CLIPPED TO THE PARCEL BOUNDARY (NOTE 2).", 6.0, x=0.05); y -= 0.0125
+hrule(y); y -= 0.0098
 
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
@@ -639,51 +741,56 @@ srows = [("SMALL AGRICULTURAL STORE (IN BARN)","PROPOSED","1,500 SF", True),
          ("TINY HOME (W)","TO BE REMOVED","765 SF", False)]
 for nm, st, sf, em in srows:
     tline(y, nm, 6.2, em, x=0.05); tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
-    y -= 0.0095
+    y -= 0.0088
 tline(y, "FOOTPRINTS AERIAL-DERIVED, APPROXIMATE (NOTE 2).", 5.7, x=0.05); y -= 0.0115
-hrule(y); y -= 0.011
+hrule(y); y -= 0.0098
 
 TB_H = 0.122          # title block height, reserved at the panel foot
 tline(y, "NOTES", 9, True); y -= 0.0145
 NOTES_TOP = y
 notes = [
- "1.  PARCEL BOUNDARY PER COUNTY GIS / PM 05062; BEARINGS AND DISTANCES GIS-DERIVED",
- "     (APPROXIMATE). RECORD BEARINGS PER PM 05062. ALL DIMENSIONS IN FEET.",
- "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-MEASURED AND FIELD-CORROBORATED;",
- "     OWNER FIELD VERIFICATION CONTINUING.",
- "3.  NO NEW CONSTRUCTION OR GRADING PROPOSED. PLAN DOCUMENTS EXISTING AG OPERATIONS",
- "     AND A PROPOSED SMALL AGRICULTURAL STORE PER ZO §6157.",
- "4.  SETBACKS PER ZONING BOX SETBACK DESIGNATOR C, ZO §4810 SCHEDULE C: FRONT 60'",
- "     FROM ℄; INTERIOR SIDE 15' FROM LOT LINE; EXTERIOR SIDE 35' FROM ℄; REAR 25'",
- "     FROM LOT LINE. FOOTNOTE (d): A LOT FRONTING A PRIVATE EASEMENT UNDER 40' WIDE",
- "     TAKES A 40' FRONT YARD FROM ℄. FRONTAGE DETERMINATION TO BE CONFIRMED WITH PDS",
- "     ZONING (858) 694-8985 — ALL STRUCTURES CLEAR EVERY YARD EITHER WAY.",
- "5.  EXIST. NE SHED (165 SF) AND CANOPY (285 SF) LIE WITHIN THE INTERIOR SIDE YARD.",
- "     PERMITTED UNDER ZO §4842: WALLS ≥3' FROM THE LOT LINE, COMBINED AREA WITHIN THE",
- "     SETBACK (450 SF) UNDER THE 1,000 SF LIMIT.",
+ "1.  BOUNDARY: SHOWN PER COUNTY GIS PARCEL POLYGON (164,443 SF). THE ASSESSOR'S MAP",
+ "     (BK 278 PG 36) SHOWS THE RECORD PARCEL AS 550.50' x 285.58' = 157,212 SF",
+ "     (3.61 AC). THE TWO DIFFER; RECORDED PM 05062 GOVERNS AND IS NOT YET OBTAINED.",
+ "     THE AG-USE TESTS ARE MET ON EITHER BASIS.",
+ "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED AND FIELD-CORROBORATED; CROP",
+ "     AREAS ARE CLIPPED TO THE PARCEL AND TABULATED AS CLIPPED. OWNER FIELD",
+ "     VERIFICATION CONTINUING. AG-9 LEGS MEASURED 200'/130'/190'; W AND N CURVE OUT.",
+ "3.  NO GRADING AND NO NEW BUILDING PROPOSED. THIS PLAN DOCUMENTS EXISTING AG",
+ "     OPERATIONS AND A PROPOSED SMALL AGRICULTURAL STORE (ZO §6157).",
+ "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C: FRONT",
+ "     60' FROM ℄, INTERIOR SIDE 15', EXTERIOR SIDE 35' FROM ℄, REAR 25'. FOOTNOTE",
+ "     (d): A LOT FRONTING A PRIVATE EASEMENT UNDER 40' WIDE TAKES A 40' FRONT YARD",
+ "     FROM ℄ — APPLIED HERE TO WHIRLWIND LN. FRONTAGE TO BE CONFIRMED WITH PDS.",
+ "5.  EXISTING STRUCTURES WITHIN A REQUIRED YARD AS MAPPED: GARAGE/ACCESSORY 12.7',",
+ "     NE CANOPY 0.9' AND NE SHED AT THE NORTH LINE (15' INTERIOR SIDE REQ'D); TINY",
+ "     HOME 13.5' FROM WHIRLWIND ℄ (40' REQ'D). ALL EXISTING — NO NEW WORK PROPOSED",
+ "     IN ANY YARD. POSITIONS AERIAL/GIS-DERIVED AND APPROXIMATE; CONFIRM EXISTING /",
+ "     LEGAL-NONCONFORMING STATUS WITH PDS, A SURVEYOR'S SETBACK CERTIFICATE MAY BE",
+ "     REQUIRED. THE PROPOSED STORE CLEARS EVERY REQUIRED YARD.",
  "6.  POND IS AN EXISTING IRRIGATION SOURCE (PUMP) AND THE AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT (UNPERMITTED); MAY QUALIFY FOR THE AGRICULTURAL",
- "     BUILDING EXEMPTION — CONFIRM WITH PDS.",
+ "     BUILDING EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
  "8.  DRIVEWAY RUNS E-W FROM HANDLEBAR RD: GRAVEL BOTH ENDS, DIRT MID-SEGMENT PAST",
- "     THE RESIDENCE; SLOPE <5%, DRAINING WEST TOWARD THE POND.",
- "9.  ELECTRICAL: 400A MAIN PANEL ADJACENT NE OF BARN.",
- "10. WHIRLWIND LN ℄ SHOWN COINCIDENT WITH THE WEST PROPERTY LINE AND THE 30' ROAD",
- "     ESMT. WIDTH ASSUMED — BOTH TO BE VERIFIED AGAINST RECORDED PM 05062.",
- "11. EXIST. TINY HOME SITS 29' FROM THE WEST PROPERTY LINE, WITHIN THE 35' EXTERIOR",
- "     SIDE YARD. REMOVAL (PLANNED) RESOLVES THE ENCROACHMENT.",
- "12. HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST PORTION; ℄ SHOWN. WIDTH",
- "     PER PM 05062 TO BE VERIFIED — ASSESSOR'S MAP SHOWS 30' WHERE DIMENSIONED.",
- "13. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
- "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED, NO NEW FENCES, WALLS OR",
- "     GATES PROPOSED (PDS 070: FENCES ≤6' EXEMPT FROM BUILDING PERMIT).",
- "14. ZO §6157(e) LIMITS THE STORE TO 1,500 SF TOTAL INCLUDING OPEN ROOFED DISPLAY.",
- "     THE STORE IS SHOWN AS A DEMISED 1,500 SF PORTION OF THE EXIST. BARN; NO OTHER",
- "     STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC-ACCESSED AREAS TO BE PERMITTED",
- "     AND BUILT TO THE APPLICABLE COMMERCIAL BUILDING CODE AND DEHQ REQUIREMENTS.",
- "     CONFIRM WITH PDS THAT A DEMISED PORTION OF A LARGER BUILDING SATISFIES §6157(e).",
+ "     THE RESIDENCE, 12' WIDE; SLOPE 2% DRAINING WEST TOWARD THE POND.",
+ "9.  WHIRLWIND LN: 30' ROAD ESMT. ALONG THE WEST BOUNDARY, ℄ ASSUMED AT MID-ESMT.",
+ "     HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST PORTION, ℄ SHOWN;",
+ "     ASSESSOR'S MAP DIMENSIONS THAT CORRIDOR AS 30'. BOTH WIDTHS AND CENTRELINES TO",
+ "     BE VERIFIED AGAINST PM 05062. IF PDS DEEMS HANDLEBAR RD THE FRONTAGE, A 40'",
+ "     FRONT YARD FROM ITS ℄ WOULD APPLY.",
+ "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
+ "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
+ "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",
+ "11. ZO §6157.a.2.e LIMITS THE STORE TO 1,500 SF TOTAL INCLUDING OPEN ROOFED",
+ "     DISPLAY. IT IS SHOWN AS A DEMISED 1,500 SF PORTION OF THE EXISTING BARN; NO",
+ "     OTHER STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC AREAS TO BE PERMITTED",
+ "     AND BUILT TO THE COMMERCIAL BUILDING CODE AND DEHQ REQUIREMENTS. CONFIRM WITH",
+ "     PDS THAT A DEMISED PORTION OF A LARGER BUILDING SATISFIES §6157.a.2.e.",
+ "12. ACCESSIBLE STALL, AISLE AND THE ROUTE TO THE STORE ENTRANCE TO BE A STABLE,",
+ "     FIRM, SLIP-RESISTANT SURFACE PER CBC CH. 11B AND §6157.a.2.h.",
 ]
-NOTE_STEP = 0.00742
+NOTE_STEP = 0.00685
 for n_ in notes:
     tline(y, n_, 5.2, x=0.04); y -= NOTE_STEP
 if y < TB_H + 0.012:
@@ -708,14 +815,15 @@ tline(tb_h*0.190, "SHEET 1 OF 1", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4    8/06/2026  BASE SHEET", 5.4, x=0.62)
 tline(tb_h*0.245, "5    8/06/2026  SETBACK LINES ADDED", 5.4, x=0.62)
-tline(tb_h*0.170, "6    8/19/2026  FARM STORE; SETBACKS", 5.4, x=0.62)
-tline(tb_h*0.095, "                CORRECTED PER §4810", 5.4, x=0.62)
+tline(tb_h*0.185, "6    8/19/2026  FARM STORE ADDED", 5.4, x=0.62)
+tline(tb_h*0.115, "7    8/19/2026  SETBACKS & AREAS PER", 5.4, x=0.62)
+tline(tb_h*0.050, "                TRUE LOT LINES", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
 _out = os.path.join(_here, '..', 'output')
 os.makedirs(_out, exist_ok=True)
-out_pdf = os.path.join(_out, 'Ag_Plot_Plan_17054_Handlebar_rev6.pdf')
+out_pdf = os.path.join(_out, 'Ag_Plot_Plan_17054_Handlebar_rev7.pdf')
 fig.savefig(out_pdf, format='pdf')
 fig.savefig(os.path.join(_out, 'preview.png'), dpi=72)
 print("saved", os.path.normpath(out_pdf))

@@ -18,17 +18,22 @@ parcel meets the agricultural-use tests the plot plan documents.
 
 | Test (ZO §6157(b)) | Required | Provided | |
 |---|---:|---:|---|
-| 50% of gross suitable & available for ag/open space | 82,222 SF | 137,151 SF | **83.4% — passes** |
-| 25% of gross in actual active agricultural use | 41,111 SF | 57,696 SF | **35.1% — passes** |
+| 50% of gross suitable & available for ag/open space | 82,222 SF | 137,125 SF | **83.4% — passes** |
+| 25% of gross in actual active agricultural use | 41,111 SF | 53,063 SF | **32.3% — passes** |
 
 The denominator is **gross** (164,443 SF) because §6157(b)(ii) says "25 percent
 of the total gross area of the premises." Net area (157,251 SF) is stated
 separately because PDS 090 item 12 requires it.
 
+Crop areas are clipped to the property line, so what is drawn is what is
+tabulated.
+
 Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setback
 designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
-exterior side 35' from ℄, rear 25'. The barn holding the store clears every line
-by over 100 feet.
+exterior side 35' from ℄, rear 25'. Whirlwind Ln is treated as the frontage, at
+40' from centreline under Schedule C footnote (d). The barn holding the store
+clears every yard by a wide margin; four existing structures do not, and the
+sheet says so.
 
 **The one open question:** §6157(e) caps the store at 1,500 SF and the barn is
 about 3,400 SF. The sheet shows a demised 1,500 SF portion. Confirm with PDS
@@ -57,7 +62,9 @@ python3 scripts/verify_sheet.py      # print-fidelity check — run before print
 
 1. **Print at 100%, never "fit to page."** The scale bar must measure exactly
    3 inches from 0 to 120. `verify_sheet.py` asserts this on the PDF.
-2. **`Original_Parcel_Doc_PM_69370.pdf` is the assessor's map**, not the recorded
-   Parcel Map PM 5062. Getting the recorded map is still open.
+2. **The drawn boundary is the county GIS polygon (164,443 SF); the record
+   parcel is 550.50' × 285.58' = 157,212 SF.** They disagree.
+   `Original_Parcel_Doc_PM_69370.pdf` is the assessor's map, not the recorded
+   Parcel Map PM 5062. Getting the recorded map is the top open item.
 3. **Check the aerial overlay after any geometry change.** Abstract line drawings
    hide siting errors; the overlay caught the parking bay drawn on grass.
