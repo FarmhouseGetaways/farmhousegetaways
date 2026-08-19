@@ -443,7 +443,10 @@
                        color: m.kind === 'super' ? '#ffd166' : '#fff2c4' });
         if (m.fx === 'spark') this.fx.push({ kind: 'spark', x: def.x, y: 70, t: 0 });
         if (result === 'counter') {
-          this.fx.push({ kind: 'text', x: mid, y: 96, t: 0, str: 'COUNTER', size: 13, color: '#ff8a4a' });
+          var hasCounter = this.fx.some(function (e) { return e.kind === 'text' && e.str === 'COUNTER'; });
+          if (!hasCounter) {
+            this.fx.push({ kind: 'text', x: mid, y: 96, t: 0, str: 'COUNTER', size: 13, color: '#ff8a4a' });
+          }
           CF.Audio.play('counter');
         } else {
           CF.Audio.play(m.kind === 'super' ? 'superhit' : (m.sfx || (heavy ? 'heavy' : 'med')));

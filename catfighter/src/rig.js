@@ -349,13 +349,32 @@
 
     /* per-cat accessory */
     if (c.accessory === 'headband') {
+      /* A band across the brow, not a sun visor: narrow, following the skull,
+         with a knot at the side and two short tails behind. */
+      ctx.save();
       ctx.beginPath();
-      ctx.ellipse(0, r * 0.5, r * 1.06, r * 0.24, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, r * 0.02, r * 1.0, r * 0.93, 0, Math.PI * 0.08, Math.PI * 0.92);
+      ctx.lineWidth = r * 0.30;
+      ctx.strokeStyle = c.accent;
+      ctx.stroke();
+      ctx.restore();
+      /* knot */
+      ctx.beginPath();
+      ctx.arc(-r * 0.86, r * 0.42, r * 0.17, 0, Math.PI * 2);
       ctx.fillStyle = c.accent; ctx.fill();
+      /* two tails streaming back */
+      ctx.strokeStyle = c.accent;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.9 * es;
       ctx.beginPath();
-      ctx.moveTo(-r * 0.9, r * 0.55);
-      ctx.quadraticCurveTo(-r * 1.9, r * 0.5, -r * 2.5, r * 1.1);
-      ctx.lineWidth = 2.6 * es; ctx.strokeStyle = c.accent; ctx.stroke();
+      ctx.moveTo(-r * 0.9, r * 0.44);
+      ctx.quadraticCurveTo(-r * 1.5, r * 0.5, -r * 1.95, r * 0.86);
+      ctx.stroke();
+      ctx.lineWidth = 1.5 * es;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.9, r * 0.38);
+      ctx.quadraticCurveTo(-r * 1.5, r * 0.18, -r * 1.85, r * 0.32);
+      ctx.stroke();
     } else if (c.accessory === 'goggles') {
       ctx.fillStyle = 'rgba(30,30,38,.95)';
       ctx.beginPath();

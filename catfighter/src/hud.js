@@ -240,7 +240,10 @@
         if (e.t > 6) list.splice(i, 1);
       } else if (e.kind === 'text') {
         ctx.globalAlpha = Math.max(0, 1 - e.t / 40);
-        outlineText(ctx, e.str, sx, sy - e.t * 0.7, e.size || 15, e.color || '#ffe07a', '#2a1408', 'center');
+        /* keep it on screen — a popup half off the edge reads as a glitch */
+        var half = (e.str.length * (e.size || 15) * 0.30);
+        var tx = U.clamp(sx, half + 4, S.W - half - 4);
+        outlineText(ctx, e.str, tx, sy - e.t * 0.7, e.size || 15, e.color || '#ffe07a', '#2a1408', 'center');
         if (e.t > 42) list.splice(i, 1);
       } else {
         list.splice(i, 1);
