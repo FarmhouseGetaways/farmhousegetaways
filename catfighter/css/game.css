@@ -63,10 +63,34 @@ html, body {
   color: rgba(255, 233, 200, .72);
 }
 
+#boot .keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .4em .9em;
+  max-width: 46rem;
+}
+
+/* each key and its label travel together when the line wraps */
+#boot .keys b {
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+#boot .note {
+  font-size: clamp(.7rem, 2vw, .85rem);
+  color: rgba(255, 233, 200, .5);
+}
+
 #boot .key {
   display: inline-block;
   border: 1px solid rgba(255, 224, 122, .5);
   border-radius: 4px;
   padding: .12em .45em;
   color: #ffe07a;
+  letter-spacing: .06em;
 }

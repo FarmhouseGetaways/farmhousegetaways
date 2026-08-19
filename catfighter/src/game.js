@@ -706,8 +706,12 @@
       }
     }
 
-    HUD.text(ctx, 'P1  W A S D  •  U I O / J K L        ENTER TO CHOOSE',
-             W / 2, H - 8, 7.5, 'rgba(255,240,220,.55)', 'center', 700, 0.7);
+    var hint = CF.Input.getScheme() === 'simple'
+      ? 'J PUNCH   K KICK   SPACE JUMP   L BLOCK   •   TWO TOGETHER FOR A SPECIAL'
+      : 'W A S D MOVE   •   U I O PUNCHES   •   J K L KICKS';
+    HUD.text(ctx, hint, W / 2, H - 14, 7, 'rgba(255,240,220,.55)', 'center', 700, 0.6);
+    HUD.text(ctx, 'A CONTROLLER WORKS TOO — PLUG IT IN AND PRESS A BUTTON',
+             W / 2, H - 5, 6.6, 'rgba(255,240,220,.38)', 'center', 700, 0.6);
   };
 
   /* ---- select ------------------------------------------------------------- */

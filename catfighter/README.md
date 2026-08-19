@@ -45,6 +45,11 @@ Replacing one is three blocks of plain data in `src/characters.js` — see
 **In a browser.** Open `index.html`. That is the whole installation. It works
 from a double-click, no server and no build step.
 
+**As one file you can send someone.** `node tools/bundle.mjs` inlines every
+script and the stylesheet into a single ~295 KB HTML file with no external
+requests at all — no fonts, no images, no audio files, because there aren't
+any. Mail it, drop it on a memory stick, or open it straight from Downloads.
+
 **As a Windows program.** See [BUILD-WINDOWS.md](BUILD-WINDOWS.md). The short
 version: GitHub → Actions → *Cat Fighter II (Windows)* → **Run workflow**, and
 download the `.exe` when it finishes. You do not need anything installed on
