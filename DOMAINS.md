@@ -125,24 +125,51 @@ though a records-only change at Directnic is usually minutes.
 
 ## Mini Barn Market — minibarnmarket.com
 
-Status as of 19 Aug 2026: **not done.** The Netlify site
-`minibarnmarket.netlify.app` is live and healthy, but the domain does not reach
-it — `https://minibarnmarket.com` serves a Wix **"ConnectYourDomain Error"**
-page, so the domain is broken right now, not merely mispointed.
+Status as of 20 Aug 2026: **done.** The domain serves
+`minibarnmarket.netlify.app` over HTTPS on a Let's Encrypt certificate.
 
-The difference from Farmstand: **this domain's nameservers are at Wix**
-(`ns6.wixdns.net`, `ns7.wixdns.net`), not Directnic. Its DNS zone lives at Wix
-and cannot be edited from Directnic's DNS manager while that is true.
+Live configuration — this one uses **Netlify DNS**, unlike Farmstand:
 
-Because the nameservers have to change either way, the cheaper route here is to
-delegate straight to **Netlify DNS** — one change at Directnic instead of a
-nameserver change followed by building a zone by hand. Netlify then serves the
-apex directly and creates the records itself.
+| Hostname | Result |
+|---|---|
+| `minibarnmarket.com` | serves the site (primary) |
+| `www.minibarnmarket.com` | 301 to `minibarnmarket.com` |
+| `http://` on either | 301 to `https://` |
 
-Checked before recommending it: `minibarnmarket.com` has **no MX and no TXT
-records** on either public resolver, at the apex or at `_dmarc` and `mail`, so
-no email or domain verification can break by moving the nameservers.
+Nameservers at Directnic are `dns1.p01.nsone.net` through `dns4`. Netlify holds
+the zone and created the records itself, so there is nothing to maintain at the
+registrar. The `clientUpdateProhibited` lock did not block the change.
 
-One thing to watch: the domain carries a `clientUpdateProhibited` registry lock.
-Directnic's own panel normally still allows a nameserver change, but if the form
-refuses, the domain has to be unlocked there first.
+### Why this one went to Netlify DNS and Farmstand did not
+
+Its nameservers were at **Wix**, not Directnic, so they had to move regardless.
+Given that, delegating to Netlify was one change instead of a nameserver change
+followed by building a zone by hand — and it removed the step that caused
+trouble on Farmstand, where forwarding A records were left behind and started
+serving a parking page. Netlify creates its own records, so nothing can be left
+over.
+
+Before recommending it: the domain had **no MX and no TXT records** on either
+resolver, at the apex or at `_dmarc` and `mail`, so no email or verification
+could break.
+
+### The cutover took hours, and that was expected
+
+A nameserver change is slower than a record change. Farmstand's records
+propagated in minutes; this one took most of a night, because **Wix's zone
+published its NS records with an 86400 TTL**. Nothing at Directnic could have
+shortened that.
+
+During the wait the two public resolvers disagreed for hours — and swapped
+which one was stale, more than once. Every one of these was cache, not fault:
+
+- both apex and `www` flipping between the Wix error page and the real site on
+  alternate requests
+- `www` correct on both resolvers while the apex was still Wix
+- Google holding the new delegation while Cloudflare re-cached the *old* one
+  with a fresh 24-hour TTL
+
+The lesson for next time: **judge a cutover by what the live response says, not
+by what one resolver reports**, and do not act on a single reading. The checker
+asks two resolvers, retries its probes, and reports the server that actually
+answered, precisely because of this.
