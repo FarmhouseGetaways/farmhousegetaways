@@ -23,6 +23,7 @@
  */
 import { configured, upsertContact, queueAutomation, describe } from "./_lib/emailoctopus.mjs";
 import { contactFrom } from "./_lib/signup.mjs";
+import { sendAlert } from "./_lib/alerts.mjs";
 
 export default async (req) => {
   let payload;
@@ -40,6 +41,18 @@ export default async (req) => {
 
   const formName = payload?.form_name || payload?.formName || "";
   const data = payload?.data || {};
+
+  // Tell a phone FIRST, before any of the list logic. Everything below this
+  // returns early in perfectly ordinary cases — an inquiry with the mailing
+  // list box left unticked, a form that never feeds the list at all, or
+  // EmailOctopus simply not being configured yet. Those are exactly the
+  // submissions worth knowing about, so alerting cannot sit behind them.
+  try {
+    const alerted = await sendAlert(formName, data);
+    console.log(`[alert] ${formName}: ntfy ${alerted.ntfy}, webhook ${alerted.webhook}`);
+  } catch (err) {
+    console.error(`[alert] threw: ${String(err?.message || err)}`);
+  }
 
   const contact = contactFrom(formName, data);
   if (!contact) {
