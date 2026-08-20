@@ -42,6 +42,26 @@
     requestAnimationFrame(loop);
   }
 
+  /* The page can be embedded — in an artifact viewer, in an iframe on a
+     site. Keyboard events only reach a document that HAS focus, so a game
+     that just listens on window is silently dead until the player happens to
+     click the right thing. Take focus on load and on every pointer press, and
+     make the menus clickable so one press both focuses and chooses. */
+  function grabFocus() {
+    try { window.focus(); } catch (e) { /* cross-origin parent: nothing to do */ }
+    if (canvas) canvas.focus({ preventScroll: true });
+  }
+
+  /* Where a pointer press landed, in the game's own 384 x 224 coordinates. */
+  function pointerAt(e) {
+    var r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    return {
+      x: (e.clientX - r.left) / r.width * W,
+      y: (e.clientY - r.top) / r.height * H
+    };
+  }
+
   function boot() {
     canvas = document.getElementById('screen');
     if (CF.Photos) CF.Photos.preload();
@@ -50,16 +70,36 @@
     resize();
     window.addEventListener('resize', resize);
 
+    grabFocus();
+    window.addEventListener('pointerdown', grabFocus, true);
+
+    canvas.addEventListener('pointermove', function (e) {
+      var p = pointerAt(e);
+      if (!p) return;
+      if (p.x !== game.pointer.x || p.y !== game.pointer.y) game.pointer.moved = true;
+      game.pointer.x = p.x; game.pointer.y = p.y; game.pointer.seen = true;
+    });
+    canvas.addEventListener('pointerdown', function (e) {
+      var p = pointerAt(e);
+      if (!p) return;
+      game.pointer.x = p.x;
+      game.pointer.y = p.y;
+      game.pointer.seen = true;
+      game.pointer.clicked = true;
+      e.preventDefault();
+    });
+    canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
     /* WebAudio needs a gesture before it will make a sound. */
     function wake() {
       CF.Audio.init();
+      grabFocus();
       document.getElementById('boot').classList.add('gone');
       window.removeEventListener('keydown', wake);
       window.removeEventListener('pointerdown', wake);
     }
     window.addEventListener('keydown', wake);
     window.addEventListener('pointerdown', wake);
-    canvas.addEventListener('pointerdown', function () { canvas.focus(); });
 
     /* Handy globals while building: F for fullscreen, F1 for hitboxes. */
     window.addEventListener('keydown', function (e) {

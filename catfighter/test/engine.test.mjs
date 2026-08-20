@@ -8,7 +8,7 @@
    ========================================================================== */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadGame, attackMoves } from './harness.mjs';
+import { loadGame, attackMoves, headlessGame } from './harness.mjs';
 
 const { CF } = loadGame();
 
@@ -1156,4 +1156,168 @@ test('every cat can reach both specials, a throw and a super from the pad', () =
         `${c.id}: ${pair.join('+')} produced nothing`);
     }
   }
+});
+
+/* ---- pointer menus -------------------------------------------------------
+
+   The game is played embedded — in an artifact viewer, in an iframe. Keyboard
+   events only reach a document that already has focus, so a keyboard-only
+   title screen is dead until the player guesses to click on it. Clickable
+   menus fix that, and these guard the part that silently rots: the rect a
+   menu is drawn at and the rect it is hit-tested against must be the same
+   rect. A menu item you can see but not click is worse than no mouse at all.
+                                                                           */
+
+function menuGame() {
+  const g = headlessGame(CF);
+  g.pointer.seen = true;
+  return g;
+}
+
+/* Put the pointer in the middle of a rect and press. */
+function clickRect(g, r) {
+  g.pointer.x = r.x + r.w / 2;
+  g.pointer.y = r.y + r.h / 2;
+  g.pointer.clicked = true;
+  g.pointer.moved = true;
+  g.step();
+}
+function hoverRect(g, r) {
+  g.pointer.x = r.x + r.w / 2;
+  g.pointer.y = r.y + r.h / 2;
+  g.pointer.moved = true;
+  g.step();
+}
+
+test('every menu rect is on screen and none of them overlap', () => {
+  const g = menuGame();
+  const sets = {
+    title: g.titleRects(),
+    select: g.selectRects(),
+    options: g.optionRects(g.optionRows().length)
+  };
+  const st = g.stageRects();
+  sets.stage = [st.prev, st.next, st.go, st.back];
+
+  for (const [name, rects] of Object.entries(sets)) {
+    for (const r of rects) {
+      assert.ok(r.w > 0 && r.h > 0, `${name}: a rect with no area`);
+      assert.ok(r.x >= 0 && r.y >= 0 && r.x + r.w <= CF.STAGE.W && r.y + r.h <= CF.STAGE.H,
+        `${name}: a rect off the edge of the screen — ${JSON.stringify(r)}`);
+    }
+    /* the stage screen deliberately layers a big GO panel between two arrows */
+    if (name === 'stage') continue;
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i], b = rects[j];
+        const over = a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        assert.ok(!over, `${name}: rects ${i} and ${j} overlap, so one is unclickable`);
+      }
+    }
+  }
+});
+
+test('the title menu has one rect per item, in order', () => {
+  const g = menuGame();
+  const r = g.titleRects();
+  assert.equal(r.length, g.menuItems.length);
+  r.forEach((x, i) => assert.equal(x.i, i));
+});
+
+test('a click picks the title item under it, not the highlighted one', () => {
+  const g = menuGame();
+  g.menuIndex = 0;                                  // ARCADE is lit
+  clickRect(g, g.titleRects()[1]);                      // but VERSUS is pressed
+  assert.equal(g.menuIndex, 1);
+  assert.equal(g.scene, 'select');
+  assert.equal(g.settings.mode, 'versus');
+});
+
+test('a click reaches CONTROLS and OPTIONS, and comes back out again', () => {
+  const g = menuGame();
+  clickRect(g, g.titleRects()[3]);
+  assert.equal(g.scene, 'controls');
+  g.pointer.clicked = true; g.step();               // any click leaves
+  assert.equal(g.scene, 'title');
+
+  clickRect(g, g.titleRects()[4]);
+  assert.equal(g.scene, 'options');
+  const rows = g.optionRows();
+  clickRect(g, g.optionRects(rows.length)[rows.length - 1]);   // BACK, the last row
+  assert.equal(g.scene, 'title');
+});
+
+test('clicking an options row changes that row', () => {
+  const g = menuGame();
+  g.scene = 'options';
+  const rows = g.optionRows();
+  const i = rows.findIndex(r => r.label === 'ROUNDS TO WIN');
+  g.settings.rounds = 1;
+  clickRect(g, g.optionRects(rows.length)[i]);
+  assert.equal(g.optIndex, i);
+  assert.equal(g.settings.rounds, 2, 'the clicked row should have gone up');
+});
+
+test('a click picks a cat and a stage, and starts the match', () => {
+  const g = menuGame();
+  g.arcade = { step: 0, order: [] };
+  clickRect(g, g.titleRects()[0]);                      // ARCADE
+  assert.equal(g.scene, 'select');
+
+  clickRect(g, g.selectRects()[4]);                     // fifth cat
+  assert.equal(g.select.cursor[0], 4);
+  assert.equal(g.select.phase, 'stage', 'one click should lock in and move on');
+
+  const st = g.stageRects();
+  const before = g.select.stage;
+  clickRect(g, st.next);
+  assert.notEqual(g.select.stage, before);
+
+  clickRect(g, st.back);
+  assert.equal(g.select.phase, 'chars');
+  assert.equal(g.select.locked[0], false, 'backing out should unlock the cat');
+
+  clickRect(g, g.selectRects()[0]);
+  clickRect(g, g.stageRects().go);
+  assert.equal(g.scene, 'fight');
+  assert.equal(g.p1.chr.id, CF.ROSTER[0].id);
+});
+
+test('in versus the mouse moves on to whoever has not locked in', () => {
+  const g = menuGame();
+  clickRect(g, g.titleRects()[1]);                      // VERSUS
+  clickRect(g, g.selectRects()[2]);
+  assert.equal(g.select.locked[0], true);
+  assert.equal(g.select.locked[1], false);
+  assert.equal(g.select.cursor[0], 2);
+
+  clickRect(g, g.selectRects()[5]);                     // now driving player two
+  assert.equal(g.select.locked[0], true);
+  assert.equal(g.select.locked[1], true);
+  assert.equal(g.select.cursor[1], 5);
+  assert.equal(g.select.cursor[0], 2, 'player one must not be dragged along');
+  assert.equal(g.select.phase, 'stage');
+});
+
+test('a pointer left resting on a menu does not fight the keyboard', () => {
+  const g = menuGame();
+  hoverRect(g, g.titleRects()[3]);                     // hover CONTROLS
+  assert.equal(g.menuIndex, 3);
+
+  g.pointer.moved = false;                          // the mouse now sits still
+  g.menuIndex = 0;                                  // and the pad moves the cursor
+  g.step();
+  assert.equal(g.menuIndex, 0, 'a still mouse must not drag the cursor back');
+});
+
+test('the hand cursor appears over exactly the clickable rects', () => {
+  const g = menuGame();
+  const on = g.titleRects()[2];
+  g.pointer.x = on.x + on.w / 2; g.pointer.y = on.y + on.h / 2;
+  assert.ok(g.clickTargets().some(r => g.over(r)));
+  g.pointer.y = 4;                                  // up by the logo
+  assert.ok(!g.clickTargets().some(r => g.over(r)));
+
+  g.scene = 'fight';
+  assert.equal(g.clickTargets().length, 0, 'nothing is clickable mid-fight');
 });

@@ -47,6 +47,11 @@
     this.announceT = 0;
     this.slowmo = 0;
     this.crowdMood = 0;
+
+    /* Set by main.js from real pointer events, in game coordinates. Menus are
+       clickable so the game is usable the instant it is pressed, without
+       waiting for the page to have keyboard focus. */
+    this.pointer = { x: -99, y: -99, clicked: false, seen: false, moved: false };
   }
 
   /* ---- public hooks used by fighters ------------------------------------- */
@@ -142,6 +147,85 @@
       case 'options':  this.stepOptions(); break;
       case 'result':   this.stepResult(); break;
     }
+
+    /* a click, and a movement, are consumed by whichever screen was showing */
+    this.pointer.clicked = false;
+    this.pointer.moved = false;
+  };
+
+  /* Did this frame's click land inside the rect? */
+  Game.prototype.hit = function (r) {
+    var p = this.pointer;
+    return p.clicked && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+  };
+  /* Hover only counts on a frame the mouse actually moved. A pointer left
+     resting on a menu item must not keep dragging the cursor back while
+     somebody is playing with the keyboard or a pad. */
+  Game.prototype.hover = function (r) {
+    var p = this.pointer;
+    return p.moved && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+  };
+
+  /* Is the pointer sitting on this rect right now? Used for drawing only. */
+  Game.prototype.over = function (r) {
+    var p = this.pointer;
+    return p.seen && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+  };
+
+  /* Rects shared between drawing and hit-testing, so the two can never drift
+     apart — a menu item you can see but not click is worse than no mouse
+     support at all. */
+  Game.prototype.titleRects = function () {
+    var out = [];
+    for (var m = 0; m < this.menuItems.length; m++) {
+      out.push({ x: W / 2 - 68, y: 132 + m * 15 - 11, w: 136, h: 15, i: m });
+    }
+    return out;
+  };
+
+  Game.prototype.selectRects = function () {
+    var cw = 52, ch = 46, gapX = 8, gapY = 8;
+    var ox = W / 2 - (3 * cw + 2 * gapX) / 2, oy = 30;
+    var out = [];
+    for (var i = 0; i < 6; i++) {
+      out.push({ x: ox + (i % 3) * (cw + gapX), y: oy + ((i / 3) | 0) * (ch + gapY),
+                 w: cw, h: ch, i: i });
+    }
+    return out;
+  };
+
+  Game.prototype.stageRects = function () {
+    var pw = 250, ph = 146, px = (W - pw) / 2, py = 28;
+    return {
+      prev: { x: px - 30, y: py, w: 30, h: ph },
+      next: { x: px + pw, y: py, w: 30, h: ph },
+      go:   { x: px, y: py, w: pw, h: ph },
+      back: { x: 0, y: H - 14, w: W, h: 14 }
+    };
+  };
+
+  Game.prototype.optionRects = function (n) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push({ x: 50, y: 56 + i * 18 - 11, w: W - 100, h: 16, i: i });
+    return out;
+  };
+
+  /* Every clickable rect on the screen right now. Used to show a hand cursor,
+     so mouse support is discoverable rather than a secret. */
+  Game.prototype.clickTargets = function () {
+    if (this.scene === 'title') return this.titleRects();
+    if (this.scene === 'options') return this.optionRects(this.optionRows().length);
+    if (this.scene === 'select') {
+      if (this.select.phase === 'stage') {
+        var s = this.stageRects();
+        return [s.prev, s.next, s.go, s.back];
+      }
+      return this.selectRects();
+    }
+    if (this.scene === 'controls' || this.scene === 'result') {
+      return [{ x: 0, y: 0, w: W, h: H }];
+    }
+    return [];
   };
 
   Game.prototype.anyStart = function () {
@@ -157,7 +241,15 @@
       if (d === 8) { this.menuIndex = (this.menuIndex + this.menuItems.length - 1) % this.menuItems.length; this._navCool = 10; CF.Audio.play('cursor'); }
       if (d === 2) { this.menuIndex = (this.menuIndex + 1) % this.menuItems.length; this._navCool = 10; CF.Audio.play('cursor'); }
     }
-    if (this.anyStart()) {
+    /* a click picks the item under it outright */
+    var tr = this.titleRects(), clicked = -1;
+    for (var t = 0; t < tr.length; t++) {
+      if (this.hover(tr[t])) this.menuIndex = tr[t].i;
+      if (this.hit(tr[t])) clicked = tr[t].i;
+    }
+    if (clicked >= 0) this.menuIndex = clicked;
+
+    if (this.anyStart() || clicked >= 0) {
       CF.Audio.init(); CF.Audio.play('select');
       var pick = this.menuItems[this.menuIndex];
       if (pick === 'CONTROLS') { this.scene = 'controls'; }
@@ -183,7 +275,7 @@
         CF.Audio.play('cursor');
       }
     }
-    if (this.anyStart()) { this.scene = 'title'; CF.Audio.play('select'); }
+    if (this.anyStart() || this.pointer.clicked) { this.scene = 'title'; CF.Audio.play('select'); }
   };
 
   /* ---- options ----------------------------------------------------------- */
@@ -215,6 +307,18 @@
   Game.prototype.stepOptions = function () {
     var p = this.ports[0], rows = this.optionRows();
     if (this._navCool > 0) this._navCool--;
+
+    var orr = this.optionRects(rows.length);
+    for (var oi = 0; oi < orr.length; oi++) {
+      if (this.hover(orr[oi])) this.optIndex = orr[oi].i;
+      if (this.hit(orr[oi])) {
+        this.optIndex = orr[oi].i;
+        CF.Audio.play('select');
+        if (rows[oi].label === 'BACK') { this.scene = 'title'; return; }
+        rows[oi].inc();
+        return;
+      }
+    }
     if (!this._navCool) {
       if (p.dir === 8) { this.optIndex = (this.optIndex + rows.length - 1) % rows.length; this._navCool = 10; CF.Audio.play('cursor'); }
       if (p.dir === 2) { this.optIndex = (this.optIndex + 1) % rows.length; this._navCool = 10; CF.Audio.play('cursor'); }
@@ -240,6 +344,13 @@
 
     if (this.select.phase === 'stage') { this.stepStageSelect(); return; }
 
+    /* The mouse drives whoever has not locked in yet, so one person with one
+       mouse can still set up a versus match. Worked out before the loop, or
+       locking P1 would hand P2 the same click on the same frame. */
+    var mouseSlot = -1;
+    if (!this.select.locked[0]) mouseSlot = 0;
+    else if (players > 1 && !this.select.locked[1]) mouseSlot = 1;
+
     for (var i = 0; i < 2; i++) {
       if (i >= players) continue;
       var p = this.ports[i];
@@ -252,7 +363,17 @@
         if (p.dir === 2) { c = (c + 3) % 6; moved = true; }
         if (moved) { this.select.cursor[i] = c; this._navCool = 10; CF.Audio.play('cursor'); }
       }
-      if (p.confirmPressed()) {
+      var clickedCat = -1;
+      if (i === mouseSlot) {
+        var sr = this.selectRects();
+        for (var c2 = 0; c2 < sr.length; c2++) {
+          if (this.hover(sr[c2])) this.select.cursor[i] = sr[c2].i;
+          if (this.hit(sr[c2])) clickedCat = sr[c2].i;
+        }
+        if (clickedCat >= 0) this.select.cursor[i] = clickedCat;
+      }
+
+      if (p.confirmPressed() || clickedCat >= 0) {
         this.select.locked[i] = true;
         CF.Audio.play('select');
         CF.Audio.play('meow');
@@ -269,6 +390,20 @@
   /* index === CF.Stages.length means "surprise me" */
   Game.prototype.stepStageSelect = function () {
     var p = this.ports[0], n = CF.Stages.length + 1;
+
+    var sr = this.stageRects();
+    if (this.hit(sr.prev)) { this.select.stage = (this.select.stage + n - 1) % n; CF.Audio.play('cursor'); }
+    else if (this.hit(sr.next)) { this.select.stage = (this.select.stage + 1) % n; CF.Audio.play('cursor'); }
+    else if (this.hit(sr.back)) {
+      this.select.phase = 'chars';
+      this.select.locked = [false, false];
+      CF.Audio.play('cursor');
+      return;
+    } else if (this.hit(sr.go)) {
+      this.startPicked();
+      return;
+    }
+
     if (!this._navCool) {
       if (p.dir === 4 || p.dir === 7 || p.dir === 1) {
         this.select.stage = (this.select.stage + n - 1) % n;
@@ -286,23 +421,25 @@
         return;
       }
     }
-    if (p.confirmPressed()) {
-      var stage = this.select.stage;
-      if (stage >= CF.Stages.length) stage = (Math.random() * CF.Stages.length) | 0;
-      this.select.stage = stage;
-      CF.Audio.play('select');
+    if (p.confirmPressed()) this.startPicked();
+  };
 
-      var mine = this.select.cursor[0];
-      if (this.settings.mode === 'versus') {
-        this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.select.cursor[1]], stage, 'versus');
-      } else if (this.settings.mode === 'arcade') {
-        this.arcade.order = [];
-        for (var k = 1; k <= 5; k++) this.arcade.order.push((mine + k) % 6);
-        this.arcade.step = 0;
-        this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.arcade.order[0]], stage, 'arcade');
-      } else {
-        this.startMatch(CF.ROSTER[mine], CF.ROSTER[(mine + 1) % 6], stage, 'training');
-      }
+  Game.prototype.startPicked = function () {
+    var stage = this.select.stage;
+    if (stage >= CF.Stages.length) stage = (Math.random() * CF.Stages.length) | 0;
+    this.select.stage = stage;
+    CF.Audio.play('select');
+
+    var mine = this.select.cursor[0];
+    if (this.settings.mode === 'versus') {
+      this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.select.cursor[1]], stage, 'versus');
+    } else if (this.settings.mode === 'arcade') {
+      this.arcade.order = [];
+      for (var k = 1; k <= 5; k++) this.arcade.order.push((mine + k) % 6);
+      this.arcade.step = 0;
+      this.startMatch(CF.ROSTER[mine], CF.ROSTER[this.arcade.order[0]], stage, 'arcade');
+    } else {
+      this.startMatch(CF.ROSTER[mine], CF.ROSTER[(mine + 1) % 6], stage, 'training');
     }
   };
 
@@ -613,7 +750,7 @@
 
   Game.prototype.stepResult = function () {
     this.resultTimer--;
-    if (this.resultTimer <= 0 || this.anyStart()) {
+    if (this.resultTimer <= 0 || this.anyStart() || this.pointer.clicked) {
       this.scene = 'title';
       this.menuIndex = 0;
       CF.Audio.stopMusic();
@@ -626,6 +763,14 @@
 
   Game.prototype.render = function () {
     var ctx = this.ctx;
+
+    if (this.canvas && this.canvas.style && this.pointer.seen) {
+      var tg = this.clickTargets(), onTarget = false;
+      for (var q = 0; q < tg.length; q++) if (this.over(tg[q])) { onTarget = true; break; }
+      var want = onTarget ? 'pointer' : 'default';
+      if (this._cursorStyle !== want) { this._cursorStyle = want; this.canvas.style.cursor = want; }
+    }
+
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, W, H);
@@ -710,7 +855,7 @@
       ? 'J PUNCH   K KICK   SPACE JUMP   L BLOCK   •   TWO TOGETHER FOR A SPECIAL'
       : 'W A S D MOVE   •   U I O PUNCHES   •   J K L KICKS';
     HUD.text(ctx, hint, W / 2, H - 14, 7, 'rgba(255,240,220,.55)', 'center', 700, 0.6);
-    HUD.text(ctx, 'A CONTROLLER WORKS TOO — PLUG IT IN AND PRESS A BUTTON',
+    HUD.text(ctx, 'CLICK A MENU ITEM  •  A CONTROLLER WORKS TOO — PLUG IT IN AND PRESS A BUTTON',
              W / 2, H - 5, 6.6, 'rgba(255,240,220,.38)', 'center', 700, 0.6);
   };
 

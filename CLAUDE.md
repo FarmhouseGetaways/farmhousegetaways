@@ -572,6 +572,14 @@ Three things a later session needs to know:
   but cannot save. Colours were read by eye. **Ask for a zip or a Drive folder**
   if the actual photographs are wanted on the select screen (`photo:` on the
   cat, files in `catfighter/assets/cats/`).
+- **The menus take the mouse, and that is not decoration.** A page in an iframe
+  gets no key presses until it has focus, so a keyboard-only title screen is
+  dead on arrival in an artifact viewer — which is exactly what the owner hit
+  on 20 Aug 2026 ("once I get to the title screen I can't move the cursor").
+  Every menu is now clickable: one press takes focus and picks the item under
+  it. The rects used for drawing and for hit-testing are **the same function**
+  (`titleRects`, `selectRects`, `stageRects`, `optionRects` in `game.js`).
+  Never let a menu draw itself at coordinates the hit test does not know about.
 - **There are two control schemes**, in `catfighter/src/input.js`. SIMPLE is the
   default — four buttons (punch, kick, jump, block), two triggers (dodge,
   lunge), and specials on a pair of buttons. CLASSIC is the original six-button

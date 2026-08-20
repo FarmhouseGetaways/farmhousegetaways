@@ -116,6 +116,25 @@ the simple scheme arrived — see [MOVES.md](MOVES.md) for the motion list.
 `F1` toggles the hitbox display. `F11` is fullscreen. Two controllers give you
 two players, assigned in the order they were plugged in. The pad rumbles.
 
+### The menus take the mouse
+
+Every menu — title, character select, stage select, options — can be driven
+with the mouse alone: hover to move the cursor, click to choose. The cursor
+turns into a hand over anything clickable.
+
+This is not a convenience, it is what makes the game work when it is embedded.
+A page inside an iframe receives no key presses until it has keyboard focus, so
+a keyboard-only title screen sits there dead until the player happens to guess
+that clicking on it first would help. One click now both takes focus and picks
+the item under it, and the keyboard works from that point on.
+
+The rects a menu is drawn at and the rects it is hit-tested against are the
+same function — `titleRects()`, `selectRects()`, `stageRects()`,
+`optionRects()` in `src/game.js`. A menu item you can see but not click is
+worse than no mouse support at all, so the two can never be allowed to drift
+apart. The tests check every rect is on screen, that none of them overlap, and
+that a whole match can be started with nothing but clicks.
+
 ---
 
 ## The moves
