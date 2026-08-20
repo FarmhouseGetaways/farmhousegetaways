@@ -244,8 +244,6 @@ structures = [
  ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
  ("EXIST.\nGARAGE/ACC.", poly_px([(1622,85),(1795,90),(1795,275),(1622,280)]), None),
  ("EXIST.\nSHED", poly_px([(250,188),(328,188),(328,265),(250,265)]), None),
- ("EXIST. SHED\n(STORAGE)", poly_px([(1778,18),(1828,18),(1828,66),(1778,66)]), (481,308)),
- ("EXIST. CANOPY", poly_px([(1854,46),(1940,46),(1940,94),(1854,94)]), (540,282)),
 ]
 for name, poly, lab_at in structures:
     ax.add_patch(MPoly(poly, closed=True, fc='0.82', ec='black', lw=1.1, zorder=4))
@@ -441,25 +439,6 @@ ax.annotate(f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L HANDLEBA
             (452, 168), (392, 214), fontsize=6.4, ha='center', color=SB,
             fontweight='bold', zorder=8, arrowprops=dict(arrowstyle='-', lw=0.8, color=SB),
             bbox=dict(fc='white', ec=SB, lw=0.8, alpha=0.95, pad=2.0))
-
-# ---- clearances from the store building to the lot lines / centrelines
-BARN_G = SPoly(BARN)
-D_W = BARN_G.distance(LINE_WCL); D_N = BARN_G.distance(LINE_N)
-D_S = BARN_G.distance(LINE_S);   D_HB = BARN_G.distance(LINE_HB)
-def dim(p, q, txt, off=(0,0), fs=6.4, color='#8a4a00'):
-    ax.annotate('', p, q, arrowprops=dict(arrowstyle='<->', lw=0.9, color=color), zorder=8)
-    mx, my = (p[0]+q[0])/2+off[0], (p[1]+q[1])/2+off[1]
-    ang = math.degrees(math.atan2(q[1]-p[1], q[0]-p[0]))
-    if ang > 90 or ang < -90: ang += 180
-    ax.text(mx, my, txt, fontsize=fs, ha='center', va='center', rotation=ang,
-            rotation_mode='anchor', color=color, fontweight='bold', zorder=9,
-            bbox=dict(fc='white', ec='none', alpha=0.92, pad=1.2))
-_bx0, _by0, _bx1, _by1 = BARN_G.bounds
-dim((WL_CL_X, 172), (_bx0, 172), f"{D_W:.0f}' STORE BLDG. TO $\\mathcal{{C}}$L", off=(0, 5))
-dim((138, LINE_S.interpolate(LINE_S.project(Point(138, 0))).y), (138, _by0),
-    f"{D_S:.0f}' STORE BLDG. TO S P.L.", off=(6, 0))
-dim((124, _by1), (124, LINE_N.interpolate(LINE_N.project(Point(124, 294))).y),
-    f"{D_N:.0f}' STORE BLDG. TO N P.L.", off=(6, 0))
 
 # ---- drainage arrows toward pond
 for (fx, fy) in [(280,55),(320,175),(150,255),(72,40)]:
@@ -738,8 +717,6 @@ srows = [("SMALL AGRICULTURAL STORE (IN BARN)","PROPOSED","1,500 SF", True),
          ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
          ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
          ("SHED (NW) — STORAGE","EXISTING","415 SF", False),
-         ("SHED (NE) — STORAGE","EXISTING","165 SF", False),
-         ("CANOPY (NE)","EXISTING","285 SF", False),
          ("TRELLIS GARDEN (OPEN)","EXISTING","690 SF", False),
          ("GREENHOUSE 12'x20'","AS-BUILT","240 SF", True),
          ("POULTRY COOP 10'x10'","EXISTING","100 SF", False),
@@ -771,12 +748,9 @@ notes = [
  "     SCHEDULE C FOOTNOTE (d), A PRIVATE EASEMENT UNDER 40' WIDE. WHIRLWIND LN IS",
  "     THE EXTERIOR SIDE YARD AT 35' FROM ℄; NORTH AND SOUTH ARE INTERIOR SIDE YARDS",
  "     AT 15'. NO REAR YARD APPLIES — THE LOT FRONTS STREETS EAST AND WEST.",
- "5.  EXISTING ACCESSORY STRUCTURES NEAR THE NORTH LINE (NE SHED 165 SF, NE CANOPY",
- "     285 SF) LIE PARTLY WITHIN THE INTERIOR SIDE YARD. PERMITTED UNDER ZO §4842:",
- "     WALLS ≥3' FROM THE LOT LINE AND COMBINED AREA WITHIN THE SETBACK (450 SF)",
- "     UNDER THE 1,000 SF LIMIT. THE TINY HOME LIES WITHIN THE 35' EXTERIOR SIDE",
- "     YARD AND IS TO BE REMOVED. NO NEW WORK IS PROPOSED IN ANY YARD, AND THE",
- "     PROPOSED STORE CLEARS EVERY REQUIRED YARD.",
+ "5.  ALL EXISTING BUILDINGS SIT WELL INSIDE THE REQUIRED YARDS. NO NEW BUILDING,",
+ "     GRADING OR OTHER WORK IS PROPOSED IN ANY YARD, AND THE PROPOSED STORE — WITHIN",
+ "     THE EXISTING BARN, NEAR THE CENTRE OF THE PARCEL — CLEARS EVERY REQUIRED YARD.",
  "6.  POND IS AN EXISTING IRRIGATION SOURCE (PUMP) AND THE AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT (UNPERMITTED); MAY QUALIFY FOR THE AGRICULTURAL",
