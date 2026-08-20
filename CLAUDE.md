@@ -541,6 +541,58 @@ Run it after any change to the encoding. Two rules the tests hold in place:
 `tolerant()` also matches `&nbsp;` in the *source*, so a page damaged by the old
 bug can still be edited back out through the editor.
 
+## Form alerts — three sites, one phone
+
+Every form submission on all three sites pushes a notification to the owners'
+phones through the Mini Barn Market app. The chain, end to end:
+
+    form submitted
+      -> Netlify verifies it and stores it (Forms tab, nothing to build)
+      -> Netlify calls that site's netlify/functions/submission-created.mjs
+      -> _lib/alerts.mjs builds a summary and fires every configured channel
+      -> app's /.netlify/functions/push-alert  ->  sendToAdmins  ->  phones
+
+The summary carries who submitted, which form, and every field they filled in
+— including fields added to a form later, which is why it does not work from a
+fixed list.
+
+**The alert runs BEFORE the EmailOctopus work in `submission-created.mjs`, and
+must stay there.** Three ordinary paths return early below it: an inquiry with
+the mailing-list box unticked, a form that never feeds the list, and
+EmailOctopus not being configured — which is the state the site is in today.
+Those are exactly the submissions worth hearing about. Written the other way
+round first, it never fired once.
+
+Environment variables, on each of the three sites:
+
+| Key | Value |
+|---|---|
+| `SITE_LABEL` | `Farmhouse Getaways` / `Mini Barn Market` / `Farmstand.TV` |
+| `ALERT_WEBHOOK` | the app's `/.netlify/functions/push-alert` |
+| `ALERT_WEBHOOK_KEY` | the app's `ADMIN_PASSWORD` |
+| `NTFY_TOPIC` | optional second channel, a topic on ntfy.sh |
+
+`NTFY_TOPIC` needs no account, so the topic name **is** the password — anyone
+who knows it can read the alerts and send fake ones.
+
+### Why form alerts have their own audience
+
+The app's `sendToAll` reaches every phone that installed it. A form alert must
+never go there: it is not news for a guest waiting to hear the peaches are in,
+and it would put an enquirer's name and message on a stranger's lock screen.
+So the app has `sendToAdmins`, which reaches only devices enrolled by pressing
+**Send alerts to this phone** on its admin screen. That enrolment is marked
+from the verified admin password on the request and never from anything the
+page asks for, so nobody can enrol themselves.
+
+Each alert also carries its own notification tag. The service worker replaces
+a notification sharing a tag — right for the Story watcher, wrong here, since
+two people submitting an hour apart are two different people.
+
+**Email notification is separate and lives only in the Netlify UI**: Forms →
+Settings and usage → Form notifications. It is in no repository, so it
+survives no rebuild and has to be set per site, per form.
+
 ## Access
 
 The Claude GitHub App is installed on this repo with write access, so a cloud
