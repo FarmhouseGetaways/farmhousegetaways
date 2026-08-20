@@ -18,22 +18,19 @@ parcel meets the agricultural-use tests the plot plan documents.
 
 | Test (ZO §6157(b)) | Required | Provided | |
 |---|---:|---:|---|
-| 50% of gross suitable & available for ag/open space | 82,222 SF | 137,125 SF | **83.4% — passes** |
-| 25% of gross in actual active agricultural use | 41,111 SF | 53,063 SF | **32.3% — passes** |
+| 50% of gross suitable & available for ag/open space | 82,222 SF | 137,151 SF | **83.4% — passes** |
+| 25% of gross in actual active agricultural use | 41,111 SF | 57,696 SF | **35.1% — passes** |
 
 The denominator is **gross** (164,443 SF) because §6157(b)(ii) says "25 percent
 of the total gross area of the premises." Net area (157,251 SF) is stated
 separately because PDS 090 item 12 requires it.
 
-Crop areas are clipped to the property line, so what is drawn is what is
-tabulated.
-
 Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setback
 designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
-exterior side 35' from ℄, rear 25'. Whirlwind Ln is treated as the frontage, at
-40' from centreline under Schedule C footnote (d). The barn holding the store
-clears every yard by a wide margin; four existing structures do not, and the
-sheet says so.
+exterior side 35' from ℄, rear 25'. The residence fronts **Handlebar Rd**, so
+that is the front yard at 40' from its centreline under Schedule C footnote (d);
+Whirlwind Ln is the exterior side yard at 35' from centreline. The barn holding
+the store clears every yard by a wide margin.
 
 **The one open question:** §6157(e) caps the store at 1,500 SF and the barn is
 about 3,400 SF. The sheet shows a demised 1,500 SF portion. Confirm with PDS

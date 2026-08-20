@@ -60,9 +60,14 @@ RECORD_SF  = 157212     # 550.50' x 285.58' per the assessor's map (record dimen
 REQ_25_SF  = round(GROSS_SF * 0.25)     # ZO 6157.a.2.b.ii
 REQ_50_SF  = round(GROSS_SF * 0.50)     # ZO 6157.a.2.b.i
 STORE_SF   = 1500
-SB_SIDE, SB_REAR, SB_FRONT = 15.0, 25.0, 40.0   # ZO 4810 Schedule C, designator C
+# ZO 4810 Schedule C, designator C. The house fronts HANDLEBAR RD (east), so
+# that is the front yard; Whirlwind Ln on the west is the exterior side yard.
+SB_SIDE  = 15.0    # interior side, from lot line (north and south)
+SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln
+SB_FRONT = 40.0    # front, from centreline of Handlebar Rd (private esmt. <40' wide,
+                   # Schedule C footnote (d))
 ESMT_W     = 30.0       # Whirlwind Ln road easement along the west boundary
-WL_CL_X    = ESMT_W / 2 # its centreline, assumed at mid-easement (see note)
+WL_CL_X    = 0.0        # its centreline, drawn at the west P.L. per owner (see note)
 
 _here = os.path.dirname(os.path.abspath(__file__))
 _zp = 'zone_polys.json' if os.path.exists('zone_polys.json') else os.path.join(_here, '..', 'data', 'zone_polys.json')
@@ -91,7 +96,11 @@ IDX_S = [1, 2, 3, 4, 5, 6, 7]            # south property line chain
 LINE_N = LineString([PB[i] for i in IDX_N])
 LINE_S = LineString([PB[i] for i in IDX_S])
 LINE_E = LineString([PB[0], PB[1]])      # east (rear) line
-LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind centreline
+LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centreline
+SXX0, SYY0 = 583.1/2186, 294.1/1136
+LINE_HB = LineString([(x*SXX0, 294.1-y*SYY0) for x, y in
+    [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),(1650,630),
+     (1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]])
 
 # Buildable envelope: the parcel less everything within each required yard.
 # Subtracting a line buffered by d leaves exactly the ground more than d away
@@ -99,21 +108,22 @@ LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind centreline
 ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
-            .difference(LINE_E.buffer(SB_REAR))
-            .difference(LINE_WCL.buffer(SB_FRONT)))
+            .difference(LINE_WCL.buffer(SB_EXT))
+            .difference(LINE_HB.buffer(SB_FRONT)))
 
-# Clip every crop / poultry / residential polygon to the parcel and use the
-# clipped area as the tabulated figure.
+# Zone polygons are NOT clipped. The source aerial is cropped exactly to the
+# parcel — the image edge IS the property line (owner-confirmed) — so a traced
+# crop cannot lie outside the property. Any apparent overhang is the county GIS
+# polygon disagreeing with the aerial at the margins, not a crop crossing a line.
 ZONE_KEYS = ['1','2','3','4','6','7','8','9','10','11','12']
-clipped, ZONE_SF = {}, {}
-for k, poly in zones.items():
-    g = SPoly(poly).buffer(0).intersection(PARCEL)
-    clipped[k] = g
-    ZONE_SF[k] = g.area
-CROP_SF   = sum(ZONE_SF[k] for k in ZONE_KEYS)
-POULTRY_SF = ZONE_SF['BG']
-AG_TOTAL  = CROP_SF + POULTRY_SF
-RES_SF    = ZONE_SF['RES']
+AG_TABLE = json.load(open(os.path.join(_here, '..', 'data', 'ag_areas.json')))
+ZONE_SF = {z['id'].replace('AG-', '').replace('BG', 'BG'): z['sf'] for z in AG_TABLE['zones']}
+clipped = {k: SPoly(v).buffer(0) for k, v in zones.items()}   # name kept; no clipping
+ZONE_SF['RES'] = AG_TABLE['totals_sf']['residential_excluded']
+CROP_SF    = AG_TABLE['totals_sf']['crop_subtotal']
+POULTRY_SF = AG_TABLE['totals_sf']['poultry']
+AG_TOTAL   = AG_TABLE['totals_sf']['ag_total']
+RES_SF     = AG_TABLE['totals_sf']['residential_excluded']
 AVAIL_SF  = GROSS_SF - RES_SF
 PCT_AG    = AG_TOTAL / GROSS_SF * 100
 PCT_AVAIL = AVAIL_SF / GROSS_SF * 100
@@ -397,47 +407,45 @@ for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
-# Front on Whirlwind Ln (west), rear east, interior sides north and south.
-# Drawn as a buildable envelope offset from the REAL lot lines.
+# The residence fronts HANDLEBAR RD, so that is the front yard. Whirlwind Ln on
+# the west is the exterior side yard; north and south are interior side yards.
 SB = '#0044aa'
 y_lo, y_hi = -16, 308
 
-# Whirlwind Ln: 30' road easement inside the west line, centreline at its middle
-ax.plot([0, 0], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
-ax.plot([ESMT_W, ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+# Whirlwind Ln: centreline at the west property line per owner, 30' road esmt.
 ax.plot([WL_CL_X, WL_CL_X], [y_lo, y_hi], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
-ax.text(WL_CL_X, 252, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
-        ha='center', fontweight='bold',
-        bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
-ax.text(WL_CL_X-6, 62, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center',
-        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.5))
-ax.text(ESMT_W+4, 246, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
+ax.plot([ESMT_W, ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+ax.text(WL_CL_X-9, 250, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
+        ha='center', fontweight='bold')
+ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
+ax.text(ESMT_W+4, 262, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
         ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
-# buildable envelope
+# buildable envelope (front from Handlebar ℄, exterior side from Whirlwind ℄,
+# interior sides from the north and south lot lines)
 for ring in rings(ENVELOPE):
     ax.add_patch(MPoly(ring, closed=True, fc='none', ec=SB, lw=1.3,
                        ls=(0,(7,3)), zorder=4))
 
-# yard labels along each edge
 ax.text(150, ENVELOPE.bounds[1]+9.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
         fontsize=6.6, ha='center', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
         fontsize=6.6, ha='center', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(ENVELOPE.bounds[0]+5, 232, f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L",
-        fontsize=6.6, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
+ax.text(SB_EXT+4, 190, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
+        fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(ENVELOPE.bounds[2]-5, 96, f"REAR YARD SETBACK {SB_REAR:.0f}'",
-        fontsize=6.6, rotation=90, va='center', ha='right', color=SB, fontweight='bold',
-        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-# front yard dimension tick, centreline to envelope
+ax.annotate(f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L HANDLEBAR RD\n"
+            f"(RESIDENCE FRONTS HANDLEBAR RD)",
+            (452, 168), (392, 214), fontsize=6.4, ha='center', color=SB,
+            fontweight='bold', zorder=8, arrowprops=dict(arrowstyle='-', lw=0.8, color=SB),
+            bbox=dict(fc='white', ec=SB, lw=0.8, alpha=0.95, pad=2.0))
 
-# ---- clearances from the store building to the real lot lines (PDS 090 convention)
+# ---- clearances from the store building to the lot lines / centrelines
 BARN_G = SPoly(BARN)
 D_W = BARN_G.distance(LINE_WCL); D_N = BARN_G.distance(LINE_N)
-D_S = BARN_G.distance(LINE_S);   D_E = BARN_G.distance(LINE_E)
+D_S = BARN_G.distance(LINE_S);   D_HB = BARN_G.distance(LINE_HB)
 def dim(p, q, txt, off=(0,0), fs=6.4, color='#8a4a00'):
     ax.annotate('', p, q, arrowprops=dict(arrowstyle='<->', lw=0.9, color=color), zorder=8)
     mx, my = (p[0]+q[0])/2+off[0], (p[1]+q[1])/2+off[1]
@@ -448,10 +456,9 @@ def dim(p, q, txt, off=(0,0), fs=6.4, color='#8a4a00'):
             bbox=dict(fc='white', ec='none', alpha=0.92, pad=1.2))
 _bx0, _by0, _bx1, _by1 = BARN_G.bounds
 dim((WL_CL_X, 172), (_bx0, 172), f"{D_W:.0f}' STORE BLDG. TO $\\mathcal{{C}}$L", off=(0, 5))
-dim((138, LINE_S.interpolate(LINE_S.project(Point(138, 0))).y),
-    (138, _by0), f"{D_S:.0f}' STORE BLDG. TO S P.L.", off=(6, 0))
-dim((124, _by1),
-    (124, LINE_N.interpolate(LINE_N.project(Point(124, 294))).y),
+dim((138, LINE_S.interpolate(LINE_S.project(Point(138, 0))).y), (138, _by0),
+    f"{D_S:.0f}' STORE BLDG. TO S P.L.", off=(6, 0))
+dim((124, _by1), (124, LINE_N.interpolate(LINE_N.project(Point(124, 294))).y),
     f"{D_N:.0f}' STORE BLDG. TO N P.L.", off=(6, 0))
 
 # ---- drainage arrows toward pond
@@ -719,7 +726,7 @@ hrule(y+0.002, 0.04, 0.96, 0.5); y -= 0.003
 tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.4, True, x=0.05); tline(y, f"{AG_TOTAL:,.0f} SF", 7.4, True, x=0.95, ha='right'); y -= 0.0122
 tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157.a.2.b.ii REQ.: 25% = {REQ_25_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0115
 tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES. AREAS ARE", 6.0, x=0.05); y -= 0.0098
-tline(y, "CLIPPED TO THE PARCEL BOUNDARY (NOTE 2).", 6.0, x=0.05); y -= 0.0125
+tline(y, "AERIAL-DERIVED AND FIELD-CORROBORATED (NOTE 2).", 6.0, x=0.05); y -= 0.0125
 hrule(y); y -= 0.0098
 
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
@@ -751,34 +758,34 @@ NOTES_TOP = y
 notes = [
  "1.  BOUNDARY: SHOWN PER COUNTY GIS PARCEL POLYGON (164,443 SF). THE ASSESSOR'S MAP",
  "     (BK 278 PG 36) SHOWS THE RECORD PARCEL AS 550.50' x 285.58' = 157,212 SF",
- "     (3.61 AC). THE TWO DIFFER; RECORDED PM 05062 GOVERNS AND IS NOT YET OBTAINED.",
- "     THE AG-USE TESTS ARE MET ON EITHER BASIS.",
- "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED AND FIELD-CORROBORATED; CROP",
- "     AREAS ARE CLIPPED TO THE PARCEL AND TABULATED AS CLIPPED. OWNER FIELD",
- "     VERIFICATION CONTINUING. AG-9 LEGS MEASURED 200'/130'/190'; W AND N CURVE OUT.",
+ "     (3.61 AC). RECORDED PM 05062 GOVERNS AND IS NOT YET OBTAINED. THE AG-USE",
+ "     TESTS ARE MET ON EITHER BASIS.",
+ "2.  AG AREAS AND STRUCTURE FOOTPRINTS ARE AERIAL-DERIVED AND FIELD-CORROBORATED.",
+ "     THE SOURCE AERIAL IS CROPPED TO THE PARCEL, SO CROP AREAS RUN TO THE PROPERTY",
+ "     LINE. OWNER FIELD VERIFICATION CONTINUING. AG-9 LEGS MEASURED 200' (W ALONG",
+ "     RD), 130' (N), 190' (E FENCE); THE W AND N BOUNDARIES CURVE OUTWARD.",
  "3.  NO GRADING AND NO NEW BUILDING PROPOSED. THIS PLAN DOCUMENTS EXISTING AG",
  "     OPERATIONS AND A PROPOSED SMALL AGRICULTURAL STORE (ZO §6157).",
- "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C: FRONT",
- "     60' FROM ℄, INTERIOR SIDE 15', EXTERIOR SIDE 35' FROM ℄, REAR 25'. FOOTNOTE",
- "     (d): A LOT FRONTING A PRIVATE EASEMENT UNDER 40' WIDE TAKES A 40' FRONT YARD",
- "     FROM ℄ — APPLIED HERE TO WHIRLWIND LN. FRONTAGE TO BE CONFIRMED WITH PDS.",
- "5.  EXISTING STRUCTURES WITHIN A REQUIRED YARD AS MAPPED: GARAGE/ACCESSORY 12.7',",
- "     NE CANOPY 0.9' AND NE SHED AT THE NORTH LINE (15' INTERIOR SIDE REQ'D); TINY",
- "     HOME 13.5' FROM WHIRLWIND ℄ (40' REQ'D). ALL EXISTING — NO NEW WORK PROPOSED",
- "     IN ANY YARD. POSITIONS AERIAL/GIS-DERIVED AND APPROXIMATE; CONFIRM EXISTING /",
- "     LEGAL-NONCONFORMING STATUS WITH PDS, A SURVEYOR'S SETBACK CERTIFICATE MAY BE",
- "     REQUIRED. THE PROPOSED STORE CLEARS EVERY REQUIRED YARD.",
+ "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C. THE",
+ "     RESIDENCE FRONTS HANDLEBAR RD, SO THAT IS THE FRONT YARD: 40' FROM ITS ℄ PER",
+ "     SCHEDULE C FOOTNOTE (d), A PRIVATE EASEMENT UNDER 40' WIDE. WHIRLWIND LN IS",
+ "     THE EXTERIOR SIDE YARD AT 35' FROM ℄; NORTH AND SOUTH ARE INTERIOR SIDE YARDS",
+ "     AT 15'. NO REAR YARD APPLIES — THE LOT FRONTS STREETS EAST AND WEST.",
+ "5.  EXISTING ACCESSORY STRUCTURES NEAR THE NORTH LINE (NE SHED 165 SF, NE CANOPY",
+ "     285 SF) LIE PARTLY WITHIN THE INTERIOR SIDE YARD. PERMITTED UNDER ZO §4842:",
+ "     WALLS ≥3' FROM THE LOT LINE AND COMBINED AREA WITHIN THE SETBACK (450 SF)",
+ "     UNDER THE 1,000 SF LIMIT. THE TINY HOME LIES WITHIN THE 35' EXTERIOR SIDE",
+ "     YARD AND IS TO BE REMOVED. NO NEW WORK IS PROPOSED IN ANY YARD, AND THE",
+ "     PROPOSED STORE CLEARS EVERY REQUIRED YARD.",
  "6.  POND IS AN EXISTING IRRIGATION SOURCE (PUMP) AND THE AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT (UNPERMITTED); MAY QUALIFY FOR THE AGRICULTURAL",
  "     BUILDING EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
  "8.  DRIVEWAY RUNS E-W FROM HANDLEBAR RD: GRAVEL BOTH ENDS, DIRT MID-SEGMENT PAST",
  "     THE RESIDENCE, 12' WIDE; SLOPE 2% DRAINING WEST TOWARD THE POND.",
- "9.  WHIRLWIND LN: 30' ROAD ESMT. ALONG THE WEST BOUNDARY, ℄ ASSUMED AT MID-ESMT.",
- "     HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST PORTION, ℄ SHOWN;",
- "     ASSESSOR'S MAP DIMENSIONS THAT CORRIDOR AS 30'. BOTH WIDTHS AND CENTRELINES TO",
- "     BE VERIFIED AGAINST PM 05062. IF PDS DEEMS HANDLEBAR RD THE FRONTAGE, A 40'",
- "     FRONT YARD FROM ITS ℄ WOULD APPLY.",
+ "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
+ "     THAT BOUNDARY. HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST",
+ "     PORTION, ℄ SHOWN; ASSESSOR'S MAP DIMENSIONS IT AS 30'. BOTH TO BE VERIFIED.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
  "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
  "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",

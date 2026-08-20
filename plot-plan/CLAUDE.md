@@ -26,8 +26,7 @@ take-to-county packet and `research/FINDINGS.md` for every citation.**
 
 1. **Gross vs net (was §6, "unresolved").** ZO §6157.a.2.b.ii says "25 percent of
    the **total gross area** of the premises." The denominator is **gross**:
-   164,443 SF, so the threshold is **41,111 SF**. Ag total (clipped to the
-   parcel) **53,063 SF = 32.3%**.
+   164,443 SF, so the threshold is **41,111 SF**. Ag total **57,696 SF = 35.1%**.
 2. **A70 setbacks (was §13.3, "confirm with PDS").** The parcel's zoning box from
    SanGIS is **A70 / L / 2AC / C / G / C / C** — setback designator **C**.
    ZO §4810 Schedule C row C: front **60'** from ℄, interior side **15'** from lot
@@ -166,14 +165,13 @@ of the total gross area of the premises**) shall be in actual active
 agricultural, horticultural, or animal husbandry use."
 
 **Gross is the denominator.** Gross = the county GIS parcel polygon,
-**164,443 SF**, so the requirement is **41,111 SF**. Ag total **53,063 SF =
-32.3% of gross**, margin **+11,952 SF**. (Rev 7 clips crop polygons to the
-parcel; ~3,134 SF of traced area lay outside the boundary and had been counted.)
+**164,443 SF**, so the requirement is **41,111 SF**. Ag total **57,696 SF =
+35.1% of gross**, margin **+16,585 SF**.
 
 There is a second test people miss — §6157(b)(i): **50% of gross** must be
 "suitable and available for agricultural, horticultural, animal husbandry or open
 space use" = 82,222 SF. Gross less the residential/domestic area (27,292 SF)
-leaves **137,125 SF = 83.4%**. Passes comfortably. Both tests are on the sheet.
+leaves **137,151 SF = 83.4%**. Passes comfortably. Both tests are on the sheet.
 
 PDS 090 item 12 still requires **net** area exclusive of road easements
 (157,251 SF) to be stated, so both figures belong on the plan for different
@@ -429,20 +427,22 @@ project**. Ask PDS Zoning before spending money. If they require a standalone
 building, the store moves to a separate ≤1,500 SF structure and the sheet
 changes accordingly.
 
-### Setback compliance — the store is safe, four existing structures are not
+### Setback compliance — the store is safe
 
-The barn holding the store clears **89' to the Whirlwind centreline, 109' and
-105' to the side lines, 413' to the rear**. Whichever frontage PDS calls the
-front, the store conforms.
+**The residence fronts Handlebar Rd, so that is the front yard** (owner
+correction, 19 Aug 2026). Handlebar is a private easement 30' wide where the
+assessor's map dimensions it, so Schedule C footnote (d) gives **40' from its
+centreline**. That makes **Whirlwind Ln the exterior side yard at 35' from ℄** —
+the figure the owner gave from the start — and north/south **interior side yards
+at 15'**. No rear yard applies; the lot fronts streets east and west.
 
-Four existing structures encroach and the sheet says so in note 5:
-garage/accessory **12.7'**, NE canopy **0.9'** and the NE shed **on the north
-line** against a 15' interior side yard; tiny home **13.5'** from the Whirlwind
-centreline against a 40' front yard. All existing, no new work in any yard.
+The barn holding the store clears **104' to the Whirlwind centreline, 109' and
+105' to the side lines**.
 
-**Do not reinstate the old §4842 argument.** Rev 6 claimed the NE shed and canopy
-were legal because their walls sit ≥3' from the lot line. They do not — §4842(a)
-requires 3' and they are at 0.0' and 0.9'. That claim was removed.
+The NE shed (165 SF) and canopy (285 SF) sit inside the 15' interior side yard
+and are legal under **ZO §4842**: walls ≥3' from the lot line, combined area
+within the setback 450 SF against a 1,000 SF limit. The tiny home encroaches the
+35' exterior side yard; removal, already planned, resolves it.
 
 ---
 
@@ -512,20 +512,26 @@ now computes geometry with **shapely**.
 What changed:
 
 - **Setbacks are a true buildable envelope**, built by subtracting each lot line
-  buffered by its required yard. The old north setback line converged to about
-  2.6' of the property line at the NE corner while claiming 15'.
-- **Yard assignment is now coherent.** Front on Whirlwind (west) at 40' from
-  centreline under Schedule C footnote (d) — a private easement under 40' wide;
-  rear east 25'; interior sides north and south 15'. Rev 6 had an exterior side
-  yard on the west and a rear on the east, which left the parcel with no front
-  yard at all — and PDS 090 requires all four named.
-- **Crop polygons are clipped to the parcel.** ~3,134 SF of traced crop area lay
-  outside the boundary and was being counted, and it was visible on the sheet:
-  AG-11 spilled 1,896 SF, AG-3 647 SF. Tabulated areas are now the clipped ones
-  and are **computed from the geometry**, so the tables and the drawing cannot
-  disagree.
-- **Clearances recomputed** — see §16 above. The blanket "all structures clear
-  every yard" claim was false and is gone.
+  or centreline buffered by its required yard. The old north setback line
+  converged to about 2.6' of the property line at the NE corner while claiming
+  15'.
+- **Yard assignment follows the house.** Front on **Handlebar Rd** at 40' from
+  its centreline (Schedule C footnote (d), private easement under 40' wide);
+  **Whirlwind Ln is the exterior side yard at 35' from ℄**; north and south are
+  interior side yards at 15'. No rear yard — street frontage east and west.
+
+  **Two wrong turns to avoid.** Rev 6 gave the parcel no front yard at all
+  (exterior side west, rear east). An intermediate rev 7 draft then put the front
+  on *Whirlwind*, which the owner corrected: the front follows the residence,
+  and the residence faces Handlebar.
+- **Crop polygons are NOT clipped, and must not be.** An intermediate rev 7 draft
+  clipped them to the GIS polygon on a QA report of ~3,134 SF lying outside the
+  boundary. That was wrong and was reverted. The aerial is cropped exactly to the
+  parcel — the image edge *is* the property line (§9) — so a traced crop cannot
+  be outside the property. The check had measured the aerial rectangle against
+  the GIS polygon, which is the boundary discrepancy, not crops crossing a line.
+  Tabulated areas come from `data/ag_areas.json`: **57,696 SF**.
+- **Clearances recomputed** — see §16 above.
 - **Every property line segment is dimensioned**, including the 13.1', 20.0' and
   1.0' courses that the old code skipped with a `d < 22` filter.
 - **The boundary discrepancy is disclosed** (note 1): the drawn GIS polygon is

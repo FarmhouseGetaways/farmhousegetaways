@@ -38,16 +38,15 @@ You will still need:
 |---|---:|
 | Total gross area of the premises | 164,443 SF (3.78 ac) |
 | §6157.a.2.b.i — 50% suitable & available | 82,222 SF required |
-| Provided (gross less residential/domestic) | **137,125 SF = 83.4%** |
+| Provided (gross less residential/domestic) | **137,151 SF = 83.4%** |
 | §6157.a.2.b.ii — 25% in active agricultural use | 41,111 SF required |
-| Provided (crops 46,749 + poultry 6,315) | **53,063 SF = 32.3%** |
-| Margin over the 25% test | **+11,952 SF** |
-| Record parcel per the assessor's map | 157,212 SF — ag use 33.8% |
+| Provided (crops 51,365 + poultry 6,331) | **57,696 SF = 35.1%** |
+| Margin over the 25% test | **+16,585 SF** |
+| Record parcel per the assessor's map | 157,212 SF — ag use 36.7% |
 | Net area excl. road easements (PDS 090 item 12) | 157,251 SF (3.61 ac) |
 
-Crop areas are **clipped to the property line**. About 3,134 SF of the traced
-areas fell outside the boundary and is no longer counted, which is why the total
-moved from 57,696 SF. It still clears the requirement by nearly 12,000 SF.
+The source aerial is cropped exactly to your property line, so the traced crop
+areas run to the boundary and none falls outside it.
 
 **The denominator is gross, not net.** §6157(b)(ii) says "25 percent of the total
 gross area of the premises." This settles the gross-vs-net question that was open
@@ -70,15 +69,20 @@ The parcel's zoning box, pulled live from SanGIS, is
 The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
-**The barn holding the store clears every yard by a wide margin** — 89' to the
-Whirlwind centreline, 109' and 105' to the side lines, 413' to the rear — so the
-store site conforms no matter which frontage the county calls the front.
+**The residence fronts Handlebar Rd, so that is the front yard** — 40' from its
+centreline under Schedule C footnote (d), because Handlebar is a private easement
+under 40' wide. Whirlwind Ln on the west is the **exterior side yard at 35' from
+centreline**, which is the figure you gave from the start. North and south are
+**interior side yards at 15'**. No rear yard applies; the lot fronts streets east
+and west.
 
-Four existing structures do sit inside a required yard: the garage/accessory at
-12.7', the NE canopy at 0.9' and the NE shed on the north line (15' required),
-and the tiny home 13.5' from the Whirlwind centreline (40' required). All are
-existing and no new work is proposed in any yard. The sheet discloses them in
-note 5. Removing the tiny home, already planned, clears one of the four.
+**The barn holding the store clears every yard by a wide margin** — 104' to the
+Whirlwind centreline, 109' and 105' to the side lines.
+
+The NE shed and canopy sit inside the 15' interior side yard and are legal under
+§4842 (walls ≥3' off the line, 450 SF combined against a 1,000 SF limit). The
+tiny home encroaches the 35' exterior side yard; removing it, already planned,
+resolves that.
 
 ## The three questions to ask at the counter
 
@@ -123,7 +127,7 @@ These are on the sheet as notes rather than hidden:
   Nothing is drawn. Note 10 defers it. Walk the property with a tape, note the
   pool barrier, the bird garden and the perimeter runs, and send me the heights
   and rough locations; they go on the sheet in one pass.
-- **Tiny home** sits 13.5' from the Whirlwind centreline, inside the 40' front yard.
+- **Tiny home** sits 29' from the west line, inside the 35' exterior side yard.
   Removing it — already the plan — resolves the encroachment. Better to remove it
   before submitting so it comes off the sheet entirely.
 - **Greenhouse** is shown honestly as as-built/unpermitted. Ask whether it

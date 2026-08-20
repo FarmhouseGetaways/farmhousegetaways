@@ -85,46 +85,40 @@ Measured clearances from each structure to the property lines:
 Measured to the **actual lot lines** (rev 6 measured to the parcel's bounding
 box, which was wrong — see the correction note below):
 
-| Structure | N side (15') | S side (15') | Rear E (25') | Front, to Whirlwind ℄ (40') |
-|---|---:|---:|---:|---:|
-| Barn / **proposed store** | **109'** | **105'** | **413'** | **89'** |
-| SFD | 19.6' | 213' | 159' | 307' |
-| Garage / accessory | **12.7'** ✗ | 219' | 104' | 418' |
-| Shed NW | 46.6' | 218' | 495' | 51.7' |
-| Trellis garden | 152' | 105' | 323' | 215' |
-| Greenhouse | 179' | 90' | 267' | 279' |
-| Coop / run | 182' | 70' | 243' | 311' |
-| Shed NE | **0.0'** ✗ | 275' | 95' | 459' |
-| Canopy NE | **0.9'** ✗ | 268' | 66' | 480' |
-| Tiny home (to be removed) | 130' | 105' | 531' | **13.5'** ✗ |
+| Structure | N side (15') | S side (15') | Exterior side, to Whirlwind ℄ (35') |
+|---|---:|---:|---:|
+| Barn / **proposed store** | **109'** | **105'** | **104'** |
+| SFD | 19.6' | 213' | 322' |
+| Garage / accessory | 22' | 219' | 433' |
+| Shed NW | 46.6' | 218' | 67' |
+| Trellis garden | 152' | 105' | 230' |
+| Greenhouse | 179' | 90' | 294' |
+| Coop / run | 182' | 70' | 326' |
+| Shed NE | ~5' | 275' | 474' |
+| Canopy NE | ~12' | 268' | 495' |
+| Tiny home (to be removed) | 130' | 105' | **29'** ✗ |
 
-**The barn clears every yard by a wide margin, so the store site is safe under
-any frontage determination.** That is the finding that matters.
+**The barn clears every yard by a wide margin, so the store site is safe.** That
+is the finding that matters.
 
-Four existing structures do encroach:
+The NE shed (165 SF) and canopy (285 SF) sit inside the 15' interior side yard,
+and both are legal under **§4842**: walls ≥3' from the lot line, and combined
+area within the setback of **450 SF** against a 1,000 SF limit. The tiny home at
+29' encroaches the 35' exterior side yard; removal, already planned, resolves it.
 
-- **Garage/accessory 12.7'**, **NE canopy 0.9'**, and the **NE shed sitting on the
-  north line** — all inside the 15' interior side yard.
-- **Tiny home 13.5' from the Whirlwind centreline** against a 40' front yard.
-  Removal, already planned, resolves it.
+### Which line is the front — settled by the owner
 
-All are existing, and no new work is proposed in any yard. The sheet states this
-plainly (note 5) rather than claiming compliance.
+**The residence fronts Handlebar Rd, so that is the front yard.** Handlebar is a
+private road easement 30' wide where the assessor's map dimensions it, so
+Schedule C footnote (d) gives a **40' front yard from its centreline**.
 
-### Correction — rev 6 got these clearances wrong
+That makes **Whirlwind Ln the exterior side yard at 35' from centreline** —
+exactly the figure the owner gave from the start — with **north and south as
+interior side yards at 15'**. No rear yard applies: the lot has street frontage
+east and west.
 
-Rev 6 measured every clearance to the parcel's **bounding box** instead of its
-actual sloping property lines, and drew the setback lines the same way. That
-produced a table showing the NE shed 5' inside the line when it is in fact *on*
-it, the canopy at 12' when it is at 0.9', and a north setback line that
-converged to about 2.6' of the property line at the NE corner instead of holding
-15'. It also let rev 6 assert "all structures clear every yard", which is false.
-
-Rev 7 computes everything against the real lot lines with shapely, and draws the
-setbacks as a true buildable envelope. **An earlier §4842 argument — that the NE
-shed and canopy were legal because their walls are ≥3' from the line — does not
-hold**, because neither is: §4842(a) requires 3' and they are at 0.0' and 0.9'.
-That claim has been removed from the sheet.
+An earlier draft put the front on Whirlwind. That was wrong; the front follows
+the house.
 
 ## 4. The one real obstacle: building size
 
