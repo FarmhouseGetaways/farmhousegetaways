@@ -64,7 +64,6 @@
 
   function boot() {
     canvas = document.getElementById('screen');
-    if (CF.Photos) CF.Photos.preload();
     game = new CF.Game(canvas);
     CF.game = game;
     resize();

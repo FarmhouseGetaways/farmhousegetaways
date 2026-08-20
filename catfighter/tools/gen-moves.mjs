@@ -11,6 +11,10 @@ import { loadGame } from '../test/harness.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const { CF } = loadGame();
 
+/* The four-button inputs come from the game itself, so the move list and the
+   in-game character card can never end up naming different buttons. */
+const SIMPLE = CF.Card.SIMPLE_INPUT;
+
 const MOTION_NAMES = {
   qcf: 'down, down-forward, forward',
   qcb: 'down, down-back, back',
@@ -107,6 +111,10 @@ let out = `# Move list
 | **KICK + BLOCK** | throw |
 | **LT + RT** | super, on a full meter |
 
+Every cat's specials and super are asked for the same way on this scheme, and
+the **ROSTER** screen on the title menu shows each cat's three moves with the
+buttons for whichever scheme is switched on.
+
 Hold **forward** with a special to get the heavy version. There are no motion
 inputs in this scheme — the frame data below still applies, only the way you
 ask for a move changes. The **CLASSIC** six-button layout with quarter-circles
@@ -154,20 +162,27 @@ ${c.blurb.replace(/\n/g, '  \n')}
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
 `;
+  c.specials.forEach((m, i) => {
+    out += `| **${m.name}** | ${SIMPLE[i] || SIMPLE[0]} | ${inputOf(m)} | ${dmgOf(m)} | ${m.startup} | ${m.active} | ${m.recovery} | ${notesOf(m)} |\n`;
+  });
+  out += '\n';
   for (const m of c.specials) {
-    out += `| **${m.name}** | ${inputOf(m)} | ${dmgOf(m)} | ${m.startup} | ${m.active} | ${m.recovery} | ${notesOf(m)} |\n`;
+    if (m.desc) out += `**${m.name}** — ${m.desc}\n\n`;
   }
-  out += `
-### Super *
+  out += `### Super
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
 `;
   for (const m of c.supers) {
-    out += `| **${m.name}** | ${inputOf(m)} | ${dmgOf(m)} | ${m.startup} | ${m.active} | ${m.recovery} | ${notesOf(m)} |\n`;
+    out += `| **${m.name}** | DODGE + LUNGE | ${inputOf(m)} | ${dmgOf(m)} | ${m.startup} | ${m.active} | ${m.recovery} | ${notesOf(m)} |\n`;
+  }
+  out += '\n';
+  for (const m of c.supers) {
+    if (m.desc) out += `**${m.name}** — ${m.desc}\n\n`;
   }
 
   out += `
@@ -185,12 +200,6 @@ ${c.blurb.replace(/\n/g, '  \n')}
 }
 
 out += `---
-
-\\* **Every super was invented, not given.** The owner named two special moves
-per cat and nothing else, so the supers are a first guess and are the first
-thing to change on request.
-
----
 
 ## Stages
 

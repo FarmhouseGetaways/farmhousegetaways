@@ -38,9 +38,13 @@
     };
 
     this.menuIndex = 0;
-    this.menuItems = ['ARCADE', 'VERSUS', 'TRAINING', 'CONTROLS', 'OPTIONS'];
+    this.menuItems = ['ARCADE', 'VERSUS', 'TRAINING', 'ROSTER', 'CONTROLS', 'OPTIONS'];
     this.optIndex = 0;
     this.select = { cursor: [0, 3], locked: [false, false], stage: 0, phase: 'chars' };
+    /* the character card: browsed from the title, and shown once when you
+       lock a cat in */
+    this.roster = { cat: 0, pick: 0 };
+    this.reveal = { t: 0, chr: null };
     this.arcade = { step: 0, order: [] };
     this.ghost = [0, 0];
     this.announce = null;
@@ -143,6 +147,8 @@
       case 'title':    this.stepTitle(); break;
       case 'select':   this.stepSelect(); break;
       case 'fight':    this.stepFight(); break;
+      case 'roster':   this.stepRoster(); break;
+      case 'reveal':   this.stepReveal(); break;
       case 'controls': this.stepControls(); break;
       case 'options':  this.stepOptions(); break;
       case 'result':   this.stepResult(); break;
@@ -175,10 +181,16 @@
   /* Rects shared between drawing and hit-testing, so the two can never drift
      apart — a menu item you can see but not click is worse than no mouse
      support at all. */
+  /* The menu is laid out to fit however many items it has, from the bottom of
+     the logo down to the hint line. Six items at the old fixed spacing ran
+     OPTIONS straight through the keyboard hint. */
   Game.prototype.titleRects = function () {
+    var n = this.menuItems.length;
+    var top = 120, bottom = H - 26;
+    var step = Math.min(15, Math.floor((bottom - top) / n));
     var out = [];
-    for (var m = 0; m < this.menuItems.length; m++) {
-      out.push({ x: W / 2 - 68, y: 132 + m * 15 - 11, w: 136, h: 15, i: m });
+    for (var m = 0; m < n; m++) {
+      out.push({ x: W / 2 - 68, y: top + m * step, w: 136, h: step, i: m });
     }
     return out;
   };
@@ -222,7 +234,11 @@
       }
       return this.selectRects();
     }
-    if (this.scene === 'controls' || this.scene === 'result') {
+    if (this.scene === 'roster') {
+      var rr = this.rosterRects();
+      return [rr.prev, rr.next, rr.back].concat(rr.rows);
+    }
+    if (this.scene === 'controls' || this.scene === 'result' || this.scene === 'reveal') {
       return [{ x: 0, y: 0, w: W, h: H }];
     }
     return [];
@@ -252,7 +268,8 @@
     if (this.anyStart() || clicked >= 0) {
       CF.Audio.init(); CF.Audio.play('select');
       var pick = this.menuItems[this.menuIndex];
-      if (pick === 'CONTROLS') { this.scene = 'controls'; }
+      if (pick === 'ROSTER') { this.scene = 'roster'; this.roster.pick = 0; this._navCool = 10; }
+      else if (pick === 'CONTROLS') { this.scene = 'controls'; }
       else if (pick === 'OPTIONS') { this.scene = 'options'; this.optIndex = 0; }
       else {
         this.settings.mode = pick.toLowerCase();
@@ -332,6 +349,99 @@
     }
   };
 
+  /* ---- the character card -------------------------------------------------
+
+     Two ways in. ROSTER on the title screen is the one you can sit and read:
+     every cat, every special, and the buttons that bring it out on whichever
+     control scheme is switched on. The other is the beat after you lock a cat
+     in, which is the same card with the reading matter taken off it.       */
+
+  Game.prototype.rosterRects = function () {
+    var rows = CF.Card.moveRows(CF.ROSTER[this.roster.cat]);
+    var nx = W * 0.45, ry = 84, step = 25;
+    var out = { prev: { x: 0, y: 60, w: 26, h: 104 },
+                next: { x: W - 26, y: 60, w: 26, h: 104 },
+                back: { x: 0, y: H - 14, w: W, h: 14 },
+                rows: [] };
+    for (var i = 0; i < rows.length; i++) {
+      out.rows.push({ x: nx - 7, y: ry + i * step - 11, w: W - nx - 3, h: step - 3, i: i });
+    }
+    return out;
+  };
+
+  Game.prototype.stepRoster = function () {
+    var p = this.ports[0], n = CF.ROSTER.length;
+    if (this._navCool > 0) this._navCool--;
+    var r = this.rosterRects();
+
+    for (var i = 0; i < r.rows.length; i++) {
+      if (this.hover(r.rows[i])) this.roster.pick = r.rows[i].i;
+      if (this.hit(r.rows[i])) this.roster.pick = r.rows[i].i;
+    }
+    if (this.hit(r.prev)) { this.roster.cat = (this.roster.cat + n - 1) % n; this.roster.pick = 0; CF.Audio.play('cursor'); }
+    else if (this.hit(r.next)) { this.roster.cat = (this.roster.cat + 1) % n; this.roster.pick = 0; CF.Audio.play('cursor'); }
+    else if (this.hit(r.back)) { this.scene = 'title'; CF.Audio.play('cursor'); return; }
+
+    if (!this._navCool) {
+      var d = p.dir;
+      if (d === 4 || d === 7 || d === 1) {
+        this.roster.cat = (this.roster.cat + n - 1) % n; this.roster.pick = 0;
+        this._navCool = 11; CF.Audio.play('cursor');
+      }
+      if (d === 6 || d === 9 || d === 3) {
+        this.roster.cat = (this.roster.cat + 1) % n; this.roster.pick = 0;
+        this._navCool = 11; CF.Audio.play('cursor');
+      }
+      if (d === 8) { this.roster.pick = (this.roster.pick + 2) % 3; this._navCool = 11; CF.Audio.play('cursor'); }
+      if (d === 2) { this.roster.pick = (this.roster.pick + 1) % 3; this._navCool = 11; CF.Audio.play('cursor'); }
+      if (p.cancelPressed() || p.confirmPressed()) {
+        this.scene = 'title'; this._navCool = 12; CF.Audio.play('cursor');
+      }
+    }
+  };
+
+  Game.prototype.drawRoster = function (ctx) {
+    var chr = CF.ROSTER[this.roster.cat];
+    CF.Card.draw(ctx, chr, { t: this.t, intro: 1, detail: true, pick: this.roster.pick });
+
+    /* the arrows, drawn where rosterRects says they are */
+    var r = this.rosterRects(), t = this.t;
+    [[r.prev, -1], [r.next, 1]].forEach(function (a) {
+      var rect = a[0], dir = a[1];
+      var mx = rect.x + rect.w / 2 + Math.sin(t * 0.12) * dir * 1.5;
+      var my = rect.y + rect.h / 2;
+      ctx.fillStyle = 'rgba(255,224,122,.75)';
+      ctx.beginPath();
+      ctx.moveTo(mx + dir * 5, my);
+      ctx.lineTo(mx - dir * 4, my - 7);
+      ctx.lineTo(mx - dir * 4, my + 7);
+      ctx.closePath();
+      ctx.fill();
+    });
+    HUD.text(ctx, (this.roster.cat + 1) + ' / ' + CF.ROSTER.length, W / 2, 10, 7,
+             'rgba(255,240,220,.55)', 'center', 700, 1);
+    HUD.text(ctx, 'LEFT AND RIGHT FOR ANOTHER CAT   ·   UP AND DOWN FOR A MOVE   ·   BACK TO LEAVE',
+             W / 2, H - 4, 6.4, 'rgba(255,240,220,.5)', 'center', 700, 0.4);
+  };
+
+  Game.prototype.stepReveal = function () {
+    this.reveal.t++;
+    var done = this.reveal.t > 26 && (this.anyStart() || this.ports[0].cancelPressed() ||
+                                      this.pointer.clicked);
+    if (done || this.reveal.t > 190) {
+      this.scene = 'select';
+      this.select.phase = 'stage';
+      this._navCool = 14;
+    }
+  };
+
+  Game.prototype.drawReveal = function (ctx) {
+    CF.Card.draw(ctx, this.reveal.chr || CF.ROSTER[0], {
+      t: this.t, intro: Math.min(1, this.reveal.t / 26), detail: false,
+      prompt: 'PRESS ANYTHING TO GO ON'
+    });
+  };
+
   /* ---- character select ---------------------------------------------------
 
      Two phases: pick your cat, then pick where the fight happens. The stage
@@ -384,6 +494,14 @@
     if (ready) {
       this.select.phase = 'stage';
       this._navCool = 14;
+      /* One cat picked, one card. In versus there are two picks and showing
+         one of them would be a strange thing to do, so it is skipped. */
+      if (this.settings.mode !== 'versus') {
+        this.reveal.chr = CF.ROSTER[this.select.cursor[0]];
+        this.reveal.t = 0;
+        this.scene = 'reveal';
+        CF.Audio.play('select');
+      }
     }
   };
 
@@ -779,6 +897,8 @@
       case 'title':    this.drawTitle(ctx); break;
       case 'select':   if (this.select.phase === 'stage') this.drawStageSelect(ctx);
                        else this.drawSelect(ctx); break;
+      case 'roster':   this.drawRoster(ctx); break;
+      case 'reveal':   this.drawReveal(ctx); break;
       case 'controls': this.drawControls(ctx); break;
       case 'options':  this.drawOptions(ctx); break;
       case 'fight':    this.drawFight(ctx); break;
@@ -837,12 +957,15 @@
     HUD.outlineText(ctx, 'II', W / 2, 92, 30, '#ff7a4a', '#2a0e18');
     HUD.text(ctx, 'THE FARMHOUSE WARRIORS', W / 2, 106, 9, '#ffd9b0', 'center', 700, 2.2);
 
-    for (var m = 0; m < this.menuItems.length; m++) {
-      var sel = m === this.menuIndex;
-      var y = 132 + m * 15;
+    /* Drawn from the same rects the click lands in, so a menu item can never
+       appear somewhere the hit test does not know about. */
+    var tr = this.titleRects();
+    for (var m = 0; m < tr.length; m++) {
+      var r = tr[m], sel = m === this.menuIndex;
+      var y = r.y + r.h - 3;
       if (sel) {
         ctx.fillStyle = 'rgba(255,224,122,.16)';
-        ctx.fillRect(W / 2 - 66, y - 10, 132, 14);
+        ctx.fillRect(r.x + 2, r.y, r.w - 4, r.h - 1);
       }
       HUD.text(ctx, this.menuItems[m], W / 2, y, sel ? 12 : 11,
                sel ? '#ffe07a' : 'rgba(255,240,220,.62)', 'center', sel ? 800 : 700, 1.4);
@@ -910,15 +1033,8 @@
     ctx.fillRect(14, by, W - 28, H - by - 8);
     drawFighterAt(ctx, sel, CF.Anim.cycle([CF.Pose.stand, CF.Pose.standC], 24, t),
                   46, H - 12, 0.62, 1, { eyes: 'angry' });
-    /* If a real photograph of this cat has been dropped into assets/cats/,
-       show it beside the fighter. Absent, the card just closes up. */
-    var photoW = 0;
-    if (CF.Photos && CF.Photos.has(sel.id)) {
-      CF.Photos.drawCircle(ctx, sel.id, 96, by + 26, 19);
-      photoW = 44;
-    }
-    HUD.text(ctx, sel.displayName, 86 + photoW, by + 16, 15, '#ffe07a', 'left', 800, 1.4);
-    HUD.text(ctx, sel.subtitle, 86 + photoW, by + 27, 9, '#ffb8a0', 'left', 700, 1);
+    HUD.text(ctx, sel.displayName, 86, by + 16, 15, '#ffe07a', 'left', 800, 1.4);
+    HUD.text(ctx, sel.subtitle, 86, by + 27, 9, '#ffb8a0', 'left', 700, 1);
 
     /* The blurb wraps inside the column so a longer one written later cannot
        run underneath the stage and difficulty readouts on the right. */
@@ -1400,9 +1516,6 @@
     } else {
       HUD.outlineText(ctx, 'WINNER', W / 2, 38, 24, '#ffe07a', '#2a0e18');
       HUD.outlineText(ctx, champ.chr.displayName, W / 2, 60, 20, '#fff', '#2a0e18');
-    }
-    if (CF.Photos && CF.Photos.has(champ.chr.id)) {
-      CF.Photos.drawCircle(ctx, champ.chr.id, W - 52, 56, 30);
     }
     HUD.text(ctx, 'PRESS ENTER', W / 2, H - 10, 9,
              this.t % 60 < 36 ? '#ffe07a' : 'rgba(255,224,122,.25)', 'center', 800, 1.4);

@@ -560,18 +560,32 @@ Three things a later session needs to know:
   flying body + leg sweep), LILLY (light, flip attack + crane kick), FIGURO
   (medium, rapid paws + an invincible retreat), RUBY (heavy, crushing bite +
   charge flip kick). Each block is in `catfighter/src/characters.js`.
-  **Every super was invented, not given** — the owner has been asked about all
-  six and has not answered yet. So were Gracie's eye colour and the spelling of
-  FIGURO (it may be Figaro). Do not treat any of those as settled.
+  The supers were invented rather than given, and on 20 Aug 2026 **the owner
+  accepted them as they stand**, on the condition that they are properly
+  documented — so that item is closed. Gracie's eye colour and the spelling of
+  FIGURO (it may be Figaro) are still guesses.
+- **Every cat has a character card**, `catfighter/src/card.js`, added 20 Aug
+  2026 in the style of Broforce's unlock screens: the cat lit from behind by
+  turning rays, its name, its weight class, and its two specials and super
+  with the buttons that bring them out. `ROSTER` on the title menu browses all
+  six with a plain sentence on what each move does; the same card without the
+  reading matter is the beat after you lock a cat in.
+- **The card prints the buttons for the scheme that is switched on.** A move
+  list naming quarter-circles at somebody on the four-button layout is worse
+  than no move list. `CF.Card.moveRows` is the one source of those inputs, and
+  `tools/gen-moves.mjs` imports it — so `MOVES.md` and the in-game card cannot
+  disagree about how a move is done.
+- **The owner does not want real photographs of the cats in the game.** Asked
+  and answered, 20 Aug 2026: a drawn character card is what they wanted
+  instead. `src/photos.js` and the `photo:` field are gone; do not put them
+  back.
 - **Weight classes are the balance backbone.** `weightClass` on each cat picks
   a row of `CLASSES` in `fighter.js`, which multiplies damage taken, stun taken
   and knockback. Heavy takes 14% less and barely moves; light takes 15% more
   and flies. Tests assert the ordering in both directions and that a light cat
   cannot also be tough. Do not add a cat without a class.
-- **Photographs**: the owner pastes them into the chat, which a session can see
-  but cannot save. Colours were read by eye. **Ask for a zip or a Drive folder**
-  if the actual photographs are wanted on the select screen (`photo:` on the
-  cat, files in `catfighter/assets/cats/`).
+- **Photographs**: the colours were read by eye from photographs pasted into
+  the chat. That is all they are needed for — see the character card above.
 - **The menus take the mouse, and that is not decoration.** A page in an iframe
   gets no key presses until it has focus, so a keyboard-only title screen is
   dead on arrival in an artifact viewer — which is exactly what the owner hit
@@ -607,6 +621,10 @@ Three things a later session needs to know:
   a frame against a 16.7ms budget** — twenty times the cost of putting it in
   the fill, for the same picture. It also double-darkens wherever two parts
   overlap.
+- **A negative `globalAlpha` is silently ignored by canvas**, which leaves the
+  previous value in place. One ray on the character card whose brightness
+  dipped a hair below zero therefore drew at full opacity, as a solid white
+  wedge across the screen. Clamp anything going into `globalAlpha`.
 - **Two drawing rules are covered by tests** that replay the drawing against a
   recording context, because neither leaves a trace in the finished picture:
   the contour must go down before any fill, and every body part must be lit by

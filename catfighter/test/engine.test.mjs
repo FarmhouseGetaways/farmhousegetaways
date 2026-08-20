@@ -1175,6 +1175,14 @@ function menuGame() {
 }
 
 /* Put the pointer in the middle of a rect and press. */
+/* By name, not by position — a new menu item should not break every test
+   that happened to sit below it. */
+function menuRect(g, label) {
+  const i = g.menuItems.indexOf(label);
+  assert.notEqual(i, -1, `no ${label} on the title menu`);
+  return g.titleRects()[i];
+}
+
 function clickRect(g, r) {
   g.pointer.x = r.x + r.w / 2;
   g.pointer.y = r.y + r.h / 2;
@@ -1227,20 +1235,21 @@ test('the title menu has one rect per item, in order', () => {
 test('a click picks the title item under it, not the highlighted one', () => {
   const g = menuGame();
   g.menuIndex = 0;                                  // ARCADE is lit
-  clickRect(g, g.titleRects()[1]);                      // but VERSUS is pressed
-  assert.equal(g.menuIndex, 1);
+  const versus = g.menuItems.indexOf('VERSUS');
+  clickRect(g, menuRect(g, 'VERSUS'));                // but VERSUS is pressed
+  assert.equal(g.menuIndex, versus);
   assert.equal(g.scene, 'select');
   assert.equal(g.settings.mode, 'versus');
 });
 
 test('a click reaches CONTROLS and OPTIONS, and comes back out again', () => {
   const g = menuGame();
-  clickRect(g, g.titleRects()[3]);
+  clickRect(g, menuRect(g, 'CONTROLS'));
   assert.equal(g.scene, 'controls');
   g.pointer.clicked = true; g.step();               // any click leaves
   assert.equal(g.scene, 'title');
 
-  clickRect(g, g.titleRects()[4]);
+  clickRect(g, menuRect(g, 'OPTIONS'));
   assert.equal(g.scene, 'options');
   const rows = g.optionRows();
   clickRect(g, g.optionRects(rows.length)[rows.length - 1]);   // BACK, the last row
@@ -1261,12 +1270,17 @@ test('clicking an options row changes that row', () => {
 test('a click picks a cat and a stage, and starts the match', () => {
   const g = menuGame();
   g.arcade = { step: 0, order: [] };
-  clickRect(g, g.titleRects()[0]);                      // ARCADE
+  clickRect(g, menuRect(g, 'ARCADE'));
   assert.equal(g.scene, 'select');
 
   clickRect(g, g.selectRects()[4]);                     // fifth cat
   assert.equal(g.select.cursor[0], 4);
-  assert.equal(g.select.phase, 'stage', 'one click should lock in and move on');
+  assert.equal(g.scene, 'reveal', 'locking a cat in should show its card');
+  assert.equal(g.reveal.chr.id, CF.ROSTER[4].id);
+  for (let f = 0; f < 30; f++) g.step();               // let the card arrive
+  g.pointer.clicked = true; g.step();                  // then click past it
+  assert.equal(g.scene, 'select');
+  assert.equal(g.select.phase, 'stage', 'and then move on to the stage');
 
   const st = g.stageRects();
   const before = g.select.stage;
@@ -1278,6 +1292,8 @@ test('a click picks a cat and a stage, and starts the match', () => {
   assert.equal(g.select.locked[0], false, 'backing out should unlock the cat');
 
   clickRect(g, g.selectRects()[0]);
+  for (let f = 0; f < 30; f++) g.step();
+  g.pointer.clicked = true; g.step();
   clickRect(g, g.stageRects().go);
   assert.equal(g.scene, 'fight');
   assert.equal(g.p1.chr.id, CF.ROSTER[0].id);
@@ -1285,7 +1301,7 @@ test('a click picks a cat and a stage, and starts the match', () => {
 
 test('in versus the mouse moves on to whoever has not locked in', () => {
   const g = menuGame();
-  clickRect(g, g.titleRects()[1]);                      // VERSUS
+  clickRect(g, menuRect(g, 'VERSUS'));
   clickRect(g, g.selectRects()[2]);
   assert.equal(g.select.locked[0], true);
   assert.equal(g.select.locked[1], false);
@@ -1301,8 +1317,9 @@ test('in versus the mouse moves on to whoever has not locked in', () => {
 
 test('a pointer left resting on a menu does not fight the keyboard', () => {
   const g = menuGame();
-  hoverRect(g, g.titleRects()[3]);                     // hover CONTROLS
-  assert.equal(g.menuIndex, 3);
+  const ci = g.menuItems.indexOf('CONTROLS');
+  hoverRect(g, menuRect(g, 'CONTROLS'));
+  assert.equal(g.menuIndex, ci);
 
   g.pointer.moved = false;                          // the mouse now sits still
   g.menuIndex = 0;                                  // and the pad moves the cursor
@@ -1403,4 +1420,85 @@ test('the tail tapers from the rump to the tip', () => {
   };
   CF.Rig.tailPath(probe, j, 6, 2);
   assert.ok(seen.length > 8, 'the tail outline should be built from samples');
+});
+
+/* ---- the character card --------------------------------------------------
+
+   The card is where a player finds out what a special does and which buttons
+   bring it out. A move that reaches the roster with no description, or with
+   an input line that is empty on the scheme they happen to be playing, is a
+   silent gap in the only documentation most people will ever read.        */
+
+test('every cat card lists two specials and a super, all documented', () => {
+  for (const chr of CF.ROSTER) {
+    const rows = CF.Card.moveRows(chr);
+    assert.equal(rows.length, 3, `${chr.id}: expected two specials and a super`);
+    assert.equal(rows[2].big, true, `${chr.id}: the last row should be the super`);
+    for (const r of rows) {
+      assert.ok(r.name && r.name.length > 2, `${chr.id}: a move with no name`);
+      assert.ok(r.desc && r.desc.length > 20,
+        `${chr.id}/${r.name}: no description — nothing tells the player what it does`);
+      assert.ok(/[.!]$/.test(r.desc), `${chr.id}/${r.name}: description is not a sentence`);
+    }
+  }
+});
+
+test('the card names the buttons for the scheme actually being played', () => {
+  const was = CF.Input.getScheme();
+  try {
+    CF.Input.setScheme('simple');
+    for (const chr of CF.ROSTER) {
+      const rows = CF.Card.moveRows(chr);
+      assert.equal(rows.map(r => r.input).join(' | '),
+        'PUNCH + KICK | PUNCH + BLOCK | DODGE + LUNGE',
+        `${chr.id}: the four-button scheme asks for every cat's moves the same way`);
+    }
+    CF.Input.setScheme('classic');
+    for (const chr of CF.ROSTER) {
+      for (const r of CF.Card.moveRows(chr)) {
+        assert.ok(r.input && r.input.length > 2,
+          `${chr.id}/${r.name}: no classic input`);
+        assert.ok(!/undefined/.test(r.input),
+          `${chr.id}/${r.name}: unnamed motion in "${r.input}"`);
+      }
+    }
+  } finally {
+    CF.Input.setScheme(was);
+  }
+});
+
+test('the roster screen can be reached, browsed and left with the mouse', () => {
+  const g = menuGame();
+  clickRect(g, menuRect(g, 'ROSTER'));
+  assert.equal(g.scene, 'roster');
+
+  const start = g.roster.cat;
+  clickRect(g, g.rosterRects().next);
+  assert.notEqual(g.roster.cat, start, 'the next arrow should change cat');
+  clickRect(g, g.rosterRects().prev);
+  assert.equal(g.roster.cat, start, 'and the previous arrow should change it back');
+
+  clickRect(g, g.rosterRects().rows[2]);
+  assert.equal(g.roster.pick, 2, 'clicking a move row should select it');
+
+  clickRect(g, g.rosterRects().back);
+  assert.equal(g.scene, 'title');
+});
+
+test('every roster rect is on screen and the move rows do not overlap', () => {
+  const g = menuGame();
+  g.scene = 'roster';
+  for (const chr of CF.ROSTER.keys()) {
+    g.roster.cat = chr;
+    const r = g.rosterRects();
+    for (const rect of [r.prev, r.next, r.back].concat(r.rows)) {
+      assert.ok(rect.x >= 0 && rect.y >= 0 &&
+                rect.x + rect.w <= CF.STAGE.W && rect.y + rect.h <= CF.STAGE.H,
+        `cat ${chr}: a roster rect off the edge — ${JSON.stringify(rect)}`);
+    }
+    for (let i = 0; i < r.rows.length - 1; i++) {
+      assert.ok(r.rows[i].y + r.rows[i].h <= r.rows[i + 1].y,
+        `cat ${chr}: move rows ${i} and ${i + 1} overlap`);
+    }
+  }
 });

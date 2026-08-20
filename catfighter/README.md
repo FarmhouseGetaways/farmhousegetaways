@@ -284,12 +284,12 @@ src/rig.js          the cat skeleton and how a cat is drawn
 src/anim.js         the pose library and keyframe blending
 src/moves.js        the eighteen normals, built once and shared
 src/characters.js   THE ROSTER — names, looks, stats, specials
-src/photos.js       optional real photographs
 src/fighter.js      the state machine: one per cat
 src/ai.js           the CPU, which drives a virtual pad
 src/audio.js        every sound, synthesised at runtime
 src/stage.js        the six stages, drawn not photographed
 src/hud.js          health bars, meters, particles, projectiles
+src/card.js         the character card — the roster screen and the reveal
 src/game.js         scenes, collision, camera, match flow
 src/main.js         boot and the fixed 60Hz loop
 electron/           the desktop wrapper
@@ -297,6 +297,20 @@ test/               frame-data and engine tests
 ```
 
 ### Design notes worth knowing
+
+**Every cat has a card.** `ROSTER` on the title menu is six of them, one per
+cat: the cat lit from behind, its name, its weight class, and its two specials
+and super with the buttons that bring them out — plus a plain sentence on what
+each one actually does. Left and right for another cat, up and down to read a
+different move. The same card, with the reading matter taken off it, is the
+beat you get when you lock a cat in.
+
+The buttons it prints are the buttons for the scheme you are playing on. A move
+list that names quarter-circles at somebody on the four-button layout is worse
+than no move list at all, so the card asks `CF.Input` which scheme is live and
+prints that one. `MOVES.md` gives both, side by side, and it and the card get
+their inputs from the same place — `CF.Card.moveRows` — so they cannot end up
+disagreeing about how a move is done.
 
 **A cat is one shape, not a pile of parts.** Three rules in `src/rig.js` do
 that work, and all three are easy to undo by accident.
@@ -362,12 +376,14 @@ license or load.
 node --test test/*.test.mjs
 ```
 
-Ninety tests over the real shipping files. They exist because the
+Ninety-four tests over the real shipping files. They exist because the
 failures that matter here are silent ones: a move with no hitbox, an animation
 that ends before its recovery does, a damage array with a typo in it. None of
 those throw an error — they just quietly never work, and you find out in the
 middle of a round. The tests catch all three, plus the motion detector, the
 blocking rules, chip damage, combo scaling, the roster balance guards, the
-clickable menus, and the two drawing rules above.
+clickable menus, the two drawing rules above, and the guarantee that every
+cat's specials reach the roster screen documented and with an input on both
+control schemes.
 
 They also run automatically before every Windows build.

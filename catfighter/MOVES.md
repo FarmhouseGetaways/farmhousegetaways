@@ -21,6 +21,10 @@
 | **KICK + BLOCK** | throw |
 | **LT + RT** | super, on a full meter |
 
+Every cat's specials and super are asked for the same way on this scheme, and
+the **ROSTER** screen on the title menu shows each cat's three moves with the
+buttons for whichever scheme is switched on.
+
 Hold **forward** with a special to get the heavy version. There are no motion
 inputs in this scheme — the frame data below still applies, only the way you
 ask for a move changes. The **CLASSIC** six-button layout with quarter-circles
@@ -65,16 +69,23 @@ Let them come to you.
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Growl of Energy** | down, down-forward, forward + LP / MP / HP | 26 / 30 / 34 | 12 | 3 | 27 | projectile |
-| **Tail Whip** | down, down-back, back + LK / MK / HK | 30 / 34 / 38 | 10 | 6 | 24 | must be blocked low; knockdown |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Growl of Energy** | PUNCH + KICK | down, down-forward, forward + LP / MP / HP | 26 / 30 / 34 | 12 | 3 | 27 | projectile |
+| **Tail Whip** | PUNCH + BLOCK | down, down-back, back + LK / MK / HK | 30 / 34 / 38 | 10 | 6 | 24 | must be blocked low; knockdown |
 
-### Super *
+**Growl of Energy** — A wall of sound sent down the length of the barn. It crosses the whole screen, and the harder the button the faster it travels.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **THE LAST WORD** | fireball motion twice + LP / MP / HP | 55 | 12 | 6 | 44 | invincible frames 0–14; projectile; costs 100 meter |
+**Tail Whip** — The tail comes along the floor and takes their legs out. Has to be blocked low, and it puts them down.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **THE LAST WORD** | DODGE + LUNGE | fireball motion twice + LP / MP / HP | 55 | 12 | 6 | 44 | invincible frames 0–14; projectile; costs 100 meter |
+
+**THE LAST WORD** — Three growls, back to back, and she is invincible for the first fourteen frames of it — so it beats whatever was already on its way in.
+
 
 ### Normals
 
@@ -109,16 +120,23 @@ Enormous, and entirely aware of it. Getting to you takes a while. Being under hi
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Belly Bump** | down, down-forward, forward + LP / MP / HP | 72 / 84 / 96 | 13 | 10 | 26 | knockdown; absorbs one hit |
-| **The Smother** | back, down, forward (half circle) + LK / MK / HK | 150 / 175 / 200 | 4 | 3 | 36 | hard knockdown; unblockable command grab |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Belly Bump** | PUNCH + KICK | down, down-forward, forward + LP / MP / HP | 72 / 84 / 96 | 13 | 10 | 26 | knockdown; absorbs one hit |
+| **The Smother** | PUNCH + BLOCK | back, down, forward (half circle) + LK / MK / HK | 150 / 175 / 200 | 4 | 3 | 36 | hard knockdown; unblockable command grab |
 
-### Super *
+**Belly Bump** — All of him, at once. He shrugs off a hit on the way in, frames 8 to 24, so trading with him is a losing idea.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **THE FULL WEIGHT** | fireball motion twice + LK / MK / HK | 330 | 3 | 3 | 44 | hard knockdown; invincible frames 0–6; unblockable command grab; costs 100 meter |
+**The Smother** — A grab, so blocking will not save them. Four frames of startup and a hard knockdown — but thirty-six frames of standing there if it misses.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **THE FULL WEIGHT** | DODGE + LUNGE | fireball motion twice + LK / MK / HK | 330 | 3 | 3 | 44 | hard knockdown; invincible frames 0–6; unblockable command grab; costs 100 meter |
+
+**THE FULL WEIGHT** — Three frames, ungrabbable to block, 330 damage, invincible while it starts. If his meter is full and you are stood next to him, you are already in it.
+
 
 ### Normals
 
@@ -153,16 +171,23 @@ Same coat, half the cat. Comes in over the top or takes your legs — and you ha
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Flying Body Attack** | down, down-forward, forward + LK / MK / HK | 56 / 64 / 72 | 9 | 16 | 20 | must be blocked standing; knockdown |
-| **Leg Sweep** | down, down-back, back + LK / MK / HK | 30 / 34 / 38 | 8 | 6 | 22 | must be blocked low; hard knockdown; goes under high attacks |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Flying Body Attack** | PUNCH + KICK | down, down-forward, forward + LK / MK / HK | 56 / 64 / 72 | 9 | 16 | 20 | must be blocked standing; knockdown |
+| **Leg Sweep** | PUNCH + BLOCK | down, down-back, back + LK / MK / HK | 30 / 34 / 38 | 8 | 6 | 22 | must be blocked low; hard knockdown; goes under high attacks |
 
-### Super *
+**Flying Body Attack** — He leaves the floor and arrives shoulder first. An overhead, so crouch-blocking does not stop it.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **OVER THE TOP** | fireball motion twice + LK / MK / HK | 34 | 8 | 30 | 26 | must be blocked standing; hard knockdown; invincible frames 0–10; hits 5×; costs 100 meter |
+**Leg Sweep** — Low, fast, and a hard knockdown. Eight frames of startup — the quickest thing he has for interrupting.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **OVER THE TOP** | DODGE + LUNGE | fireball motion twice + LK / MK / HK | 34 | 8 | 30 | 26 | must be blocked standing; hard knockdown; invincible frames 0–10; hits 5×; costs 100 meter |
+
+**OVER THE TOP** — Thirty active frames of him in the air, overhead the whole way, invincible for the first ten.
+
 
 ### Normals
 
@@ -197,16 +222,23 @@ Seal point, blue eyes, and never on the floor for long. Hits like a rumour, but 
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Flip Attack** | forward, down, down-forward + LK / MK / HK | 70 / 82 / 94 | 4 | 15 | 22 | hard knockdown; invincible frames 0–6 |
-| **Crane Kick** | down, down-forward, forward + LK / MK / HK | 52 / 60 / 68 | 12 | 8 | 20 | must be blocked standing; knockdown |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Flip Attack** | PUNCH + KICK | forward, down, down-forward + LK / MK / HK | 70 / 82 / 94 | 4 | 15 | 22 | hard knockdown; invincible frames 0–6 |
+| **Crane Kick** | PUNCH + BLOCK | down, down-forward, forward + LK / MK / HK | 52 / 60 / 68 | 12 | 8 | 20 | must be blocked standing; knockdown |
 
-### Super *
+**Flip Attack** — Straight up in four frames, invincible on the way. Her answer to anything coming down at her.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **CRANE ASCENDING** | fireball motion twice + LK / MK / HK | 30 | 4 | 34 | 30 | hard knockdown; invincible frames 0–12; hits 6×; costs 100 meter |
+**Crane Kick** — A forward-leaping overhead. It has to be blocked standing, and it closes the distance while it does it.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **CRANE ASCENDING** | DODGE + LUNGE | fireball motion twice + LK / MK / HK | 30 | 4 | 34 | 30 | hard knockdown; invincible frames 0–12; hits 6×; costs 100 meter |
+
+**CRANE ASCENDING** — Thirty-four frames of rising kick, invincible for the first twelve. Nothing gets underneath it.
+
 
 ### Normals
 
@@ -241,16 +273,23 @@ Stands up on his back legs and throws hands until you stop enjoying it, then he 
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Rapid Paws** | tap rapidly LP / MP / HP | 15 / 16 / 17 | 5 | 28 | 18 | hits 6× |
-| **Cut and Run** | down, down-back, back + LK / MK / HK | — | 3 | 10 | 12 | invincible frames 1–12 |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Rapid Paws** | PUNCH + KICK | tap rapidly LP / MP / HP | 15 / 16 / 17 | 5 | 28 | 18 | hits 6× |
+| **Cut and Run** | PUNCH + BLOCK | down, down-back, back + LK / MK / HK | — | 3 | 10 | 12 | invincible frames 1–12 |
 
-### Super *
+**Rapid Paws** — Up on his back legs with both paws going, twenty-eight frames of it. Mash the button to bring it out.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **TEN THOUSAND PAWS** | fireball motion twice + LP / MP / HP | 28 | 5 | 44 | 24 | knockdown; invincible frames 0–9; hits 12×; costs 100 meter |
+**Cut and Run** — Not an attack at all — a fast, invincible retreat. Frames 1 to 12 pass straight through whatever they threw.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **TEN THOUSAND PAWS** | DODGE + LUNGE | fireball motion twice + LP / MP / HP | 28 | 5 | 44 | 24 | knockdown; invincible frames 0–9; hits 12×; costs 100 meter |
+
+**TEN THOUSAND PAWS** — Forty-four frames of paws, and the first nine of them are invincible.
+
 
 ### Normals
 
@@ -285,16 +324,23 @@ Rubidoux when she is in trouble. Hold down and wait, and anything that jumps at 
 
 ### Specials
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **Crushing Bite** | down, down-forward, forward + LP / MP / HP | 82 / 96 / 110 | 11 | 6 | 26 | hard knockdown; absorbs one hit |
-| **Flip Kick** | hold DOWN 40f, then up + LK / MK / HK | 80 / 94 / 108 | 3 | 16 | 26 | hard knockdown; invincible frames 0–5 |
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **Crushing Bite** | PUNCH + KICK | down, down-forward, forward + LP / MP / HP | 82 / 96 / 110 | 11 | 6 | 26 | hard knockdown; absorbs one hit |
+| **Flip Kick** | PUNCH + BLOCK | hold DOWN 40f, then up + LK / MK / HK | 80 / 94 / 108 | 3 | 16 | 26 | hard knockdown; invincible frames 0–5 |
 
-### Super *
+**Crushing Bite** — She takes a hit on the way in, frames 7 to 18, and answers it with a hard knockdown.
 
-| Move | Input | Damage | Startup | Active | Recovery | Notes |
-|---|---|---|---|---|---|---|
-| **THE VICE** | fireball motion twice + LP / MP / HP | 62 | 8 | 20 | 34 | hard knockdown; invincible frames 0–11; hits 4×; costs 100 meter |
+**Flip Kick** — A charge move: hold down for about forty frames, then up and kick. Three frames of startup, invincible going up.
+
+### Super
+
+| Move | Four buttons | Classic | Damage | Startup | Active | Recovery | Notes |
+|---|---|---|---|---|---|---|---|
+| **THE VICE** | DODGE + LUNGE | fireball motion twice + LP / MP / HP | 62 | 8 | 20 | 34 | hard knockdown; invincible frames 0–11; hits 4×; costs 100 meter |
+
+**THE VICE** — Eight frames of startup, invincible for eleven, and a hard knockdown on the end of it.
+
 
 ### Normals
 
@@ -318,12 +364,6 @@ Rubidoux when she is in trouble. Hold down and wait, and anything that jumps at 
 | In the air | LK | Air Kick | 19 | 5 | 9 | 4 | +2 | -2 | must be blocked standing |
 | In the air | MK | Air Side Kick | 30 | 6 | 11 | 4 | +2 | -3 | must be blocked standing |
 | In the air | HK | Jump Roundhouse | 39 | 7 | 13 | 4 | +3 | -3 | must be blocked standing |
-
----
-
-\* **Every super was invented, not given.** The owner named two special moves
-per cat and nothing else, so the supers are a first guess and are the first
-thing to change on request.
 
 ---
 

@@ -31,6 +31,24 @@
     ctx.restore();
   }
 
+  /* How wide `text` would draw that string, tracking included. Used to size a
+     plate behind a label so the plate always fits the words on it. */
+  function measure(ctx, str, size, weight, track) {
+    ctx.save();
+    ctx.font = (weight || 700) + ' ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+    var total;
+    if (track) {
+      var chars = String(str).split('');
+      total = 0;
+      for (var i = 0; i < chars.length; i++) total += ctx.measureText(chars[i]).width + track;
+      total -= track;
+    } else {
+      total = ctx.measureText(String(str)).width;
+    }
+    ctx.restore();
+    return total;
+  }
+
   function outlineText(ctx, str, x, y, size, fill, stroke, align, track) {
     ctx.save();
     ctx.font = '800 ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
@@ -342,7 +360,7 @@
   }
 
   CF.HUD = {
-    text: text, outlineText: outlineText, wrapText: wrapText,
+    text: text, outlineText: outlineText, wrapText: wrapText, measure: measure,
     bar: bar, meterBar: meterBar, timer: timer, combo: combo,
     drawFx: drawFx, drawProjectile: drawProjectile
   };

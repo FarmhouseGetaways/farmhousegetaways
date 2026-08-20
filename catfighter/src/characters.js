@@ -4,8 +4,8 @@
    ---------------------------------------------------------------------------
    NAMES AND LOOKS ARE PLACEHOLDERS. Change `displayName`, `subtitle` and the
    `palette` block below and the whole game updates — select screen, health
-   bars, victory text, everything. When real photographs arrive, each cat also
-   gains a `photo` block and the head is drawn from the picture instead.
+   bars, victory text, everything. Each cat also gets a character card of its
+   own — see `card.js` — built from the same data.
    ---------------------------------------------------------------------------
 
    Stats are in screen units per frame at 60fps. Health is out of 1000.
@@ -106,8 +106,6 @@
       build: { s: 1.02, girth: 1.07, limb: 0.99, head: 1.02 },
       displayName: 'GRACIE',
       subtitle: 'The Elder',
-      /* Drop a photo in assets/cats/ and name it here, e.g. 'gracie.jpg'. */
-      photo: null,
       blurb: 'Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.\nLet them come to you.',
       difficulty: 2,
       palette: {
@@ -121,7 +119,8 @@
       mod: { reach: 1.09, damage: 1.10, speed: 1.08 },
       specials: [
         {
-          id: 'growl', name: 'Growl of Energy', kind: 'special',
+          id: 'growl', name: 'Growl of Energy',
+          desc: 'A wall of sound sent down the length of the barn. It crosses the whole screen, and the harder the button the faster it travels.', kind: 'special',
           motion: 'qcf', buttons: ['LP', 'MP', 'HP'], stance: ['stand', 'crouch'],
           startup: 12, active: 3, recovery: 27,
           mouth: 'open', mouthFrom: 8,
@@ -144,7 +143,8 @@
           }
         },
         {
-          id: 'tailwhip', name: 'Tail Whip', kind: 'special',
+          id: 'tailwhip', name: 'Tail Whip',
+          desc: 'The tail comes along the floor and takes their legs out. Has to be blocked low, and it puts them down.', kind: 'special',
           motion: 'qcb', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 10, active: 6, recovery: 24,
           damage: [30, 34, 38], stun: [10, 12, 14], chip: 6,
@@ -162,7 +162,8 @@
         }
       ],
       supers: [{
-        id: 'superGrowl', name: 'THE LAST WORD', motion: 'qcfx2',
+        id: 'superGrowl', name: 'THE LAST WORD',
+        desc: 'Three growls, back to back, and she is invincible for the first fourteen frames of it — so it beats whatever was already on its way in.', motion: 'qcfx2',
         buttons: ['LP', 'MP', 'HP'], cost: 100,
         startup: 12, active: 6, recovery: 44, freeze: 28,
         mouth: 'open', mouthFrom: 6,
@@ -198,7 +199,6 @@
       build: { s: 1.10, girth: 1.46, limb: 0.92, head: 1.06 },
       displayName: 'MARIO',
       subtitle: 'The Immovable',
-      photo: null,
       blurb: 'Enormous, and entirely aware of it. Getting to you takes a while. Being under him does not take long at all.',
       difficulty: 2,
       palette: {
@@ -212,7 +212,8 @@
       mod: { reach: 1.02, damage: 1.22, speed: 1.24 },
       specials: [
         {
-          id: 'bellybump', name: 'Belly Bump', kind: 'special',
+          id: 'bellybump', name: 'Belly Bump',
+          desc: 'All of him, at once. He shrugs off a hit on the way in, frames 8 to 24, so trading with him is a losing idea.', kind: 'special',
           motion: 'qcf', buttons: ['LP', 'MP', 'HP'], stance: ['stand', 'crouch'],
           startup: 13, active: 10, recovery: 26,
           damage: [72, 84, 96], stun: [20, 22, 24], chip: 9,
@@ -229,7 +230,8 @@
           }
         },
         {
-          id: 'smother', name: 'The Smother', kind: 'special',
+          id: 'smother', name: 'The Smother',
+          desc: 'A grab, so blocking will not save them. Four frames of startup and a hard knockdown — but thirty-six frames of standing there if it misses.', kind: 'special',
           motion: 'hcf', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           isCommandThrow: true, range: 56,
           /* A missed command grab has to be a real punish, or the grappler
@@ -243,7 +245,8 @@
         }
       ],
       supers: [{
-        id: 'superSmother', name: 'THE FULL WEIGHT', motion: 'qcfx2',
+        id: 'superSmother', name: 'THE FULL WEIGHT',
+        desc: 'Three frames, ungrabbable to block, 330 damage, invincible while it starts. If his meter is full and you are stood next to him, you are already in it.', motion: 'qcfx2',
         buttons: ['LK', 'MK', 'HK'], cost: 100,
         isCommandThrow: true, range: 64,
         startup: 3, active: 3, recovery: 44, freeze: 30, whiffRecovery: 48,
@@ -266,7 +269,6 @@
       build: { s: 1.00, girth: 1.00, limb: 1.07, head: 0.98 },
       displayName: 'LUIGI',
       subtitle: 'The Twin',
-      photo: null,
       blurb: 'Same coat, half the cat. Comes in over the top or takes your legs — and you have to guess which.',
       difficulty: 2,
       palette: {
@@ -283,7 +285,8 @@
       mod: { reach: 1.00, damage: 0.90, speed: 0.86 },
       specials: [
         {
-          id: 'flyingbody', name: 'Flying Body Attack', kind: 'special',
+          id: 'flyingbody', name: 'Flying Body Attack',
+          desc: 'He leaves the floor and arrives shoulder first. An overhead, so crouch-blocking does not stop it.', kind: 'special',
           motion: 'qcf', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 9, active: 16, recovery: 20,
           damage: [56, 64, 72], stun: [14, 16, 18], chip: 7,
@@ -306,7 +309,8 @@
           }
         },
         {
-          id: 'legsweep', name: 'Leg Sweep', kind: 'special',
+          id: 'legsweep', name: 'Leg Sweep',
+          desc: 'Low, fast, and a hard knockdown. Eight frames of startup — the quickest thing he has for interrupting.', kind: 'special',
           motion: 'qcb', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 8, active: 6, recovery: 22,
           damage: [30, 34, 38], stun: [9, 10, 12], chip: 5,
@@ -324,7 +328,8 @@
         }
       ],
       supers: [{
-        id: 'superFly', name: 'OVER THE TOP', motion: 'qcfx2',
+        id: 'superFly', name: 'OVER THE TOP',
+        desc: 'Thirty active frames of him in the air, overhead the whole way, invincible for the first ten.', motion: 'qcfx2',
         buttons: ['LK', 'MK', 'HK'], cost: 100,
         startup: 8, active: 30, recovery: 26, freeze: 26,
         damage: 34, stun: 7, chip: 7, multiHit: 5, hitGap: 6,
@@ -355,7 +360,6 @@
       build: { s: 0.95, girth: 0.86, limb: 1.12, head: 1.00 },
       displayName: 'LILLY',
       subtitle: 'The Acrobat',
-      photo: null,
       blurb: 'Seal point, blue eyes, and never on the floor for long. Hits like a rumour, but she is already behind you.',
       difficulty: 3,
       palette: {
@@ -371,7 +375,8 @@
       mod: { reach: 1.05, damage: 0.82, speed: 0.80 },
       specials: [
         {
-          id: 'flipattack', name: 'Flip Attack', kind: 'special',
+          id: 'flipattack', name: 'Flip Attack',
+          desc: 'Straight up in four frames, invincible on the way. Her answer to anything coming down at her.', kind: 'special',
           motion: 'dp', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 4, active: 15, recovery: 22,
           damage: [70, 82, 94], stun: [16, 18, 20], chip: 7,
@@ -389,7 +394,8 @@
           }
         },
         {
-          id: 'cranekick', name: 'Crane Kick', kind: 'special',
+          id: 'cranekick', name: 'Crane Kick',
+          desc: 'A forward-leaping overhead. It has to be blocked standing, and it closes the distance while it does it.', kind: 'special',
           motion: 'qcf', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 12, active: 8, recovery: 20,
           damage: [52, 60, 68], stun: [13, 15, 17], chip: 6,
@@ -407,7 +413,8 @@
         }
       ],
       supers: [{
-        id: 'superCrane', name: 'CRANE ASCENDING', motion: 'qcfx2',
+        id: 'superCrane', name: 'CRANE ASCENDING',
+        desc: 'Thirty-four frames of rising kick, invincible for the first twelve. Nothing gets underneath it.', motion: 'qcfx2',
         buttons: ['LK', 'MK', 'HK'], cost: 100,
         startup: 4, active: 34, recovery: 30, freeze: 26,
         damage: 30, stun: 6, chip: 6, multiHit: 6, hitGap: 6,
@@ -442,7 +449,6 @@
       build: { s: 1.00, girth: 1.08, limb: 1.00, head: 1.00 },
       displayName: 'FIGURO',
       subtitle: 'The Boxer',
-      photo: null,
       blurb: 'Stands up on his back legs and throws hands until you stop enjoying it, then he is somewhere else entirely.',
       difficulty: 2,
       palette: {
@@ -456,7 +462,8 @@
       mod: { reach: 0.98, damage: 1.06, speed: 0.90 },
       specials: [
         {
-          id: 'rapidpaws', name: 'Rapid Paws', kind: 'special',
+          id: 'rapidpaws', name: 'Rapid Paws',
+          desc: 'Up on his back legs with both paws going, twenty-eight frames of it. Mash the button to bring it out.', kind: 'special',
           motion: 'mash', buttons: ['LP', 'MP', 'HP'], stance: ['stand'],
           startup: 5, active: 28, recovery: 18,
           damage: [15, 16, 17], stun: 3, chip: 3,
@@ -471,7 +478,8 @@
                  { at: 51, p: Ps.stand }]
         },
         {
-          id: 'cutandrun', name: 'Cut and Run', kind: 'special',
+          id: 'cutandrun', name: 'Cut and Run',
+          desc: 'Not an attack at all — a fast, invincible retreat. Frames 1 to 12 pass straight through whatever they threw.', kind: 'special',
           motion: 'qcb', buttons: ['LK', 'MK', 'HK'], stance: ['stand', 'crouch'],
           startup: 3, active: 10, recovery: 12, noAttack: true,
           /* invincible on the way out — the only true escape on the roster */
@@ -489,7 +497,8 @@
         }
       ],
       supers: [{
-        id: 'superPaws', name: 'TEN THOUSAND PAWS', motion: 'qcfx2',
+        id: 'superPaws', name: 'TEN THOUSAND PAWS',
+        desc: 'Forty-four frames of paws, and the first nine of them are invincible.', motion: 'qcfx2',
         buttons: ['LP', 'MP', 'HP'], cost: 100,
         startup: 5, active: 44, recovery: 24, freeze: 26,
         damage: 28, stun: 4, chip: 5, multiHit: 12, hitGap: 4,
@@ -517,7 +526,6 @@
       build: { s: 1.05, girth: 1.22, limb: 0.98, head: 1.04 },
       displayName: 'RUBY',
       subtitle: 'The Jaw',
-      photo: null,
       blurb: 'Rubidoux when she is in trouble. Hold down and wait, and anything that jumps at her gets flipped out of the sky.',
       difficulty: 3,
       palette: {
@@ -531,7 +539,8 @@
       mod: { reach: 1.00, damage: 1.16, speed: 1.14 },
       specials: [
         {
-          id: 'crushingbite', name: 'Crushing Bite', kind: 'special',
+          id: 'crushingbite', name: 'Crushing Bite',
+          desc: 'She takes a hit on the way in, frames 7 to 18, and answers it with a hard knockdown.', kind: 'special',
           motion: 'qcf', buttons: ['LP', 'MP', 'HP'], stance: ['stand', 'crouch'],
           startup: 11, active: 6, recovery: 26,
           damage: [82, 96, 110], stun: [22, 25, 28], chip: 10,
@@ -550,7 +559,8 @@
           }
         },
         {
-          id: 'flipkick', name: 'Flip Kick', kind: 'special',
+          id: 'flipkick', name: 'Flip Kick',
+          desc: 'A charge move: hold down for about forty frames, then up and kick. Three frames of startup, invincible going up.', kind: 'special',
           charge: 'du', chargeFrames: 40, buttons: ['LK', 'MK', 'HK'],
           stance: ['stand', 'crouch'],
           startup: 3, active: 16, recovery: 26,
@@ -569,7 +579,8 @@
         }
       ],
       supers: [{
-        id: 'superBite', name: 'THE VICE', motion: 'qcfx2',
+        id: 'superBite', name: 'THE VICE',
+        desc: 'Eight frames of startup, invincible for eleven, and a hard knockdown on the end of it.', motion: 'qcfx2',
         buttons: ['LP', 'MP', 'HP'], cost: 100,
         startup: 8, active: 20, recovery: 34, freeze: 28,
         damage: 62, stun: 12, chip: 12, multiHit: 4, hitGap: 5,
