@@ -298,6 +298,49 @@ test/               frame-data and engine tests
 
 ### Design notes worth knowing
 
+**A cat is one shape, not a pile of parts.** Three rules in `src/rig.js` do
+that work, and all three are easy to undo by accident.
+
+*One silhouette.* Every part of the body goes into a single list of paths.
+They are all stroked with a thick contour first, and only then filled in draw
+order — so the fills paint over every interior stroke and the one line left
+standing is the outer edge of the union. Give a limb its own outline instead
+and it stops being an arm in front of a chest and becomes a sticker on one.
+
+*One light.* Each part is filled with a gradient rather than a flat colour,
+and all of those gradients run between the same two points in space. The light
+crosses the whole cat continuously, so a shoulder and the thigh under it are
+lit by the same lamp. This is done in the fill rather than as a wash over the
+finished figure on purpose: a wash needs an offscreen canvas and a
+`source-atop`, it double-darkens wherever two parts overlap, and it was
+measured at 22.8ms a frame against a 16.7ms budget. The gradients cost a
+tenth of that.
+
+*One body.* The torso is a drawn curve — narrow hips, a waist, a broad chest —
+with a deltoid at each shoulder and a mass at each hip, so the limbs grow out
+of it. A capsule is the same width at the shoulder as at the waist, which is
+what made the earlier figure read as a bean with arms pushed into the sides.
+
+The near limbs cast a soft shadow onto the torso instead of carrying an
+outline of their own, which says *this is in front of that* without cutting
+the body.
+
+Two of these rules are checked by tests, because neither leaves a trace in the
+finished picture that a test could look at: the drawing is replayed against a
+context that records every call, and the calls are what get asserted.
+
+**Attacks accelerate into the contact frame.** An even ease in and out is
+right for a walk and wrong for a punch — it arrives at the moment of impact
+slowing down. `Anim.sample` is given the move it is animating, so it knows
+which frame is the contact frame: the strike accelerates the whole way in and
+stops dead there, and everything else leaves fast and settles. No keyframe
+list had to be annotated by hand for it.
+
+**The tail is always a few frames behind.** Each joint along it lags a little
+more than the one before, and the head does the same thing more subtly. It is
+applied to the drawn pose only — never to the pose that fights, which would
+put a spring in the middle of collision detection.
+
 **The simulation is a fixed 60Hz** with an accumulator, so the fight runs at
 the same speed on a 60Hz laptop and a 144Hz monitor.
 
@@ -319,11 +362,12 @@ license or load.
 node --test test/*.test.mjs
 ```
 
-Twenty-eight tests over the real shipping files. They exist because the
+Ninety tests over the real shipping files. They exist because the
 failures that matter here are silent ones: a move with no hitbox, an animation
 that ends before its recovery does, a damage array with a typo in it. None of
 those throw an error — they just quietly never work, and you find out in the
 middle of a round. The tests catch all three, plus the motion detector, the
-blocking rules, chip damage, combo scaling and the roster balance guards.
+blocking rules, chip damage, combo scaling, the roster balance guards, the
+clickable menus, and the two drawing rules above.
 
 They also run automatically before every Windows build.

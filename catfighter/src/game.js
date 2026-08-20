@@ -1288,7 +1288,7 @@
       if (ff.state === 'move' && ff.move && ff.move.kind === 'super' && ff.superFreeze > 0) {
         opts.flash = (this.t % 4 < 2) ? 'white' : null;
       }
-      drawFighterAt(ctx, ff.chr, ff.currentPose(), ff.x - camX, FLOOR_Y - ff.y, 1, ff.facing, opts);
+      drawFighterAt(ctx, ff.chr, ff.drawPose(), ff.x - camX, FLOOR_Y - ff.y, 1, ff.facing, opts);
     }
 
     for (var p = 0; p < this.projectiles.length; p++) {

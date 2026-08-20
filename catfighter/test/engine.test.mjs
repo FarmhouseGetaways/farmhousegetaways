@@ -1321,3 +1321,86 @@ test('the hand cursor appears over exactly the clickable rects', () => {
   g.scene = 'fight';
   assert.equal(g.clickTargets().length, 0, 'nothing is clickable mid-fight');
 });
+
+/* ---- how a cat is drawn --------------------------------------------------
+
+   Two rules keep the figure looking like one creature rather than a pile of
+   parts, and neither leaves a trace in the finished picture that a test could
+   look at. Both are easy to break by accident — give a limb its own outline
+   and it becomes a sticker on the chest; give a part its own flat colour and
+   the light stops crossing the body. So the drawing is replayed against a
+   context that records every call, and the rules are checked there.        */
+
+import { recordingCtx } from './harness.mjs';
+
+function drawn(chr, poseName) {
+  const ctx = recordingCtx();
+  const pose = CF.Pose[poseName || 'stand'];
+  const j = CF.Rig.solve(pose, 1, chr.build);
+  CF.Rig.drawCat(ctx, j, chr.palette, {});
+  return ctx;
+}
+
+test('the contour goes down before any fill, so the silhouette is unbroken', () => {
+  for (const chr of CF.ROSTER) {
+    for (const pose of ['stand', 'fierce', 'hk', 'crouch']) {
+      const ctx = drawn(chr, pose);
+      const outline = chr.palette.outline || '#191410';
+      const firstFill = ctx.ops.findIndex(o => o.op === 'fill');
+      const before = ctx.ops.slice(0, firstFill);
+      assert.ok(before.length >= 12,
+        `${chr.id}/${pose}: only ${before.length} ops before the first fill — the contour ` +
+        `pass is not covering the whole figure`);
+      const stray = before.findIndex(o => o.op !== 'stroke' || o.style !== outline);
+      assert.equal(stray, -1,
+        `${chr.id}/${pose}: op ${stray} breaks into the contour pass — every part must be ` +
+        `stroked in the contour colour before any of them is filled, or a limb ends up ` +
+        `outlining itself and cutting the silhouette`);
+    }
+  }
+});
+
+test('every part of the body is lit by the same light', () => {
+  for (const chr of CF.ROSTER) {
+    const ctx = drawn(chr, 'stand');
+    /* The light is the three-stop gradient `lights()` builds. A cat's markings
+       have gradients of their own — a siamese's points, for one — and those
+       are meant to be local. */
+    const isLight = g => g && g.kind === 'linear' && g.stops.length === 3 &&
+                         g.stops[1][0] === 0.46;
+    const lit = ctx.ops.filter(o => o.op === 'fill' && isLight(o.style));
+    assert.ok(lit.length >= 18,
+      `${chr.id}: only ${lit.length} parts carry the shared light — a flat fill is a flat shape`);
+    const first = lit[0].style;
+    for (const o of lit) {
+      assert.equal(o.style.x0, first.x0, `${chr.id}: a part is lit from somewhere else`);
+      assert.equal(o.style.y0, first.y0, `${chr.id}: a part is lit from somewhere else`);
+      assert.equal(o.style.x1, first.x1, `${chr.id}: a part is lit from somewhere else`);
+      assert.equal(o.style.y1, first.y1, `${chr.id}: a part is lit from somewhere else`);
+    }
+  }
+});
+
+test('a flashing cat is drawn flat white, with no light and no shadow', () => {
+  const ctx = recordingCtx();
+  const j = CF.Rig.solve(CF.Pose.stand, 1, CF.ROSTER[0].build);
+  CF.Rig.drawCat(ctx, j, CF.ROSTER[0].palette, { flash: 'white' });
+  const lit = ctx.ops.filter(o => o.op === 'fill' && o.style && o.style.kind === 'linear' &&
+                                  o.style.stops.length === 3 && o.style.stops[1][0] === 0.46);
+  assert.equal(lit.length, 0,
+    'a white flash is a solid shape on purpose — no light should survive it');
+});
+
+test('the tail tapers from the rump to the tip', () => {
+  /* Sampled straight off the path builder: the widths it is asked for are the
+     widths the silhouette gets, and a tail of constant width was the loudest
+     wrong shape on the figure. */
+  const j = CF.Rig.solve(CF.Pose.stand, 1, CF.ROSTER[0].build);
+  const seen = [];
+  const probe = {
+    beginPath() {}, closePath() {}, moveTo() {}, arc() {},
+    lineTo(x, y) { seen.push({ x, y }); }
+  };
+  CF.Rig.tailPath(probe, j, 6, 2);
+  assert.ok(seen.length > 8, 'the tail outline should be built from samples');
+});

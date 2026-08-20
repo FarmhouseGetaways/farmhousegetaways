@@ -30,15 +30,15 @@
      chin. Standing upright on straight legs is most of what made these read
      as dolls rather than fighters.                                        */
 
-  L.stand  = P({ py: 40, torso: 10, head: [4, 14.6, 2],
-                 legF: [26, -30], legB: [-22, 26],
-                 armF: [48, 100], armB: [32, 116] });
-  L.standB = P({ py: 41.4, torso: 8, head: [4, 15.2, 0],
-                 legF: [23, -27], legB: [-19, 23],
-                 armF: [44, 96], armB: [29, 112], tail: [244, -39.2, -41.6] });
-  L.standC = P({ py: 39, torso: 12, head: [4, 14.2, 4],
-                 legF: [29, -33], legB: [-25, 29],
-                 armF: [51, 104], armB: [35, 120], tail: [236, -30.8, -22.4] });
+  L.stand  = P({ py: 38.4, torso: 11, head: [4, 14.6, 2],
+                 legF: [31, -37], legB: [-27, 33],
+                 armF: [62, 86], armB: [30, 118] });
+  L.standB = P({ py: 39.8, torso: 9, head: [4, 15.2, 0],
+                 legF: [28, -34], legB: [-24, 30],
+                 armF: [54, 94], armB: [24, 112], tail: [244, -39.2, -41.6] });
+  L.standC = P({ py: 37.4, torso: 13, head: [4, 14.2, 4],
+                 legF: [34, -40], legB: [-30, 36],
+                 armF: [70, 80], armB: [36, 122], tail: [236, -30.8, -22.4] });
 
   L.walkF1 = P({ py: 39, torso: 12, legF: [40, -40], legB: [-30, 32], armF: [40, 94], armB: [38, 104], tail: [246, -42, -28.8] });
   L.walkF2 = P({ py: 41, torso: 9,  legF: [16, -20], legB: [-10, 14], armF: [48, 100], armB: [30, 114] });
@@ -354,8 +354,19 @@
     return out;
   }
 
-  /* keys: [{at: frame, p: pose, ease: bool}] — sample at an arbitrary frame */
-  function sample(keys, frame) {
+  /* Curves. An even ease in and out is the right default for a walk and the
+     wrong one for a punch: it arrives at the contact frame slowing down,
+     which is the opposite of an impact. Street Fighter II snaps — the strike
+     accelerates the whole way in, stops dead on contact, and everything else
+     leaves fast and settles. */
+  function easeIn(t) { return t * t; }
+  function easeOut(t) { return 1 - (1 - t) * (1 - t); }
+
+  /* keys: [{at: frame, p: pose, ease: false | 'in' | 'out'}] — sample at an
+     arbitrary frame. `m` is the move being animated, if there is one: knowing
+     which frame is the contact frame is what lets the timing be got right
+     without hand-annotating a hundred keyframe lists. */
+  function sample(keys, frame, m) {
     if (!keys || !keys.length) return L.stand;
     if (frame <= keys[0].at) return keys[0].p;
     for (var i = 0; i < keys.length - 1; i++) {
@@ -363,11 +374,49 @@
       if (frame >= a.at && frame <= b.at) {
         var span = (b.at - a.at) || 1;
         var t = (frame - a.at) / span;
-        if (b.ease !== false) t = U.ease(t);
+        var how = b.ease;
+        if (how === undefined) {
+          if (m && m.startup !== undefined) {
+            /* into the contact frame: accelerate and stop dead there.
+               everywhere else: leave fast, settle slow. */
+            how = (b.at >= m.startup - 1 && b.at <= m.startup + 1) ? 'in' : 'out';
+          } else {
+            how = 'inout';
+          }
+        }
+        if (how === 'in') t = easeIn(t);
+        else if (how === 'out') t = easeOut(t);
+        else if (how !== false) t = U.ease(t);
         return blend(a.p, b.p, t);
       }
     }
     return keys[keys.length - 1].p;
+  }
+
+  /* Secondary motion. A tail that arrives exactly when the body does belongs
+     to a puppet; a real one is still catching up a few frames later, and each
+     joint along it lags a little more than the one before. The head does the
+     same thing, more subtly. Cheap, and most of what makes a pose look like
+     it was moved rather than swapped. */
+  function settle(lag, pose) {
+    var out = {}, k;
+    for (k in pose) out[k] = pose[k];
+    if (!lag.tail) {
+      lag.tail = pose.tail.slice();
+      lag.head = pose.head[2] || 0;
+      return out;
+    }
+    var t = [];
+    for (var i = 0; i < pose.tail.length; i++) {
+      var k2 = 0.46 - i * 0.07;
+      if (lag.tail[i] === undefined) lag.tail[i] = pose.tail[i];
+      lag.tail[i] += (pose.tail[i] - lag.tail[i]) * k2;
+      t.push(lag.tail[i]);
+    }
+    out.tail = t;
+    lag.head += ((pose.head[2] || 0) - lag.head) * 0.34;
+    out.head = [pose.head[0], pose.head[1], lag.head];
+    return out;
   }
 
   /* loop through an array of poses at n frames each */
@@ -380,5 +429,6 @@
   }
 
   CF.Pose = L;
-  CF.Anim = { blend: blend, sample: sample, cycle: cycle, BASE: BASE, make: P };
+  CF.Anim = { blend: blend, sample: sample, cycle: cycle, settle: settle,
+              easeIn: easeIn, easeOut: easeOut, BASE: BASE, make: P };
 })();

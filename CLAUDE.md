@@ -589,12 +589,38 @@ Three things a later session needs to know:
   `confirmPressed()` / `cancelPressed()`, never a raw button name.
 - **The cats are drawn as one silhouette, in two passes** (`rig.js`): stroke
   every shape with a thick contour, then fill them all in order so the interior
-  strokes are painted over. That is what stops them looking like rag dolls.
-  Do not give a body part its own outline.
+  strokes are painted over. Do not give a body part its own outline.
+- **And every fill carries the same light.** Each part is filled with a
+  gradient, and all of those gradients run between the same two points in
+  space, so the light crosses the whole cat rather than being decided per
+  part. Rewritten 20 Aug 2026 after the owner said the cats still looked
+  "pieced together". Three things were wrong and all three are fixed: the head
+  was two thirds the length of the torso (plush proportion, not fighting-game
+  proportion), the torso was a capsule so the limbs had nothing to grow out
+  of, and every part was flat-shaded on its own. `shade()` must return **hex** —
+  it used to return `rgb(...)`, and everything downstream tests for a leading
+  `#` before building a gradient, so the shaded tones silently fell back to
+  flat fills. Those tones are the near and far limbs, which need the light
+  most.
+- **Do not composite the light as a wash over the finished figure.** It was
+  tried, with an offscreen canvas and `source-atop`, and measured at **22.8ms
+  a frame against a 16.7ms budget** — twenty times the cost of putting it in
+  the fill, for the same picture. It also double-darkens wherever two parts
+  overlap.
+- **Two drawing rules are covered by tests** that replay the drawing against a
+  recording context, because neither leaves a trace in the finished picture:
+  the contour must go down before any fill, and every body part must be lit by
+  the same gradient endpoints.
 - **Do not teach the CPU about a cat by name.** `ai.js` classifies specials by
   what they do — spawns something, rises with invincibility, travels forward,
   is a command grab, hits low — so a cat added tomorrow is understood without
   touching it. A test fails if any cat ends up with no role the CPU can see.
+- **Attacks accelerate into the contact frame.** `Anim.sample` is handed the
+  move it is animating so it knows which frame that is; an even ease in and
+  out arrives at the impact slowing down, which is the opposite of a punch.
+  The tail also lags a few frames behind the body, applied to the drawn pose
+  only — `Fighter.drawPose()`, never `currentPose()`, which `hurtboxes()`
+  calls and which must not have a spring in it.
 - **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**

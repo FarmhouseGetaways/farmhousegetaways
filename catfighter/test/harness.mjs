@@ -96,3 +96,45 @@ export function tryMove(CF, attackerId, move, opts = {}) {
 
   return { damage: before - g.p2.health, p2state: g.p2.state, p1state: g.p1.state };
 }
+
+/* A canvas context that draws nothing and remembers everything. The rig's
+   rules about HOW a cat is drawn — one contour laid down before any fill,
+   one light shared by every part — are invisible to a test that can only
+   look at the finished pixels, and they are exactly the rules a later change
+   breaks by accident. Recording the calls makes them checkable. */
+export function recordingCtx() {
+  const ops = [];
+  const gradients = [];
+  const ctx = {
+    fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, globalAlpha: 1,
+    lineJoin: 'miter', lineCap: 'butt', font: '10px sans-serif',
+    globalCompositeOperation: 'source-over',
+    shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0,
+    imageSmoothingEnabled: true,
+    ops, gradients,
+
+    save() {}, restore() {},
+    translate() {}, rotate() {}, scale() {}, setTransform() {},
+    beginPath() {}, closePath() {}, moveTo() {}, lineTo() {},
+    arc() {}, ellipse() {}, quadraticCurveTo() {}, rect() {}, clip() {},
+    fillText() {}, measureText: () => ({ width: 0 }),
+    drawImage() {},
+
+    fill() { ops.push({ op: 'fill', style: this.fillStyle, alpha: this.globalAlpha }); },
+    stroke() { ops.push({ op: 'stroke', style: this.strokeStyle, width: this.lineWidth }); },
+    fillRect() { ops.push({ op: 'fillRect', style: this.fillStyle, alpha: this.globalAlpha }); },
+
+    createLinearGradient(x0, y0, x1, y1) {
+      const g = { kind: 'linear', x0, y0, x1, y1, stops: [],
+                  addColorStop(o, c) { this.stops.push([o, c]); } };
+      gradients.push(g);
+      return g;
+    },
+    createRadialGradient() {
+      const g = { kind: 'radial', stops: [], addColorStop(o, c) { this.stops.push([o, c]); } };
+      gradients.push(g);
+      return g;
+    }
+  };
+  return ctx;
+}

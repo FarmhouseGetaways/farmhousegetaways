@@ -425,6 +425,7 @@
     this.meter = U.clamp(this.meter, 0, this.maxMeter);
 
     this.stateFrame++;
+    this.advanceLag();
     switch (this.state) {
       case 'intro':     this.updateIntro(); break;
       case 'move':      this.updateMove(game); break;
@@ -772,6 +773,8 @@
 
     this.lastHitLevel = hit.hitLevel || 'mid';
     this.lastHitHeavy = (hit.damage >= 30);
+    this.hitPoseAlt = Math.random() < 0.5;
+    this.stunFrames = Math.max(6, hit.hitstun || 12);
 
     var push = (hit.pushback || 2) * this.cls.pushed;
     var kd = hit.knockdown;
@@ -874,12 +877,12 @@
     var s = this.state, f = this.stateFrame;
 
     if (s === 'move' && this.move) {
-      return A.sample(this.move.anim, this.moveFrame);
+      return A.sample(this.move.anim, this.moveFrame, this.move);
     }
     switch (s) {
       case 'idle':
         if (this.blockHeld) return Ps.guardHigh;
-        return A.cycle([Ps.stand, Ps.standB, Ps.stand, Ps.standC], 16, this.idleTimer);
+        return A.cycle([Ps.stand, Ps.standB, Ps.stand, Ps.standC], 12, this.idleTimer);
       case 'walkF':
         return A.cycle([Ps.walkF1, Ps.walkF2, Ps.walkF3, Ps.walkF4], 7, this.walkTimer);
       case 'walkB':
@@ -893,9 +896,18 @@
       case 'blockstun':
         return this.port.relDir(this.facing) <= 3 && this.port.relDir(this.facing) >= 1
           ? Ps.guardLow : Ps.guardHigh;
-      case 'hitstun':
-        if (this.lastHitLevel === 'low') return Ps.hitLow;
-        return this.lastHitHeavy ? Ps.hitHeavy : (Math.random() < 0.5 ? Ps.hitHigh : Ps.hitBody);
+      case 'hitstun': {
+        /* Chosen once, when the hit lands. Rolling for it here re-rolled it
+           every frame — the cat shivered between two poses, and hurtboxes()
+           calls this as well, which put a coin flip inside collision. */
+        var hp = this.lastHitLevel === 'low' ? Ps.hitLow
+               : this.lastHitHeavy ? Ps.hitHeavy
+               : (this.hitPoseAlt ? Ps.hitBody : Ps.hitHigh);
+        /* snap to the recoil, hold it, then come back off it */
+        var back = Math.max(4, Math.round(this.stunFrames * 0.55));
+        return A.sample([{ at: 0, p: hp }, { at: back, p: hp },
+                         { at: Math.max(back + 3, this.stunFrames), p: Ps.stand }], f);
+      }
       case 'knockdown':
         if (!this.grounded) return Ps.launch;
         return Ps.downed;
@@ -913,6 +925,19 @@
         return Ps.stand;
     }
     return Ps.stand;
+  };
+
+  /* The pose to DRAW, which is the pose to fight with plus a tail and a head
+     that are still catching up. Advanced once a frame in update(), never in
+     currentPose() — hurtboxes() calls that, and a spring that stepped every
+     time it was asked would run at whatever rate the game happened to look. */
+  Fighter.prototype.advanceLag = function () {
+    if (!this._lag) this._lag = {};
+    this._drawPose = A.settle(this._lag, this.currentPose());
+  };
+
+  Fighter.prototype.drawPose = function () {
+    return this._drawPose || this.currentPose();
   };
 
   /* Open the mouth when the move says to — a growl should look like one —
