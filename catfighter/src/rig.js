@@ -61,6 +61,26 @@
     return '#' + mix(r) + mix(g) + mix(b);
   }
 
+  /* Mix two colours. Shadows in a Street Fighter II sprite are not the base
+     colour turned down — they are the base colour pushed towards a cool dark,
+     which is why the shadow side of a white gi reads blue-grey rather than
+     grey. */
+  function mix(hex, other, amt) {
+    if (!hex || hex[0] !== '#' || hex.length < 7) return hex;
+    if (!other || other[0] !== '#') return hex;
+    function ch(h, i) { return parseInt(h.slice(1 + i * 2, 3 + i * 2), 16); }
+    var out = '#';
+    for (var i = 0; i < 3; i++) {
+      var v = Math.round(ch(hex, i) + (ch(other, i) - ch(hex, i)) * amt);
+      v = Math.max(0, Math.min(255, v));
+      out += (v < 16 ? '0' : '') + v.toString(16);
+    }
+    return out;
+  }
+
+  var SHADE_TO = '#2a2140';        /* cool dark, for every shadow */
+  var LIGHT_TO = '#fff4d8';        /* warm light, for every highlight */
+
   /* How light a colour is, 0..1. A near-black cat cannot be separated from
      itself by shading further into black — there is nowhere left to go — so
      the near side has to do the work instead. */
@@ -268,22 +288,53 @@
      one gradient per colour per frame and nothing else. Rendering the cats
      through an offscreen was measured at 22.8ms a frame against a 16.7ms
      budget; this is a tenth of that and looks the same.                    */
-  function lights(ctx, bounds) {
-    var cache = {};
-    var x1 = bounds.x2 * 0.30 + bounds.x1 * 0.70, y1 = bounds.y2;
-    var x2 = bounds.x1 * 0.30 + bounds.x2 * 0.70, y2 = bounds.y1;
-    return function (colour) {
-      if (!colour) return colour;
-      var hit = cache[colour];
-      if (hit) return hit;
-      if (colour[0] !== '#') { cache[colour] = colour; return colour; }
-      var g = ctx.createLinearGradient(x1, y1, x2, y2);
-      g.addColorStop(0, shade(colour, 0.17));
-      g.addColorStop(0.46, colour);
-      g.addColorStop(1, shade(colour, -0.24));
-      cache[colour] = g;
-      return g;
-    };
+  /* The light comes from up and forward, and it is a hard light. In local
+     coordinates +x is forward and +y is up, so this is the direction the lit
+     side faces. */
+  var LX = 0.52, LY = 0.85;
+
+  /* Three flat tones per material with hard boundaries between them.
+
+     This is the single biggest thing that separates a Street Fighter II
+     sprite from a piece of vector art. The gi is white, blue-grey where it
+     turns away, and near-white where it catches the light — three regions
+     with a hard edge, not a gradient. A gradient reads as a smooth plastic
+     tube however carefully it is aimed; a hard shadow edge reads as a form
+     with a light on it.
+
+     Drawn by filling the whole part in shadow, clipping to it, and then
+     laying the base tone back over it shifted towards the light. What
+     survives at the edge is a crescent of shadow exactly one shift wide. The
+     highlight is the same trick a second time, bracketed so it comes out as
+     a band along the lit edge rather than covering the whole lit side. */
+  function celFill(ctx, path, colour, band, step) {
+    if (!colour || colour[0] !== '#') {          /* rgba() and the like */
+      path(ctx); ctx.fillStyle = colour; ctx.fill();
+      return;
+    }
+    var dx = LX * step, dy = LY * step;
+    path(ctx);
+    ctx.fillStyle = mix(colour, SHADE_TO, 0.34);
+    ctx.fill();
+
+    ctx.save();
+    path(ctx);
+    ctx.clip();
+    ctx.translate(dx, dy);
+    path(ctx);
+    ctx.fillStyle = colour;
+    ctx.fill();
+    if (band) {
+      ctx.translate(dx * 1.15, dy * 1.15);
+      path(ctx);
+      ctx.fillStyle = mix(colour, LIGHT_TO, 0.30);
+      ctx.fill();
+      ctx.translate(dx * 0.85, dy * 0.85);
+      path(ctx);
+      ctx.fillStyle = colour;
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   /* A closed curve through a ring of points, rounded at every one of them.
@@ -513,7 +564,14 @@
     var tailW = (c.longhair ? 6.4 : 4.7) * s * G;
 
     var shapes = [];
-    function fillShape(path, colour) { shapes.push({ k: 'f', p: path, c: colour }); }
+    /* `band` puts a highlight along the lit edge as well as a shadow along
+       the dark one — worth the extra pass on the big forms, wasted on a paw.
+       `edge` draws a line round the piece, for a material that is not the fur
+       it is sitting on. */
+    function fillShape(path, colour, opt) {
+      shapes.push({ k: 'f', p: path, c: colour,
+                    band: !!(opt && opt.band), edge: !!(opt && opt.edge) });
+    }
     function strokeShape(path, colour, w) { shapes.push({ k: 's', p: path, c: colour, w: w }); }
 
     var back = c.points ? c.marks : furBack;
@@ -535,12 +593,12 @@
 
     /* back leg and arm, in the shade */
     fillShape(function (cx) { ellipsePath(cx, j.hipB.x, j.hipB.y, R_TOP * 1.10, R_TOP * 1.02); }, back);
-    fillShape(function (cx) { limbPath(cx, j.hipB, j.kneeB, R_TOP * 0.94, R_MID * 0.9, MUS * 0.9); }, back);
+    fillShape(function (cx) { limbPath(cx, j.hipB, j.kneeB, R_TOP * 0.94, R_MID * 0.9, MUS * 0.9); }, back, { band: true });
     fillShape(function (cx) { limbPath(cx, j.kneeB, j.footB, R_MID * 0.9, R_END * 0.9, MUS * 0.55); }, back);
     fillShape(function (cx) { pawPath(cx, j.footB, j.kneeB, FOOT_X * 0.80, FOOT_Y * 0.92, false); }, back);
     var armBack = c.points ? c.marks : furBack;
     fillShape(function (cx) { ellipsePath(cx, j.shB.x, j.shB.y, R_TOP * 1.24, R_TOP * 1.16); }, armBack);
-    fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.94, R_MID * 0.90, MUS * 0.9); }, armBack);
+    fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.94, R_MID * 0.90, MUS * 0.9); }, armBack, { band: true });
     fillShape(function (cx) { limbPath(cx, j.elbB, j.handB, R_MID * 0.90, R_END * 0.88, MUS * 0.6); }, armBack);
     fillShape(function (cx) { pawPath(cx, j.handB, j.elbB, HAND * 0.84, HAND * 0.72, false); }, c.gloves || armBack);
 
@@ -552,7 +610,28 @@
     }
 
     /* the body itself, then the masses that carry the limbs out of it */
-    fillShape(function (cx) { smoothClosed(cx, bodyPts); }, fur);
+    fillShape(function (cx) { smoothClosed(cx, bodyPts); }, fur, { band: true });
+
+    /* The chest and belly are a different material from the back, and in a
+       sprite of this kind a different material gets a hard edge, not a soft
+       one. This is the cat's equivalent of a gi over skin: it is the shape
+       that stops the torso being one undifferentiated mass. */
+    if (c.pattern !== 'tuxedo' && c.pattern !== 'siamese') {
+      var bibPts = (function () {
+        var pv = j.pelvis, nv = j.neck;
+        var dxv = nv.x - pv.x, dyv = nv.y - pv.y;
+        var lv = Math.hypot(dxv, dyv) || 0.001;
+        var fxv = dyv / lv, fyv = -dxv / lv;
+        function bp(tt, ww) {
+          return { x: pv.x + dxv * tt + fxv * ww, y: pv.y + dyv * tt + fyv * ww };
+        }
+        return [ bp(0.02, hipW * 0.52), bp(0.28, waistW * 0.86),
+                 bp(0.60, chestW * 0.92), bp(0.90, chestW * 0.74),
+                 bp(1.02, chestW * 0.06), bp(0.64, -chestW * 0.20),
+                 bp(0.28, -waistW * 0.16), bp(0.02, -hipW * 0.10) ];
+      })();
+      fillShape(function (cx) { smoothClosed(cx, bibPts); }, belly, { band: true });
+    }
     fillShape(function (cx) { ellipsePath(cx, j.hipF.x, j.hipF.y, R_TOP * 1.16, R_TOP * 1.06); }, fur);
     /* a neck, so the head is not balanced straight on the shoulders */
     fillShape(function (cx) { capsulePath(cx, j.neck, j.head, chestW * 0.46, j.headR * 0.60); }, fur);
@@ -569,10 +648,10 @@
     ];
     var frontStart = shapes.length;
     fillShape(frontParts[0], furFront);
-    fillShape(frontParts[1], c.points ? shade(c.marks, 0.10) : furFront);
+    fillShape(frontParts[1], c.points ? shade(c.marks, 0.10) : furFront, { band: true });
     fillShape(frontParts[2], shinF === fur ? furFront : shinF);
     fillShape(frontParts[3], footF === fur ? furFront : footF);
-    fillShape(frontParts[4], furFront);
+    fillShape(frontParts[4], furFront, { band: true });
     fillShape(frontParts[5], furFront);
     fillShape(frontParts[6], c.gloves || furFront);
 
@@ -587,9 +666,9 @@
 
     if (kit.gloves) {
       var gw = 7.4 * s * G, gc = kit.gloves;
-      shapes.push({ k: 'f', c: gc, p: function (cx) {
+      shapes.push({ k: 'f', c: gc, band: true, edge: true, p: function (cx) {
         ellipsePath(cx, j.handB.x, j.handB.y, gw * 0.86, gw * 0.80); } });
-      shapes.push({ k: 'f', c: gc, p: function (cx) {
+      shapes.push({ k: 'f', c: gc, band: true, edge: true, p: function (cx) {
         ellipsePath(cx, j.handF.x, j.handF.y, gw, gw * 0.92); } });
     }
     if (kit.boots) {
@@ -635,9 +714,9 @@
           cx.closePath();
         };
       }
-      shapes.push({ k: 'f', c: shade(sc, -0.18), p: tail(26, -9, 2.6) });
-      shapes.push({ k: 'f', c: sc, p: tail(20, 5, 3.0) });
-      shapes.push({ k: 'f', c: sc, p: function (cx) {
+      shapes.push({ k: 'f', c: shade(sc, -0.18), edge: true, p: tail(26, -9, 2.6) });
+      shapes.push({ k: 'f', c: sc, edge: true, p: tail(20, 5, 3.0) });
+      shapes.push({ k: 'f', c: sc, band: true, edge: true, p: function (cx) {
         ellipsePath(cx, nk.x, nk.y, chestW * 0.46, chestW * 0.34, 0.2); } });
     }
     if (kit.mane) {
@@ -671,9 +750,9 @@
     var headShapes = [
       { p: inHead(function (cx) { earPath(cx, r, 1, EAR); }), c: c.points ? c.marks : fur },
       { p: inHead(function (cx) { earPath(cx, r, -0.76, EAR); }), c: c.points ? c.marks : fur },
-      { p: inHead(function (cx) { skullPath(cx, r, SKULL); }), c: fur }
+      { p: inHead(function (cx) { skullPath(cx, r, SKULL); }), c: fur, band: true }
     ];
-    headShapes.forEach(function (hs) { fillShape(hs.p, hs.c); });
+    headShapes.forEach(function (hs) { fillShape(hs.p, hs.c, { band: hs.band }); });
 
     /* The box everything has to fit in. Whiskers reach furthest forward and
        a headband's ties furthest back, so the head gets a wide allowance. */
@@ -711,8 +790,7 @@
     var s = fig.s, G = fig.G, white = fig.white;
     var shapes = fig.shapes;
     var i, sh;
-    var lit = white ? function (x) { return x; } : lights(ctx, fig.bounds);
-    fig.lit = lit;
+    var step = white ? 0 : 2.3 * s;
 
     /* ---- pass one: the contour ----
 
@@ -734,15 +812,24 @@
     }
     ctx.restore();
 
-    /* ---- pass two: the fills, each carrying the same light ---- */
+    /* ---- pass two: the fills, each cel-shaded from the same light ---- */
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (i = 0; i < shapes.length; i++) {
       sh = shapes[i];
-      sh.p(ctx);
-      if (sh.k === 's') { ctx.strokeStyle = lit(sh.c); ctx.lineWidth = sh.w; ctx.stroke(); }
-      else { ctx.fillStyle = lit(sh.c); ctx.fill(); }
+      if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = sh.c; ctx.lineWidth = sh.w; ctx.stroke(); }
+      else if (white) { sh.p(ctx); ctx.fillStyle = sh.c; ctx.fill(); }
+      else celFill(ctx, sh.p, sh.c, sh.band, step);
+      /* A piece of kit is a different material from the fur under it, and a
+         material boundary in a sprite of this kind carries a line. Fur on fur
+         does not — that is what turns a limb into a sticker. */
+      if (sh.edge) {
+        sh.p(ctx);
+        ctx.strokeStyle = fig.line;
+        ctx.lineWidth = 1.15 * s;
+        ctx.stroke();
+      }
     }
     ctx.restore();
 
@@ -751,18 +838,6 @@
     smoothClosed(ctx, fig.bodyPts);
     ctx.clip();
     drawPattern(ctx, c, j);
-    if (c.pattern !== 'tuxedo' && c.pattern !== 'siamese') {
-      var bx = U.lerp(j.pelvis.x, j.neck.x, 0.44) + 4 * s * G;
-      var by = U.lerp(j.pelvis.y, j.neck.y, 0.44);
-      var bg = ctx.createRadialGradient(bx, by, 1, bx, by, 11 * s * G);
-      bg.addColorStop(0, fig.belly);
-      bg.addColorStop(0.55, fig.belly);
-      bg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 0.36;
-      ellipsePath(ctx, bx, by, 5.4 * s * G, 11 * s * G);
-      ctx.fillStyle = bg; ctx.fill();
-      ctx.globalAlpha = 1;
-    }
 
     /* The near limbs used to carry a dark line all the way round, which drew
        them as stickers laid on the chest. A cast shadow says the same thing —
@@ -791,9 +866,15 @@
     ctx.lineCap = 'round';
     for (i = fig.frontStart; i < shapes.length; i++) {
       sh = shapes[i];
-      sh.p(ctx);
-      if (sh.k === 's') { ctx.strokeStyle = fig.lit(sh.c); ctx.lineWidth = sh.w; ctx.stroke(); }
-      else { ctx.fillStyle = fig.lit(sh.c); ctx.fill(); }
+      if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = sh.c; ctx.lineWidth = sh.w; ctx.stroke(); }
+      else if (white) { sh.p(ctx); ctx.fillStyle = sh.c; ctx.fill(); }
+      else celFill(ctx, sh.p, sh.c, sh.band, step);
+      if (sh.edge) {
+        sh.p(ctx);
+        ctx.strokeStyle = fig.line;
+        ctx.lineWidth = 1.15 * s;
+        ctx.stroke();
+      }
     }
     ctx.restore();
 
@@ -811,8 +892,66 @@
     ctx.fill();
     ctx.restore();
 
+    if (!white) drawForm(ctx, fig, j);
     if (!white) drawKit(ctx, fig, j, c);
     drawHead(ctx, j, c, fig.fur, fig.fur2, fig.belly, fig.line, opts);
+  }
+
+  /* Anatomy lines: the creases a body actually has.
+
+     A short dark line inside the elbow and behind the knee, and a line where
+     the near arm crosses the chest. Every fighting-game sprite has them, and
+     without them a limb is a shape rather than a joint — which is most of
+     what "geometric shapes moving unlike a body" meant. They are drawn on top
+     of the fills and under the kit, in the contour colour so they read as
+     part of the same drawing. */
+  function drawForm(ctx, fig, j) {
+    var s = fig.s, G = fig.G;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(24,18,28,.32)';
+    ctx.lineCap = 'round';
+
+    /* A crease sits at the joint, on the inside of the bend, and runs across
+       the limb rather than along it. The inside of the bend is where the two
+       segments point when you add their directions together — no bend, no
+       crease, which is right: a straight arm has no line in it. */
+    function crease(a2, b2, c2, rad) {
+      var ax = a2.x - b2.x, ay = a2.y - b2.y, al = Math.hypot(ax, ay) || 1;
+      var cx2 = c2.x - b2.x, cy2 = c2.y - b2.y, cl = Math.hypot(cx2, cy2) || 1;
+      var mx = ax / al + cx2 / cl, my = ay / al + cy2 / cl;
+      var ml = Math.hypot(mx, my);
+      if (ml < 0.35) return;                 /* straight: nothing to crease */
+      mx /= ml; my /= ml;
+      var bend = Math.min(1, (ml - 0.35) / 0.9);
+      ctx.globalAlpha = 0.20 + 0.5 * bend;
+      ctx.lineWidth = 1.05 * s;
+      var px = -my, py = mx;                 /* across the limb */
+      var ox = b2.x + mx * rad * 0.42, oy = b2.y + my * rad * 0.42;
+      var half = rad * 0.62;
+      ctx.beginPath();
+      ctx.moveTo(ox - px * half, oy - py * half);
+      ctx.quadraticCurveTo(ox + mx * rad * 0.22, oy + my * rad * 0.22,
+                           ox + px * half, oy + py * half);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    var R = 5.6 * s * G;
+    crease(j.shF, j.elbF, j.handF, R);
+    crease(j.hipF, j.kneeF, j.footF, R * 1.12);
+    crease(j.hipB, j.kneeB, j.footB, R * 0.92);
+    crease(j.shB, j.elbB, j.handB, R * 0.88);
+
+    /* the line under the collarbone, where the chest meets the shoulders */
+    var cx1 = U.lerp(j.pelvis.x, j.neck.x, 0.82), cy1 = U.lerp(j.pelvis.y, j.neck.y, 0.82);
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 1.0 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx1 - fig.chestW * 0.46, cy1 - 0.5 * s);
+    ctx.quadraticCurveTo(cx1, cy1 + 2.2 * s, cx1 + fig.chestW * 0.50, cy1 - 1.2 * s);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   /* The parts of the kit that mark the body rather than change its outline.
@@ -821,7 +960,7 @@
   function drawKit(ctx, fig, j, c) {
     var kit = c.kit || {};
     var s = fig.s, G = fig.G;
-    var lit = fig.lit || function (x) { return x; };
+    var lit = function (x) { return x; };
 
     if (kit.belt) {
       var bx = U.lerp(j.pelvis.x, j.neck.x, 0.30), by = U.lerp(j.pelvis.y, j.neck.y, 0.30);
@@ -1096,31 +1235,31 @@
       var bandCol = (c.kit && c.kit.band) || '#b8332f';
       ctx.save();
       ctx.beginPath();
-      ctx.ellipse(0, r * 0.06, r * 1.02, r * 0.90, 0, Math.PI * 0.06, Math.PI * 0.94);
-      ctx.lineWidth = r * 0.34;
+      ctx.ellipse(0, r * 0.16, r * 0.96, r * 0.82, 0, Math.PI * 0.10, Math.PI * 0.90);
+      ctx.lineWidth = r * 0.26;
       ctx.strokeStyle = bandCol;
       ctx.stroke();
-      ctx.lineWidth = r * 0.34;
-      ctx.strokeStyle = 'rgba(0,0,0,.22)';
+      ctx.lineWidth = r * 0.26;
+      ctx.strokeStyle = 'rgba(0,0,0,.25)';
       ctx.beginPath();
-      ctx.ellipse(0, r * 0.06, r * 1.02, r * 0.90, 0, Math.PI * 0.06, Math.PI * 0.30);
+      ctx.ellipse(0, r * 0.16, r * 0.96, r * 0.82, 0, Math.PI * 0.10, Math.PI * 0.32);
       ctx.stroke();
       ctx.restore();
       c = Object.create(c);
       c.accent = bandCol;
       ctx.beginPath();
-      ctx.arc(-r * 0.86, r * 0.42, r * 0.17, 0, Math.PI * 2);
+      ctx.arc(-r * 0.82, r * 0.40, r * 0.13, 0, Math.PI * 2);
       ctx.fillStyle = c.accent; ctx.fill();
       ctx.strokeStyle = c.accent; ctx.lineCap = 'round';
-      ctx.lineWidth = 1.9 * es;
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.9, r * 0.44);
-      ctx.quadraticCurveTo(-r * 1.5, r * 0.5, -r * 1.95, r * 0.86);
-      ctx.stroke();
       ctx.lineWidth = 1.5 * es;
       ctx.beginPath();
-      ctx.moveTo(-r * 0.9, r * 0.38);
-      ctx.quadraticCurveTo(-r * 1.5, r * 0.18, -r * 1.85, r * 0.32);
+      ctx.moveTo(-r * 0.85, r * 0.42);
+      ctx.quadraticCurveTo(-r * 1.25, r * 0.46, -r * 1.55, r * 0.74);
+      ctx.stroke();
+      ctx.lineWidth = 1.2 * es;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.85, r * 0.34);
+      ctx.quadraticCurveTo(-r * 1.2, r * 0.16, -r * 1.45, r * 0.26);
       ctx.stroke();
     } else if (c.accessory === 'goggles') {
       ctx.fillStyle = 'rgba(30,30,38,.95)';

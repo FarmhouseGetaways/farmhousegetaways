@@ -588,11 +588,63 @@
     ctx.restore();
   }
 
+  /* Real grain on the floor.
+
+     The floor in the reference is not a gradient — it is planks with strong
+     grain, knots, and boards that are not all the same colour. It is a third
+     of the picture and it was the flattest part of every stage here. */
+  function grain(ctx, camX, boardW, tones, lineAlpha) {
+    var g = ctx.createLinearGradient(0, FLOOR_Y, 0, H);
+    g.addColorStop(0, tones[0]); g.addColorStop(1, tones[1]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
+
+    /* boards receding, each its own shade */
+    repeatX(camX, 1, boardW, function (x, i) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x + boardW, FLOOR_Y);
+      ctx.lineTo(x + boardW - boardW * 0.62, H); ctx.lineTo(x - boardW * 0.62, H);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,' + vary(i, 200, 0, 0.09).toFixed(3) + ')';
+      ctx.fillRect(x - boardW, FLOOR_Y, boardW * 3, H - FLOOR_Y);
+      /* grain lines following the board */
+      ctx.strokeStyle = 'rgba(0,0,0,' + (lineAlpha || 0.09) + ')';
+      ctx.lineWidth = 1;
+      for (var q = 0; q < 4; q++) {
+        var f = (q + 1) / 5;
+        ctx.beginPath();
+        ctx.moveTo(x + boardW * f, FLOOR_Y);
+        ctx.bezierCurveTo(x + boardW * (f + vary(i * 4 + q, 201, -0.1, 0.1)), FLOOR_Y + 18,
+                          x + boardW * (f - 0.3), FLOOR_Y + 34,
+                          x + boardW * (f - 0.62), H);
+        ctx.stroke();
+      }
+      /* a knot on some boards */
+      if (chance(i, 202, 0.3)) {
+        var ky = FLOOR_Y + vary(i, 203, 8, H - FLOOR_Y - 8);
+        var kx = x + boardW * vary(i, 204, 0.2, 0.8) - (ky - FLOOR_Y) * 0.62 * (boardW / boardW);
+        ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.ellipse(kx, ky, 3.4, 2, 0.3, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(kx, ky, 1.6, 1, 0.3, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    });
+    /* the board joints across */
+    ctx.strokeStyle = 'rgba(0,0,0,' + (lineAlpha || 0.09) * 1.8 + ')';
+    for (var r = 1; r < 5; r++) {
+      var y = FLOOR_Y + Math.pow(r / 5, 1.7) * (H - FLOOR_Y);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  }
+
   CF.StageKit = {
     W: W, H: H, FLOOR_Y: FLOOR_Y,
     layer: layer, repeatX: repeatX, hash: hash, sway: sway,
     vary: vary, pick: pick, chance: chance, at: at,
     floorPool: floorPool, litter: litter, crowdRow: crowdRow, prop: prop, spill: spill,
+    grain: grain,
     sky: sky, glow: glow, lightShaft: lightShaft, vignette: vignette,
     hills: hills, ridge: ridge, ground: ground, planks: planks, tree: tree,
     spectator: spectator, Particles: Particles,

@@ -628,6 +628,12 @@ Three things a later session needs to know:
   idle so each cat holds itself differently. Adding a cat without all three
   gets you the same cat in a new colour, which is what the owner objected to
   on 21 Aug 2026.
+- **A stage needs scale contrast as well as a landmark.** The reference has
+  temple roofs so close you cannot see the top of them, framing a castle in
+  the far distance. Every stage now carries a `frame`: something huge at each
+  edge, anchored near the screen with only a little drift, because a frame
+  that scrolls away is not a frame. Floors use `K.grain` — boards of different
+  shades, grain lines that follow them, and the odd knot — not a gradient.
 - **A stage needs a landmark.** Every one of them was a repeating strip until
   21 Aug 2026. The pattern that fixed it: one thing fixed in world space
   (`K.at`) that the eye can return to, every repeated element varied by
@@ -652,6 +658,19 @@ Three things a later session needs to know:
 - **The cats are drawn as one silhouette, in two passes** (`rig.js`): stroke
   every shape with a thick contour, then fill them all in order so the interior
   strokes are painted over. Do not give a body part its own outline.
+- **Shading is HARD-EDGED, three tones per material.** Rewritten 21 Aug 2026
+  against a Street Fighter II screenshot the owner sent. A gradient reads as a
+  smooth plastic tube however carefully it is aimed; a hard shadow edge reads
+  as a form with a light on it, and that difference is most of what separates
+  a sprite from a piece of vector art. `celFill` fills a part in shadow, clips
+  to it, then lays the base tone back over it **shifted towards the light** —
+  what survives at the edge is a crescent of shadow exactly one shift wide.
+  Shadows are the base colour mixed towards one cool dark (`SHADE_TO`),
+  never just darker. A test asserts the recipe, because it leaves no trace in
+  the finished picture.
+- **A material boundary carries a line; fur on fur does not.** A piece of kit
+  is a different material from the fur under it and gets `edge: true`. Putting
+  a line round a limb instead is what turns it into a sticker.
 - **And every fill carries the same light.** Each part is filled with a
   gradient, and all of those gradients run between the same two points in
   space, so the light crosses the whole cat rather than being decided per

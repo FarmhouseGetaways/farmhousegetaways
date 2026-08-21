@@ -114,7 +114,8 @@ export function recordingCtx() {
     ops, gradients,
 
     save() {}, restore() {},
-    translate() {}, rotate() {}, scale() {}, setTransform() {},
+    translate(x, y) { ops.push({ op: 'translate', x, y }); },
+    rotate() {}, scale() {}, setTransform() {},
     beginPath() {}, closePath() {}, moveTo() {}, lineTo() {},
     arc() {}, ellipse() {}, quadraticCurveTo() {}, rect() {}, clip() {},
     fillText() {}, measureText: () => ({ width: 0 }),

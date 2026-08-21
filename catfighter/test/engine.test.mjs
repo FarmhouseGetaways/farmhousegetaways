@@ -1363,8 +1363,9 @@ test('the contour goes down before any fill, so the silhouette is unbroken', () 
     for (const pose of ['stand', 'fierce', 'hk', 'crouch']) {
       const ctx = drawn(chr, pose);
       const outline = chr.palette.outline || '#191410';
-      const firstFill = ctx.ops.findIndex(o => o.op === 'fill');
-      const before = ctx.ops.slice(0, firstFill);
+      const marks = ctx.ops.filter(o => o.op === 'fill' || o.op === 'stroke');
+      const firstFill = marks.findIndex(o => o.op === 'fill');
+      const before = marks.slice(0, firstFill);
       assert.ok(before.length >= 12,
         `${chr.id}/${pose}: only ${before.length} ops before the first fill — the contour ` +
         `pass is not covering the whole figure`);
@@ -1377,35 +1378,56 @@ test('the contour goes down before any fill, so the silhouette is unbroken', () 
   }
 });
 
-test('every part of the body is lit by the same light', () => {
+/* The rig's own shading recipe, restated. If it changes there, this has to
+   change with it — which is the point: the recipe is the contract. */
+function mixHex(hex, other, amt) {
+  const ch = (h, i) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  let out = '#';
+  for (let i = 0; i < 3; i++) {
+    const v = Math.round(ch(hex, i) + (ch(other, i) - ch(hex, i)) * amt);
+    out += (v < 16 ? '0' : '') + v.toString(16);
+  }
+  return out;
+}
+const SHADE_TO = '#2a2140';
+
+/* Every cel-shaded part shows up as a shadow fill immediately followed by the
+   base fill it was derived from. */
+function shadedPairs(ctx) {
+  const fills = ctx.ops.filter(o => o.op === 'fill' && typeof o.style === 'string');
+  const pairs = [];
+  for (let i = 0; i < fills.length - 1; i++) {
+    const shadow = fills[i].style, base = fills[i + 1].style;
+    if (base[0] === '#' && shadow === mixHex(base, SHADE_TO, 0.34)) pairs.push(base);
+  }
+  return pairs;
+}
+
+test('every part of the body is shaded by the same light', () => {
+  /* Cel shading fills a part in shadow, then lays the base tone back over it
+     shifted towards the light. The shadow tone is the base pushed towards one
+     cool dark, the same one for every part and every cat — so a part shaded
+     from a different lamp, or not shaded at all, fails here. It leaves no
+     trace in the finished picture, which is why the drawing is replayed
+     against a recording context instead. */
   for (const chr of CF.ROSTER) {
     const ctx = drawn(chr, 'stand');
-    /* The light is the three-stop gradient `lights()` builds. A cat's markings
-       have gradients of their own — a siamese's points, for one — and those
-       are meant to be local. */
-    const isLight = g => g && g.kind === 'linear' && g.stops.length === 3 &&
-                         g.stops[1][0] === 0.46;
-    const lit = ctx.ops.filter(o => o.op === 'fill' && isLight(o.style));
-    assert.ok(lit.length >= 18,
-      `${chr.id}: only ${lit.length} parts carry the shared light — a flat fill is a flat shape`);
-    const first = lit[0].style;
-    for (const o of lit) {
-      assert.equal(o.style.x0, first.x0, `${chr.id}: a part is lit from somewhere else`);
-      assert.equal(o.style.y0, first.y0, `${chr.id}: a part is lit from somewhere else`);
-      assert.equal(o.style.x1, first.x1, `${chr.id}: a part is lit from somewhere else`);
-      assert.equal(o.style.y1, first.y1, `${chr.id}: a part is lit from somewhere else`);
-    }
+    const pairs = shadedPairs(ctx);
+    assert.ok(pairs.length >= 14,
+      `${chr.id}: only ${pairs.length} parts are cel-shaded — a flat fill is a flat shape`);
+    const tones = new Set(ctx.ops.filter(o => o.op === 'fill' && typeof o.style === 'string')
+                                 .map(o => o.style));
+    assert.ok(tones.size >= 10,
+      `${chr.id}: only ${tones.size} tones on the whole figure — three per material is the point`);
   }
 });
 
-test('a flashing cat is drawn flat white, with no light and no shadow', () => {
+test('a flashing cat is drawn flat, with no shading at all', () => {
   const ctx = recordingCtx();
   const j = CF.Rig.solve(CF.Pose.stand, 1, CF.ROSTER[0].build);
   CF.Rig.drawCat(ctx, j, CF.ROSTER[0].palette, { flash: 'white' });
-  const lit = ctx.ops.filter(o => o.op === 'fill' && o.style && o.style.kind === 'linear' &&
-                                  o.style.stops.length === 3 && o.style.stops[1][0] === 0.46);
-  assert.equal(lit.length, 0,
-    'a white flash is a solid shape on purpose — no light should survive it');
+  assert.equal(shadedPairs(ctx).length, 0,
+    'a white flash is a solid shape on purpose — no shading should survive it');
 });
 
 test('the tail tapers from the rump to the tip', () => {

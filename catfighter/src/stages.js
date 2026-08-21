@@ -236,8 +236,53 @@
         });
       });
 
+      /* --- the frame: two enormous stall partitions at the edges of the
+             picture, near enough that they dwarf the fighters. Scale contrast
+             is what stops a background being a flat band — something huge and
+             close on either side of something small and far. --- */
+      K.layer(ctx, camX, 0.82, function () {
+        /* Anchored near the edges of the screen with only a little drift.
+           A frame that scrolls away is not a frame. */
+        var drift = camX * 0.05;
+        [[-16, 1], [W + 16, -1]].forEach(function (side) {
+          var ex = side[0] - drift * side[1], dir = side[1];
+          ctx.fillStyle = '#3d2418';
+          ctx.beginPath();
+          ctx.moveTo(ex, H);
+          ctx.lineTo(ex, -10);
+          ctx.lineTo(ex + dir * 50, -10);
+          ctx.lineTo(ex + dir * 42, 44);
+          ctx.lineTo(ex + dir * 38, H);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255,220,160,.07)';
+          ctx.fillRect(ex + dir * 36, -10, dir * 5, H + 10);
+          ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
+          for (var q = 0; q < 4; q++) {
+            ctx.beginPath();
+            ctx.moveTo(ex + dir * (10 + q * 12), -10);
+            ctx.lineTo(ex + dir * (8 + q * 11), H);
+            ctx.stroke();
+          }
+          /* an iron bracket, at fighter height so the scale reads */
+          ctx.fillStyle = '#2a2028';
+          ctx.fillRect(ex + (dir > 0 ? 0 : -42), 96, 42, 9);
+        });
+      });
+
+      /* --- a great roof beam overhead, close enough to be out of focus --- */
+      K.layer(ctx, camX, 0.9, function () {
+        ctx.fillStyle = '#33200f';
+        ctx.beginPath();
+        ctx.moveTo(-20, -10); ctx.lineTo(W + 20, -10);
+        ctx.lineTo(W + 20, 16); ctx.lineTo(-20, 22);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,220,160,.07)';
+        ctx.fillRect(-20, 14, W + 40, 3);
+      });
+
       /* --- the floor --- */
-      K.planks(ctx, camX, '#5f4028', '#8a6039', 52);
+      K.grain(ctx, camX, 56, ['#5f4028', '#9a6c42'], 0.1);
       K.floorPool(ctx, W * 0.5, 190, 'rgba(255,196,110,.6)', 0.34);
       K.repeatX(camX, 1, 92, function (x) {
         K.glow(ctx, x, FLOOR_Y + 16, 46, 'rgba(255,196,110,.55)', 0.1);
@@ -436,6 +481,53 @@
       });
 
       /* --- the deck --- */
+      /* --- the frame: a diving tower close enough to lose the top of, and a
+             parasol that fills the other corner --- */
+      K.layer(ctx, camX, 0.88, function () {
+        var d = camX * 0.05;
+        var tx = -12 - d;
+        ctx.fillStyle = '#d8dde2';
+        ctx.fillRect(tx, -10, 30, H + 20);
+        ctx.fillStyle = '#b6bfc6';
+        ctx.fillRect(tx + 30, -10, 8, H + 20);
+        ctx.fillStyle = '#8fa0ab';
+        for (var q = 0; q < 5; q++) ctx.fillRect(tx, 20 + q * 40, 30, 5);
+        ctx.fillStyle = '#e8ecef';
+        ctx.fillRect(tx + 4, 44, 62, 8);
+        ctx.fillStyle = '#c2ccd3';
+        ctx.fillRect(tx + 4, 52, 62, 3);
+        ctx.strokeStyle = '#8fa0ab'; ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(tx + 62, 44); ctx.lineTo(tx + 62, 8);
+        ctx.moveTo(tx + 38, 44); ctx.lineTo(tx + 38, 8); ctx.stroke();
+
+        /* the parasol is on screen, so it reads as a parasol rather than a
+           red ribbon across the sky */
+        var px = W - 18 + d;
+        ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(px + 6, H + 10); ctx.lineTo(px - 2, 34); ctx.stroke();
+        ctx.fillStyle = '#e4574c';
+        ctx.beginPath();
+        ctx.moveTo(px + 62, 56);
+        ctx.quadraticCurveTo(px - 2, 4, px - 66, 56);
+        ctx.quadraticCurveTo(px - 2, 38, px + 62, 56);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.18)';
+        ctx.beginPath();
+        ctx.moveTo(px + 62, 56);
+        ctx.quadraticCurveTo(px - 2, 38, px - 66, 56);
+        ctx.lineTo(px - 62, 62);
+        ctx.quadraticCurveTo(px - 2, 46, px + 58, 62);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1.4;
+        for (var pq = -2; pq <= 2; pq++) {
+          ctx.beginPath();
+          ctx.moveTo(px - 2, 12);
+          ctx.lineTo(px - 2 + pq * 30, 54);
+          ctx.stroke();
+        }
+      });
+
       K.ground(ctx, camX, '#d8cdb4', '#efe6d2', 0.09);
       /* towels and puddles on the hot deck */
       K.layer(ctx, camX, 1, function () {
@@ -599,6 +691,34 @@
             K.spectator(ctx, x + 2, 150, K.vary(i, 102, 0.6, 0.8),
                         Math.abs(i * 17), t + i * 33, mood);
           }
+        });
+      });
+
+      /* --- the frame: two vast trunks at the edge of the picture, close
+             enough that you cannot see the top of them --- */
+      K.layer(ctx, camX, 0.86, function () {
+        var drift2 = camX * 0.05;
+        [[-24, 1], [W + 24, -1]].forEach(function (side) {
+          var ex = side[0] - drift2 * side[1], dir = side[1];
+          ctx.fillStyle = '#3d2a1a';
+          ctx.beginPath();
+          ctx.moveTo(ex, H + 10);
+          ctx.bezierCurveTo(ex + dir * 8, 120, ex - dir * 6, 60, ex + dir * 4, -10);
+          ctx.lineTo(ex + dir * 48, -10);
+          ctx.bezierCurveTo(ex + dir * 38, 70, ex + dir * 54, 130, ex + dir * 44, H + 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 2.4;
+          for (var q = 0; q < 5; q++) {
+            ctx.beginPath();
+            ctx.moveTo(ex + dir * (8 + q * 10), -10);
+            ctx.bezierCurveTo(ex + dir * (4 + q * 11), 70,
+                              ex + dir * (14 + q * 10), 130,
+                              ex + dir * (10 + q * 9), H + 10);
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(255,240,190,.09)';
+          ctx.fillRect(ex + (dir > 0 ? 38 : -44), -10, 6, H + 20);
         });
       });
 
@@ -827,6 +947,30 @@
         });
       });
 
+      /* --- the frame: two boulders the size of sheds --- */
+      K.layer(ctx, camX, 0.86, function () {
+        var drift3 = camX * 0.05;
+        [[-20, 1], [W + 20, -1]].forEach(function (side) {
+          var ex = side[0] - drift3 * side[1], dir = side[1];
+          ctx.fillStyle = '#1d1b2a';
+          ctx.beginPath();
+          ctx.moveTo(ex - dir * 30, H + 10);
+          ctx.lineTo(ex - dir * 20, 66);
+          ctx.lineTo(ex + dir * 18, 34);
+          ctx.lineTo(ex + dir * 50, 74);
+          ctx.lineTo(ex + dir * 58, H + 10);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = 'rgba(190,205,245,.06)';
+          ctx.beginPath();
+          ctx.moveTo(ex - dir * 20, 66); ctx.lineTo(ex + dir * 18, 34);
+          ctx.lineTo(ex + dir * 24, 96); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(ex + dir * 16, 36); ctx.lineTo(ex + dir * 6, 118);
+          ctx.lineTo(ex + dir * 30, H); ctx.stroke();
+        });
+      });
+
       /* --- granite underfoot, wet-looking, with the moon on it --- */
       K.ground(ctx, camX, '#2c2a38', '#413e4f', 0.14);
       K.floorPool(ctx, 96, 150, 'rgba(190,205,245,.5)', 0.22);
@@ -1003,7 +1147,34 @@
         });
       });
 
-      K.planks(ctx, camX, '#7a5330', '#a67a48', 60);
+      /* --- the frame: the end of the dresser on one side, a doorway through
+             to somewhere warmer on the other --- */
+      K.layer(ctx, camX, 0.88, function () {
+        var d = camX * 0.05;
+        var dx2 = -14 - d;
+        ctx.fillStyle = '#5c4025';
+        ctx.fillRect(dx2, -10, 46, H + 20);
+        ctx.fillStyle = '#6e4d2d';
+        ctx.fillRect(dx2 + 40, -10, 8, H + 20);
+        ctx.fillStyle = 'rgba(0,0,0,.28)';
+        for (var q = 0; q < 4; q++) ctx.fillRect(dx2 + 4, 26 + q * 48, 34, 34);
+        ctx.fillStyle = '#caa25c';
+        for (var q2 = 0; q2 < 4; q2++) {
+          ctx.beginPath();
+          ctx.arc(dx2 + 32, 43 + q2 * 48, 2.4, 0, Math.PI * 2); ctx.fill();
+        }
+
+        var ox = W + 14 + d;
+        ctx.fillStyle = '#4a3524';
+        ctx.fillRect(ox - 54, -10, 60, H + 20);
+        ctx.fillStyle = '#f2d9a4';
+        ctx.fillRect(ox - 46, 24, 40, H - 24);
+        K.spill(ctx, ox - 46, H - 40, 40, 60, 'rgba(255,232,180,.7)', 0.3);
+        ctx.fillStyle = '#4a3524';
+        ctx.fillRect(ox - 50, 20, 48, 6);
+      });
+
+      K.grain(ctx, camX, 62, ['#7a5330', '#b1834e'], 0.1);
       K.floorPool(ctx, W * 0.55, 200, 'rgba(255,226,160,.6)', 0.34);
       K.litter(ctx, camX, 1, 52, ['rgba(210,180,120,.45)', 'rgba(140,110,70,.4)'], 0.7, 1.8);
       this.flour.update();
@@ -1160,7 +1331,32 @@
         ctx.restore();
       });
 
-      K.planks(ctx, camX, '#5f4530', '#8a6845', 58);
+      /* --- the frame: the two corner posts of the porch, and the roof they
+             hold up, at the scale you would actually see them --- */
+      K.layer(ctx, camX, 0.9, function () {
+        var d = camX * 0.05;
+        ctx.fillStyle = '#241c30';
+        ctx.beginPath();
+        ctx.moveTo(-20, -10); ctx.lineTo(W + 20, -10);
+        ctx.lineTo(W + 20, 12); ctx.lineTo(-20, 20);
+        ctx.closePath(); ctx.fill();
+        [[-12, 1], [W + 12, -1]].forEach(function (side) {
+          var ex = side[0] - d * side[1], dir = side[1];
+          ctx.fillStyle = '#3a2e42';
+          ctx.fillRect(ex + (dir > 0 ? 0 : -34), 10, 34, H);
+          ctx.fillStyle = 'rgba(255,220,170,.07)';
+          ctx.fillRect(ex + (dir > 0 ? 27 : -34), 10, 6, H);
+          /* the bracket where post meets roof */
+          ctx.fillStyle = '#2e2436';
+          ctx.beginPath();
+          ctx.moveTo(ex + dir * 34, 14);
+          ctx.lineTo(ex + dir * 68, 14);
+          ctx.lineTo(ex + dir * 34, 44);
+          ctx.closePath(); ctx.fill();
+        });
+      });
+
+      K.grain(ctx, camX, 60, ['#5f4530', '#976f49'], 0.1);
       K.floorPool(ctx, W * 0.3, 190, 'rgba(255,206,130,.6)', 0.3);
       K.litter(ctx, camX, 1, 66, ['rgba(120,96,64,.4)', 'rgba(200,170,120,.35)'], 0.7, 1.9);
       this.fluff.update();
