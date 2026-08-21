@@ -444,12 +444,18 @@
   };
 
   /* Menu inputs that mean the same thing in either scheme. */
+  /* Menus confirm on the BOTTOM face button and cancel on the right one,
+     which is what every console has trained everybody to expect. On the
+     four-button scheme the bottom button is JUMP and the right one is KICK;
+     on the arcade layout they are LK and MK. Punch still confirms as well,
+     because it did before and somebody will have got used to it. */
   Port.prototype.confirmPressed = function () {
-    return !!(this.startPressed || this.pressed.P ||
-              this.pressed.LP || this.pressed.MP || this.pressed.HP);
+    return !!(this.startPressed || this.pressed.JUMP || this.pressed.LK ||
+              this.pressed.P || this.pressed.LP || this.pressed.MP || this.pressed.HP);
   };
   Port.prototype.cancelPressed = function () {
-    return !!(this.pressed.K || this.pressed.LK || this.pressed.MK || this.pressed.HK);
+    return !!(this.pressed.K || this.pressed.MK || this.pressed.HK ||
+              this.pressed.BLOCK);
   };
 
   Port.prototype.anyPressed = function () {

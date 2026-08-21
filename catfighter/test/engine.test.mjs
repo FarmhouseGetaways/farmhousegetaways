@@ -355,7 +355,11 @@ test('a knockout leaves no health and ends the fighter', () => {
 test('no cat is strictly better than another on raw stats', () => {
   for (const c of CF.ROSTER) {
     const s = c.stats;
-    assert.ok(s.health >= 850 && s.health <= 1250, `${c.id}: health ${s.health} is off the scale`);
+    /* Relative to the roster, not to a number typed here — the whole bar can
+       be shortened to make rounds quicker without this needing to know. */
+    const mean = CF.ROSTER.reduce((a, x) => a + x.stats.health, 0) / CF.ROSTER.length;
+    assert.ok(s.health > mean * 0.7 && s.health < mean * 1.35,
+      `${c.id}: health ${s.health} is off the scale beside a roster mean of ${Math.round(mean)}`);
     assert.ok(s.walkF > 0.9 && s.walkF < 2.4, `${c.id}: walk speed ${s.walkF} is off the scale`);
     assert.ok(s.jumpVy > 8 && s.jumpVy < 11.5, `${c.id}: jump ${s.jumpVy} is off the scale`);
     /* the fastest cat should not also be the toughest */
@@ -847,13 +851,22 @@ test('and the light cats are genuinely faster in exchange', () => {
   assert.ok(heavyHp > lightHp, 'heavy cats should also carry more health');
 
   /* nobody gets to be both */
+  /* The invariant is the ordering: every heavy cat out-lives every light one.
+     The absolute numbers are free to move. */
+  const heavies = CF.ROSTER.filter(c => c.weightClass === 'heavy').map(c => c.stats.health);
+  const lights = CF.ROSTER.filter(c => c.weightClass === 'light').map(c => c.stats.health);
+  const heaviest = Math.min(...heavies);
+  const lightest = Math.max(...lights);
+  assert.ok(heaviest > lightest,
+    `the toughest light cat (${lightest}) out-lives the frailest heavy one (${heaviest})`);
+
   for (const c of CF.ROSTER) {
     if (c.weightClass === 'light') {
-      assert.ok(c.stats.health <= 950, `${c.id} is light but has ${c.stats.health} health`);
+      assert.ok(c.stats.health < heaviest, `${c.id} is light but out-lives every heavy cat`);
       assert.ok(c.stats.walkF >= 1.7, `${c.id} is light but walks at ${c.stats.walkF}`);
     }
     if (c.weightClass === 'heavy') {
-      assert.ok(c.stats.health >= 1050, `${c.id} is heavy but has only ${c.stats.health} health`);
+      assert.ok(c.stats.health > lightest, `${c.id} is heavy but has less health than a light cat`);
       assert.ok(c.stats.walkF <= 1.35, `${c.id} is heavy but walks at ${c.stats.walkF}`);
     }
   }
@@ -1541,5 +1554,51 @@ test('the options rows fit above the description strip', () => {
       `${row.label}: no description — a settings screen that only names a thing ` +
       `makes the player guess, and half of these change how the game plays`);
     assert.ok(/[.!]$/.test(row.desc), `${row.label}: description is not a sentence`);
+  }
+});
+
+test('the CPU runs from every position, at every difficulty', () => {
+  /* This exists because a corner-mercy branch was added above the line that
+     defines the helper it calls, and nothing in the suite ran the CPU with
+     somebody actually pinned against a wall — so it passed everything and
+     threw the moment a real fight reached the corner. */
+  for (let level = 1; level <= 5; level++) {
+    for (const spot of [
+      { p1: -340, p2: -300, what: 'player one in the left corner' },
+      { p1: 300, p2: 340, what: 'player two in the right corner' },
+      { p1: -20, p2: 20, what: 'nose to nose in the middle' },
+      { p1: -300, p2: 300, what: 'a full screen apart' }
+    ]) {
+      const g = headlessGame(CF);
+      g.arcade = { step: 0, order: [] };
+      g.settings.difficulty = level;
+      g.startMatch(CF.ROSTER[0], CF.ROSTER[1], 0, 'arcade');
+      g.p1.x = spot.p1; g.p2.x = spot.p2;
+      assert.doesNotThrow(() => {
+        for (let f = 0; f < 400; f++) {
+          if (f === 120) { g.p1.x = spot.p1; g.p2.x = spot.p2; }  // hold them there
+          g.step();
+        }
+      }, `level ${level}, ${spot.what}`);
+    }
+  }
+});
+
+test('the CPU lets a cornered player back out', () => {
+  /* Pinned in the corner with no way out is the complaint this answers. On
+     anything below BRUTAL the CPU has to give ground eventually. */
+  for (let level = 1; level <= 4; level++) {
+    const g = headlessGame(CF);
+    g.arcade = { step: 0, order: [] };
+    g.settings.difficulty = level;
+    g.startMatch(CF.ROSTER[0], CF.ROSTER[1], 0, 'arcade');
+    let released = false;
+    for (let f = 0; f < 900 && !released; f++) {
+      g.p1.x = -330;                       // the player, jammed in the corner
+      if (g.p2.x > -180) released = true;  // the CPU has backed off
+      g.step();
+    }
+    assert.ok(released,
+      `at difficulty ${level} the CPU never gave the corner back in fifteen seconds`);
   }
 });

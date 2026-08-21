@@ -51,6 +51,8 @@
     this.announceT = 0;
     this.slowmo = 0;
     this.crowdMood = 0;
+    /* set on the blow that ends a match — see the KO handler */
+    this.finish = null;
 
     /* Set by main.js from real pointer events, in game coordinates. Menus are
        clickable so the game is usable the instant it is pressed, without
@@ -77,6 +79,9 @@
 
   /* ---- match set-up ------------------------------------------------------ */
   Game.prototype.startMatch = function (c1, c2, stageIdx, mode) {
+    this.finish = null;
+    this.slowmo = 0;
+    if (CF.Audio.setKey) CF.Audio.setKey([0, 5, 3, -2, 7, -4][(stageIdx | 0) % 6]);
     var m = mode || this.settings.mode;
     this.settings.mode = m;
 
@@ -110,6 +115,8 @@
   };
 
   Game.prototype.resetRound = function (first) {
+    this.finish = null;
+    this.slowmo = 0;
     var p1 = this.p1, p2 = this.p2;
     p1.x = -START_GAP; p2.x = START_GAP;
     [p1, p2].forEach(function (f) {
@@ -138,6 +145,16 @@
   /* ---- the logical frame ------------------------------------------------- */
   Game.prototype.step = function () {
     this.t++;
+
+    /* Slow motion, and it is real: the simulation simply does not advance on
+       two frames in three. The finishing blow of a match is the moment the
+       whole round was for, and at full speed you miss it. */
+    if (this.slowmo > 0) {
+      this.slowmo--;
+      if (this.finish) this.finish.t++;
+      if (this.slowmo % 3) return;
+    }
+
     for (var i = 0; i < this.ports.length; i++) this.ports[i].poll();
     if (this.announceT > 0) this.announceT--;
     if (this.shakeAmt > 0) this.shakeAmt *= 0.86;
@@ -219,7 +236,7 @@
   /* Rows are packed tighter than they were, to leave a strip at the bottom for
      the description of whichever one is highlighted. */
   Game.prototype.optionRects = function (n) {
-    var top = 44, step = 16, out = [];
+    var top = 38, step = 15, out = [];
     for (var i = 0; i < n; i++) out.push({ x: 50, y: top + i * step, w: W - 100, h: step - 1, i: i });
     return out;
   };
@@ -298,10 +315,25 @@
   /* Every row says what it does. A settings screen that only names a thing and
      shows its value makes the player guess, and half of these change how the
      game plays rather than how it looks. */
+  var PIXEL_NAMES = { 1: 'CHUNKY', 2: 'FINE', 3: 'SHARPEST' };
+
+  Game.prototype.pixelSize = function () {
+    return (CF.Screen && CF.Screen.getPixel) ? CF.Screen.getPixel() : (this.pixelScale || 2);
+  };
+  Game.prototype.setPixelSize = function (n) {
+    n = Math.max(1, Math.min(3, n));
+    if (CF.Screen && CF.Screen.setPixel) CF.Screen.setPixel(n);
+    this.pixelScale = n;
+  };
+
   Game.prototype.optionRows = function () {
-    var s = this.settings;
+    var s = this.settings, g = this;
     var simple = CF.Input.getScheme() === 'simple';
     return [
+      { label: 'PIXEL SIZE', value: PIXEL_NAMES[this.pixelSize()] || 'FINE',
+        desc: 'How big one game pixel is on your screen. CHUNKY is the arcade board exactly; FINE draws at twice that, which keeps the hard pixel edge but gives the art more room. SHARPEST is finer again.',
+        inc: function () { g.setPixelSize(g.pixelSize() + 1); },
+        dec: function () { g.setPixelSize(g.pixelSize() - 1); } },
       { label: 'CONTROLS', value: CF.Input.schemeDef().label,
         desc: simple
           ? 'Four buttons and two triggers. Specials come out on a pair of buttons pressed together — no motion inputs at all.'
@@ -736,8 +768,14 @@
           CF.Audio.play(m.kind === 'super' ? 'superhit' : (m.sfx || (heavy ? 'heavy' : 'med')));
         }
         if (result === 'ko') {
-          this.shake(12); this.slowmo = 60; this.excite(1);
-          def.port.rumble(1, 500);
+          /* Is this the blow that wins the match, or just the round? Only the
+             one that ends it earns the camera. */
+          var decisive = (atk.roundWins + 1) >= this.settings.rounds;
+          this.shake(decisive ? 17 : 12);
+          this.slowmo = decisive ? 170 : 46;
+          this.excite(1);
+          if (decisive) this.finish = { t: 0, win: atk, lose: def, at: mid };
+          def.port.rumble(1, decisive ? 800 : 500);
           atk.port.rumble(0.5, 260);
         }
       }
@@ -837,6 +875,7 @@
         this.arcade.step++;
         if (this.arcade.step >= this.arcade.order.length) {
           this.scene = 'result';
+          this.resultStart = undefined;
           this.resultKind = 'clear';
           this.resultTimer = 400;
           CF.Audio.stopMusic();
@@ -851,6 +890,7 @@
         return;
       }
       this.scene = 'result';
+      this.resultStart = undefined;
       this.resultKind = (this.matchWinner === 'draw') ? 'draw' : 'win';
       this.resultTimer = 340;
       CF.Audio.stopMusic();
@@ -1374,7 +1414,7 @@
   /* ---- options ------------------------------------------------------------ */
   Game.prototype.drawOptions = function (ctx) {
     ctx.fillStyle = '#1a1424'; ctx.fillRect(0, 0, W, H);
-    HUD.text(ctx, 'OPTIONS', W / 2, 26, 14, '#ffe07a', 'center', 800, 2);
+    HUD.text(ctx, 'OPTIONS', W / 2, 22, 13, '#ffe07a', 'center', 800, 2);
     var rows = this.optionRows();
     var rr = this.optionRects(rows.length);
     for (var i = 0; i < rows.length; i++) {
@@ -1385,8 +1425,8 @@
         ctx.fillStyle = '#ffe07a';
         ctx.fillRect(r.x, r.y, 2, r.h);
       }
-      HUD.text(ctx, rows[i].label, r.x + 12, y, 9.5, sel ? '#ffe07a' : 'rgba(255,240,220,.7)', 'left', sel ? 800 : 600, 0.8);
-      HUD.text(ctx, rows[i].value, r.x + r.w - 12, y, 9.5, sel ? '#8fd6ff' : 'rgba(255,240,220,.7)', 'right', sel ? 800 : 600, 0.8);
+      HUD.text(ctx, rows[i].label, r.x + 12, y, 9,  sel ? '#ffe07a' : 'rgba(255,240,220,.7)', 'left', sel ? 800 : 600, 0.8);
+      HUD.text(ctx, rows[i].value, r.x + r.w - 12, y, 9,  sel ? '#8fd6ff' : 'rgba(255,240,220,.7)', 'right', sel ? 800 : 600, 0.8);
     }
 
     /* what the highlighted row actually does */
@@ -1415,6 +1455,20 @@
 
     ctx.save();
     ctx.translate(sx, sy);
+
+    /* On the finishing blow the camera pushes in on the winner and holds
+       there while the slow motion plays out. Everything below is drawn
+       through it, stage included, so it reads as a camera move rather than a
+       sprite getting bigger. */
+    var fin = this.finish;
+    if (fin) {
+      var kz = U.clamp(fin.t / 46, 0, 1);
+      var zoom = 1 + 0.78 * (kz * kz * (3 - 2 * kz));
+      var fx2 = fin.win.x - camX, fy2 = FLOOR_Y - 62;
+      ctx.translate(fx2, fy2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-fx2, -fy2);
+    }
     this.stage.drawBack(ctx, camX, this.t, this.crowdMood);
 
     /* shadows first so both cats cast onto the same floor */
@@ -1531,33 +1585,105 @@
   };
 
   /* ---- result ------------------------------------------------------------- */
+  /* The winner's screen. Turning rays behind the cat, the name slamming in
+     from the side, and the pose held — the beat the whole match was for. */
   Game.prototype.drawResult = function (ctx) {
-    ctx.fillStyle = '#180f22'; ctx.fillRect(0, 0, W, H);
-    var g = ctx.createRadialGradient(W / 2, 100, 10, W / 2, 100, 220);
-    g.addColorStop(0, 'rgba(200,140,60,.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    var t = this.t, tt = (this.resultStart === undefined) ? 0 : (t - this.resultStart);
+    if (this.resultStart === undefined) this.resultStart = t;
+    var intro = U.clamp(tt / 30, 0, 1);
+    var ease = 1 - Math.pow(1 - intro, 3);
 
     var champ = (this.resultKind === 'clear') ? this.p1 :
                 (this.matchWinner === 'draw' ? this.p1 : this.matchWinner);
+    var pal = champ.chr.palette;
+    var accent = pal.accent || '#ffd166';
 
-    drawFighterAt(ctx, champ.chr,
-      CF.Anim.sample([{ at: 0, p: CF.Pose.stand }, { at: 30, p: CF.Pose.winPose }],
-                     Math.min(30, this.t % 200)),
-      W / 2, FLOOR_Y + 26, 1.25, 1, { eyes: 'normal' });
+    ctx.fillStyle = '#120c1a'; ctx.fillRect(0, 0, W, H);
+    var wash = ctx.createRadialGradient(W / 2, 108, 8, W / 2, 108, 230);
+    wash.addColorStop(0, pal.fur2 || '#3a3040');
+    wash.addColorStop(0.5, 'rgba(24,14,30,.8)');
+    wash.addColorStop(1, '#120c1a');
+    ctx.globalAlpha = 0.9 * ease;
+    ctx.fillStyle = wash; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
 
-    if (this.resultKind === 'clear') {
-      HUD.outlineText(ctx, 'ARCADE CLEAR', W / 2, 40, 26, '#ffe07a', '#2a0e18');
-      HUD.text(ctx, champ.chr.displayName + ' IS THE CHAMPION OF THE FARMHOUSE',
-               W / 2, 56, 9, '#ffd9b0', 'center', 700, 1);
-    } else if (this.resultKind === 'draw') {
-      HUD.outlineText(ctx, 'DRAW GAME', W / 2, 44, 26, '#ffd166', '#2a0e18');
-    } else {
-      HUD.outlineText(ctx, 'WINNER', W / 2, 38, 24, '#ffe07a', '#2a0e18');
-      HUD.outlineText(ctx, champ.chr.displayName, W / 2, 60, 20, '#fff', '#2a0e18');
+    /* rays, turning slowly behind them */
+    ctx.save();
+    ctx.translate(W / 2, 118);
+    ctx.rotate(t * 0.004);
+    for (var i = 0; i < 16; i++) {
+      ctx.rotate(Math.PI / 8);
+      ctx.globalAlpha = U.clamp((0.10 + 0.07 * Math.sin(t * 0.03 + i)) * ease, 0, 1);
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(320, -26); ctx.lineTo(320, 26);
+      ctx.closePath(); ctx.fill();
     }
-    HUD.text(ctx, 'PRESS ENTER', W / 2, H - 10, 9,
-             this.t % 60 < 36 ? '#ffe07a' : 'rgba(255,224,122,.25)', 'center', 800, 1.4);
+    ctx.restore();
+
+    /* the spot they are standing in */
+    var spot = ctx.createRadialGradient(W / 2, FLOOR_Y + 20, 4, W / 2, FLOOR_Y + 20, 110);
+    spot.addColorStop(0, 'rgba(255,246,214,.32)');
+    spot.addColorStop(1, 'rgba(255,246,214,0)');
+    ctx.globalAlpha = ease;
+    ctx.fillStyle = spot; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+
+    /* the champion, rising into the pose */
+    var rise = (1 - ease) * 26;
+    ctx.save();
+    ctx.globalAlpha = ease;
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.beginPath();
+    ctx.ellipse(W / 2, FLOOR_Y + 30, 28, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawFighterAt(ctx, champ.chr,
+      CF.Anim.sample([{ at: 0, p: CF.Pose.stand }, { at: 34, p: CF.Pose.winPose }],
+                     Math.min(34, tt)),
+      W / 2, FLOOR_Y + 30 + rise, 1.44, 1,
+      { eyes: 'normal', mouth: tt > 20 && tt < 44 ? 'open' : null });
+    ctx.restore();
+
+    /* the words, arriving from the side and landing hard */
+    var slam = (1 - ease) * 150;
+    ctx.save();
+    ctx.globalAlpha = ease;
+    if (this.resultKind === 'clear') {
+      HUD.outlineText(ctx, 'ARCADE CLEAR', W / 2 + slam, 34, 25, '#ffe07a', '#2a0e18');
+      HUD.text(ctx, champ.chr.displayName + ' IS THE CHAMPION OF THE FARMHOUSE',
+               W / 2 - slam, 50, 8.5, '#ffd9b0', 'center', 700, 1);
+    } else if (this.resultKind === 'draw') {
+      HUD.outlineText(ctx, 'DRAW GAME', W / 2 + slam, 42, 25, '#ffd166', '#2a0e18');
+    } else {
+      HUD.outlineText(ctx, 'WINNER', W / 2 + slam, 28, 20, '#ffe07a', '#2a0e18');
+      HUD.outlineText(ctx, champ.chr.displayName, W / 2 - slam, 50, 21, '#fff', '#2a0e18');
+      HUD.text(ctx, (champ.chr.subtitle || '').toUpperCase(), W / 2 - slam, 61, 8.5,
+               '#ffb8a0', 'center', 700, 1.6);
+    }
+    ctx.restore();
+
+    /* letterbox, so it reads as a cut rather than a menu */
+    var bar = 12 * Math.min(1, tt / 12);
+    ctx.fillStyle = '#08060c';
+    ctx.fillRect(0, 0, W, bar);
+    ctx.fillRect(0, H - bar, W, bar);
+    ctx.fillStyle = 'rgba(255,224,122,.25)';
+    ctx.fillRect(0, bar - 1, W, 1);
+    ctx.fillRect(0, H - bar, W, 1);
+
+    /* the flash on arrival */
+    if (tt < 10) {
+      ctx.globalAlpha = Math.max(0, 1 - tt / 10) * 0.85;
+      ctx.fillStyle = '#fff6e0'; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    if (tt > 34) {
+      HUD.text(ctx, 'PRESS ANYTHING', W / 2, H - 3, 7.5,
+               t % 60 < 36 ? '#ffe07a' : 'rgba(255,224,122,.3)', 'center', 800, 1.4);
+    }
   };
+;
 
   CF.Game = Game;
 })();

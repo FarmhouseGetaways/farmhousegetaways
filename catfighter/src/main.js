@@ -32,19 +32,36 @@
      It is also about twenty times less to draw, so the frame rate problem
      this game had stops being possible.                                   */
 
+  /* How many real pixels the game draws per logical pixel. 1 is the arcade
+     board exactly; 2 halves the size of every pixel, which keeps the hard
+     aliased edge but gives the art twice the detail to be drawn with. It is
+     an option because it is a taste, and because the answer was not obvious
+     until it was on a real screen. */
+  var pixel = 2;
+
   function resize() {
     var wrap = document.getElementById('wrap');
     var cw = wrap.clientWidth, ch = wrap.clientHeight;
     var fit = Math.min(cw / W, ch / H);
     if (!isFinite(fit) || fit <= 0) fit = 1;
-    scale = Math.max(1, Math.floor(fit));
+    /* The on-screen scale has to be a whole multiple of the pixel size, or
+       some game pixels come out wider than their neighbours and the whole
+       picture shimmers when it moves. */
+    var mult = Math.max(1, Math.floor(fit / pixel));
+    scale = pixel * mult;
     canvas.style.width = (W * scale) + 'px';
     canvas.style.height = (H * scale) + 'px';
-    if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
+    var bw = W * pixel, bh = H * pixel;
+    if (canvas.width !== bw) { canvas.width = bw; canvas.height = bh; }
     var ctx = canvas.getContext('2d');
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(pixel, 0, 0, pixel, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    game && (game.deviceScale = scale);
+    if (game) { game.deviceScale = scale; game.pixelScale = pixel; }
+  }
+
+  function setPixel(n) {
+    pixel = Math.max(1, Math.min(4, n | 0));
+    resize();
   }
 
   function loop(now) {
@@ -157,6 +174,10 @@
 
     requestAnimationFrame(loop);
   }
+
+  /* The options screen changes the pixel size, and the canvas has to be
+     rebuilt when it does. */
+  CF.Screen = { setPixel: setPixel, getPixel: function () { return pixel; } };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

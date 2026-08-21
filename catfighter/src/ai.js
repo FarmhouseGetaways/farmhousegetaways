@@ -60,12 +60,17 @@
   }
 
   /* ---- difficulty ------------------------------------------------------- */
+  /* `patience` is how long the CPU will keep somebody pinned in the corner
+     before it gives the corner back, and `rest` is how long it stays away.
+     Being held against the wall and hit until you die is not difficulty, it
+     is the game refusing to let you play — and it is what NORMAL felt like.
+     Only BRUTAL never lets go. */
   var LEVELS = {
-    1: { name: 'KITTEN',  think: 26, react: 22, blockOdds: 0.35, aggro: 0.30, aaOdds: 0.20, spOdds: 0.20, punish: 0.15 },
-    2: { name: 'EASY',    think: 20, react: 17, blockOdds: 0.52, aggro: 0.42, aaOdds: 0.35, spOdds: 0.34, punish: 0.30 },
-    3: { name: 'NORMAL',  think: 15, react: 13, blockOdds: 0.68, aggro: 0.55, aaOdds: 0.52, spOdds: 0.48, punish: 0.48 },
-    4: { name: 'HARD',    think: 11, react: 9,  blockOdds: 0.82, aggro: 0.68, aaOdds: 0.70, spOdds: 0.62, punish: 0.66 },
-    5: { name: 'BRUTAL',  think: 8,  react: 6,  blockOdds: 0.92, aggro: 0.80, aaOdds: 0.85, spOdds: 0.76, punish: 0.82 }
+    1: { name: 'KITTEN',  think: 32, react: 27, blockOdds: 0.20, aggro: 0.20, aaOdds: 0.12, spOdds: 0.12, punish: 0.08, patience: 18,   rest: 46 },
+    2: { name: 'EASY',    think: 25, react: 21, blockOdds: 0.36, aggro: 0.32, aaOdds: 0.24, spOdds: 0.24, punish: 0.20, patience: 34,   rest: 36 },
+    3: { name: 'NORMAL',  think: 19, react: 16, blockOdds: 0.52, aggro: 0.44, aaOdds: 0.38, spOdds: 0.36, punish: 0.34, patience: 58,   rest: 26 },
+    4: { name: 'HARD',    think: 13, react: 11, blockOdds: 0.72, aggro: 0.60, aaOdds: 0.58, spOdds: 0.54, punish: 0.55, patience: 104,  rest: 14 },
+    5: { name: 'BRUTAL',  think: 8,  react: 6,  blockOdds: 0.92, aggro: 0.80, aaOdds: 0.85, spOdds: 0.76, punish: 0.82, patience: 9999, rest: 0 }
   };
 
   /* `seed` is optional and exists for balance testing: the CPU is otherwise
@@ -78,6 +83,8 @@
     this.level = LEVELS[level] || LEVELS[3];
     this.levelNum = level || 3;
     this.cool = 0;
+    this.pressure = 0;      // how long it has been on the attack
+    this.backOff = 0;       // frames left of deliberately giving ground
     this.rnd = CF.util.rng((seed === undefined ? 0x9e37 : seed) + (level || 3) * 7919);
     this.chargeFrames = 0;
   }
@@ -111,6 +118,27 @@
     }
     var q = function (dir, frames) { p.qDir(mirror(dir, face), frames); };
     var qb = function (dir, btn, frames) { p.qBtn(mirror(dir, face), translate(btn), frames); };
+
+    /* ---- 0. give the corner back ---------------------------------------
+
+       Pressure builds while the CPU attacks and bleeds away while it does
+       not. Once it has held somebody against the wall for longer than its
+       patience, it walks away and lets them out. A fight you cannot get out
+       of is not hard, it is broken. */
+    var cornered = Math.abs(o.x) > 280;
+    if (this.pressure > 0) this.pressure--;
+    if (this.backOff > 0) {
+      this.backOff--;
+      if (dist < 150) { q(4, 10); this.cool = 4; return; }
+      q(5, 8); this.cool = 4; return;
+    }
+    if (cornered && this.pressure > L.patience) {
+      this.pressure = 0;
+      this.backOff = L.rest + ((this.r() * 22) | 0);
+      q(4, 12);
+      this.cool = 5;
+      return;
+    }
 
     /* ---- 1. defend ------------------------------------------------------ */
     var threat = this.incomingThreat(game, dist);
@@ -200,7 +228,7 @@
     if (dist < 46 && this.r() < 0.22) {
       var grab = this.pick('grab');
       if (grab) { this.doSpecial(grab, q, qb, 2); this.cool = 8; return; }
-      qb(6, 'HP', 3); this.cool = 8; return;      // throw attempt
+      qb(6, 'HP', 3); this.pressure += 9; this.cool = 8; return;   // throw attempt
     }
     if (this.r() < L.aggro) {
       var pick = this.r();
@@ -211,6 +239,7 @@
         var sp = this.pick('low', 'poke', 'rush');
         if (sp) this.doSpecial(sp, q, qb, 1); else qb(5, 'MK', 3);
       }
+      this.pressure += 9;
       this.cool = L.think;
       return;
     }

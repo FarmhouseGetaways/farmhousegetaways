@@ -122,7 +122,7 @@
         tailTip: '#8d887f', elder: true, line: 'rgba(38,34,30,.55)'
       },
       stats: { walkF: 1.30, walkB: 1.22, jumpVy: 9.2, jumpVx: 2.8, gravity: 0.48,
-               health: 1050, stunMax: 116, weight: 1.10, hasDash: false },
+               health: 700, stunMax: 116, weight: 1.10, hasDash: false },
       mod: { reach: 1.09, damage: 1.10, speed: 1.08 },
       specials: [
         {
@@ -222,7 +222,7 @@
         tailTip: '#332d2c', longhair: true, line: 'rgba(14,11,12,.6)'
       },
       stats: { walkF: 1.02, walkB: 0.86, jumpVy: 8.8, jumpVx: 2.2, gravity: 0.54,
-               health: 1200, stunMax: 138, weight: 1.48, hasDash: false },
+               health: 800, stunMax: 138, weight: 1.48, hasDash: false },
       mod: { reach: 1.02, damage: 1.22, speed: 1.24 },
       specials: [
         {
@@ -303,7 +303,7 @@
         line: 'rgba(12,10,11,.6)'
       },
       stats: { walkF: 1.86, walkB: 1.62, jumpVy: 10.2, jumpVx: 3.7, gravity: 0.46,
-               health: 900, stunMax: 92, weight: 0.88, hasDash: true },
+               health: 600, stunMax: 92, weight: 0.88, hasDash: true },
       mod: { reach: 1.00, damage: 0.90, speed: 0.86 },
       specials: [
         {
@@ -401,7 +401,7 @@
         line: 'rgba(48,36,28,.5)'
       },
       stats: { walkF: 2.02, walkB: 1.78, jumpVy: 10.6, jumpVx: 4.0, gravity: 0.44,
-               health: 850, stunMax: 86, weight: 0.78, hasDash: true, airDash: true },
+               health: 570, stunMax: 86, weight: 0.78, hasDash: true, airDash: true },
       mod: { reach: 1.05, damage: 0.82, speed: 0.80 },
       specials: [
         {
@@ -496,7 +496,7 @@
         tailTip: '#5a4128', line: 'rgba(48,34,20,.55)'
       },
       stats: { walkF: 1.64, walkB: 1.44, jumpVy: 9.6, jumpVx: 3.2, gravity: 0.48,
-               health: 1000, stunMax: 106, weight: 1.02, hasDash: true },
+               health: 670, stunMax: 106, weight: 1.02, hasDash: true },
       mod: { reach: 0.98, damage: 1.06, speed: 0.90 },
       specials: [
         {
@@ -581,7 +581,7 @@
         tailTip: '#5d2f1c', line: 'rgba(38,20,14,.6)'
       },
       stats: { walkF: 1.22, walkB: 1.04, jumpVy: 9.0, jumpVx: 2.6, gravity: 0.50,
-               health: 1120, stunMax: 128, weight: 1.30, hasDash: false },
+               health: 750, stunMax: 128, weight: 1.30, hasDash: false },
       mod: { reach: 1.00, damage: 1.16, speed: 1.14 },
       specials: [
         {

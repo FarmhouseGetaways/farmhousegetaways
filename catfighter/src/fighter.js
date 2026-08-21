@@ -859,6 +859,7 @@
         this.jumpAttackUsed = false;
         this.airDashUsed = false;
         this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 5 });
+        CF.Audio.play('land');
         if (this.state === 'jump') { this.setState('idle'); this.landFrames = 4; }
         else if (this.state === 'hitstun') { this.knockdownTimer = 30; this.setState('knockdown'); }
         else if (this.state === 'thrown') { /* handled by updateThrown */ }
