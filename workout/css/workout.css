@@ -337,9 +337,6 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .field--hint > small { display: block; margin-top: .3rem; color: var(--dimmer); font-size: .78rem; }
 .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0 .7rem; }
 
-.edit-ex { border: 1px solid var(--line); border-radius: var(--radius-s); padding: .9rem; background: var(--card); margin-bottom: .7rem; }
-.edit-ex__head { display: flex; align-items: center; gap: .5rem; margin-bottom: .8rem; }
-.edit-ex__head strong { flex: 1 1 auto; font-family: var(--display); font-weight: 400; font-size: 1.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mini {
   width: 36px; height: 36px; flex: 0 0 auto;
   display: grid; place-items: center; cursor: pointer;
@@ -405,3 +402,125 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
    value grows the track and takes the whole layout off the side of a phone.
    That exact bug shipped on the main site once; it is not shipping here. */
 .week > *, .stats > *, .ex, .log__row, .field-row > * { min-width: 0; }
+
+/* ==========================================================================
+   Editing in place
+
+   The rule: what she reads and what he edits are the same page. Nothing
+   changes position when the pencil is pressed, so a title stays exactly where
+   it was and simply becomes typeable. The only visible difference is a dotted
+   underline saying "this one is yours".
+   ========================================================================== */
+
+.edit-text {
+  outline: none;
+  border-radius: 4px;
+  /* The underline sits under the text rather than around it, so a heading
+     does not turn into a box and jump about. */
+  border-bottom: 1px dashed var(--line-2);
+  padding: 0 .15rem 1px;
+  cursor: text;
+  transition: background .15s ease, border-color .15s ease;
+  overflow-wrap: anywhere;
+}
+.edit-text:hover { background: var(--card); border-bottom-color: var(--blush-2); }
+.edit-text:focus {
+  background: var(--card-2);
+  border-bottom: 1px solid var(--blush);
+  box-shadow: 0 0 0 3px rgba(231, 154, 166, .12);
+}
+
+/* An empty field has to say what belongs in it, or it is an invisible target. */
+.edit-text:empty::before,
+.edit-text.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--dimmer);
+  font-style: italic;
+  pointer-events: none;
+}
+.edit-text:empty:focus::before { opacity: .5; }
+
+.lede-edit {
+  display: block;
+  font-size: 1.05rem; line-height: 1.6;
+  color: var(--dim); margin: .75rem 0 0;
+  white-space: pre-wrap; min-height: 1.6em;
+}
+.edit-text--name { font-weight: 600; display: inline-block; min-width: 6rem; }
+.edit-text--reps { display: inline-block; min-width: 3.5rem; text-align: center; }
+.edit-text--notes {
+  display: block; margin: .75rem 0 0;
+  font-size: .9rem; color: var(--dim);
+  white-space: pre-wrap; min-height: 1.5em;
+}
+
+/* A line of prose with controls sitting in it — "3 sets of 12 · 60s rest" —
+   rather than a stack of labelled fields. It reads as a sentence. */
+.edit-inline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+  margin: .75rem 0 0; font-size: .92rem; color: var(--dim);
+}
+.edit-num, .edit-sel {
+  background: var(--ink-2); color: var(--text);
+  border: 1px solid var(--line-2); border-radius: 8px;
+  padding: .3rem .4rem; min-height: 38px;
+  font-size: .92rem;
+}
+.edit-num { width: 4.5rem; text-align: center; }
+.edit-sel { max-width: 100%; }
+.edit-sel--wide { width: 100%; }
+.edit-num:focus, .edit-sel:focus { border-color: var(--blush); outline: none; }
+
+.edit-list { display: grid; gap: .7rem; }
+
+.edit-ex {
+  border: 1px solid var(--line); border-radius: var(--radius-s);
+  padding: .9rem; background: var(--card); min-width: 0;
+}
+.edit-ex__top { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: start; }
+.edit-ex__head { min-width: 0; }
+.edit-ex__media { display: block; margin-top: .3rem; overflow-wrap: anywhere; }
+/* Across, not down. Stacked, three buttons are taller than the name beside
+   them and the card grows a column of dead space to hold them. */
+.edit-ex__moves { display: flex; gap: .25rem; }
+.edit-ex__moves .mini { width: 32px; height: 32px; font-size: .8rem; }
+
+/* The square beside an exercise: a thumbnail when reading, the button that
+   changes the media when editing. Same size and place in both, so nothing
+   shifts when the pencil goes on. */
+.thumb {
+  flex: 0 0 auto;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border-radius: 10px; overflow: hidden;
+  background: var(--ink-2); border: 1px solid var(--line);
+  color: var(--dimmer); font-size: 1.1rem; padding: 0;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb__play { color: var(--sage); }
+.thumb--edit { cursor: pointer; }
+.thumb--edit:hover { border-color: var(--blush); color: var(--blush); }
+.thumb--edit.is-empty { border-style: dashed; border-color: var(--line-2); }
+
+/* The exercise list in reading mode leads with the thumbnail now. */
+.ex { grid-template-columns: 56px 1fr auto; }
+
+.day__open {
+  display: inline-block; margin-left: .4rem;
+  background: none; border: 0; padding: 0;
+  color: var(--blush); font-size: .78rem; cursor: pointer;
+}
+
+#edit-btn.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+
+/* What is there now, at the top of the media sheet. */
+.media-now {
+  border-radius: var(--radius-s); overflow: hidden;
+  background: #000; border: 1px solid var(--line);
+  margin-bottom: 1rem; min-height: 120px;
+  display: grid; place-items: center;
+}
+.media-now img, .media-now video { width: 100%; max-height: 46vh; object-fit: contain; }
+.media-now__note { padding: 2rem 1rem; font-size: .9rem; }
+
+.stage__still { width: 100%; height: 100%; object-fit: contain; background: #000; }

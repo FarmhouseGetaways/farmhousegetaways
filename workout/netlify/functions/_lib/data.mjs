@@ -86,8 +86,8 @@ const uid = (prefix) =>
 export function safeUrl(value) {
   const raw = text(value, MAX.url);
   if (!raw) return "";
-  // A bare path is fine — videos dropped into workout/videos/ are the simplest
-  // way to host one, and they are same-origin by definition.
+  // A bare path is fine and same-origin by definition: /media/<hash>.<ext> is
+  // what an upload returns, and videos/name.mp4 is a file committed alongside.
   if (/^\/[^/\\]/.test(raw) || /^(videos|images)\//.test(raw)) return raw;
   let u;
   try { u = new URL(raw); } catch { return ""; }
@@ -102,6 +102,10 @@ function normaliseExercise(raw) {
     id: text(raw.id, 40) || uid("ex"),
     name,
     video: safeUrl(raw.video),
+    // A still. Shown in the editor and in the day list, and used as the
+    // poster behind a video so the stage is never a black rectangle while it
+    // loads. On its own it is what an exercise with no video shows.
+    image: safeUrl(raw.image),
     sets: clampNum(raw.sets, 1, MAX.sets, 3),
     reps: text(raw.reps, MAX.reps),             // free text: "12", "30 seconds", "to failure"
     rest: clampNum(raw.rest, 0, MAX.rest, 60),

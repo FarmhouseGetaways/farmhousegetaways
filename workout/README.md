@@ -45,6 +45,10 @@ row.
 single set, so a locked phone, a dropped call, a closed tab or a flat battery
 costs nothing: reopening the app offers to carry on where she left off.
 
+**Editing.** Signed in, the pencil in the top bar turns the page into the
+editor — click a title, a name, the notes, and type. Pictures and clips go on
+by pressing the square beside an exercise. See below.
+
 **The record.** Every finished workout with its date, time, sets, per-exercise
 breakdown and a calorie estimate. A day streak, a week strip, totals, and a CSV
 download.
@@ -60,37 +64,56 @@ unaccounted for at nothing. Set the body weight in Settings. It is stored with
 each workout, so changing it does not rewrite the past. It is an estimate and
 the app says so on screen.
 
-## Videos
+## Editing the week — click the thing and type
 
-Paste a link into the **Video** field in the editor. Five kinds are understood:
+Sign in (**Settings → Sign in**, `WORKOUT_PASSWORD`) and a pencil appears in
+the top bar. Press it and the page you are already looking at becomes the
+editor. Nothing moves; the things you can change simply grow a dotted
+underline.
 
-| What you paste | What happens |
-|---|---|
-| A YouTube link — `youtu.be/…`, `watch?v=…`, `/shorts/…` | Plays in the app, muted and looping |
-| A Vimeo link | Plays in the app |
-| A Google Drive share link | Turned into a `/preview` embed and played in the app |
-| A file — `.mp4`, `.webm`, `.mov` | Plays in the app, and works with no signal once seen |
-| Anything else | Offered as a link rather than a broken player |
+- **On the week board** — the seven day names are typeable where they sit.
+- **Inside a day** — the title, the description, the estimated time, and for
+  every exercise: its name, the sets, the reps, the rest, the effort and the
+  notes. Each exercise reads as a sentence — *5 sets of 12 · 75s rest* — with
+  the numbers themselves being the controls.
+- **Order and removal** — the arrows and the × on each exercise.
+- **+ Add an exercise** drops a blank one in and puts the cursor in its name.
+- **Make it a rest day** clears one.
 
-The simplest way to host your own is to drop the file into `workout/videos/`
-and put `videos/name.mp4` in the field. Keep them small — a phone in a gym is
-on a poor connection, and every megabyte is hers to download. Anything much
-over 10 MB belongs on YouTube as an unlisted video instead of in the repository.
-
-## Editing the week
-
-Sign in — **Settings → Sign in** — with `WORKOUT_PASSWORD`. Then every day gets
-an **Edit this day** button, and Settings grows a grid of all seven.
-
-Per day: a title, a description, and an estimated time (leave it empty and the
-app works it out from the sets and the rests). Per exercise: the name, the
-video, **sets from 1 to 10**, reps or time as free text — "12", "45 seconds",
-"to failure" are all fine — the rest between sets in seconds, an effort level
-that drives the calorie estimate, and notes shown to her while she does it.
-Exercises can be reordered and removed. **Make it a rest day** clears one.
+Everything edits into a single draft of the whole week, so moving from Monday
+to Thursday keeps the changes. The bar at the bottom counts them —
+*Save — 2 days changed* — and nothing leaves the browser until it is pressed.
+The arrow beside it throws the draft away.
 
 Saving writes to the store and is live on every device on their next load. No
 committing, no deploy.
+
+## Pictures and videos
+
+Press the square beside an exercise. Two ways to fill it:
+
+**Paste a link.** YouTube, Vimeo or a Google Drive share link. The hint under
+the box says what it recognised before you commit to it, and an unrecognised
+link is offered as a plain link rather than pretending to be a player.
+
+**Take one from the phone.** *Choose a picture or clip* opens the camera roll.
+A picture is shrunk in the browser first — a five-megabyte phone photo lands
+at two or three hundred kilobytes and looks identical at the size this shows
+it — then uploaded and attached. A clip is sent as it is.
+
+Videos cannot be shrunk in a browser, so a clip has to be **under 4 MB**: that
+is as much as a single request can carry. Anything longer belongs on YouTube
+as an unlisted video, with the link pasted in — the app plays it just the
+same, and the message says so rather than just refusing.
+
+An exercise can have both. The picture is then the poster behind the video, so
+the stage shows the movement instead of a black rectangle while it loads. With
+only a picture, that is what the player shows — which is often all a familiar
+movement needs.
+
+Uploads are content-addressed: the file's name is a hash of its own bytes, so
+the same picture twice costs nothing extra and a URL can never mean something
+different tomorrow. They are served from `/media/<hash>` and cached for a year.
 
 ## Where things are stored, and who can read what
 
@@ -167,7 +190,8 @@ again.
     css/workout.css           all of the styling
     js/catalog.js             effort levels, the calorie maths, video links, formatting
     js/store.js               the week and the record: load, save, sync, the numbers
-    js/app.js                 the six screens and the one click handler
+    js/media.js               shrinking a picture and sending it
+    js/app.js                 the screens, the editor, and the one click handler
     data/plan.json            the committed week — the floor under the live one
     icons/                    app icons, generated from icons/favicon.svg
     manifest.webmanifest      makes it installable
@@ -178,6 +202,7 @@ again.
     netlify/functions/auth.mjs       signing in, out, and the lockout
     netlify/functions/plan.mjs       the week: public to read, password to write
     netlify/functions/history.mjs    the record: password to read and to write
+    netlify/functions/media.mjs      pictures and clips: public to read, password to add
     netlify/functions/_lib/auth.mjs  the password, the cookie, the stores
     netlify/functions/_lib/data.mjs  the shape of the data and every clamp
 

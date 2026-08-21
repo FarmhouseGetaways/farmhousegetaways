@@ -619,7 +619,23 @@ makes Netlify read `workout/netlify.toml` instead of the root one — exactly ho
 forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
 farmhouse domain by accident. **Do not "fix" that 404.**
 
-Three things a future session needs to know:
+**Editing is in place, not a form.** Signed in, the pencil in the top bar turns
+the page into the editor — the same rule `/edit.html` follows on the website.
+Titles, exercise names, reps and notes are `contenteditable` written straight
+into one draft of the whole week; a picture or a clip goes on by pressing the
+square beside an exercise. There is no separate editor screen, and `#/edit/mon`
+now just opens the day with the pencil already pressed. Two things to keep
+right if you touch it: **never repaint an element that has focus** (the caret
+goes back to the start), and **non-breaking spaces are flattened on the way
+in** — browsers scatter them through a `contenteditable` and one stops a line
+wrapping, which is the bug that took the website's own editor down once.
+
+Uploads go to `/api/media` and are content-addressed by a hash of their bytes.
+A picture is shrunk to 1600px in the browser first; a clip is not, so it has to
+be under 4 MB — that is what one request can carry, and the message points at
+YouTube rather than just refusing.
+
+Three more things a future session needs to know:
 
 **It has its own password and its own store.** `WORKOUT_PASSWORD` on its own
 site — not this site's `ADMIN_PASSWORD`, and nothing to do with `GITHUB_TOKEN`

@@ -87,6 +87,32 @@ test("only http(s) and same-folder paths survive", () => {
   assert.equal(safeUrl(null), "");
 });
 
+test("an exercise can carry a still as well as a video", () => {
+  const ex = normalisePlan({
+    days: [{ day: "mon", exercises: [{ name: "Squat", video: "https://youtu.be/abc", image: "/media/deadbeef.jpg" }] }],
+  }).days[0].exercises[0];
+  assert.equal(ex.video, "https://youtu.be/abc");
+  assert.equal(ex.image, "/media/deadbeef.jpg");
+});
+
+test("an exercise with neither video nor image still stores both as empty strings", () => {
+  const ex = normalisePlan({ days: [{ day: "mon", exercises: [{ name: "Squat" }] }] }).days[0].exercises[0];
+  assert.equal(ex.video, "");
+  assert.equal(ex.image, "");
+});
+
+test("a hostile image URL is dropped like a hostile video one", () => {
+  const ex = normalisePlan({
+    days: [{ day: "mon", exercises: [{ name: "Squat", image: "javascript:alert(1)" }] }],
+  }).days[0].exercises[0];
+  assert.equal(ex.image, "");
+});
+
+test("an uploaded media path survives", () => {
+  assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.jpg"), "/media/0123456789abcdef0123456789abcdef.jpg");
+  assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.mp4"), "/media/0123456789abcdef0123456789abcdef.mp4");
+});
+
 /* ---------- history ---------- */
 
 const session = (over = {}) => ({

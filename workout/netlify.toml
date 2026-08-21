@@ -52,6 +52,16 @@
   to = "/.netlify/functions/history"
   status = 200
 
+[[redirects]]
+  from = "/api/media"
+  to = "/.netlify/functions/media"
+  status = 200
+
+[[redirects]]
+  from = "/media/*"
+  to = "/.netlify/functions/media/:splat"
+  status = 200
+
 # It is a private training app, not a page anybody should find.
 [[headers]]
   for = "/*"
@@ -90,6 +100,13 @@
   for = "/icons/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+# The name of an uploaded file IS the hash of its bytes, so a URL can never
+# mean a different picture tomorrow than it does today.
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/videos/*"

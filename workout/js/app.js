@@ -15,12 +15,24 @@
      #/go/mon         the player
      #/done/<id>      the summary of the workout just finished
      #/history        everything ever done
-     #/edit/mon       the editor  (signed in only)
+
+   EDITING IS NOT A SEPARATE SCREEN
+
+   Signed in, the pencil in the top bar turns the page you are already looking
+   at into the editor: the title, the description, an exercise name, the reps,
+   the notes are all clicked and typed straight over. A picture or a video is
+   added by pressing the thumbnail beside the exercise. Nothing is a form, and
+   nothing is somewhere else — the same rule /edit.html follows on the website.
+
+   Everything edits into one draft of the whole week, so moving between days
+   keeps the changes. Nothing leaves the browser until Save is pressed, and the
+   bar at the bottom says how many changes are waiting.
    ========================================================================== */
 
 import * as store from "./store.js";
+import { upload, previewUrl } from "./media.js";
 import {
-  EFFORTS, effortLabel, metOf, sessionCalories, videoSource,
+  EFFORTS, effortLabel, sessionCalories, videoSource,
   clock, duration, plural, niceDate, todayKey, dayKeyOf,
   DAY_KEYS, DAY_NAMES, DAY_SHORT,
 } from "./catalog.js";
@@ -35,6 +47,21 @@ const barIn = $("#bar-in");
 /** Everything a person typed goes through this before it reaches the page. */
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/**
+ * Read what was typed into a contenteditable.
+ *
+ * Browsers scatter non-breaking spaces through an editable element without
+ * being asked, and a non-breaking space stops a line wrapping — which is never
+ * what somebody typing a workout title meant. The website learned this the
+ * hard way when its editor published a paragraph that ran off the side of the
+ * page. They are flattened to ordinary spaces on the way in, here, so nothing
+ * downstream ever has to know.
+ */
+const readText = (el, multiline = false) => {
+  const raw = (el?.innerText ?? "").replace(/\u00a0/g, " ").replace(/\r/g, "");
+  return multiline ? raw.replace(/\n{3,}/g, "\n\n").trim() : raw.replace(/\s+/g, " ").trim();
+};
 
 const isRest = (day) => !day.exercises.length;
 const plannedSets = (day) => day.exercises.reduce((n, ex) => n + (ex.sets || 0), 0);
@@ -125,13 +152,21 @@ function renderWeek() {
     <h2 class="h-section">The week</h2>
     <div class="week">
       ${DAY_KEYS.map((key) => {
-        const d = store.dayPlan(key);
+        const d = editing ? draftDay(key) : store.dayPlan(key);
         const rest = isRest(d);
-        return `<button class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}" data-go="#/day/${key}">
+        // Editing, the card is not a link — the title itself is the field, and
+        // a tap anywhere else opens the day so the exercises can be got at.
+        const title = editing
+          ? `<span class="day__title edit-text ${d.title ? "" : "is-empty"}" contenteditable="plaintext-only"
+               data-edit="title" data-day="${key}" data-placeholder="Name it">${esc(d.title)}</span>`
+          : `<span class="day__title">${rest ? (d.title ? esc(d.title) : "Rest") : esc(d.title || "Workout")}</span>`;
+        return `<${editing ? "div" : "button"} class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}"
+            ${editing ? "" : `data-go="#/day/${key}"`}>
           <span class="day__name">${DAY_SHORT[key]}${week[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
-          <span class="day__title">${rest ? (d.title ? esc(d.title) : "Rest") : esc(d.title || "Workout")}</span>
-          <span class="day__meta">${rest ? "&mdash;" : `${plural(d.exercises.length, "exercise")} &middot; ${estimateMinutes(d)} min`}</span>
-        </button>`;
+          ${title}
+          <span class="day__meta">${rest && !editing ? "&mdash;" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
+            ${editing ? `<button class="day__open" data-go="#/day/${key}">open &rarr;</button>` : ""}</span>
+        </${editing ? "div" : "button"}>`;
       }).join("")}
     </div>
 
@@ -148,8 +183,8 @@ function renderWeek() {
 
     ${footer()}`;
 
-  setTitle("Carissa", "The week");
-  bar.hidden = true;
+  setTitle("Carissa", editing ? "editing the week" : "The week");
+  if (editing) paintSaveBar(); else bar.hidden = true;
 }
 
 /* ==========================================================================
@@ -158,43 +193,341 @@ function renderWeek() {
 
 function renderDay(key) {
   const s = store.get();
-  const day = store.dayPlan(key);
+  const day = editing ? draftDay(key) : store.dayPlan(key);
   const rest = isRest(day);
 
-  screen.innerHTML = `
+  screen.innerHTML = editing ? editableDay(key, day) : `
     <p class="eyebrow">${DAY_NAMES[key]}</p>
     <h2 class="h-display">${esc(day.title || (rest ? "Rest day" : "Workout"))}</h2>
     ${day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
 
     ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.
-        ${s.signedIn ? "Press <strong>Edit this day</strong> to add some exercises." : ""}</p>`
+        ${s.signedIn ? "Press the pencil at the top to add some exercises." : ""}</p>`
       : `<p class="today__meta">
            <span>${plural(day.exercises.length, "exercise")}</span>
            <span>${plural(plannedSets(day), "set")}</span>
            <span>about ${estimateMinutes(day)} min</span>
          </p>
          <ol class="ex-list">
-           ${day.exercises.map((ex, i) => {
-             const v = videoSource(ex.video);
-             return `<li class="ex">
-               <span class="ex__n">${i + 1}</span>
+           ${day.exercises.map((ex, i) => `<li class="ex">
+               ${thumb(ex)}
                <span class="ex__body">
                  <span class="ex__name">${esc(ex.name)}</span>
                  <span class="ex__meta">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""} &middot; ${esc(effortLabel(ex.effort))}</span>
                </span>
-               <span class="ex__badge">${v.kind === "none" ? "no video" : `<span class="has-video">&#9654; video</span>`}</span>
-             </li>`;
-           }).join("")}
+               <span class="ex__n">${i + 1}</span>
+             </li>`).join("")}
          </ol>`}
 
     <div class="btn-row" style="margin-top:1.5rem">
       ${rest ? "" : `<button class="btn btn--go btn--big" data-go="#/go/${key}">Start the workout</button>`}
-      ${s.signedIn ? `<button class="btn" data-go="#/edit/${key}">Edit this day</button>` : ""}
+      ${s.signedIn ? `<button class="btn" data-action="edit-here">Edit this day</button>` : ""}
     </div>
     ${footer()}`;
 
-  setTitle(DAY_NAMES[key], day.title || (rest ? "Rest day" : "Workout"));
-  bar.hidden = true;
+  setTitle(DAY_NAMES[key], editing ? "editing" : (day.title || (rest ? "Rest day" : "Workout")));
+  if (editing) paintSaveBar(); else bar.hidden = true;
+}
+
+/* The little square beside an exercise: its own picture if it has one, a frame
+   from nothing if it does not. It is the same control in both modes — read
+   only it is a thumbnail, editing it is the button that changes the media. */
+function thumb(ex, editable = false, day = "", i = 0) {
+  const v = videoSource(ex.video);
+  const has = ex.image || v.kind === "file" || v.kind === "embed";
+  const inner = ex.image
+    ? `<img src="${esc(ex.image)}" alt="" loading="lazy">`
+    : v.kind !== "none"
+      ? `<span class="thumb__play" aria-hidden="true">&#9654;</span>`
+      : `<span class="thumb__none" aria-hidden="true">${editable ? "+" : "&middot;"}</span>`;
+
+  const label = has ? (v.kind !== "none" ? "video" : "picture") : "add a picture or video";
+  return editable
+    ? `<button type="button" class="thumb thumb--edit ${has ? "" : "is-empty"}"
+         data-action="pick-media" data-day="${day}" data-i="${i}"
+         aria-label="${esc(label)} for ${esc(ex.name || "this exercise")}">${inner}</button>`
+    : `<span class="thumb ${has ? "" : "is-empty"}" aria-hidden="true">${inner}</span>`;
+}
+
+/* ==========================================================================
+   Editing
+
+   One draft of the whole week, made when the pencil is pressed and thrown
+   away when it is pressed again. Moving between days keeps the changes; only
+   Save sends them anywhere.
+   ========================================================================== */
+
+let editing = false;
+let draft = null;
+
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+function startEditing() {
+  draft = clone(store.plan());
+  editing = true;
+  render();
+}
+
+function stopEditing() {
+  editing = false;
+  draft = null;
+  render();
+}
+
+const draftDay = (key) => draft?.days.find((d) => d.day === key) || store.dayPlan(key);
+
+/** Has anything actually changed? Cheap enough at this size, and never wrong. */
+const dirty = () => !!draft && JSON.stringify(draft.days) !== JSON.stringify(store.plan().days);
+
+function countChanges() {
+  if (!draft) return 0;
+  const now = store.plan().days;
+  return draft.days.reduce((n, d, i) => n + (JSON.stringify(d) === JSON.stringify(now[i]) ? 0 : 1), 0);
+}
+
+/** The save bar is patched, never re-rendered — a repaint would eat the caret. */
+function paintSaveBar() {
+  if (!editing) { bar.hidden = true; return; }
+  const n = countChanges();
+  barIn.innerHTML = n
+    ? `<button class="btn btn--big btn--go" data-action="save-week"><span>Save &mdash; ${plural(n, "day")} changed</span></button>
+       <button class="icon-btn" data-action="discard-week" aria-label="Discard changes">&#8630;</button>`
+    : `<button class="btn btn--big" data-action="done-editing"><span>Done editing</span></button>`;
+  bar.hidden = false;
+}
+
+function editableDay(key, day) {
+  return `
+    <p class="eyebrow">Editing &middot; ${DAY_NAMES[key]}</p>
+
+    <h2 class="h-display edit-text" contenteditable="plaintext-only" spellcheck="true"
+        data-edit="title" data-day="${key}"
+        data-placeholder="Name this workout">${esc(day.title)}</h2>
+
+    <p class="lede-edit edit-text" contenteditable="plaintext-only" spellcheck="true"
+       data-edit="description" data-day="${key}" data-multiline="1"
+       data-placeholder="What it is for, and anything she should know before starting.">${esc(day.description)}</p>
+
+    <p class="edit-inline">
+      About <input type="number" class="edit-num" data-field="minutes" data-day="${key}"
+        value="${day.minutes || ""}" min="0" max="600" step="5"
+        placeholder="${estimateMinutes(day) || 30}"> minutes
+      <span class="dimmer small">&mdash; leave it empty and the app works it out</span>
+    </p>
+
+    <h2 class="h-section">Exercises</h2>
+
+    <div class="edit-list">
+      ${day.exercises.map((ex, i) => editableExercise(ex, i, key, day.exercises.length)).join("")}
+    </div>
+
+    <div class="btn-row" style="margin-top:.75rem">
+      <button class="btn" data-action="add-exercise" data-day="${key}">+ Add an exercise</button>
+      ${day.exercises.length ? `<button class="btn btn--danger" data-action="clear-day" data-day="${key}">Make it a rest day</button>` : ""}
+    </div>
+
+    <h2 class="h-section">The rest of the week</h2>
+    <div class="week">
+      ${DAY_KEYS.map((k) => {
+        const d = draftDay(k);
+        return `<button class="day ${k === key ? "is-today" : ""}" data-go="#/day/${k}">
+          <span class="day__name">${DAY_SHORT[k]}</span>
+          <span class="day__title">${esc(d.title || "Rest")}</span>
+          <span class="day__meta">${d.exercises.length ? plural(d.exercises.length, "exercise") : "&mdash;"}</span>
+        </button>`;
+      }).join("")}
+    </div>
+    ${footer()}`;
+}
+
+function editableExercise(ex, i, key, total) {
+  const v = videoSource(ex.video);
+  return `<div class="edit-ex" data-i="${i}">
+    <div class="edit-ex__top">
+      ${thumb(ex, true, key, i)}
+      <div class="edit-ex__head">
+        <span class="edit-text edit-text--name" contenteditable="plaintext-only" spellcheck="true"
+          data-edit="ex-name" data-day="${key}" data-i="${i}"
+          data-placeholder="Name this exercise">${esc(ex.name)}</span>
+        <span class="edit-ex__media small dimmer">${mediaLabel(ex, v)}</span>
+      </div>
+      <div class="edit-ex__moves">
+        <button type="button" class="mini" data-action="move-up" data-day="${key}" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">&uarr;</button>
+        <button type="button" class="mini" data-action="move-down" data-day="${key}" data-i="${i}" ${i === total - 1 ? "disabled" : ""} aria-label="Move down">&darr;</button>
+        <button type="button" class="mini" data-action="remove-exercise" data-day="${key}" data-i="${i}" aria-label="Remove">&times;</button>
+      </div>
+    </div>
+
+    <p class="edit-inline">
+      <select class="edit-sel" data-field="sets" data-day="${key}" data-i="${i}" aria-label="Sets">
+        ${Array.from({ length: 10 }, (_, n) => `<option value="${n + 1}" ${ex.sets === n + 1 ? "selected" : ""}>${n + 1}</option>`).join("")}
+      </select>
+      sets of
+      <span class="edit-text edit-text--reps" contenteditable="plaintext-only"
+        data-edit="ex-reps" data-day="${key}" data-i="${i}"
+        data-placeholder="12">${esc(ex.reps)}</span>
+      &middot;
+      <input type="number" class="edit-num" data-field="rest" data-day="${key}" data-i="${i}"
+        value="${ex.rest}" min="0" max="900" step="15" aria-label="Rest in seconds">s rest
+    </p>
+
+    <p class="edit-inline">
+      <select class="edit-sel edit-sel--wide" data-field="effort" data-day="${key}" data-i="${i}" aria-label="Effort">
+        ${EFFORTS.map((e) => `<option value="${e.key}" ${ex.effort === e.key ? "selected" : ""}>${esc(e.label)}</option>`).join("")}
+      </select>
+    </p>
+
+    <p class="edit-text edit-text--notes" contenteditable="plaintext-only" spellcheck="true"
+       data-edit="ex-notes" data-day="${key}" data-i="${i}" data-multiline="1"
+       data-placeholder="Notes for her, shown while she does it">${esc(ex.notes)}</p>
+  </div>`;
+}
+
+function mediaLabel(ex, v) {
+  const bits = [];
+  if (v.kind === "embed") bits.push(v.provider);
+  else if (v.kind === "file") bits.push("video");
+  else if (v.kind === "link") bits.push("a link, not playable here");
+  if (ex.image) bits.push("picture");
+  return bits.length ? bits.join(" &middot; ") : "Add a picture or video";
+}
+
+/* ---------- typing straight into the draft ---------- */
+
+/* Written on every keystroke rather than read back at save time, so a mis-tap
+   on Back cannot lose half of what was typed. The element is never re-rendered
+   while it has focus — that would put the caret back at the start. */
+screen.addEventListener("input", (e) => {
+  const el = e.target.closest("[data-edit]");
+  if (!el || !editing) return;
+  const { edit, day, i } = el.dataset;
+  const d = draftDay(day);
+  if (!d) return;
+  const value = readText(el, el.dataset.multiline === "1");
+
+  if (edit === "title") d.title = value;
+  else if (edit === "description") d.description = value;
+  else {
+    const ex = d.exercises[Number(i)];
+    if (!ex) return;
+    if (edit === "ex-name") ex.name = value;
+    else if (edit === "ex-reps") ex.reps = value;
+    else if (edit === "ex-notes") ex.notes = value;
+  }
+  el.classList.toggle("is-empty", !value);
+  paintSaveBar();
+});
+
+screen.addEventListener("change", (e) => {
+  const el = e.target.closest("[data-field]");
+  if (!el || !editing) return;
+  const { field, day, i } = el.dataset;
+  const d = draftDay(day);
+  if (!d) return;
+
+  if (field === "minutes") d.minutes = Number(el.value) || 0;
+  else {
+    const ex = d.exercises[Number(i)];
+    if (!ex) return;
+    if (field === "sets") ex.sets = Number(el.value) || 1;
+    else if (field === "rest") ex.rest = Number(el.value) || 0;
+    else if (field === "effort") ex.effort = el.value;
+  }
+  paintSaveBar();
+});
+
+/* Enter ends a single-line field rather than starting a second line in it. */
+screen.addEventListener("keydown", (e) => {
+  const el = e.target.closest?.("[data-edit]");
+  if (!el) return;
+  if (e.key === "Enter" && el.dataset.multiline !== "1") { e.preventDefault(); el.blur(); }
+  if (e.key === "Escape") el.blur();
+});
+
+async function saveWeek() {
+  const next = clone(draft);
+  // A row somebody added and never named is a blank line, not an exercise.
+  for (const d of next.days) d.exercises = d.exercises.filter((ex) => String(ex.name || "").trim());
+  try {
+    const res = await store.savePlan(next);
+    editing = false;
+    draft = null;
+    render();
+    toast(res.note || (res.storage === "server" ? "Saved. It is live on every device." : "Saved on this device."),
+      res.storage === "server" ? "good" : "");
+  } catch (err) {
+    toast(err.message || "Could not save.", "bad");
+  }
+}
+
+/* ---------- adding a picture or a video ---------- */
+
+function mediaSheet(key, i) {
+  const ex = draftDay(key).exercises[Number(i)];
+  if (!ex) return;
+  const v = videoSource(ex.video);
+
+  openSheet(ex.name || "This exercise", `
+    <div class="media-now">
+      ${ex.image ? `<img src="${esc(ex.image)}" alt="">`
+        : v.kind === "file" ? `<video src="${esc(ex.video)}" muted playsinline controls preload="metadata"></video>`
+        : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
+        : `<div class="media-now__note dimmer">Nothing yet</div>`}
+    </div>
+
+    <label class="field field--hint"><span>Paste a link</span>
+      <input type="url" id="m-url" value="${esc(ex.video)}" placeholder="https://youtu.be/…" maxlength="2000">
+      <small id="m-hint">${videoHint(ex.video)}</small></label>
+
+    <div class="btn-row" style="margin-bottom:1.25rem">
+      <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${i}">Use this link</button>
+    </div>
+
+    <p class="eyebrow">Or take one from this phone</p>
+    <input type="file" id="m-file" accept="image/*,video/*" hidden>
+    <div class="btn-row">
+      <button class="btn" data-action="media-choose">Choose a picture or clip</button>
+    </div>
+    <p class="small dimmer" style="margin-top:.6rem">Pictures are shrunk before they are sent. A clip has to be under
+      4&nbsp;MB — anything longer belongs on YouTube as an unlisted video, pasted in above.</p>
+
+    ${(ex.video || ex.image) ? `<div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn btn--danger" data-action="media-clear" data-day="${key}" data-i="${i}">Remove what is there</button>
+    </div>` : ""}
+  `, (root) => {
+    const url = root.querySelector("#m-url");
+    url.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
+
+    const file = root.querySelector("#m-file");
+    file.addEventListener("change", async () => {
+      const chosen = file.files?.[0];
+      if (!chosen) return;
+      const preview = root.querySelector(".media-now");
+      preview.innerHTML = /^video\//.test(chosen.type)
+        ? `<video src="${previewUrl(chosen)}" muted playsinline controls></video>`
+        : `<img src="${previewUrl(chosen)}" alt="">`;
+      toast("Sending…");
+      try {
+        const out = await upload(chosen);
+        const target = draftDay(key).exercises[Number(i)];
+        if (out.kind === "video") { target.video = out.url; }
+        else { target.image = out.url; }
+        closeSheet();
+        render();
+        toast(out.kind === "video" ? "Clip added." : "Picture added.", "good");
+      } catch (err) {
+        toast(err.message, "bad");
+      }
+    });
+  });
+}
+
+function videoHint(url) {
+  const v = videoSource(url);
+  if (v.kind === "none") return "YouTube, Vimeo or Google Drive &mdash; or leave it and use a picture instead.";
+  if (v.kind === "embed") return `${v.provider} &mdash; plays in the app.`;
+  if (v.kind === "file") return "A video file &mdash; plays in the app, and works with no signal once seen.";
+  return "Not a video this can play. It would show as a link instead.";
 }
 
 /* ==========================================================================
@@ -223,7 +556,7 @@ function newLive(key) {
     setStart: now,
     restEnds: null,
     exercises: day.exercises.map((ex) => ({
-      id: ex.id, name: ex.name, video: ex.video, effort: ex.effort,
+      id: ex.id, name: ex.name, video: ex.video, image: ex.image || "", effort: ex.effort,
       reps: ex.reps, rest: ex.rest, notes: ex.notes,
       setsPlanned: ex.sets, done: [], activeSec: 0,
     })),
@@ -318,8 +651,8 @@ function paintPlayer(live) {
         <span id="elapsed">${clock(liveElapsed(live))}</span>${live.pausedAt ? " &middot; paused" : ""}
       </p>
 
-      <div class="stage ${v.kind === "file" || v.kind === "embed" ? "" : "is-empty"}" id="stage">
-        ${stageHtml(v, live.pausedAt || resting)}
+      <div class="stage ${v.kind === "file" || v.kind === "embed" || ex.image ? "" : "is-empty"}" id="stage">
+        ${stageHtml(ex, live.pausedAt || resting)}
         <div class="rest" id="rest" ${resting ? "" : "hidden"}>
           <div class="rest__n" id="rest-n">${restLeft(live)}</div>
           <div class="rest__l">Rest &mdash; next up, set ${setNo}</div>
@@ -378,16 +711,22 @@ function paintPlayer(live) {
   setTitle(live.title, `${DAY_NAMES[live.day]} &middot; in progress`);
 }
 
-function stageHtml(v, muteAutoplay) {
+function stageHtml(ex, muteAutoplay) {
+  const v = videoSource(ex.video);
   if (v.kind === "file") {
-    return `<video src="${esc(v.src)}" playsinline muted loop autoplay controls preload="metadata"></video>`;
+    // The picture, when there is one, is the poster — so the stage shows the
+    // movement rather than a black rectangle while the video loads.
+    return `<video src="${esc(v.src)}" ${ex.image ? `poster="${esc(ex.image)}"` : ""}
+      playsinline muted loop autoplay controls preload="metadata"></video>`;
   }
   if (v.kind === "embed") {
     return `<iframe src="${esc(muteAutoplay ? v.still : v.src)}" title="Exercise video" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
   }
+  // No video, but a picture is a perfectly good demonstration of a position.
+  if (ex.image) return `<img class="stage__still" src="${esc(ex.image)}" alt="${esc(ex.name)}">`;
   return `<div class="stage__empty">
       <strong>No video for this one</strong>
-      <span class="small">Add one from the editor and it plays here.</span>
+      <span class="small">Add a picture or a clip from the pencil and it shows here.</span>
     </div>`;
 }
 
@@ -692,141 +1031,6 @@ function exportHistory() {
 }
 
 /* ==========================================================================
-   The editor — signed in only
-   ========================================================================== */
-
-let draft = null;
-
-function renderEdit(key) {
-  if (!store.get().signedIn) { askSignIn(`#/edit/${key}`); return; }
-  if (!draft || draft.day !== key) draft = JSON.parse(JSON.stringify(store.dayPlan(key)));
-
-  screen.innerHTML = `
-    <p class="eyebrow">Editing &middot; ${DAY_NAMES[key]}</p>
-    <h2 class="h-display">${esc(draft.title || "Untitled")}</h2>
-
-    <div class="card" style="margin-top:1.25rem">
-      <label class="field"><span>What the workout is called</span>
-        <input type="text" id="f-title" value="${esc(draft.title)}" placeholder="Upper body and core" maxlength="120"></label>
-      <label class="field"><span>Description</span>
-        <textarea id="f-desc" placeholder="What it is for, anything she should know before starting." maxlength="1200">${esc(draft.description)}</textarea></label>
-      <label class="field field--hint"><span>Estimated time, in minutes</span>
-        <input type="number" id="f-mins" value="${draft.minutes || ""}" min="0" max="600" step="5" placeholder="${estimateMinutes(draft) || 30}">
-        <small>Leave it empty and the app works it out from the sets and the rests.</small></label>
-    </div>
-
-    <h2 class="h-section">Exercises</h2>
-    <div id="ex-editor">
-      ${draft.exercises.map((ex, i) => exerciseEditor(ex, i, draft.exercises.length)).join("")
-        || `<p class="muted">No exercises yet. Add the first one below.</p>`}
-    </div>
-
-    <div class="btn-row" style="margin-top:.5rem">
-      <button class="btn" data-action="add-exercise">+ Add an exercise</button>
-    </div>
-
-    <div class="btn-row" style="margin-top:1.75rem">
-      <button class="btn btn--go btn--big" data-action="save-day">Save ${DAY_NAMES[key]}</button>
-      <button class="btn btn--ghost" data-action="cancel-day">Cancel</button>
-    </div>
-    ${draft.exercises.length ? `<div class="btn-row" style="margin-top:.6rem">
-      <button class="btn btn--danger" data-action="clear-day">Make it a rest day</button></div>` : ""}
-    ${footer()}`;
-
-  setTitle("Editing", DAY_NAMES[key]);
-  bar.hidden = true;
-  wireEditor();
-}
-
-function exerciseEditor(ex, i, total) {
-  return `<div class="edit-ex" data-i="${i}">
-    <div class="edit-ex__head">
-      <strong>${i + 1}. ${esc(ex.name || "New exercise")}</strong>
-      <button type="button" class="mini" data-action="move-up" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">&uarr;</button>
-      <button type="button" class="mini" data-action="move-down" data-i="${i}" ${i === total - 1 ? "disabled" : ""} aria-label="Move down">&darr;</button>
-      <button type="button" class="mini" data-action="remove-exercise" data-i="${i}" aria-label="Remove">&times;</button>
-    </div>
-
-    <label class="field"><span>Exercise</span>
-      <input type="text" data-f="name" data-i="${i}" value="${esc(ex.name)}" placeholder="Goblet squat" maxlength="120"></label>
-
-    <label class="field field--hint"><span>Video</span>
-      <input type="url" data-f="video" data-i="${i}" value="${esc(ex.video)}" placeholder="https://youtu.be/… or videos/squat.mp4" maxlength="2000">
-      <small>${videoHint(ex.video)}</small></label>
-
-    <div class="field-row">
-      <label class="field"><span>Sets</span>
-        <select data-f="sets" data-i="${i}">
-          ${Array.from({ length: 10 }, (_, n) => `<option value="${n + 1}" ${ex.sets === n + 1 ? "selected" : ""}>${n + 1}</option>`).join("")}
-        </select></label>
-      <label class="field"><span>Reps or time</span>
-        <input type="text" data-f="reps" data-i="${i}" value="${esc(ex.reps)}" placeholder="12" maxlength="60"></label>
-      <label class="field"><span>Rest, seconds</span>
-        <input type="number" data-f="rest" data-i="${i}" value="${ex.rest}" min="0" max="900" step="15"></label>
-    </div>
-
-    <label class="field"><span>Effort &mdash; what the calorie estimate uses</span>
-      <select data-f="effort" data-i="${i}">
-        ${EFFORTS.map((e) => `<option value="${e.key}" ${ex.effort === e.key ? "selected" : ""}>${esc(e.label)}</option>`).join("")}
-      </select></label>
-
-    <label class="field"><span>Notes for her, shown while she does it</span>
-      <textarea data-f="notes" data-i="${i}" placeholder="Keep the elbows in. Stop a rep short of failure." maxlength="600">${esc(ex.notes)}</textarea></label>
-  </div>`;
-}
-
-function videoHint(url) {
-  const v = videoSource(url);
-  if (v.kind === "none") return "YouTube, Vimeo, Google Drive, or a file in workout/videos/.";
-  if (v.kind === "embed") return `${v.provider} &mdash; plays in the app.`;
-  if (v.kind === "file") return "A video file &mdash; plays in the app, and works with no signal once seen.";
-  return "Not a video this can play. It will show as a link instead.";
-}
-
-/* Typing is written straight into the draft rather than being read back at
-   save time, so a mis-tap on Back cannot lose half a form. */
-function wireEditor() {
-  screen.addEventListener("input", (e) => {
-    const t = e.target;
-    if (t.id === "f-title") draft.title = t.value;
-    else if (t.id === "f-desc") draft.description = t.value;
-    else if (t.id === "f-mins") draft.minutes = Number(t.value) || 0;
-    else if (t.dataset.f) {
-      const ex = draft.exercises[Number(t.dataset.i)];
-      if (!ex) return;
-      const field = t.dataset.f;
-      ex[field] = field === "sets" || field === "rest" ? Number(t.value) || 0 : t.value;
-      if (field === "name") {
-        const head = t.closest(".edit-ex")?.querySelector("strong");
-        if (head) head.textContent = `${Number(t.dataset.i) + 1}. ${ex.name || "New exercise"}`;
-      }
-      if (field === "video") {
-        const hint = t.parentElement.querySelector("small");
-        if (hint) hint.innerHTML = videoHint(ex.video);
-      }
-    }
-  });
-}
-
-async function saveDay() {
-  const key = draft.day;
-  draft.exercises = draft.exercises.filter((ex) => String(ex.name || "").trim());
-  const next = {
-    ...store.plan(),
-    days: store.plan().days.map((d) => (d.day === key ? { ...draft } : d)),
-  };
-  try {
-    const res = await store.savePlan(next);
-    draft = null;
-    toast(res.note || (res.storage === "server" ? "Saved. It is live for every device." : "Saved on this device."),
-      res.storage === "server" ? "good" : "");
-    go(`#/day/${key}`);
-  } catch (err) {
-    toast(err.message || "Could not save.", "bad");
-  }
-}
-
-/* ==========================================================================
    Settings, signing in, and the notices
    ========================================================================== */
 
@@ -942,6 +1146,17 @@ function footer() {
 function setTitle(main, sub) {
   $("#title").innerHTML = `${esc(main)}<span class="topbar__sub">${sub}</span>`;
   $("#back").hidden = location.hash === "" || location.hash === "#/";
+
+  /* The pencil shows only where it means something: signed in, and not in the
+     middle of a workout. */
+  const pencil = $("#edit-btn");
+  const canEdit = store.get().signedIn && !location.hash.startsWith("#/go/")
+    && !location.hash.startsWith("#/history") && !location.hash.startsWith("#/done/");
+  pencil.hidden = !canEdit;
+  pencil.classList.toggle("is-on", editing);
+  pencil.setAttribute("aria-pressed", editing ? "true" : "false");
+  pencil.setAttribute("aria-label", editing ? "Stop editing" : "Edit");
+  document.body.classList.toggle("is-editing", editing);
 }
 
 function render() {
@@ -949,11 +1164,22 @@ function render() {
   const [, route, arg] = hash.split("/");
 
   if (route !== "go") { stopTicking(); playerPainted = false; }
-  if (route !== "edit") draft = null;
+
+  /* Editing is a mode, not a screen, so the draft survives moving between
+     days. It is dropped only when a workout starts — she is not editing the
+     week with a dumbbell in her hand — and when Save or Discard is pressed. */
+  if (route === "go" && editing) { editing = false; draft = null; }
+
+  // #/edit/mon was the old form editor. It is now the day itself, with the
+  // pencil already pressed — the URL stays valid because it may be bookmarked.
+  if (route === "edit" && DAY_KEYS.includes(arg)) {
+    if (store.get().signedIn) { if (!draft) { draft = clone(store.plan()); } editing = true; }
+    location.replace(`#/day/${arg}`);
+    return renderDay(arg);
+  }
 
   if (route === "day" && DAY_KEYS.includes(arg)) return renderDay(arg);
   if (route === "go" && DAY_KEYS.includes(arg)) return renderPlayer(arg);
-  if (route === "edit" && DAY_KEYS.includes(arg)) return renderEdit(arg);
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
   return renderWeek();
@@ -963,6 +1189,11 @@ window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); }
 
 $("#back").addEventListener("click", () => {
   if (history.length > 1) history.back(); else go("#/");
+});
+$("#edit-btn").addEventListener("click", () => {
+  if (!store.get().signedIn) { askSignIn(null); return; }
+  if (!editing) { startEditing(); return; }
+  if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing();
 });
 $("#history-btn").addEventListener("click", () => go("#/history"));
 $("#settings-btn").addEventListener("click", settingsSheet);
@@ -1004,36 +1235,69 @@ document.addEventListener("click", (e) => {
       break;
     case "export": exportHistory(); break;
 
-    case "add-exercise":
-      draft.exercises.push({
-        id: store.uid("ex"), name: "", video: "", sets: 3, reps: "12",
+    /* ---- editing ---- */
+    case "edit-here": startEditing(); break;
+    case "save-week": saveWeek(); break;
+    case "done-editing": stopEditing(); break;
+    case "discard-week":
+      if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing();
+      break;
+
+    case "add-exercise": {
+      draftDay(day).exercises.push({
+        id: store.uid("ex"), name: "", video: "", image: "", sets: 3, reps: "12",
         rest: 60, effort: "strength", notes: "",
       });
-      renderEdit(draft.day);
-      document.querySelector(".edit-ex:last-of-type input")?.focus();
+      render();
+      const added = document.querySelector('.edit-ex:last-of-type [data-edit="ex-name"]');
+      added?.focus();
       break;
+    }
     case "remove-exercise":
-      draft.exercises.splice(Number(i), 1);
-      renderEdit(draft.day);
+      draftDay(day).exercises.splice(Number(i), 1);
+      render();
       break;
     case "move-up":
-      swap(draft.exercises, Number(i), Number(i) - 1);
-      renderEdit(draft.day);
+      swap(draftDay(day).exercises, Number(i), Number(i) - 1);
+      render();
       break;
     case "move-down":
-      swap(draft.exercises, Number(i), Number(i) + 1);
-      renderEdit(draft.day);
+      swap(draftDay(day).exercises, Number(i), Number(i) + 1);
+      render();
       break;
-    case "save-day": saveDay(); break;
-    case "cancel-day": { const d = draft.day; draft = null; go(`#/day/${d}`); break; }
     case "clear-day":
       if (confirm("Clear every exercise and make this a rest day?")) {
-        draft.exercises = [];
-        saveDay();
+        draftDay(day).exercises = [];
+        render();
       }
       break;
 
-    case "edit-day": closeSheet(); go(`#/edit/${day}`); break;
+    /* ---- a picture or a video ---- */
+    case "pick-media": mediaSheet(day, i); break;
+    case "media-choose": document.getElementById("m-file")?.click(); break;
+    case "media-link": {
+      const value = document.getElementById("m-url")?.value || "";
+      draftDay(day).exercises[Number(i)].video = value.trim();
+      closeSheet();
+      render();
+      toast(value.trim() ? "Link added." : "Link removed.");
+      break;
+    }
+    case "media-clear": {
+      const ex = draftDay(day).exercises[Number(i)];
+      ex.video = ""; ex.image = "";
+      closeSheet();
+      render();
+      toast("Removed.");
+      break;
+    }
+
+    case "edit-day":
+      closeSheet();
+      if (!editing) startEditing();
+      go(`#/day/${day}`);
+      render();
+      break;
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "sign-in": closeSheet(); askSignIn(null); break;
     case "sign-out":
@@ -1060,6 +1324,8 @@ store.subscribe(() => {
   // screen looks after itself. One that has not been painted yet — a cold
   // start straight onto a workout URL — still needs this to draw it.
   if (location.hash.startsWith("#/go/") && playerPainted) return;
+  // And never repaint the field somebody is typing in.
+  if (editing && document.activeElement?.hasAttribute?.("data-edit")) return;
   render();
 });
 
