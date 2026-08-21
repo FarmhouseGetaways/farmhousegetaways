@@ -49,8 +49,11 @@ OWNER CORRECTIONS 8/21/2026 (second round) — carried in this file:
     do not cross under any structure.
   * HANDLEBAR RD IS NOT ON THIS LAYOUT — it is far away. The road crossing the
     east portion is the private access easement / driveway, ±700' to Handlebar
-    Rd across the adjacent parcel. Front yard is 40' from that easement's
-    centreline (Schedule C footnote (d)); do not name that road Handlebar.
+    Rd across the adjacent parcel. Do not name that road Handlebar.
+  * SETBACKS ARE MEASURED FROM THE PROPERTY LINES ONLY (third round): N/S
+    interior side 15', east rear 25' (a straight offset of the straight east
+    line — NO curved setback following the access road), west 35'. Never
+    buffer a setback off the road easement.
 """
 import json, math, os
 import numpy as np
@@ -78,9 +81,13 @@ STORE_SF   = 1500
 # ZO 4810 Schedule C, designator C. The house fronts HANDLEBAR RD (east), so
 # that is the front yard; Whirlwind Ln on the west is the exterior side yard.
 SB_SIDE  = 15.0    # interior side, from lot line (north and south)
-SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln
-SB_FRONT = 40.0    # front, from centreline of the private access road esmt.
-                   # (private esmt. <40' wide, Schedule C footnote (d))
+SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln (drawn at
+                   # the west P.L. per owner, so effectively from the lot line)
+SB_REAR  = 25.0    # rear, from the east lot line. OWNER 8/21 (third round):
+                   # every setback is measured from the PROPERTY LINES (the
+                   # thick black boundary), NOT from the access road easement.
+                   # No curved setback following the road — the east side is a
+                   # straight offset of the straight east line.
 ESMT_W     = 30.0       # Whirlwind Ln road easement along the west boundary
 WL_CL_X    = 0.0        # its centreline, drawn at the west P.L. per owner (see note)
 
@@ -128,7 +135,7 @@ ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
             .difference(LINE_WCL.buffer(SB_EXT))
-            .difference(LINE_ACC.buffer(SB_FRONT)))
+            .difference(LINE_E.buffer(SB_REAR)))
 
 # Zone polygons are DRAWN clipped to the parcel boundary (owner, 8/21: "my red
 # areas extend over the property lines — everything needs to be re-drawn so
@@ -443,9 +450,9 @@ for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
-# The residence fronts the PRIVATE ACCESS ROAD ESMT., so that is the front
-# yard. Whirlwind Ln on the west is the exterior side yard; north and south
-# are interior side yards.
+# ALL measured from the property lines (owner, 8/21 third round): N/S interior
+# side 15', east rear 25', west exterior side 35' (Whirlwind ℄ at the west
+# P.L.). No setback is offset from the access road easement.
 SB = '#0044aa'
 y_lo, y_hi = -16, 308
 
@@ -458,8 +465,7 @@ ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center',
 ax.text(ESMT_W+4, 262, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
         ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
-# buildable envelope (front from the access esmt. ℄, exterior side from
-# Whirlwind ℄, interior sides from the north and south lot lines)
+# buildable envelope (every yard a straight offset of its property line)
 for ring in rings(ENVELOPE):
     ax.add_patch(MPoly(ring, closed=True, fc='none', ec=SB, lw=1.3,
                        ls=(0,(7,3)), zorder=4))
@@ -473,12 +479,11 @@ ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(SB_EXT+4, 190, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
         fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.annotate(f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L OF THE\n"
-            f"PRIVATE ACCESS ROAD ESMT. (SCHED. C NOTE (d);\n"
-            f"RESIDENCE FRONTS THE ESMT. — NOTE 4)",
-            (452, 168), (392, 214), fontsize=6.4, ha='center', color=SB,
-            fontweight='bold', zorder=8, arrowprops=dict(arrowstyle='-', lw=0.8, color=SB),
-            bbox=dict(fc='white', ec=SB, lw=0.8, alpha=0.95, pad=2.0))
+# All setbacks are measured from the PROPERTY LINES (owner). East = rear 25'.
+ax.text(551, 185, f"REAR YARD SETBACK {SB_REAR:.0f}' FROM EAST P.L.",
+        fontsize=6.4, rotation=90, va='center', ha='center', color=SB,
+        fontweight='bold', zorder=8,
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
 # ---- drainage arrows toward pond
 for (fx, fy) in [(280,55),(320,175),(150,255),(72,40)]:
@@ -781,11 +786,11 @@ notes = [
  "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
  "3.  NO GRADING PROPOSED. THE ONLY NEW CONSTRUCTION IS THE 12'x10' STORE (UNDER",
  "     CONSTR.). PLAN DOCUMENTS EXISTING AG OPERATIONS + PROPOSED STORE (ZO §6157).",
- "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C. THE",
- "     RESIDENCE FRONTS THE PRIVATE ACCESS ROAD ESMT. CROSSING THE EAST PORTION,",
- "     SO THAT IS THE FRONT YARD: 40' FROM ITS ℄ PER SCHEDULE C FOOTNOTE (d), A",
- "     PRIVATE EASEMENT UNDER 40' WIDE. WHIRLWIND LN IS THE EXTERIOR SIDE YARD AT",
- "     35' FROM ℄; NORTH AND SOUTH ARE INTERIOR SIDE YARDS AT 15'.",
+ "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C, ALL",
+ "     MEASURED FROM THE PROPERTY LINES: NORTH AND SOUTH INTERIOR SIDE YARDS 15',",
+ "     EAST REAR YARD 25', WEST EXTERIOR SIDE YARD 35' FROM WHIRLWIND LN ℄ (SHOWN",
+ "     AT THE WEST P.L. PER OWNER — NOTE 9). YARD DESIGNATIONS TO BE CONFIRMED",
+ "     WITH PDS AT SUBMITTAL.",
  "5.  THE PROPOSED STORE SITS IN THE BUILDABLE AREA, CLEAR OF EVERY REQUIRED YARD",
  "     (20' BEYOND THE WHIRLWIND SETBACK, 45'+ ELSEWHERE). EXIST. TINY HOME (W) IS",
  "     TO BE REMOVED. ROAD CENTRELINES ARE APPROXIMATE PENDING PM 05062 (NOTE 9).",

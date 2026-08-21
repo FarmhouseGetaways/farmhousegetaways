@@ -29,10 +29,10 @@ Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setbac
 designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
 exterior side 35' from ℄, rear 25'. **Handlebar Rd is not on the parcel** — the
 road crossing the east portion is the private access road easement (the
-driveway route, ±700' to Handlebar across the adjacent parcel). The residence
-fronts that easement, so the front yard is 40' from its centreline under
-Schedule C footnote (d); Whirlwind Ln is the exterior side yard at 35' from
-centreline. The store clears every required yard.
+driveway route, ±700' to Handlebar across the adjacent parcel). **Every
+setback is drawn from the property lines** (owner's direction): 15' north and
+south, 25' rear on the east, 35' on the west (Whirlwind ℄ at the west line) —
+no setback follows the road easement. The store clears every required yard.
 
 **The store is the new Mini Barn Market building under construction** at the
 NW — 12'×10' = 120 SF per the owner — against a 1,500 SF limit, so the old

@@ -46,9 +46,14 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   in `data/ag_areas.json`. AG-3 also stops at the fence ~20' W of the septic.
 - **Handlebar Rd is NOT on the layout** — it is far away. The N-S road crossing
   the east portion is the **private access road easement / driveway route,
-  ±700' to Handlebar Rd across the adjacent parcel**. The residence fronts that
-  easement → front yard 40' from its ℄ (Schedule C footnote (d)); Whirlwind Ln
-  is the exterior side yard at 35' from centreline.
+  ±700' to Handlebar Rd across the adjacent parcel**.
+- **Setbacks are measured from the PROPERTY LINES, full stop** (third round,
+  8/21: "The setbacks should be from the thick black line not some imaginary
+  road"). N/S interior side 15', east REAR 25' — a straight offset of the
+  straight east boundary, never a curve following the access road — and west
+  35' (Whirlwind ℄, drawn at the west P.L.). Never buffer a setback off the
+  road easement. Yard designations flagged for PDS confirmation in note 4 and
+  SUBMITTAL question 1.
 - **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
   structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
   — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
@@ -465,13 +470,13 @@ no PDS interpretation question, nothing to ask. Do not reopen this.
 
 ### Setback compliance — the store is safe
 
-**The residence fronts the private access road easement crossing the east
-portion, so that is the front yard** (the road formerly mislabelled Handlebar
-Rd — owner correction 8/21/2026; the geometry is unchanged, only the name was
-wrong). The easement is 30' wide where the assessor's map dimensions it, so
-Schedule C footnote (d) gives **40' from its centreline**. That makes
-**Whirlwind Ln the exterior side yard at 35' from ℄** — the figure the owner
-gave from the start — and north/south **interior side yards at 15'**.
+**All setbacks are measured from the property lines** (owner, 8/21/2026 third
+round): north and south **interior side yards at 15'**, east **rear yard at
+25'** — a straight offset of the straight east boundary — and **Whirlwind Ln
+the exterior side yard at 35' from ℄**, drawn at the west P.L. No setback is
+offset from the access road easement; an earlier draft curved the east setback
+along it and the owner rejected that. Yard designations are flagged for PDS
+confirmation (note 4).
 
 The store (the new 12'×10' Mini Barn Market) clears every required yard — 55'
 to the Whirlwind centreline (35' required), ~46' to the north line (15'), and
@@ -615,7 +620,11 @@ docs were updated together:
 6. **AG-3 stops at the fence ~20' W of the septic** (clip at x ≤ 402.5).
 7. **"Handlebar Rd" removed from the drawing.** The N-S curve is the private
    access road easement / driveway route, labelled as such, ±700' to Handlebar
-   Rd via an easement across the adjacent parcel. Front yard unchanged in
-   geometry (40' from that easement's ℄, footnote (d)) — only the name changed.
-   The vicinity map shows Handlebar detached, linked by a dashed "ACCESS ESMT.
-   ±700'" connector.
+   Rd via an easement across the adjacent parcel. The vicinity map shows
+   Handlebar detached, linked by a dashed "ACCESS ESMT. ±700'" connector.
+
+**Third round, same day:** the first cut of item 7 kept a 40' front setback
+buffered off the easement centreline, which put a curved blue setback on the
+east side. Owner: "The setbacks should be from the thick black line not some
+imaginary road." Fixed — east is now a straight 25' REAR yard off the east
+property line, and no setback anywhere is measured from the road easement.

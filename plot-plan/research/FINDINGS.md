@@ -126,6 +126,15 @@ interior side yards at 15'**.
 An earlier draft put the front on Whirlwind. That was wrong; the front follows
 the house.
 
+**Final owner decision (8/21/2026, third round): the sheet draws every setback
+from the property lines** — N/S interior side 15', east REAR 25' as a straight
+offset of the east line, west 35' (Whirlwind ℄ at the west P.L.). A draft that
+buffered a 40' front yard off the access easement's curved centreline was
+rejected ("setbacks should be from the thick black line, not some imaginary
+road"). Whether footnote (d) makes any yard measure from the easement instead
+is left as a question for PDS (SUBMITTAL question 1); nothing about the store
+turns on the answer.
+
 *(Historical note: the clearance table above predates the 8/21/2026 owner
 corrections — the "Shed NE" and "Canopy NE" rows were the NEIGHBOUR'S buildings
 and are off the sheet, and the store is no longer in the barn; see §4.)*

@@ -73,14 +73,17 @@ The parcel's zoning box, pulled live from SanGIS, is
 The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
+**Every setback on the sheet is measured from the property lines** — the thick
+black boundary — per your direction: north and south **interior side yards at
+15'**, east **rear yard at 25'** (a straight line parallel to the straight east
+boundary), and west **exterior side yard at 35' from the Whirlwind Ln
+centreline**, which is drawn at the west property line, so it too reads
+straight off the black line. No setback follows the access road easement.
+
 **Handlebar Rd is not on the parcel** — it is roughly 700' away, reached by the
 driveway through an access easement across the adjacent parcel. The road
-crossing the east portion of the parcel is that **private access road easement**,
-and the residence fronts it, so that is the **front yard: 40' from its
-centreline** under Schedule C footnote (d) (a private easement under 40' wide).
-Whirlwind Ln on the west is the **exterior side yard at 35' from centreline**,
-which is the figure you gave from the start. North and south are **interior side
-yards at 15'**.
+crossing the east portion is that private access road easement; it is drawn and
+named, but no setback is measured from it.
 
 **The store clears every required yard** — it sits 55' from the Whirlwind
 centreline (35' required) and about 46' from the north line (15' required).
@@ -94,12 +97,14 @@ The store-size question that used to lead this list is **gone**: the store is
 the new 12'×10' Mini Barn Market building, 120 SF against a 1,500 SF limit.
 Nothing to ask about it.
 
-**1. Confirm the front yard runs off the private access road easement at 40'
-from centreline.** The residence fronts that easement (Handlebar Rd itself is
-~700' away across the adjacent parcel), so Schedule C footnote (d) applies.
-That makes Whirlwind the exterior side yard at 35' from centreline — the figure
-you have always used. Nothing about the store changes either way; worth having
-on the record.
+**1. Confirm the yard designations.** The sheet draws every setback from the
+property lines: 15' north and south, 25' rear on the east, 35' on the west
+(Whirlwind centreline at the west line). Access is by a private easement ~700'
+out to Handlebar Rd across the adjacent parcel; ask whether PDS wants any yard
+measured differently because of that easement (Schedule C footnote (d) can
+apply to lots fronting a private easement under 40' wide). Nothing about the
+store changes either way — it sits 55' from the west line and ~46' from the
+north line, clear of any answer they give.
 
 **2. Confirm no Zoning Verification Permit is required** for the small store
 post Update 102 — and what the building permit path is for the 12'×10' store
