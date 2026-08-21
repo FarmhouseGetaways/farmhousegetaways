@@ -316,7 +316,13 @@ can start an automation but has no endpoint to create one.
 - **Images**: keep the `width`/`height` attributes when swapping one so the page
   does not shift while loading, and keep `loading="lazy"` below the fold.
 - **Lodgify booking boxes** on the property pages are live embeds. Leave them
-  alone.
+  alone. The section around each one carries `id="book"` on all three pages that
+  have one, which is what every "Check dates" button points at. Both property
+  pages pointed at `#main` — the top of the page — until 21 Aug 2026, so the
+  button appeared to do nothing.
+- **The masthead is sticky**, so any in-page jump would land with its heading
+  tucked underneath it. `[id] { scroll-margin-top: 5.5rem }` in `site.css`
+  handles this for every anchor at once. Do not solve it per-link.
 - **The ticker** (the scrolling bar, `section.ticker`) holds its `<ul>` **twice**
   on every page. The second copy is `aria-hidden="true"` and exists only so the
   scroll loops seamlessly. Any change to a ticker item must be made in both
@@ -644,9 +650,31 @@ Each alert also carries its own notification tag. The service worker replaces
 a notification sharing a tag — right for the Story watcher, wrong here, since
 two people submitting an hour apart are two different people.
 
-**Email notification is separate and lives only in the Netlify UI**: Forms →
-Settings and usage → Form notifications. It is in no repository, so it
-survives no rebuild and has to be set per site, per form.
+**Email notification is separate and lives only in the Netlify UI**: Project
+configuration → Notifications → **Emails and webhooks**, in the *Form submission
+notifications* panel at the bottom. (An earlier note here said Forms → Settings
+and usage, which is not where it is.) It is in no repository, so it survives no
+rebuild and has to be set per site, per form.
+
+### What an alert says
+
+Written to be read on a lock screen in a couple of seconds, so the field names
+are English: `Owner: Dale Marsh`, not `owner-first: Dale`. A person is one line
+— the name fields are joined rather than split across `Name:` and `Surname:` —
+and a farm stand leads with the stand, its owner underneath. The title is
+`<Site> <Form>`: "Mini Barn Market Inquiry", "Farmstand.TV Farm Stand
+Submission". A field the `LABELS` map has never heard of still appears, tidied,
+because a form gains a field far more often than that map is updated.
+
+The identical `summarise()` lives in all three sites — `_lib/alerts.mjs` here,
+inline in `submission-created.mjs` on the other two. Change one, change all
+three.
+
+**Build the name line from the name fields only.** There is a `who` fallback
+that drops through to the stand name when no person is given; reusing it for the
+`Owner:` line printed "Owner: Handlebar Produce". Caught before it shipped by
+running the real module with `fetch` stubbed — which is the way to check this,
+since the function itself answers 403 to anything but Netlify.
 
 ## Access
 
