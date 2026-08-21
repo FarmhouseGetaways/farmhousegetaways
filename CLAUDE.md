@@ -1,29 +1,67 @@
-# Working on this site
+# Working on these sites
 
 Read this first. It is the handover between sessions.
 
 ## Your role
 
-You are the dedicated website builder for this project — the solo and lead
-developer on farmhousegetaways.netlify.app. Bring wisdom, willingness, and
+You are the dedicated website builder for **all four properties below** — the
+solo and lead developer on every one of them. Bring wisdom, willingness, and
 enough tenacity that you do not stop until there is a working solution.
 
-**Assume every message is about changing something on the site** — copy, forms,
-layout, colour, photos, fonts, anything. The owner is describing a change they
-want made and shipped, not asking a question in the abstract. Find it, change
-it, commit it, push it, and confirm it is live.
+**Assume every message is about changing something on one of the sites** —
+copy, forms, layout, colour, photos, fonts, anything. The owner is describing a
+change they want made and shipped, not asking a question in the abstract. Find
+it, change it, commit it, push it, and **confirm it is live** by fetching the
+live URL, not by trusting the deploy.
 
 **Keeping the plumbing healthy is the first priority**, ahead of any cosmetic
-change. That means GitHub, Netlify, the forms, the Lodgify embeds, and the
-mailing list. If something in that chain is broken, say so and fix it before
-moving on to what was asked. See Integrations below for what is actually wired
-up today.
+change. GitHub, Netlify, the forms, the alerts, the Lodgify embeds, the mailing
+list. If something in that chain is broken, say so and fix it before moving on
+to what was asked.
 
-## What this is
+**When the owner does not name a site, work out which one they mean** from what
+they are describing, and say which one you changed. "The farmstand list" is
+Farmstand.TV. "The barn" is Red Barn Ranch on Farmhouse Getaways. "The app" is
+the installable one.
 
-The Farmhouse Getaways website. A static site: plain HTML, one CSS file, no
-build step, no dependencies, no npm. Ramona, California — two vacation
-properties, Red Barn Ranch and Mountain Retreat, hosted by Cory and Carissa.
+## The four properties
+
+| What | Repo | Live at | Built how |
+|---|---|---|---|
+| **Farmhouse Getaways** | `FarmhouseGetaways/farmhousegetaways` | farmhousegetaways.netlify.app — farmhousegetaways.com moving over soon | Hand-written HTML, one CSS file, no build step |
+| **Mini Barn Market** | `FarmhouseGetaways/minibarnmarket` | minibarnmarket.com | Hand-written HTML, no build step |
+| **Farmstand.TV** | `FarmhouseGetaways/farmstandtv` | farmstand.tv and farmstandtv.com (same site) | Hand-written HTML, no build step |
+| **The app** | `FarmhouseGetaways/farmhouse-app` | farmhousegetawaysapp.netlify.app | **Generated — see below** |
+
+All four are on the same Netlify team and the same GitHub account, all deploy
+`main` automatically on push, all use `publish = "."`.
+
+**Everything below in this file is about Farmhouse Getaways unless it says
+otherwise.** The other three have their own README.md in their own repo, which
+is where their specifics live — read it before working on one.
+
+### The app is generated. Do not edit its output.
+
+`tools/build.py` runs on every deploy and writes **all seven `.html` files,
+`js/app.js`, `sw.js` and `manifest.webmanifest`**. Editing any of those
+directly is thrown away by the next build, and the failure is confusing rather
+than obvious: functions in the same commit deploy fine, so half the change
+appears to work.
+
+The sources are `tools/build.py`, `tools/admin.py` and `tools/install_page.py`.
+This was got wrong twice on 20 Aug 2026 — once on the admin screen's enrol
+button, once on a JavaScript handler. **Before editing any file in that repo,
+check whether `build.py` writes it.**
+
+The same rule caught Farmstand.TV's `data/stands.json`, which
+`tools/kml-to-data.py` regenerates from Cory's Google My Map. If a script
+produces a file, change the script.
+
+## What Farmhouse Getaways is
+
+A static site: plain HTML, one CSS file, no build step, no dependencies, no
+npm. Ramona, California — two vacation properties, Red Barn Ranch and Mountain
+Retreat, hosted by Cory and Carissa.
 
 ## Who the site is for — read before writing any copy
 
