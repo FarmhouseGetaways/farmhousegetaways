@@ -9,17 +9,17 @@ Three ways, easiest first.
 This is the one to use.
 
 1. Go to the repository on GitHub → **Actions** tab.
-2. Pick **Cat Fighter II (Windows)** in the left-hand list.
+2. Pick **Super Cat Fighter 6 (Windows)** in the left-hand list.
 3. **Run workflow** → choose this branch → **Run workflow**.
 4. Wait about five minutes. When the run goes green, scroll to the bottom of
-   the run page and download the **CatFighterII-windows** artifact.
+   the run page and download the **SuperCatFighter6-windows** artifact.
 
 Inside the zip:
 
-- `CatFighterII-0.1.0-x64.exe` — an installer. Double-click, next, next, done.
+- `SuperCatFighter6-0.1.0-x64.exe` — an installer. Double-click, next, next, done.
   It puts a shortcut on the desktop and in the Start menu.
-- `CatFighterII-0.1.0-x64.zip` — the portable version. Unzip it anywhere and
-  run `Cat Fighter II.exe`. Nothing is installed, nothing touches the
+- `SuperCatFighter6-0.1.0-x64.zip` — the portable version. Unzip it anywhere and
+  run `Super Cat Fighter 6.exe`. Nothing is installed, nothing touches the
   registry, and it will run off a memory stick.
 
 The workflow also runs the engine tests first and refuses to build if any of

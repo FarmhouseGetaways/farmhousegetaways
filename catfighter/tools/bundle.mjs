@@ -41,7 +41,7 @@ body = body
   .replace(/<!--[\s\S]*?-->\n?/g, '')
   .trim();
 
-const page = `<title>Cat Fighter II</title>
+const page = `<title>Super Cat Fighter 6</title>
 <style>
 ${css}
 </style>

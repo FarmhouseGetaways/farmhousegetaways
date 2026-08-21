@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — the roster
+   Super Cat Fighter 6 — the roster
 
    ---------------------------------------------------------------------------
    NAMES AND LOOKS ARE PLACEHOLDERS. Change `displayName`, `subtitle` and the

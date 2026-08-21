@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — the stages
+   Super Cat Fighter 6 — the stages
 
    Six places on the property, each built as a stack of parallax layers with
    something moving in every one of them. What sold Street Fighter II's

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — move data
+   Super Cat Fighter 6 — move data
 
    Frame data is in 60ths of a second and is the single source of truth:
    startup / active / recovery. Hitboxes are authored facing RIGHT with the

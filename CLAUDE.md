@@ -553,11 +553,17 @@ Run it after any change to the encoding. Two rules the tests hold in place:
 `tolerant()` also matches `&nbsp;` in the *source*, so a page damaged by the old
 bug can still be edited back out through the editor.
 
-## The game in `catfighter/` — not the website
+## Super Cat Fighter 6, in `catfighter/` — not the website
 
 Added 19 Aug 2026, on branch `claude/street-fighter-cats-game-tk1d55`. The owner
 asked for a Street Fighter II style fighting game starring their six cats, to
-run on Windows or Steam. It lives entirely in `catfighter/` and shares nothing
+run on Windows or Steam.
+
+**It is called Super Cat Fighter 6.** Named by the owner on 21 Aug 2026; it was
+Cat Fighter II until then, so an old screenshot or an old artifact may still
+say that. **The folder keeps the short name `catfighter/`** — renaming it would
+churn the workflow path filter, the bundler and every path in `STEAM.md` for no
+gain. Directory short, title long. It lives entirely in `catfighter/` and shares nothing
 with the site — no CSS, no markup, no build step in common.
 
 It is a complete working game: six characters with their own specials, a full
@@ -657,7 +663,7 @@ Three things a later session needs to know:
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**
   It only fires for changes under `catfighter/`, so it cannot slow down or
   interfere with a site deploy. Actions tab → the run → Artifacts →
-  `CatFighterII-windows`. It contains an NSIS installer and a portable zip,
+  `SuperCatFighter6-windows`. It contains an NSIS installer and a portable zip,
   is about 193 MB because Electron is a whole copy of Chromium, and
   **GitHub deletes it thirty days after the build**. A build older than that
   means re-running the workflow, not hunting for the file.

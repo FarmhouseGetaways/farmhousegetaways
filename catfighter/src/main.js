@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — boot
+   Super Cat Fighter 6 — boot
 
    The canvas is always 384 x 224 logical units — the exact resolution of the
    arcade board this game is pretending to be from — and the context is scaled

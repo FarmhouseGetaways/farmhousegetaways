@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — the CPU
+   Super Cat Fighter 6 — the CPU
 
    The computer does not cheat. It drives a virtual pad and its inputs go
    through exactly the same motion detector a human's do, so if it throws a

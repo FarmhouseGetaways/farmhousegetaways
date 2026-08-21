@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — skeleton and cat rendering
+   Super Cat Fighter 6 — skeleton and cat rendering
 
    Everything is drawn from a small joint rig rather than sprite sheets, so a
    new move needs a handful of numbers instead of thirty hand-drawn frames.

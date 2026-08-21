@@ -1,8 +1,8 @@
 {
-  "name": "cat-fighter-ii",
-  "productName": "Cat Fighter II",
+  "name": "super-cat-fighter-6",
+  "productName": "Super Cat Fighter 6",
   "version": "0.1.0",
-  "description": "Cat Fighter II — The Farmhouse Warriors. A six-button arcade fighting game.",
+  "description": "Super Cat Fighter 6 — The Farmhouse Warriors. A six-button arcade fighting game.",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
@@ -21,8 +21,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.farmhousegetaways.catfighter",
-    "productName": "Cat Fighter II",
+    "appId": "com.farmhousegetaways.supercatfighter6",
+    "productName": "Super Cat Fighter 6",
     "copyright": "Copyright © 2026 Farmhouse Getaways",
     "directories": {
       "output": "dist"
@@ -50,7 +50,7 @@
           ]
         }
       ],
-      "artifactName": "CatFighterII-${version}-${arch}.${ext}",
+      "artifactName": "SuperCatFighter6-${version}-${arch}.${ext}",
       "icon": "assets/icon.png"
     },
     "nsis": {
@@ -58,7 +58,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Cat Fighter II"
+      "shortcutName": "Super Cat Fighter 6"
     },
     "mac": {
       "target": [

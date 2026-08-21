@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — Electron shell
+   Super Cat Fighter 6 — Electron shell
 
    The game is plain HTML and classic <script> tags on purpose: it runs from
    file:// with no bundler, no dev server and no module loader, which is what
@@ -31,7 +31,7 @@ function createWindow() {
     minWidth: 384 * 2,
     minHeight: 224 * 2,
     backgroundColor: '#07060a',
-    title: 'Cat Fighter II',
+    title: 'Super Cat Fighter 6',
     autoHideMenuBar: true,
     show: false,
     icon: path.join(__dirname, '..', 'assets', 'icon.png'),

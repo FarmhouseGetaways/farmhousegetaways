@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — stage toolkit
+   Super Cat Fighter 6 — stage toolkit
 
    The parts every stage is built from: scrolling layers, swaying things,
    weather, light, and a crowd of cats who actually watch the fight.

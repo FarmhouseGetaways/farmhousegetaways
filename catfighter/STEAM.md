@@ -1,4 +1,4 @@
-# Getting Cat Fighter II onto Steam
+# Getting Super Cat Fighter 6 onto Steam
 
 Written 21 Aug 2026. Valve moves the details around — treat the money and the
 waiting periods as "check this on the partner site", not as gospel.
@@ -21,7 +21,7 @@ first. Steam is for selling it, not for testing it.
 
 2. **The Steam Direct fee — $100 per title.** It comes back to you once the
    game has made $1,000 in adjusted gross revenue. One fee per app, so this is
-   $100 for Cat Fighter II specifically.
+   $100 for Super Cat Fighter 6 specifically.
 
 3. **A thirty-day wait.** Valve will not let an app release until thirty days
    after the fee is paid. It exists to stop people spraying junk onto the

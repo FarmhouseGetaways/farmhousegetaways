@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — engine tests
+   Super Cat Fighter 6 — engine tests
 
    These guard the things that break silently. A move with no hitbox, an
    animation that ends before the move does, or a mistyped damage array does

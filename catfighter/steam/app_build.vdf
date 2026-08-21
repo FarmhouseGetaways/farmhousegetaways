@@ -1,4 +1,4 @@
-// SteamPipe build script for Cat Fighter II.
+// SteamPipe build script for Super Cat Fighter 6.
 //
 // Run from catfighter\steam on Windows, after `npm run dist:steam`:
 //
@@ -9,7 +9,7 @@
 "appbuild"
 {
 	"appid"		"0000000"		// App ID, from Steamworks
-	"desc"		"Cat Fighter II"	// shown in the Steamworks build list
+	"desc"		"Super Cat Fighter 6"	// shown in the Steamworks build list
 	"buildoutput"	"..\dist\steam_output"	// logs and chunk cache, not shipped
 	"contentroot"	"..\dist\win-unpacked"	// the UNPACKED build, not the installer
 	"setlive"	""			// empty = upload only. Put a branch name

@@ -1,13 +1,13 @@
-# Builds the Windows version of Cat Fighter II and attaches it to the run.
+# Builds the Windows version of Super Cat Fighter 6 and attaches it to the run.
 #
 # Nothing here touches the website. It only fires for changes under
 # catfighter/, or when started by hand from the Actions tab.
 #
-# To get a build: GitHub -> Actions -> "Cat Fighter II (Windows)" ->
+# To get a build: GitHub -> Actions -> "Super Cat Fighter 6 (Windows)" ->
 # "Run workflow". When it finishes, download the artifact at the bottom of the
 # run page. It contains both an installer (.exe) and a portable .zip.
 
-name: Cat Fighter II (Windows)
+name: Super Cat Fighter 6 (Windows)
 
 on:
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
       - name: Upload the build
         uses: actions/upload-artifact@v4
         with:
-          name: CatFighterII-windows
+          name: SuperCatFighter6-windows
           path: |
             catfighter/dist/*.exe
             catfighter/dist/*.zip

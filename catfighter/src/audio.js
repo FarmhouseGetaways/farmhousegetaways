@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — audio
+   Super Cat Fighter 6 — audio
 
    Everything is synthesised at runtime. No .wav files means nothing to load,
    nothing to licence, and a build that stays small enough to email.

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — game loop, scenes and match logic
+   Super Cat Fighter 6 — game loop, scenes and match logic
 
    Fixed 60Hz logical timestep with an accumulator, so the fight runs at the
    same speed on a 60Hz laptop and a 144Hz monitor. Rendering interpolates
@@ -937,7 +937,7 @@
 
     /* sunburst */
     ctx.save();
-    ctx.translate(W / 2, 74);
+    ctx.translate(W / 2, 68);
     for (var i = 0; i < 16; i++) {
       ctx.rotate(Math.PI / 8);
       ctx.globalAlpha = 0.06 + 0.03 * Math.sin(t * 0.03 + i);
@@ -953,9 +953,18 @@
     drawFighterAt(ctx, CF.ROSTER[3], CF.Anim.cycle([CF.Pose.stand, CF.Pose.standC], 20, t + 30),
                   W - 74, FLOOR_Y + 16 - bob, 0.92, -1, { eyes: 'angry' });
 
-    HUD.outlineText(ctx, 'CAT FIGHTER', W / 2, 62, 40, '#ffe07a', '#2a0e18');
-    HUD.outlineText(ctx, 'II', W / 2, 92, 30, '#ff7a4a', '#2a0e18');
-    HUD.text(ctx, 'THE FARMHOUSE WARRIORS', W / 2, 106, 9, '#ffd9b0', 'center', 700, 2.2);
+    /* The logo is a lockup rather than three centred lines: SUPER over
+       CAT FIGHTER 6, with the numeral set larger than the words beside it.
+       Both halves are measured rather than guessed, so the whole thing stays
+       centred if the name ever changes again. */
+    var nameSize = 32, numSize = 40, gap = 5;
+    var wName = HUD.measure(ctx, 'CAT FIGHTER', nameSize, 800, 0);
+    var wNum = HUD.measure(ctx, '6', numSize, 800, 0);
+    var lx = W / 2 - (wName + gap + wNum) / 2;
+    HUD.outlineText(ctx, 'SUPER', W / 2, 44, 15, '#ffb347', '#2a0e18', 'center', 7);
+    HUD.outlineText(ctx, 'CAT FIGHTER', lx, 78, nameSize, '#ffe07a', '#2a0e18', 'left');
+    HUD.outlineText(ctx, '6', lx + wName + gap, 80, numSize, '#ff7a4a', '#2a0e18', 'left');
+    HUD.text(ctx, 'THE FARMHOUSE WARRIORS', W / 2, 96, 9, '#ffd9b0', 'center', 700, 2.2);
 
     /* Drawn from the same rects the click lands in, so a menu item can never
        appear somewhere the hit test does not know about. */

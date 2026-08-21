@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — the fighter
+   Super Cat Fighter 6 — the fighter
 
    One state machine per cat. States that matter:
 

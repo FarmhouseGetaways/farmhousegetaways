@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — input
+   Super Cat Fighter 6 — input
 
    Directions use arcade numpad notation, always stored ABSOLUTE (7 = up-left
    on the screen). Motions are authored facing RIGHT and mirrored at read time,

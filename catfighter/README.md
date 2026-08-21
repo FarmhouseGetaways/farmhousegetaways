@@ -1,4 +1,4 @@
-# Cat Fighter II — The Farmhouse Warriors
+# Super Cat Fighter 6 — The Farmhouse Warriors
 
 A six-button arcade fighting game in the mould of Street Fighter II, with six
 cats instead of six martial artists.
@@ -51,7 +51,7 @@ requests at all — no fonts, no images, no audio files, because there aren't
 any. Mail it, drop it on a memory stick, or open it straight from Downloads.
 
 **As a Windows program.** See [BUILD-WINDOWS.md](BUILD-WINDOWS.md). The short
-version: GitHub → Actions → *Cat Fighter II (Windows)* → **Run workflow**, and
+version: GitHub → Actions → *Super Cat Fighter 6 (Windows)* → **Run workflow**, and
 download the `.exe` when it finishes. You do not need anything installed on
 your machine to get a build.
 

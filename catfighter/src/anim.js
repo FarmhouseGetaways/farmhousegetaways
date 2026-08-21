@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — pose library and keyframe blending
+   Super Cat Fighter 6 — pose library and keyframe blending
 
    Every pose is nine numbers-ish. Moves reference poses by name and give the
    frame each pose is reached on; the tween in between is done here. Frame

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — the character card
+   Super Cat Fighter 6 — the character card
 
    The screen a cat gets to itself: lit from behind, name across the top, and
    its three specials with the buttons that actually bring them out. It is the

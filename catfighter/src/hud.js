@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cat Fighter II — HUD and effects
+   Super Cat Fighter 6 — HUD and effects
 
    Health bars drain in two stages: a fast red bar and a slow yellow "ghost"
    behind it, so you can see at a glance how much a combo actually took.
