@@ -273,44 +273,44 @@ ax.annotate("EXIST. 'MINI BARN MARKET' — PROPOSED\nSMALL AGRICULTURAL STORE, �
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
-# ---- PROPOSED CUSTOMER PARKING: 6 spaces (1 van accessible) on the existing
-# gravel yard immediately east of the Mini Barn Market — where vehicles park
-# today in the aerial. Verified clear of every ag zone, structure, the well
-# and the pond (shapely check, 8/21).
-PK_Y0, PK_D = 232.0, 18.0        # bay 18' deep, stalls in an E-W row
-PK_STALLS = [("VAN\nACCESS.", 108.0, 9.0), ("AISLE", 117.0, 8.0)] + \
-            [("", 125.0 + i*9.0, 9.0) for i in range(5)]
-for lab, x0s, wid in PK_STALLS:
+# ---- PROPOSED CUSTOMER PARKING: 6 spaces (1 van accessible) set as a row
+# RIGHT AGAINST the NE 3/4 of AG-2's bottom line (owner direction, 8/21).
+# The row is rotated to match that edge (S83.7E, -6.3 deg) with stall tops
+# tangent to it — 0 SF overlap, verified with shapely, and clear of the pool,
+# well, vineyard and every structure. Van stall at the SW end, nearest the store.
+_P1, _P2 = (97.4, 266.8), (200.3, 255.4)          # AG-2 bottom edge (SW -> NE)
+_L  = math.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
+_u  = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L)     # along the edge
+_n  = (_u[1], -_u[0])                              # perpendicular, into the yard
+_t0 = _L - 62.0                                    # 62' row anchored to the NE end
+PK_D = 18.0
+def _stall(t_off, w):
+    a = (_P1[0]+_u[0]*(_t0+t_off),   _P1[1]+_u[1]*(_t0+t_off))
+    b = (_P1[0]+_u[0]*(_t0+t_off+w), _P1[1]+_u[1]*(_t0+t_off+w))
+    return [a, b, (b[0]+_n[0]*PK_D, b[1]+_n[1]*PK_D), (a[0]+_n[0]*PK_D, a[1]+_n[1]*PK_D)]
+_ang = math.degrees(math.atan2(_u[1], _u[0]))
+for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
+                     [("", 17.0 + i*9.0, 9.0) for i in range(5)]:
     is_aisle = (lab == "AISLE")
-    ax.add_patch(Rectangle((x0s, PK_Y0), wid, PK_D,
+    poly = _stall(t_off, w)
+    ax.add_patch(MPoly(poly, closed=True,
                  fc='none' if is_aisle else '#eaf3ff',
                  ec='#0044aa', lw=0.9, ls=(0,(2,2)) if is_aisle else '-', zorder=5))
+    cxp = sum(q[0] for q in poly)/4; cyp = sum(q[1] for q in poly)/4
     if is_aisle:
-        ax.text(x0s+wid/2, PK_Y0+PK_D/2, "ACCESS\nAISLE", fontsize=3.4, ha='center',
-                va='center', color='#0044aa', zorder=7)
+        ax.text(cxp, cyp, "ACCESS\nAISLE", fontsize=3.4, ha='center', va='center',
+                color='#0044aa', rotation=_ang, rotation_mode='anchor', zorder=7)
     elif lab:
-        ax.text(x0s+wid/2, PK_Y0+PK_D/2, lab, fontsize=3.4, ha='center', va='center',
-                color='#0044aa', fontweight='bold', zorder=7)
-# accessible route: van stall -> store entrance at the MBM east face
-ROUTE = [(108.0, PK_Y0+PK_D/2), (94.0, 239.0), (87.5, 236.0)]
-ax.plot([p[0] for p in ROUTE], [p[1] for p in ROUTE], color='#0044aa', lw=1.6,
+        ax.text(cxp, cyp, lab, fontsize=3.4, ha='center', va='center', color='#0044aa',
+                fontweight='bold', rotation=_ang, rotation_mode='anchor', zorder=7)
+# accessible route: van stall -> store entry, through the gap between AG-1 and AG-2
+ROUTE = [(137.7, 253.3), (97.0, 252.0), (87.5, 243.5)]
+ax.plot([q[0] for q in ROUTE], [q[1] for q in ROUTE], color='#0044aa', lw=1.6,
         ls=(0,(1,1.6)), zorder=6)
-ax.plot([87.5], [236.0], marker='o', ms=3, color='#0044aa', zorder=7)
-# drive aisle: the open gravel yard east of the bay
-ax.annotate('', (170, 241), (194, 241),
-            arrowprops=dict(arrowstyle='<->', lw=0.8, color='#0044aa'), zorder=6)
-ax.text(182, 244, "24' DRIVE\nAISLE", fontsize=4.6, ha='center', va='bottom',
-        color='#00337f', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-# Short label on the drawing face; the detail lives in the §6157.a.2.h parking
-# block on the sheet, so the plan stays readable.
-ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES\n(EXIST. GRAVEL YARD)",
-            (150, PK_Y0), (204, 122), fontsize=6.4, ha='center', color='#00337f',
-            fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
-            bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.2))
-ax.annotate("ACCESSIBLE ROUTE TO STORE ENTRY\n(STABLE, FIRM, SLIP-RESISTANT)",
-            (96, 240), (268, 218), fontsize=5.6, ha='center', color='#00337f',
-            zorder=9, arrowprops=dict(arrowstyle='-', lw=0.7, color='#0044aa'),
-            bbox=dict(fc='white', alpha=0.92, ec='none', pad=1.2))
+ax.plot([87.5], [243.5], marker='o', ms=3, color='#0044aa', zorder=7)
+ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. GRAVEL YARD — ACCESSIBLE ROUTE PER NOTE 12",
+        fontsize=5.8, ha='center', va='top', color='#00337f', fontweight='bold', zorder=9,
+        bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
 
 # trellis garden
 tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)

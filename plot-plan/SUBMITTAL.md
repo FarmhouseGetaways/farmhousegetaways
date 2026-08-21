@@ -126,10 +126,12 @@ These are on the sheet as notes rather than hidden:
 - **The 200 SF off-site products area** inside the store has not been located
   yet. §6157(g) caps it at 200 SF including refrigeration cases. Decide where it
   goes when the store is laid out.
-- **Parking location** is a proposal, not a survey. Six spaces are drawn to
-  scale on your existing gravel yard just east of the Mini Barn Market, clear of
-  every crop zone, the well and the pond. Gravel is expressly allowed by
-  §6157.a.2.h. Move it if it does not suit how people actually drive in.
+- **Parking** — six spaces drawn to scale as a row set right against the NE 3/4
+  of AG-2's bottom line, per your direction, van-accessible stall at the end
+  nearest the store. Tangent to the orchard line with zero overlap, and clear of
+  the pool, the well, the vineyard and every structure. Gravel is expressly
+  allowed by §6157.a.2.h; the accessible stall, aisle and route to the store
+  entry must be stable, firm and slip-resistant (sheet note 12).
 - **DEHQ handwash / catch tank** — still the open call from the earlier work.
 
 ## What is on the sheet

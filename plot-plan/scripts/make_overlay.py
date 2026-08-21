@@ -61,12 +61,17 @@ ax.add_patch(MPoly(STORE, closed=True, fill=False, ec="red", lw=3, zorder=8))
 ax.text(77, 210, "PROPOSED STORE =\nMINI BARN MARKET, ±415 SF", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
-PK_Y0, PK_D = 142.0, 18.0
-for _lab, _x0, _w2 in [("VAN", 108.0, 9.0), ("AISLE", 117.0, 8.0)] + \
-                      [("", 125.0 + i*9.0, 9.0) for i in range(5)]:
-    ax.add_patch(Rectangle((_x0, 232.0), _w2, 18.0, fill=False, ec="red",
-                           lw=1.6, ls="--" if _lab == "AISLE" else "-", zorder=8))
-ax.text(139, 228, "PROPOSED PARKING - 6 SPACES", fontsize=9, color="red",
+import math as _m
+_P1, _P2 = (97.4, 266.8), (200.3, 255.4)
+_L = _m.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
+_u = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L); _n = (_u[1], -_u[0]); _t0 = _L-62.0
+for _lab, _t, _w in [("VAN",0,9.0),("AISLE",9.0,8.0)]+[("",17.0+i*9.0,9.0) for i in range(5)]:
+    _a=(_P1[0]+_u[0]*(_t0+_t), _P1[1]+_u[1]*(_t0+_t))
+    _b=(_P1[0]+_u[0]*(_t0+_t+_w), _P1[1]+_u[1]*(_t0+_t+_w))
+    _poly=[_a,_b,(_b[0]+_n[0]*18,_b[1]+_n[1]*18),(_a[0]+_n[0]*18,_a[1]+_n[1]*18)]
+    ax.add_patch(MPoly(_poly, closed=True, fill=False, ec="red",
+                       lw=1.6, ls="--" if _lab=="AISLE" else "-", zorder=8))
+ax.text(168, 232, "PROPOSED PARKING - 6 SPACES\n(AGAINST AG-2 BOTTOM LINE)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
 ax.set_title("VERIFICATION OVERLAY v3 - plan geometry on registered aerial\n"

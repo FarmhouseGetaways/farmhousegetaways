@@ -19,7 +19,8 @@ under ZO §6157. See §16.
 **Current status: plot plan REV 7 generated — the submittal sheet. The Small
 Agricultural Store is the entire existing MINI BARN MARKET building (±415 SF,
 the small building at the NW — owner-confirmed 8/21/2026), with 6 parking spaces
-on the gravel yard beside it and the §6157 compliance block on the sheet.
+set right against the NE 3/4 of AG-2's bottom line (owner direction) and the
+§6157 compliance block on the sheet.
 Compliance is met with large margin on the correct (gross) basis, and the store
 size question is CLOSED — 415 SF against a 1,500 SF limit needs no demising. See
 `SUBMITTAL.md` for the take-to-county packet, `research/FINDINGS.md` for every
@@ -556,14 +557,19 @@ What changed:
   obtaining recorded PM 5062 is now the top blocking item. Compliance is shown on
   both bases.
 - **Accessible route drawn** from the van stall to the store entrance, with the
-  stall, aisle and route called out as a stable, firm, slip-resistant surface —
-  §6157.a.2.h requires CBC ch. 11B compliance even though gravel is fine for the
-  rest of the bay. A 24' drive aisle is dimensioned.
+  stall, aisle and route required to be stable, firm and slip-resistant (note
+  12) — §6157.a.2.h requires CBC ch. 11B compliance even though gravel is fine
+  for the rest of the bay.
+- **Parking (owner direction, 8/21):** the six spaces are a rotated row set
+  tangent against the NE 3/4 of AG-2's bottom line — the segment from
+  (97.4, 266.8) to (200.3, 255.4), row anchored to its NE end — van stall at the
+  SW end nearest the store, verified clear of every zone, the pool, the well and
+  all structures. Do not move it back to an axis-aligned bay.
 - **Citations are in the county's own form**, §6157.a.2.(x), and the compliance
   table now carries criterion (f) and the "commercial agriculture must be the
   principal use" preamble.
 
 Still outstanding on the sheet, honestly flagged rather than hidden: recorded
 PM 5062, fence/wall/gate heights (PDS 090 item 8 — nothing is drawn, and this is
-a straight rejection item), the §6157.a.2.e store-size question, and the frontage
-determination.
+a straight rejection item), and the frontage confirmation. The store-size
+question is CLOSED (§16).
