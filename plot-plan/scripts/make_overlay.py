@@ -47,19 +47,23 @@ for k, c in [("septic_tank_ft_rect", "yellow"), ("leach_ft_rect", "orange")]:
 px, py, pw, phh = 169.5, 173.6, 5, 5
 ax.add_patch(Rectangle((px, py), pw, phh, fc="yellow", zorder=7))
 
-road = poly_px(F["roads"]["handlebar_rd"]["centerline_px"])
+road = poly_px(F["roads"]["access_road_esmt"]["centerline_px"])
 ax.plot([p[0] for p in road], [p[1] for p in road], color="white", lw=2.5, ls=(0,(8,4)), zorder=6)
 drv = poly_px(F["roads"]["driveway"]["centerline_px"])
 ax.plot([p[0] for p in drv], [p[1] for p in drv], color="lime", lw=2, ls=(0,(5,3)), zorder=6)
 pc = F["pond"]["ellipse_ft_center_wh"]
 ax.add_patch(Ellipse((pc[0], pc[1]), pc[2], pc[3], fill=False, ec="deepskyblue", lw=2, zorder=6))
 
-# ---- proposed store + customer parking (rev 7: store = the Mini Barn Market
-# building itself, owner-confirmed 8/21/2026; parking on the gravel yard E of it).
-STORE = [(72.1,230.5),(82.1,230.5),(82.1,240.5),(72.1,240.5)]   # 10'x10' per owner
+# ---- proposed store + customer parking (owner 8/21/2026 second round: the
+# store is the NEW 12'x10' building under construction just W of the 10'x10';
+# the 10'x10' is storage only).
+STORE = [(55.0,236.5),(67.0,236.5),(67.0,246.5),(55.0,246.5)]   # 12'x10' new MBM
 ax.add_patch(MPoly(STORE, closed=True, fill=False, ec="red", lw=3, zorder=8))
-ax.text(77, 210, "PROPOSED STORE =\nMINI BARN MARKET, 10'x10' (100 SF)", fontsize=9, color="red",
+ax.text(50, 214, "PROPOSED STORE = NEW\nMINI BARN MARKET, 12'x10' (120 SF)\n(UNDER CONSTRUCTION)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
+ax.annotate("STORAGE 10'x10'\n(NO SALES)", (77.1, 240.5), (105, 262), fontsize=8,
+            color="red", ha="center", fontweight="bold", zorder=9,
+            arrowprops=dict(arrowstyle="->", lw=1.2, color="red"))
 
 import math as _m
 _P1, _P2 = (97.4, 266.8), (200.3, 255.4)
@@ -74,8 +78,9 @@ for _lab, _t, _w in [("VAN",0,9.0),("AISLE",9.0,8.0)]+[("",17.0+i*9.0,9.0) for i
 ax.text(168, 232, "PROPOSED PARKING - 6 SPACES\n(AGAINST AG-2 BOTTOM LINE)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
-ax.set_title("VERIFICATION OVERLAY v3 - plan geometry on registered aerial\n"
-             "RED = proposed store and parking (rev 7). Store and barn footprints per owner measurement.",
+ax.set_title("VERIFICATION OVERLAY v4 - plan geometry on registered aerial\n"
+             "RED = proposed store (NEW 12'x10' Mini Barn Market, under construction) + parking. "
+             "Barn 50'x44'; leach lines moved E of garage.",
              fontsize=13, pad=10)
-fig.savefig("output/Verification_Overlay_v3.png", bbox_inches="tight", dpi=100)
-print("saved output/Verification_Overlay_v3.png")
+fig.savefig("output/Verification_Overlay_v4.png", bbox_inches="tight", dpi=100)
+print("saved output/Verification_Overlay_v4.png")

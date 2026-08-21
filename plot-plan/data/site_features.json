@@ -21,7 +21,7 @@
     "net_acres": 3.61,
     "net_sf": 157251,
     "gis_gross_sf": 164443,
-    "gross_net_delta_explanation": "Handlebar Rd private road easement crossing E portion",
+    "gross_net_delta_explanation": "Private access road easement crossing E portion (NOT Handlebar Rd — owner 8/21/2026)",
     "requirement_25pct_sf": 39313,
     "boundary_stateplane_2230_usft": [
       [
@@ -138,50 +138,31 @@
       "label": "EXISTING GARAGE/ACCESSORY BLDG"
     },
     "barn": {
-      "poly": [
-        [
-          426,
-          430
-        ],
-        [
-          632,
-          476
-        ],
-        [
-          605,
-          680
-        ],
-        [
-          520,
-          704
-        ],
-        [
-          390,
-          640
-        ]
+      "rect_ft": [
+        112.3,
+        120.4,
+        50,
+        44
       ],
-      "label": "EXISTING BARN \u2014 STORAGE, 2,200 SF PER OWNER (8/21/2026; aerial roof trace reads ~3,400). NOT the Mini Barn Market. Not counted as ag."
+      "label": "EXISTING BARN \u2014 STORAGE. 50' E-W x 44' N-S rectangle = 2,200 SF per owner (8/21/2026, second round), centred on the aerial trace centroid. NOT the Mini Barn Market. Not counted as ag."
     },
-    "shed_nw": {
-      "poly": [
-        [
-          250,
-          188
-        ],
-        [
-          328,
-          188
-        ],
-        [
-          328,
-          265
-        ],
-        [
-          250,
-          265
-        ]
+    "storage_nw": {
+      "rect_ft": [
+        72.1,
+        230.5,
+        10,
+        10
       ],
-      "label": "EXISTING 'MINI BARN MARKET' \u2014 10'x10' = 100 SF PER OWNER (8/21/2026; the 21'x20' aerial trace over-read the roof). The PROPOSED SMALL AGRICULTURAL STORE is this entire building."
+      "label": "EXISTING STORAGE 10'x10' = 100 SF (owner 8/21/2026 second round: storage ONLY, no sales \u2014 it is NOT the store)."
+    },
+    "store_mbm": {
+      "rect_ft": [
+        55.0,
+        236.5,
+        12,
+        10
+      ],
+      "label": "PROPOSED 'MINI BARN MARKET' \u2014 SMALL AGRICULTURAL STORE, 12'x10' = 120 SF, UNDER CONSTRUCTION (visible framing in the aerial just W of the 10'x10' storage). Owner 8/21/2026: this new building is the store."
     },
     "tiny_home_w": {
       "poly": [
@@ -274,7 +255,7 @@
         20,
         12
       ],
-      "label": "AS-BUILT GREENHOUSE 12'x20' (240 SF, unpermitted; may qualify for ag bldg exemption \u2014 confirm with PDS)"
+      "label": "AS-BUILT GREENHOUSE 12'x20' (240 SF; may qualify for ag bldg exemption \u2014 confirm with PDS. Sheet says AS-BUILT only, per owner 8/21/2026 \u2014 no 'unpermitted' tag)"
     },
     "coop": {
       "rect_ft": [
@@ -326,9 +307,9 @@
       75
     ],
     "leach_ft_rect": [
-      447.8,
-      259.2,
-      110.2,
+      481.0,
+      257.5,
+      49.0,
       24.0
     ],
     "leach_px_bbox": [
@@ -337,12 +318,12 @@
       2092,
       135
     ],
-    "leach_note": "Rectangular bed patches visible in aerial grass here \u2014 corroborates location. All utility locations per owner, approximate.",
+    "leach_note": "Owner 8/21/2026: leach lines must NOT cross under the garage. Rect moved E of the garage (garage E edge ~478.8 ft) and kept W of the access road esmt. (~544 ft in this y-band) and inside the N property line. The wider px bbox is the aerial bed-patch trace, kept for reference.",
     "electrical": "400A main panel adjacent NE of barn, ~(169.5, 173.6) ft, location approx."
   },
   "roads": {
-    "handlebar_rd": {
-      "side": "EAST \u2014 private road easement crossing E portion of parcel, N-S curve. NOT along north PL (early error, corrected).",
+    "access_road_esmt": {
+      "side": "EAST \u2014 private ACCESS ROAD easement crossing E portion of parcel, N-S curve. This is NOT Handlebar Rd (owner 8/21/2026: Handlebar is far away and not on the layout); it is the driveway route, \u00b1700' to Handlebar Rd via an easement across the adjacent parcel.",
       "centerline_px": [
         [
           2100,
@@ -436,7 +417,7 @@
           540
         ]
       ],
-      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%"
+      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. Total driveway ±700' to Handlebar Rd via access esmt. across adjacent parcel (owner 8/21/2026)."
     }
   },
   "pond": {
@@ -446,7 +427,7 @@
       90,
       62
     ],
-    "role": "Existing irrigation source with pump (owner confirmed) + area of inundation; lot drains to pond"
+    "role": "RUNOFF-FED, NO PUMP (owner 8/21/2026) — existing irrigation source + area of inundation; lot drains to pond"
   },
   "ag_areas": {
     "numbering_note": "FROZEN numbering \u2014 AG-5 was removed (false detection); do NOT renumber until owner field measurements arrive. Owner references these numbers.",

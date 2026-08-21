@@ -27,21 +27,24 @@ separately because PDS 090 item 12 requires it.
 
 Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setback
 designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
-exterior side 35' from ℄, rear 25'. The residence fronts **Handlebar Rd**, so
-that is the front yard at 40' from its centreline under Schedule C footnote (d);
-Whirlwind Ln is the exterior side yard at 35' from centreline. The barn holding
-the store clears every yard by a wide margin.
+exterior side 35' from ℄, rear 25'. **Handlebar Rd is not on the parcel** — the
+road crossing the east portion is the private access road easement (the
+driveway route, ±700' to Handlebar across the adjacent parcel). The residence
+fronts that easement, so the front yard is 40' from its centreline under
+Schedule C footnote (d); Whirlwind Ln is the exterior side yard at 35' from
+centreline. The store clears every required yard.
 
-**The store is the entire existing Mini Barn Market building** — 10'×10' =
-100 SF per the owner — against a 1,500 SF limit, so the old demised-portion
-question is closed. The big barn is storage, 2,200 SF.
+**The store is the new Mini Barn Market building under construction** at the
+NW — 12'×10' = 120 SF per the owner — against a 1,500 SF limit, so the old
+demised-portion question is closed. The 10'×10' next to it is storage only (no
+sales), and the big barn is storage, 50'×44' = 2,200 SF.
 
 ## Quickstart
 
 ```bash
-pip install matplotlib numpy pymupdf pillow
-python3 scripts/build_plot_plan.py   # -> output/Ag_Plot_Plan_17054_Handlebar_rev6.pdf (24x18, 1"=40')
-python3 scripts/make_overlay.py      # -> output/Verification_Overlay_v3.png
+pip install matplotlib numpy shapely pymupdf pillow
+python3 scripts/build_plot_plan.py   # -> output/Ag_Plot_Plan_17054_Handlebar_rev7.pdf (24x18, 1"=40')
+python3 scripts/make_overlay.py      # -> output/Verification_Overlay_v4.png
 python3 scripts/verify_sheet.py      # print-fidelity check — run before printing
 ```
 

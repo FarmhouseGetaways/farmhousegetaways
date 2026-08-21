@@ -36,6 +36,21 @@ of its actual (sloping) property lines.
   * The record parcel (550.50' x 285.58' = 157,212 SF per the assessor's map)
     differs from the county GIS polygon used here (164,443 SF). Disclosed in a
     boundary note, with compliance shown on both bases.
+
+OWNER CORRECTIONS 8/21/2026 (second round) — carried in this file:
+  * The STORE is the NEW 12'x10' building under construction just W of the
+    10'x10' — that is the new "Mini Barn Market" (120 SF). The 10'x10' is
+    STORAGE ONLY, no sales. The barn is a 50' E-W x 44' N-S rectangle, 2,200 SF.
+  * Zone polygons are DRAWN clipped to the parcel boundary (they were spilling
+    over the lines). Tabulated areas stay the owner's numbers in ag_areas.json.
+    AG-3 additionally stops at the fence ~20' W of the septic tank.
+  * Pond is RUNOFF-FED, no pump. Greenhouse labelled AS-BUILT (the county's
+    term) without "unpermitted". Leach lines relocated E of the garage — they
+    do not cross under any structure.
+  * HANDLEBAR RD IS NOT ON THIS LAYOUT — it is far away. The road crossing the
+    east portion is the private access easement / driveway, ±700' to Handlebar
+    Rd across the adjacent parcel. Front yard is 40' from that easement's
+    centreline (Schedule C footnote (d)); do not name that road Handlebar.
 """
 import json, math, os
 import numpy as np
@@ -64,8 +79,8 @@ STORE_SF   = 1500
 # that is the front yard; Whirlwind Ln on the west is the exterior side yard.
 SB_SIDE  = 15.0    # interior side, from lot line (north and south)
 SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln
-SB_FRONT = 40.0    # front, from centreline of Handlebar Rd (private esmt. <40' wide,
-                   # Schedule C footnote (d))
+SB_FRONT = 40.0    # front, from centreline of the private access road esmt.
+                   # (private esmt. <40' wide, Schedule C footnote (d))
 ESMT_W     = 30.0       # Whirlwind Ln road easement along the west boundary
 WL_CL_X    = 0.0        # its centreline, drawn at the west P.L. per owner (see note)
 
@@ -98,7 +113,11 @@ LINE_S = LineString([PB[i] for i in IDX_S])
 LINE_E = LineString([PB[0], PB[1]])      # east (rear) line
 LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centreline
 SXX0, SYY0 = 583.1/2186, 294.1/1136
-LINE_HB = LineString([(x*SXX0, 294.1-y*SYY0) for x, y in
+# The N-S curve crossing the east portion is the PRIVATE ACCESS ROAD EASEMENT
+# (the driveway route, ±700' to Handlebar Rd across the adjacent parcel).
+# Handlebar Rd itself is NOT on this layout (owner, 8/21). The residence fronts
+# this easement, so the front yard is 40' from its centreline.
+LINE_ACC = LineString([(x*SXX0, 294.1-y*SYY0) for x, y in
     [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),(1650,630),
      (1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]])
 
@@ -109,16 +128,21 @@ ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
             .difference(LINE_WCL.buffer(SB_EXT))
-            .difference(LINE_HB.buffer(SB_FRONT)))
+            .difference(LINE_ACC.buffer(SB_FRONT)))
 
-# Zone polygons are NOT clipped. The source aerial is cropped exactly to the
-# parcel — the image edge IS the property line (owner-confirmed) — so a traced
-# crop cannot lie outside the property. Any apparent overhang is the county GIS
-# polygon disagreeing with the aerial at the margins, not a crop crossing a line.
+# Zone polygons are DRAWN clipped to the parcel boundary (owner, 8/21: "my red
+# areas extend over the property lines — everything needs to be re-drawn so
+# it's inside the property line"). AG-3 additionally stops at the fence about
+# 20' west of the septic tank. TABULATED areas are unchanged — they are the
+# owner's numbers in ag_areas.json, not measured off these display polygons.
 ZONE_KEYS = ['1','2','3','4','6','7','8','9','10','11','12']
 AG_TABLE = json.load(open(os.path.join(_here, '..', 'data', 'ag_areas.json')))
 ZONE_SF = {z['id'].replace('AG-', '').replace('BG', 'BG'): z['sf'] for z in AG_TABLE['zones']}
-clipped = {k: SPoly(v).buffer(0) for k, v in zones.items()}   # name kept; no clipping
+SEPTIC_X0 = 422.5                       # septic tank W edge (site_features.json)
+AG3_FENCE_X = SEPTIC_X0 - 20.0          # AG-3 stops at the fence, ~20' shy
+clipped = {k: SPoly(v).buffer(0).intersection(PARCEL) for k, v in zones.items()}
+clipped['3'] = clipped['3'].intersection(
+    SPoly([(-10, -10), (AG3_FENCE_X, -10), (AG3_FENCE_X, 340), (-10, 340)]))
 ZONE_SF['RES'] = AG_TABLE['totals_sf']['residential_excluded']
 CROP_SF    = AG_TABLE['totals_sf']['crop_subtotal']
 POULTRY_SF = AG_TABLE['totals_sf']['poultry']
@@ -240,11 +264,12 @@ def poly_px(pts):
     return [(x*SXX, 294.1-y*SYY) for x, y in pts]
 
 _barn_trace = poly_px([(426,430),(632,476),(605,680),(520,704),(390,640)])
-# Owner measurement 8/21: the barn is 2,200 SF. The aerial roof trace reads
-# ~3,400 SF (overhang/shadow); footprint scaled about its centroid to 2,200.
+# Owner 8/21 (second round): the barn is a 50' E-W x 44' N-S RECTANGLE =
+# 2,200 SF, drawn centred on the aerial trace's centroid.
 _bc = (sum(q[0] for q in _barn_trace)/5, sum(q[1] for q in _barn_trace)/5)
-_bf = (2200.0 / SPoly(_barn_trace).area) ** 0.5
-BARN = [(_bc[0]+(q[0]-_bc[0])*_bf, _bc[1]+(q[1]-_bc[1])*_bf) for q in _barn_trace]
+BARN = [(_bc[0]-25, _bc[1]-22), (_bc[0]+25, _bc[1]-22),
+        (_bc[0]+25, _bc[1]+22), (_bc[0]-25, _bc[1]+22)]
+assert abs(SPoly(BARN).area - 2200.0) < 1e-6
 structures = [
  ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
  ("EXIST.\nGARAGE/ACC.", poly_px([(1622,85),(1795,90),(1795,275),(1622,280)]), None),
@@ -259,24 +284,29 @@ for name, poly, lab_at in structures:
     else:
         ax.text(cx_, cy_, name, fontsize=5.6, ha='center', va='center', zorder=7)
 
-# the barn — storage (owner-confirmed 8/21; it is NOT the Mini Barn Market)
+# the barn — storage, 50' x 44' = 2,200 SF (owner; NOT the Mini Barn Market)
 ax.add_patch(MPoly(BARN, closed=True, fc='0.82', ec='black', lw=1.3, zorder=4))
-ax.annotate("EXIST. BARN — STORAGE\n2,200 SF", (124, 126), (70, 74),
+ax.annotate("EXIST. BARN — STORAGE\n50'x44' (2,200 SF)", (_bc[0]-12, _bc[1]-16), (70, 74),
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
-# ---- PROPOSED SMALL AGRICULTURAL STORE = the existing MINI BARN MARKET
-# building (#4 on the confirmation image). The ENTIRE 100 SF building is the
-# store — one-fifteenth of the 1,500 SF cap of ZO §6157.a.2.e.
-# Owner measurement 8/21: the building is 10'x10' = 100 SF. The 21'x20' aerial
-# trace over-read it (roof/shade); drawn at true size centred on the trace.
-_mc = (77.1, 235.5)
-MBM = [(_mc[0]-5, _mc[1]-5), (_mc[0]+5, _mc[1]-5), (_mc[0]+5, _mc[1]+5), (_mc[0]-5, _mc[1]+5)]
+# ---- the 10'x10' at the NW — STORAGE ONLY, not the store (owner, 8/21 second
+# round). Drawn grey like every other existing accessory building.
+STG = [(72.1, 230.5), (82.1, 230.5), (82.1, 240.5), (72.1, 240.5)]
+ax.add_patch(MPoly(STG, closed=True, fc='0.82', ec='black', lw=1.1, zorder=5))
+ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (72, 284),
+            fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
+            bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
+
+# ---- PROPOSED SMALL AGRICULTURAL STORE = the NEW 'MINI BARN MARKET', the
+# 12'x10' building under construction immediately W of the 10'x10' storage
+# (owner, 8/21). 120 SF — one-twelfth of the 1,500 SF cap of ZO §6157.a.2.e.
+MBM = [(55.0, 236.5), (67.0, 236.5), (67.0, 246.5), (55.0, 246.5)]
 MBM_G = SPoly(MBM)
-MBM_SF = 100
+MBM_SF = 120
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
-ax.annotate("EXIST. 'MINI BARN MARKET' 10'x10' — PROPOSED\nSMALL AGRICULTURAL STORE, 100 SF\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
-            (77, 230.5), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
+ax.annotate("PROPOSED 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF), UNDER CONSTRUCTION\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
+            (61, 236.5), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
@@ -309,11 +339,12 @@ for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
     elif lab:
         ax.text(cxp, cyp, lab, fontsize=3.4, ha='center', va='center', color='#0044aa',
                 fontweight='bold', rotation=_ang, rotation_mode='anchor', zorder=7)
-# accessible route: van stall -> store entry, over AG-1's crown
-ROUTE = [(137.7, 253.3), (98.0, 252.5), (82.0, 238.5)]
+# accessible route: van stall -> store entry, over AG-1's crown and N of the
+# 10'x10' storage building
+ROUTE = [(137.7, 253.3), (98.0, 252.5), (68.0, 241.5)]
 ax.plot([q[0] for q in ROUTE], [q[1] for q in ROUTE], color='#0044aa', lw=1.6,
         ls=(0,(1,1.6)), zorder=6)
-ax.plot([82.0], [238.5], marker='o', ms=3, color='#0044aa', zorder=7)
+ax.plot([68.0], [241.5], marker='o', ms=3, color='#0044aa', zorder=7)
 ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. YARD — ACCESSIBLE ROUTE PER NOTE 12",
         fontsize=5.8, ha='center', va='top', color='#00337f', fontweight='bold', zorder=9,
         bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
@@ -327,7 +358,7 @@ ax.annotate("EXIST. TRELLIS GARDEN", (tx0, ty0+th_/2), (tx0-58, ty0-26), fontsiz
 # greenhouse (as-built)
 ghx, ghy = 294.0, 95.9
 ax.add_patch(Rectangle((ghx, ghy), 20, 12, fc='0.82', ec='black', lw=1.1, zorder=4))
-ax.annotate("AS-BUILT GREENHOUSE\n12'x20' (UNPERMITTED)", (ghx+10, ghy), (ghx-30, ghy-40),
+ax.annotate("AS-BUILT GREENHOUSE\n12'x20'", (ghx+10, ghy), (ghx-30, ghy-40),
             fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # coop + run
@@ -353,7 +384,7 @@ ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 5)", (thx, thy-12), (thx+
 pdx, pdy = 710*SXX, 294.1-865*SYY
 ax.add_patch(Ellipse((pdx, pdy), 90, 62, fc='none', ec='#00509e', lw=1.4, zorder=4))
 ax.add_patch(Ellipse((pdx, pdy), 78, 50, fc='none', ec='#00509e', lw=0.6, ls=':', zorder=4))
-ax.text(pdx, pdy, "EXISTING POND\nIRRIGATION SOURCE (PUMP)\n& AREA OF INUNDATION", fontsize=6,
+ax.text(pdx, pdy, "EXISTING POND\nRUNOFF-FED (NO PUMP)\n& AREA OF INUNDATION", fontsize=6,
         ha='center', va='center', color='#00396e', zorder=7,
         bbox=dict(fc='white', alpha=0.85, ec='#00509e', lw=0.6, pad=1.5))
 
@@ -366,11 +397,14 @@ ax.text(wx, wy, "W", fontsize=7, ha='center', va='center', fontweight='bold', zo
 ax.annotate("EXIST. WELL", (wx+4, wy), (wx+44, wy+26), fontsize=6,
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
-sx0, sy0 = px2ft(386.0, 19.4); sx1, sy1 = px2ft(408.9, 9.8)
+# septic tank per site_features.json (x 422.5-444.9, just N of the garage);
+# leach lines relocated E of the garage and W of the access road esmt. so they
+# cross under NO structure (owner, 8/21) and stay clear of the travelled way.
+sx0, sy0 = px2ft(422.5, 19.4); sx1, sy1 = px2ft(444.9, 9.3)
 ax.add_patch(Rectangle((sx0, sy0), sx1-sx0, sy1-sy0, fc='none', ec='black', lw=1.1, zorder=5))
-lx0, ly0 = px2ft(407.6, 32.9); lx1, ly1 = px2ft(510.0, 8.5)
+lx0, ly0 = px2ft(481.0, 36.6); lx1, ly1 = px2ft(530.0, 12.6)
 ax.add_patch(Rectangle((lx0, ly0), lx1-lx0, ly1-ly0, fc='none', ec='black', lw=1.0, ls='--', hatch='///', zorder=5))
-ax.annotate("EXIST. SEPTIC TANK", (sx0+11, sy1), (sx0-30, 322), fontsize=6, ha='center',
+ax.annotate("EXIST. SEPTIC TANK", (sx0+11, sy1), (sx0-40, 322), fontsize=6, ha='center',
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7)
 ax.annotate("EXIST. LEACH LINES", ((lx0+lx1)/2, ly1+2), ((lx0+lx1)/2+30, 322), fontsize=6, ha='center',
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7)
@@ -382,7 +416,9 @@ ax.annotate("400A MAIN ELEC. PANEL\n(LOCATION APPROX.)", (ex+2, ey), (ex+52, ey+
             ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
-# ---- HANDLEBAR ROAD (private road easement crossing the E portion)
+# ---- PRIVATE ACCESS ROAD EASEMENT (the driveway route). Handlebar Rd is NOT
+# on this layout — it is far away; the driveway runs ±700' to it via an
+# easement across the adjacent parcel (owner, 8/21).
 road_px = [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),
            (1650,630),(1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]
 road = [(x*SXX, 294.1-y*SYY) for x, y in road_px]
@@ -393,9 +429,10 @@ dxg, dyg = np.gradient(rxa), np.gradient(rya)
 nrm = np.hypot(dxg, dyg); nxv, nyv = -dyg/nrm, dxg/nrm
 for s in (+10, -10):
     ax.plot(rxa+nxv*s, rya+nyv*s, color='0.25', lw=1.1, zorder=2)
-ax.annotate("HANDLEBAR ROAD (PRIVATE ROAD ESMT.)", (497, 57), (392, 24), fontsize=6.4,
-            ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8), va='center',
-            fontweight='bold', bbox=dict(fc='white', ec='black', lw=0.5, alpha=0.92, pad=2))
+ax.annotate("PRIVATE ACCESS ROAD ESMT. (DRIVEWAY —\n±700' TO HANDLEBAR RD VIA ESMT.\nACROSS ADJACENT PARCEL, NOTE 9)", (497, 57), (392, 24),
+            fontsize=6.4, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8),
+            va='center', fontweight='bold',
+            bbox=dict(fc='white', ec='black', lw=0.5, alpha=0.92, pad=2))
 
 # ---- driveway
 drv_px = [(1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
@@ -406,8 +443,9 @@ for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
-# The residence fronts HANDLEBAR RD, so that is the front yard. Whirlwind Ln on
-# the west is the exterior side yard; north and south are interior side yards.
+# The residence fronts the PRIVATE ACCESS ROAD ESMT., so that is the front
+# yard. Whirlwind Ln on the west is the exterior side yard; north and south
+# are interior side yards.
 SB = '#0044aa'
 y_lo, y_hi = -16, 308
 
@@ -420,8 +458,8 @@ ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center',
 ax.text(ESMT_W+4, 262, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
         ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
-# buildable envelope (front from Handlebar ℄, exterior side from Whirlwind ℄,
-# interior sides from the north and south lot lines)
+# buildable envelope (front from the access esmt. ℄, exterior side from
+# Whirlwind ℄, interior sides from the north and south lot lines)
 for ring in rings(ENVELOPE):
     ax.add_patch(MPoly(ring, closed=True, fc='none', ec=SB, lw=1.3,
                        ls=(0,(7,3)), zorder=4))
@@ -435,8 +473,9 @@ ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(SB_EXT+4, 190, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
         fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.annotate(f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L HANDLEBAR RD\n"
-            f"(RESIDENCE FRONTS HANDLEBAR RD)",
+ax.annotate(f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM $\\mathcal{{C}}$L OF THE\n"
+            f"PRIVATE ACCESS ROAD ESMT. (SCHED. C NOTE (d);\n"
+            f"RESIDENCE FRONTS THE ESMT. — NOTE 4)",
             (452, 168), (392, 214), fontsize=6.4, ha='center', color=SB,
             fontweight='bold', zorder=8, arrowprops=dict(arrowstyle='-', lw=0.8, color=SB),
             bbox=dict(fc='white', ec=SB, lw=0.8, alpha=0.95, pad=2.0))
@@ -531,7 +570,7 @@ crit = [
  ("c", "OPERATED BY OWNER OR TENANT", "OWNER-OPERATED", True),
  ("d", "ONE STORE PER LEGAL LOT; NO EXIST.", "NONE EXISTING", True),
  ("", "AG STAND OR LARGE AG STORE", "", None),
- ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "100 SF — COMPLIES", True),
+ ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "120 SF — COMPLIES", True),
  ("", "CONFORM TO §4810 SETBACKS", "STORE CLEARS ALL YARDS", True),
  ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEHQ", "SEE NOTE 11", None),
  ("f", "RETAIL ONLY WITH ON-SITE PRODUCE / EGGS;", "ACKNOWLEDGED", True),
@@ -553,9 +592,9 @@ for ref, req, prov, ok in crit:
 fy -= 0.004
 fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
-for lab, val in [("STORE = ENTIRE EXIST. 'MINI BARN MARKET' 10'x10'", "100 SF"),
+for lab, val in [("STORE = NEW 'MINI BARN MARKET' BLDG 12'x10'", "120 SF"),
                  ("OPEN ROOFED DISPLAY AREA", "0 SF"),
-                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "100 SF")]:
+                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "120 SF")]:
     b = lab.startswith("TOTAL")
     tl(fs_, fy, lab, 6.4, b, x=0.05); tl(fs_, fy, val, 6.4, b, x=0.97, ha='right')
     fy -= 0.0250
@@ -569,16 +608,16 @@ for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
     tl(fs_, fy, val, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.97, ha='right')
     fy -= 0.0250
 fy -= 0.012
-tl(fs_, fy-0.004, "THE STORE IS THE ENTIRE EXISTING MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
-tl(fs_, fy-0.030, "10'x10' = 100 SF AGAINST A 1,500 SF LIMIT. NO DEMISING OF A", 6.2, True, x=0.5, ha='center', color='#0a6b16')
-tl(fs_, fy-0.056, "LARGER BUILDING IS NEEDED.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.004, "THE STORE IS THE NEW 12'x10' MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.030, "120 SF AGAINST A 1,500 SF LIMIT. THE ADJACENT 10'x10'", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.056, "BUILDING IS STORAGE ONLY — NO SALES.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 
 # ---- Col 3 top: legend
 la = band_axes(C3, 2.20, CW, 5.35)
 la.text(0.5, 0.962, "LEGEND", 
         fontsize=9.5, fontweight='bold', ha='center', va='top')
 leg_items = [
-    ('store',    "PROPOSED STORE (EXIST. MINI BARN MARKET)"),
+    ('store',    "PROPOSED STORE ('MINI BARN MARKET' 12'x10')"),
     ('parking',  "PROPOSED CUSTOMER PARKING"),
     ('agpatch',  "AGRICULTURAL CROP AREA"),
     ('bgpatch',  "POULTRY AREA (BIRD GARDEN)"),
@@ -632,8 +671,8 @@ for kind, desc in leg_items:
 sw = band_axes(C3, 0.45, CW, 1.55)
 sw.text(0.5, 0.93, "STORMWATER (PDS 272)", fontsize=8.5, fontweight='bold', ha='center', va='top')
 swy = 0.70
-for ln in ["PROPOSED LAND DISTURBANCE: 0 SF. NO GRADING, CLEARING OR",
-           "CONSTRUCTION PROPOSED; NO NEW OR REPLACED IMPERVIOUS AREA.",
+for ln in ["NO GRADING OR CLEARING PROPOSED. NEW IMPERVIOUS AREA IS THE",
+           "12'x10' STORE BUILDING ONLY (120 SF) — UNDER PERMIT THRESHOLDS.",
            "SD-B: RUNOFF DIRECTED TO PERVIOUS/LANDSCAPED AREAS.",
            "SD-G: EXISTING NATURAL SWALES AND POND CONSERVED.",
            "SD-H: VEGETATED BUFFER MAINTAINED AROUND EXISTING POND."]:
@@ -647,9 +686,15 @@ sx0, sy0v, swv, shv = 0.34, 0.50, 0.30, 0.13
 vm.add_patch(Rectangle((sx0, sy0v), swv, shv, fc='none', ec='#7a0000', lw=1.8))
 vm.plot([sx0, sx0, sx0], [0.86, 0.57, 0.16], color='0.3', lw=1.8)
 vm.text(sx0-0.028, 0.76, "WHIRLWIND LN", fontsize=6.8, rotation=90, va='center', ha='center')
-vm.plot([0.60, 0.578, 0.552, 0.545, 0.562, 0.593, 0.612],
-        [0.86, 0.745, 0.655, 0.605, 0.535, 0.36, 0.16], color='0.3', lw=2.0)
-vm.text(0.632, 0.755, "HANDLEBAR RD", fontsize=6.8, rotation=77, va='center')
+# Handlebar Rd is well away from the site — reached by the driveway through an
+# access easement across the adjacent parcel (±700', dashed).
+vm.plot([0.79, 0.775, 0.77, 0.78, 0.80],
+        [0.86, 0.68, 0.50, 0.32, 0.16], color='0.3', lw=2.0)
+vm.text(0.812, 0.74, "HANDLEBAR RD", fontsize=6.8, rotation=85, va='center')
+vm.plot([0.64, 0.71, 0.773], [0.615, 0.645, 0.655], color='0.3', lw=1.2,
+        ls=(0, (4, 3)))
+vm.text(0.705, 0.578, "ACCESS ESMT.\n±700'", fontsize=6.0, ha='center', va='top',
+        style='italic', color='0.25')
 vm.plot([0.12, 0.13, 0.14], [0.86, 0.50, 0.16], color='0.3', lw=1.8)
 vm.text(0.094, 0.50, "GARJAN LN", fontsize=6.8, rotation=87, va='center', ha='center')
 vm.plot([0.10, 0.90], [0.885, 0.885], color='0.3', lw=2.4)
@@ -704,9 +749,10 @@ hrule(y); y -= 0.0098
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-srows = [("MINI BARN MARKET — PROPOSED SMALL AG. STORE","EXISTING","100 SF", True),
+srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","PROPOSED","120 SF", True),
+         ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", False),
          ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", True),
-         ("BARN — STORAGE","EXISTING","2,200 SF", False),
+         ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", False),
          ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
          ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
          ("TRELLIS GARDEN (OPEN)","EXISTING","690 SF", False),
@@ -729,38 +775,38 @@ notes = [
  "     AERIAL. BEARINGS AND DISTANCES ARE GIS-DERIVED (APPROXIMATE); RECORD BEARINGS",
  "     AND DIMENSIONS PER RECORDED PM 05062. ALL DIMENSIONS IN FEET.",
  "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED, FIELD-CORROBORATED, AND",
- "     PER OWNER MEASUREMENT WHERE STATED (MINI BARN MARKET 10'x10', BARN 2,200 SF).",
- "     THE SOURCE AERIAL IS CROPPED TO THE PARCEL, SO CROP AREAS RUN TO THE PROPERTY",
- "     LINE. OWNER FIELD VERIFICATION CONTINUING. AG-9 LEGS MEASURED 200' (W ALONG",
- "     RD), 130' (N), 190' (E FENCE); THE W AND N BOUNDARIES CURVE OUTWARD.",
- "3.  NO GRADING AND NO NEW BUILDING PROPOSED. THIS PLAN DOCUMENTS EXISTING AG",
- "     OPERATIONS AND A PROPOSED SMALL AGRICULTURAL STORE (ZO §6157).",
+ "     PER OWNER MEASUREMENT WHERE STATED (STORE 12'x10', STORAGE 10'x10', BARN",
+ "     50'x44'). CROP AREAS ARE DRAWN CLIPPED TO THE PARCEL BOUNDARY; TABULATED",
+ "     AREAS PER OWNER. AG-3 STOPS AT THE FENCE ~20' W OF THE SEPTIC TANK. AG-9",
+ "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
+ "3.  NO GRADING PROPOSED. THE ONLY NEW CONSTRUCTION IS THE 12'x10' STORE (UNDER",
+ "     CONSTR.). PLAN DOCUMENTS EXISTING AG OPERATIONS + PROPOSED STORE (ZO §6157).",
  "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C. THE",
- "     RESIDENCE FRONTS HANDLEBAR RD, SO THAT IS THE FRONT YARD: 40' FROM ITS ℄ PER",
- "     SCHEDULE C FOOTNOTE (d), A PRIVATE EASEMENT UNDER 40' WIDE. WHIRLWIND LN IS",
- "     THE EXTERIOR SIDE YARD AT 35' FROM ℄; NORTH AND SOUTH ARE INTERIOR SIDE YARDS",
- "     AT 15'. NO REAR YARD APPLIES — THE LOT FRONTS STREETS EAST AND WEST.",
- "5.  NO NEW CONSTRUCTION IS PROPOSED WITHIN ANY REQUIRED YARD. THE PROPOSED STORE",
- "     (THE EXISTING MINI BARN MARKET BUILDING) CLEARS EVERY REQUIRED YARD BY 30' OR",
- "     MORE. EXIST. TINY HOME (W) IS TO BE REMOVED. ROAD CENTRELINES ARE APPROXIMATE",
- "     PENDING PM 05062 (NOTE 9).",
- "6.  POND IS AN EXISTING IRRIGATION SOURCE (PUMP) AND THE AREA OF INUNDATION; LOT",
+ "     RESIDENCE FRONTS THE PRIVATE ACCESS ROAD ESMT. CROSSING THE EAST PORTION,",
+ "     SO THAT IS THE FRONT YARD: 40' FROM ITS ℄ PER SCHEDULE C FOOTNOTE (d), A",
+ "     PRIVATE EASEMENT UNDER 40' WIDE. WHIRLWIND LN IS THE EXTERIOR SIDE YARD AT",
+ "     35' FROM ℄; NORTH AND SOUTH ARE INTERIOR SIDE YARDS AT 15'.",
+ "5.  THE PROPOSED STORE SITS IN THE BUILDABLE AREA, CLEAR OF EVERY REQUIRED YARD",
+ "     (20' BEYOND THE WHIRLWIND SETBACK, 45'+ ELSEWHERE). EXIST. TINY HOME (W) IS",
+ "     TO BE REMOVED. ROAD CENTRELINES ARE APPROXIMATE PENDING PM 05062 (NOTE 9).",
+ "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
- "7.  GREENHOUSE SHOWN AS-BUILT (UNPERMITTED); MAY QUALIFY FOR THE AGRICULTURAL",
- "     BUILDING EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
- "8.  DRIVEWAY RUNS E-W FROM HANDLEBAR RD: GRAVEL BOTH ENDS, DIRT MID-SEGMENT PAST",
- "     THE RESIDENCE, 12' WIDE; SLOPE 2% DRAINING WEST TOWARD THE POND.",
+ "7.  GREENHOUSE SHOWN AS-BUILT; MAY QUALIFY FOR THE AGRICULTURAL BUILDING",
+ "     EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
+ "8.  DRIVEWAY RUNS FROM THE RESIDENCE E THEN N TO THE NE PROPERTY CORNER AND",
+ "     CONTINUES ±700' TO HANDLEBAR RD VIA AN ACCESS ESMT. ACROSS THE ADJACENT",
+ "     PARCEL. GRAVEL BOTH ENDS, DIRT MID-SEGMENT, 12' WIDE; SLOPE 2% DRAINING W.",
  "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
- "     THAT BOUNDARY. HANDLEBAR RD IS A PRIVATE ROAD ESMT. CROSSING THE EAST",
- "     PORTION, ℄ SHOWN; ASSESSOR'S MAP DIMENSIONS IT AS 30'. BOTH TO BE VERIFIED.",
+ "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL; THE PRIVATE ACCESS",
+ "     ROAD ESMT. SHOWN CROSSES THE EAST PORTION. ESMT. WIDTHS PER PM 05062, TBD.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
  "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
  "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",
- "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE ENTIRE EXISTING 'MINI BARN",
- "     MARKET' BUILDING, 10'x10' = 100 SF — WELL UNDER THE 1,500 SF LIMIT OF §6157.a.2.e",
- "     INCLUDING OPEN ROOFED DISPLAY (NONE PROPOSED). NO OTHER STRUCTURE WILL BE",
- "     USED FOR ON-SITE SALES. PUBLIC-ACCESSED AREAS TO BE PERMITTED AND BUILT TO",
- "     THE APPLICABLE COMMERCIAL BUILDING CODE AND DEHQ REQUIREMENTS.",
+ "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE NEW 'MINI BARN MARKET', A",
+ "     12'x10' = 120 SF BUILDING UNDER CONSTRUCTION — WELL UNDER THE 1,500 SF LIMIT",
+ "     OF §6157.a.2.e INCL. OPEN ROOFED DISPLAY (NONE). THE ADJACENT 10'x10' BLDG IS",
+ "     STORAGE ONLY; NO OTHER STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC-",
+ "     ACCESSED AREAS TO BE PERMITTED TO COMM. BLDG. CODE AND DEHQ REQUIREMENTS.",
  "12. ACCESSIBLE STALL, AISLE AND THE ROUTE TO THE STORE ENTRANCE TO BE A STABLE,",
  "     FIRM, SLIP-RESISTANT SURFACE PER CBC CH. 11B AND §6157.a.2.h.",
 ]
@@ -790,8 +836,8 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4    8/06/2026  BASE SHEET", 5.4, x=0.62)
 tline(tb_h*0.245, "5    8/06/2026  SETBACK LINES ADDED", 5.4, x=0.62)
 tline(tb_h*0.185, "6    8/19/2026  FARM STORE ADDED", 5.4, x=0.62)
-tline(tb_h*0.115, "7    8/21/2026  STORE = MINI BARN MARKET;", 5.4, x=0.62)
-tline(tb_h*0.050, "                SETBACKS PER TRUE LOT LINES", 5.4, x=0.62)
+tline(tb_h*0.115, "7    8/21/2026  OWNER CORRECTIONS; STORE =", 5.4, x=0.62)
+tline(tb_h*0.050, "                NEW 12'x10' MINI BARN MARKET", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

@@ -69,9 +69,12 @@ point query at the parcel centroid, 19 Aug 2026). The zoning box returned:
 | Rear | **25'** from lot line |
 
 Footnote (d): a lot fronting a private street or easement **less than 40' wide**
-takes a front yard of **40' from the centerline** of that easement. Handlebar Rd
-is a private easement measuring 30' where dimensioned on the assessor's map, so
-footnote (d) is likely to govern the Handlebar frontage.
+takes a front yard of **40' from the centerline** of that easement. The private
+access road easement crossing the east portion of the parcel is 30' where
+dimensioned on the assessor's map, so footnote (d) governs that frontage.
+(**Owner correction 8/21/2026: that road is NOT Handlebar Rd** — Handlebar is
+~700' away, reached across the adjacent parcel. Same easement, same footnote,
+different name.)
 
 The owner's "35' from the centerline of Whirlwind Lane" matches the Schedule C
 **exterior side** yard exactly — corroborated, not guessed.
@@ -108,19 +111,33 @@ area within the setback of **450 SF** against a 1,000 SF limit. The tiny home at
 
 ### Which line is the front — settled by the owner
 
-**The residence fronts Handlebar Rd, so that is the front yard.** Handlebar is a
-private road easement 30' wide where the assessor's map dimensions it, so
-Schedule C footnote (d) gives a **40' front yard from its centreline**.
+**The residence fronts the private access road easement crossing the east
+portion, so that is the front yard.** The easement is 30' wide where the
+assessor's map dimensions it, so Schedule C footnote (d) gives a **40' front
+yard from its centreline**. (8/21/2026: this easement was previously mislabelled
+"Handlebar Rd" — Handlebar itself is ~700' away across the adjacent parcel and
+does not touch the layout. The geometry and the 40' figure are unchanged; only
+the name was wrong.)
 
 That makes **Whirlwind Ln the exterior side yard at 35' from centreline** —
 exactly the figure the owner gave from the start — with **north and south as
-interior side yards at 15'**. No rear yard applies: the lot has street frontage
-east and west.
+interior side yards at 15'**.
 
 An earlier draft put the front on Whirlwind. That was wrong; the front follows
 the house.
 
-## 4. The one real obstacle: building size
+*(Historical note: the clearance table above predates the 8/21/2026 owner
+corrections — the "Shed NE" and "Canopy NE" rows were the NEIGHBOUR'S buildings
+and are off the sheet, and the store is no longer in the barn; see §4.)*
+
+## 4. The one real obstacle: building size — **RESOLVED, no obstacle**
+
+**Final state (owner, 8/21/2026, second round): the store is the NEW "Mini Barn
+Market", a 12'×10' = 120 SF building under construction just W of the 10'×10'
+storage building at the NW.** 120 SF against the 1,500 SF cap — nothing below
+in this section applies any more; it is kept as the research trail. (First
+round had it as the existing 10'×10'; the owner then designated the new 12'×10'
+as the store and the 10'×10' as storage only, no sales.)
 
 §6157.e caps the store at **1,500 SF total** — building floor area *plus* all
 open roofed display areas.

@@ -17,32 +17,41 @@ operations and the proposed store together, which is what qualifies the parcel
 under ZO §6157. See §16.
 
 **Current status: plot plan REV 7 generated — the submittal sheet. The Small
-Agricultural Store is the entire existing MINI BARN MARKET building — 10'×10' =
-100 SF per the owner (8/21/2026) — with 6 parking spaces in a row set right
-against AG-2's sloping bottom line, the placement the owner confirmed on the
-overlay. Compliance is met with large margin on the correct (gross) basis, and
-the store size question is CLOSED — 100 SF against a 1,500 SF limit. See
-`SUBMITTAL.md` for the take-to-county packet, `research/FINDINGS.md` for every
-citation.**
+Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
+UNDER CONSTRUCTION just west of the 10'×10' storage building at the NW (owner,
+8/21/2026 second round). The 10'×10' is STORAGE ONLY, no sales. 6 parking
+spaces sit in a row right against AG-2's sloping bottom line, the placement the
+owner confirmed on the overlay. Compliance is met with large margin on the
+correct (gross) basis, and the store size question is CLOSED — 120 SF against a
+1,500 SF limit. See `SUBMITTAL.md` for the take-to-county packet,
+`research/FINDINGS.md` for every citation.**
 
 **Owner corrections, 8/21/2026 — get these right forever:**
 
-- **The MINI BARN MARKET is 10'×10' = 100 SF** — the small building at the NW
-  (structure #4 on `output/Structures_To_Confirm.png`), NOT the big barn. The
-  21'×20' aerial trace over-read its roof; the owner's dimensions govern and it
-  is drawn 10'×10'. **The barn is STORAGE and is 2,200 SF** (owner-measured; the
-  roof trace read ~3,400 — footprint scaled to 2,200). Every earlier draft that
-  put the store "in the barn" was wrong, and the demised-portion question it
-  created is void.
+- **The STORE is the NEW 'MINI BARN MARKET': a 12'×10' = 120 SF building UNDER
+  CONSTRUCTION**, visible framing in the aerial immediately west of the 10'×10'
+  (second round, 8/21). **The 10'×10' at the NW is STORAGE ONLY — no sales.**
+  Neither is the big barn. **The barn is STORAGE, a 50' E-W × 44' N-S rectangle
+  = 2,200 SF** (owner). Every earlier draft that put the store "in the barn"
+  was wrong, and the demised-portion question it created is void.
 - **All 9 structures on the confirmation image are the owner's.** The two
   trailers/outbuildings at the aerial's top-right are the neighbour's and stay
   off the sheet.
 - **The property boundary is the county GIS polygon the zones were traced
-  against — it was right from the start.** Do not clip crops to it, do not
-  raise record-vs-GIS discrepancy alarms on the sheet face, and do not derive
-  encroachments from it against the owner's word.
-- **The front yard is on Handlebar Rd** (the residence faces it); Whirlwind Ln
+  against.** Do not raise record-vs-GIS discrepancy alarms on the sheet face,
+  and do not derive encroachments from it against the owner's word. **The ag
+  zones are DRAWN clipped to that boundary** (second round: "my red areas
+  extend over the property lines… everything needs to be re-drawn so that's
+  inside the property line") — but the TABULATED areas stay the owner's numbers
+  in `data/ag_areas.json`. AG-3 also stops at the fence ~20' W of the septic.
+- **Handlebar Rd is NOT on the layout** — it is far away. The N-S road crossing
+  the east portion is the **private access road easement / driveway route,
+  ±700' to Handlebar Rd across the adjacent parcel**. The residence fronts that
+  easement → front yard 40' from its ℄ (Schedule C footnote (d)); Whirlwind Ln
   is the exterior side yard at 35' from centreline.
+- **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
+  structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
+  — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
 
 **Two things previously open are now RESOLVED and must not be re-litigated:**
 
@@ -94,23 +103,27 @@ These are hard-won and matter more than any technical detail here.
 
 **Site orientation — these were owner corrections, get them right:**
 
-- **Handlebar Road** is the private road easement crossing the **EAST portion**
-  of the parcel on a N–S curve, entrance at the NE. It is **NOT** along the north
-  property line.
+- The private **access road easement** crosses the **EAST portion** of the
+  parcel on a N–S curve, entrance at the NE. It is **NOT** along the north
+  property line, and it is **NOT Handlebar Rd** (owner 8/21/2026: Handlebar is
+  far away; the driveway runs ±700' to it via an easement across the adjacent
+  parcel).
 - **Whirlwind Lane** runs along the **WEST** frontage.
 - **West setback is 35', measured from the CENTERLINE of Whirlwind Lane.**
 - A 30' road easement runs along the west boundary.
-- Driveway runs E–W from Handlebar Rd: gravel at both ends, dirt mid-segment
-  passing the residence. Slope <5% (flat site).
-- Pond is an existing irrigation source (pump) and also the area of inundation.
-  Lot drains to pond.
+- Driveway runs from the residence E then N to the NE corner and continues
+  ±700' to Handlebar Rd via the access easement: gravel at both ends, dirt
+  mid-segment passing the residence. Slope <5% (flat site).
+- Pond is **runoff-fed (NO pump)** — an existing irrigation source and also the
+  area of inundation. Lot drains to pond.
 - 400A main electrical panel sits adjacent NE of the barn.
 - The west-side long structure is a **TINY HOME to be removed** — not a shed.
 - The shed + canopy once drawn at the NE corner are the NEIGHBOUR'S (top-right
   of the aerial, beyond the line). They are off the sheet and stay off.
-- The big rotated barn is **storage, 2,200 SF per the owner**, and is **not**
-  counted as ag area. It is NOT the Mini Barn Market — MBM is the 10'×10'
-  (100 SF) building at the NW (owner corrections, 8/21/2026).
+- The big barn is **storage, 50'×44' = 2,200 SF per the owner**, and is **not**
+  counted as ag area. It is NOT the Mini Barn Market — the new MBM is the
+  12'×10' (120 SF) store building under construction at the NW, next to the
+  10'×10' storage building (owner corrections, 8/21/2026).
 - No County-mandated setback exists between poultry areas and greenhouse/garden
   beds on the same parcel. §3112 setbacks measure only to street centerlines and
   lot lines.
@@ -365,7 +378,7 @@ Every item below must appear to scale or plans get rejected.
 6. Field measurements for remaining zones, priority by size: AG-11 (8,467),
    AG-10 (7,530), BG (6,331), AG-2 (4,672); everything else is under 3,000 SF
    and won't move the total. Flag any zone landing >10% off the trace.
-7. Sign-off on **Verification Overlay v3** (`output/Verification_Overlay_v3.png`) —
+7. Sign-off on **Verification Overlay v4** (`output/Verification_Overlay_v4.png`) —
    it now shows the proposed store and parking in red over the aerial.
 8. Decide on the tiny home: remove before submittal (then drop from plan), or
    keep shown dashed as "to be removed."
@@ -434,7 +447,8 @@ the sheet. The ones with teeth:
 - **≥50% of gross suitable/available** and **≥25% of gross in active ag use** —
   83.4% and 35.1%. Both pass.
 - **Store ≤1,500 SF** including all open roofed display area, conforming to
-  §4810 setbacks. The store is the entire 10'×10' = 100 SF Mini Barn Market.
+  §4810 setbacks. The store is the new 12'×10' = 120 SF Mini Barn Market
+  building, under construction at the NW.
 - **Minimum 6 parking spaces**, gravel expressly allowed, disabled access per
   CBC ch. 11B. Six drawn to scale, one van accessible.
 - **≤200 SF** of the store for products not raised on the property.
@@ -444,24 +458,26 @@ the sheet. The ones with teeth:
 
 Earlier drafts put the store inside the big barn and agonised over §6157.a.2.e's
 1,500 SF cap versus a 3,400 SF building. That was built on a mislabel. **The
-store is the Mini Barn Market building itself, 10'×10' = 100 SF — the whole
-building, one-fifteenth of the cap.** No demising, no PDS interpretation
-question, nothing to ask. Do not reopen this.
+store is the NEW Mini Barn Market building, 12'×10' = 120 SF, under
+construction just W of the 10'×10' storage building — the whole building,
+one-twelfth of the cap.** The 10'×10' is storage only, no sales. No demising,
+no PDS interpretation question, nothing to ask. Do not reopen this.
 
 ### Setback compliance — the store is safe
 
-**The residence fronts Handlebar Rd, so that is the front yard** (owner
-correction, 19 Aug 2026). Handlebar is a private easement 30' wide where the
-assessor's map dimensions it, so Schedule C footnote (d) gives **40' from its
-centreline**. That makes **Whirlwind Ln the exterior side yard at 35' from ℄** —
-the figure the owner gave from the start — and north/south **interior side yards
-at 15'**. No rear yard applies; the lot fronts streets east and west.
+**The residence fronts the private access road easement crossing the east
+portion, so that is the front yard** (the road formerly mislabelled Handlebar
+Rd — owner correction 8/21/2026; the geometry is unchanged, only the name was
+wrong). The easement is 30' wide where the assessor's map dimensions it, so
+Schedule C footnote (d) gives **40' from its centreline**. That makes
+**Whirlwind Ln the exterior side yard at 35' from ℄** — the figure the owner
+gave from the start — and north/south **interior side yards at 15'**.
 
-The store (Mini Barn Market) clears every required yard by 30'+ — 67' to the
-Whirlwind centreline (35' required), 47' to the north line (15'), and hundreds
-of feet from the south line and Handlebar. Do not draw per-structure
-encroachment claims for the owner's other buildings; road centrelines are
-approximate pending PM 5062, and no new work is proposed in any yard.
+The store (the new 12'×10' Mini Barn Market) clears every required yard — 55'
+to the Whirlwind centreline (35' required), ~46' to the north line (15'), and
+hundreds of feet from the south line and the access easement. Do not draw
+per-structure encroachment claims for the owner's other buildings; road
+centrelines are approximate pending PM 5062.
 
 ---
 
@@ -493,7 +509,7 @@ every distance a checker scaled off it wrong. The sheet also writes to
 
 **Always regenerate the verification overlay after a geometry change:**
 
-    python3 scripts/make_overlay.py     # -> output/Verification_Overlay_v3.png
+    python3 scripts/make_overlay.py     # -> output/Verification_Overlay_v4.png
 
 It draws the plan over the aerial. It earned its keep immediately in rev 6: the
 parking bay was first placed on vegetation and labelled "existing gravel", and
@@ -515,7 +531,7 @@ scripts/make_overlay.py       verification overlay on the aerial
 scripts/verify_sheet.py       print-fidelity check — run before printing
 reference/                    county forms and the assessor's map
 source/                       owner aerial + well/septic markup
-output/                       rev5 + rev6 PDFs, overlays v2 and v3
+output/                       rev5-rev7 PDFs, overlays v2-v4
 ```
 
 
@@ -543,13 +559,15 @@ What changed:
   (exterior side west, rear east). An intermediate rev 7 draft then put the front
   on *Whirlwind*, which the owner corrected: the front follows the residence,
   and the residence faces Handlebar.
-- **Crop polygons are NOT clipped, and must not be.** An intermediate rev 7 draft
-  clipped them to the GIS polygon on a QA report of ~3,134 SF lying outside the
-  boundary. That was wrong and was reverted. The aerial is cropped exactly to the
-  parcel — the image edge *is* the property line (§9) — so a traced crop cannot
-  be outside the property. The check had measured the aerial rectangle against
-  the GIS polygon, which is the boundary discrepancy, not crops crossing a line.
-  Tabulated areas come from `data/ag_areas.json`: **57,696 SF**.
+- **Crop polygons: DRAWN clipped, TABULATED per owner.** This went both ways
+  before landing: an intermediate rev 7 draft clipped them on a QA report and
+  the owner reverted it; then on 8/21 (second round) the owner looked at the
+  sheet and ordered them redrawn inside the property line ("my red areas on
+  AG-2 and AG-3 extend over the property lines… same with AG-11 and AG-10").
+  So the DISPLAY polygons are intersected with the GIS parcel (AG-3 further
+  stopped at the fence ~20' W of the septic), while tabulated areas still come
+  from `data/ag_areas.json`: **57,696 SF**. Never recompute the table from the
+  clipped display polygons.
 - **Clearances recomputed** — see §16 above.
 - **Every property line segment is dimensioned**, including the 13.1', 20.0' and
   1.0' courses that the old code skipped with a `d < 22` filter.
@@ -576,3 +594,28 @@ Still outstanding on the sheet, honestly flagged rather than hidden: recorded
 PM 5062, fence/wall/gate heights (PDS 090 item 8 — nothing is drawn, and this is
 a straight rejection item), and the frontage confirmation. The store-size
 question is CLOSED (§16).
+
+## 20. Rev 7, second round — the owner's 7-item list (8/21/2026)
+
+All seven landed in one pass; the sheet, overlay (now **v4**), data files and
+docs were updated together:
+
+1. **Ag zones drawn clipped to the parcel** (display only; owner's tabulated
+   numbers untouched). See §19's crop-polygon bullet for the full history.
+2. **Store = the NEW 12'×10' Mini Barn Market (120 SF), under construction**
+   just W of the 10'×10', which became **storage only, no sales**. Barn redrawn
+   as a 50'×44' rectangle (2,200 SF) centred on the trace centroid.
+3. **Pond relabelled runoff-fed, no pump.**
+4. Greenhouse: owner asked whether to keep "(unpermitted)". Answer given:
+   **AS-BUILT alone** — it is the county's own label for unpermitted structures
+   (PDS 090), so "(unpermitted)" added nothing but self-flagging. Removed.
+5. **Leach lines moved E of the garage** (x 481–530): they cross under no
+   structure, stay W of the access road edge and inside the north PL. The
+   septic tank is drawn at its site_features position (x 422.5–444.9).
+6. **AG-3 stops at the fence ~20' W of the septic** (clip at x ≤ 402.5).
+7. **"Handlebar Rd" removed from the drawing.** The N-S curve is the private
+   access road easement / driveway route, labelled as such, ±700' to Handlebar
+   Rd via an easement across the adjacent parcel. Front yard unchanged in
+   geometry (40' from that easement's ℄, footnote (d)) — only the name changed.
+   The vicinity map shows Handlebar detached, linked by a dashed "ACCESS ESMT.
+   ±700'" connector.
