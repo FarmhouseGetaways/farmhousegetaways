@@ -17,21 +17,23 @@ operations and the proposed store together, which is what qualifies the parcel
 under ZO §6157. See §16.
 
 **Current status: plot plan REV 7 generated — the submittal sheet. The Small
-Agricultural Store is the entire existing MINI BARN MARKET building (±415 SF,
-the small building at the NW — owner-confirmed 8/21/2026), with 6 parking spaces
-set right against the NE 3/4 of AG-2's bottom line (owner direction) and the
-§6157 compliance block on the sheet.
-Compliance is met with large margin on the correct (gross) basis, and the store
-size question is CLOSED — 415 SF against a 1,500 SF limit needs no demising. See
+Agricultural Store is the entire existing MINI BARN MARKET building — 10'×10' =
+100 SF per the owner (8/21/2026) — with 6 parking spaces in a row set right
+against AG-2's sloping bottom line, the placement the owner confirmed on the
+overlay. Compliance is met with large margin on the correct (gross) basis, and
+the store size question is CLOSED — 100 SF against a 1,500 SF limit. See
 `SUBMITTAL.md` for the take-to-county packet, `research/FINDINGS.md` for every
 citation.**
 
 **Owner corrections, 8/21/2026 — get these right forever:**
 
-- **The MINI BARN MARKET is the small ~21'×20' building at the NW** (structure
-  #4 on `output/Structures_To_Confirm.png`), NOT the big ~3,400 SF barn. The big
-  barn is **storage**. Every earlier draft that put the store "in the barn" was
-  wrong, and the demised-portion question it created is void.
+- **The MINI BARN MARKET is 10'×10' = 100 SF** — the small building at the NW
+  (structure #4 on `output/Structures_To_Confirm.png`), NOT the big barn. The
+  21'×20' aerial trace over-read its roof; the owner's dimensions govern and it
+  is drawn 10'×10'. **The barn is STORAGE and is 2,200 SF** (owner-measured; the
+  roof trace read ~3,400 — footprint scaled to 2,200). Every earlier draft that
+  put the store "in the barn" was wrong, and the demised-portion question it
+  created is void.
 - **All 9 structures on the confirmation image are the owner's.** The two
   trailers/outbuildings at the aerial's top-right are the neighbour's and stay
   off the sheet.
@@ -106,9 +108,9 @@ These are hard-won and matter more than any technical detail here.
 - The west-side long structure is a **TINY HOME to be removed** — not a shed.
 - The shed + canopy once drawn at the NE corner are the NEIGHBOUR'S (top-right
   of the aerial, beyond the line). They are off the sheet and stay off.
-- The big rotated ~56'×53' barn is **storage** and is **not** counted as ag
-  area. It is NOT the Mini Barn Market — MBM is the small ~21'×20' building at
-  the NW (owner correction, 8/21/2026).
+- The big rotated barn is **storage, 2,200 SF per the owner**, and is **not**
+  counted as ag area. It is NOT the Mini Barn Market — MBM is the 10'×10'
+  (100 SF) building at the NW (owner corrections, 8/21/2026).
 - No County-mandated setback exists between poultry areas and greenhouse/garden
   beds on the same parcel. §3112 setbacks measure only to street centerlines and
   lot lines.
@@ -432,7 +434,7 @@ the sheet. The ones with teeth:
 - **≥50% of gross suitable/available** and **≥25% of gross in active ag use** —
   83.4% and 35.1%. Both pass.
 - **Store ≤1,500 SF** including all open roofed display area, conforming to
-  §4810 setbacks. The store is the entire ±415 SF Mini Barn Market building.
+  §4810 setbacks. The store is the entire 10'×10' = 100 SF Mini Barn Market.
 - **Minimum 6 parking spaces**, gravel expressly allowed, disabled access per
   CBC ch. 11B. Six drawn to scale, one van accessible.
 - **≤200 SF** of the store for products not raised on the property.
@@ -442,9 +444,9 @@ the sheet. The ones with teeth:
 
 Earlier drafts put the store inside the big barn and agonised over §6157.a.2.e's
 1,500 SF cap versus a 3,400 SF building. That was built on a mislabel. **The
-store is the Mini Barn Market building itself, ±415 SF — the whole building,
-well under the cap.** No demising, no PDS interpretation question, nothing to
-ask. Do not reopen this.
+store is the Mini Barn Market building itself, 10'×10' = 100 SF — the whole
+building, one-fifteenth of the cap.** No demising, no PDS interpretation
+question, nothing to ask. Do not reopen this.
 
 ### Setback compliance — the store is safe
 
@@ -560,13 +562,12 @@ What changed:
   stall, aisle and route required to be stable, firm and slip-resistant (note
   12) — §6157.a.2.h requires CBC ch. 11B compliance even though gravel is fine
   for the rest of the bay.
-- **Parking (owner direction, 8/21, corrected same day):** the six spaces are a
-  rotated row tangent against the NE stretch of AG-2's bottom line — the segment
-  from (215.0, 276.1) to (278.7, 278.2), east of the notch — sitting on the
-  existing parking strip where vehicles are visible in the aerial, 3.4' clear of
-  the pool, van stall at the SW end. A first attempt put the row on the sloping
-  (97.4→200.3) segment further west; the owner said "try again" — the NE stretch
-  is the one. Do not move it.
+- **Parking (owner-confirmed on the overlay, 8/21):** the six spaces are a
+  rotated row tangent against AG-2's SLOPING bottom line — the segment from
+  (97.4, 266.8) to (200.3, 255.4), row anchored to its NE end, van stall at the
+  SW end nearest the store. The owner marked this exact placement "correct" on
+  the overlay after an intermediate draft moved it east of the notch. Do not
+  move it again.
 - **Citations are in the county's own form**, §6157.a.2.(x), and the compliance
   table now carries criterion (f) and the "commercial agriculture must be the
   principal use" preamble.

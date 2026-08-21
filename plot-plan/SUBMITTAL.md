@@ -6,9 +6,9 @@ the regulatory citations behind every number here.
 ## What you are asking for
 
 A **Small Agricultural Store** at 17054 Handlebar Rd under **Zoning Ordinance
-§6157** — the entire existing **Mini Barn Market** building (±415 SF, NW of the
-parcel), with six customer parking spaces on the gravel yard beside it. The
-building is less than a third of the 1,500 SF cap.
+§6157** — the entire existing **Mini Barn Market** building (10'×10' = 100 SF,
+NW of the parcel), with six customer parking spaces in a row against AG-2's
+bottom line. The building is one-fifteenth of the 1,500 SF cap.
 
 **This does not need a Zoning Verification Permit.** ZO Update 102 (March 2020)
 removed it. In the A70 zone a small agricultural store is **permitted by right**
@@ -89,7 +89,7 @@ resolves that.
 ## The two questions to ask at the counter
 
 The store-size question that used to lead this list is **gone**: the store is
-the entire existing Mini Barn Market building, ±415 SF against a 1,500 SF
+the entire existing Mini Barn Market building, 100 SF against a 1,500 SF
 limit. Nothing to ask about it.
 
 **1. Confirm the front yard runs off Handlebar Rd at 40' from centreline.**
@@ -126,12 +126,12 @@ These are on the sheet as notes rather than hidden:
 - **The 200 SF off-site products area** inside the store has not been located
   yet. §6157(g) caps it at 200 SF including refrigeration cases. Decide where it
   goes when the store is laid out.
-- **Parking** — six spaces drawn to scale in a row set right against the NE
-  stretch of AG-2's bottom line, on the existing parking strip where vehicles
-  already sit in the aerial. Tangent to the orchard line with zero overlap and
-  3.4' clear of the pool; van-accessible stall at the end nearest the store.
-  Gravel is expressly allowed by §6157.a.2.h; the accessible stall, aisle and
-  route to the store entry must be stable, firm and slip-resistant (note 12).
+- **Parking** — six spaces drawn to scale in a row set right against AG-2's
+  sloping bottom line, the placement you confirmed on the overlay. Tangent to
+  the orchard line with zero overlap; van-accessible stall at the end nearest
+  the store. Gravel is expressly allowed by §6157.a.2.h; the accessible stall,
+  aisle and route to the store entry must be stable, firm and slip-resistant
+  (sheet note 12).
 - **DEHQ handwash / catch tank** — still the open call from the earlier work.
 
 ## What is on the sheet

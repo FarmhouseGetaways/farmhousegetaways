@@ -198,7 +198,7 @@ crop_name = {
  '8': "VEGETABLES + FLOWERS", '9': "ORCHARD 2 (FRUIT TREES)",
  '10': "FRUIT TREES + PUMPKIN", '11': "FRUIT TREES + PUMPKIN",
  '12': "ROSEMARY (HERBS)"}
-lab_pos = {'1': (75,203), '2': (150,277), '4': (166,200), '7': (250,105), '10': (25,100),
+lab_pos = {'1': (75,203), '4': (166,200), '7': (250,105), '10': (25,100),
            '11': (300,4), '12': (492,32)}
 for k in ZONE_KEYS:
     for ring in rings(clipped[k]):
@@ -239,7 +239,12 @@ def rect_px(x0,y0,x1,y1):
 def poly_px(pts):
     return [(x*SXX, 294.1-y*SYY) for x, y in pts]
 
-BARN = poly_px([(426,430),(632,476),(605,680),(520,704),(390,640)])
+_barn_trace = poly_px([(426,430),(632,476),(605,680),(520,704),(390,640)])
+# Owner measurement 8/21: the barn is 2,200 SF. The aerial roof trace reads
+# ~3,400 SF (overhang/shadow); footprint scaled about its centroid to 2,200.
+_bc = (sum(q[0] for q in _barn_trace)/5, sum(q[1] for q in _barn_trace)/5)
+_bf = (2200.0 / SPoly(_barn_trace).area) ** 0.5
+BARN = [(_bc[0]+(q[0]-_bc[0])*_bf, _bc[1]+(q[1]-_bc[1])*_bf) for q in _barn_trace]
 structures = [
  ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
  ("EXIST.\nGARAGE/ACC.", poly_px([(1622,85),(1795,90),(1795,275),(1622,280)]), None),
@@ -256,29 +261,30 @@ for name, poly, lab_at in structures:
 
 # the barn — storage (owner-confirmed 8/21; it is NOT the Mini Barn Market)
 ax.add_patch(MPoly(BARN, closed=True, fc='0.82', ec='black', lw=1.3, zorder=4))
-ax.annotate("EXIST. BARN — STORAGE\n3,400 SF", (124, 126), (70, 74),
+ax.annotate("EXIST. BARN — STORAGE\n2,200 SF", (124, 126), (70, 74),
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
 # ---- PROPOSED SMALL AGRICULTURAL STORE = the existing MINI BARN MARKET
-# building (#4 on the confirmation image, owner-confirmed 8/21). The ENTIRE
-# ±415 SF building is the store — well under the 1,500 SF cap of ZO
-# §6157.a.2.e, so no demising of a larger building is needed at all.
-MBM = poly_px([(250,188),(328,188),(328,265),(250,265)])
+# building (#4 on the confirmation image). The ENTIRE 100 SF building is the
+# store — one-fifteenth of the 1,500 SF cap of ZO §6157.a.2.e.
+# Owner measurement 8/21: the building is 10'x10' = 100 SF. The 21'x20' aerial
+# trace over-read it (roof/shade); drawn at true size centred on the trace.
+_mc = (77.1, 235.5)
+MBM = [(_mc[0]-5, _mc[1]-5), (_mc[0]+5, _mc[1]-5), (_mc[0]+5, _mc[1]+5), (_mc[0]-5, _mc[1]+5)]
 MBM_G = SPoly(MBM)
-MBM_SF = MBM_G.area          # ±415 SF
+MBM_SF = 100
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
-ax.annotate("EXIST. 'MINI BARN MARKET' — PROPOSED\nSMALL AGRICULTURAL STORE, ±415 SF\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
-            (77, 225.5), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
+ax.annotate("EXIST. 'MINI BARN MARKET' 10'x10' — PROPOSED\nSMALL AGRICULTURAL STORE, 100 SF\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
+            (77, 230.5), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
 # ---- PROPOSED CUSTOMER PARKING: 6 spaces (1 van accessible) set as a row
-# RIGHT AGAINST the NE stretch of AG-2's bottom line (owner direction, 8/21 —
-# "try again" correction: the NE end of the bottom line is the segment east of
-# the notch, over the existing parking strip where vehicles sit in the aerial).
-# Stall tops tangent to the edge — 0 SF overlap — 3.4' clear of the pool.
-_P1, _P2 = (215.0, 276.1), (278.7, 278.2)          # AG-2 bottom edge, NE stretch
+# RIGHT AGAINST AG-2's sloping bottom line, west of the notch — the placement
+# the owner confirmed on the overlay ("parking spaces were correct here",
+# 8/21). Stall tops tangent to the edge (0 SF overlap), rotated to match it.
+_P1, _P2 = (97.4, 266.8), (200.3, 255.4)           # AG-2 bottom edge (SW -> NE)
 _L  = math.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
 _u  = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L)     # along the edge
 _n  = (_u[1], -_u[0])                              # perpendicular, into the yard
@@ -303,16 +309,14 @@ for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
     elif lab:
         ax.text(cxp, cyp, lab, fontsize=3.4, ha='center', va='center', color='#0044aa',
                 fontweight='bold', rotation=_ang, rotation_mode='anchor', zorder=7)
-# accessible route: van stall -> store entry, under AG-2's spike and over AG-1's crown
-ROUTE = [(217.3, 258.2), (204.0, 250.5), (100.0, 250.0), (90.0, 249.0), (87.5, 245.0)]
+# accessible route: van stall -> store entry, over AG-1's crown
+ROUTE = [(137.7, 253.3), (98.0, 252.5), (82.0, 238.5)]
 ax.plot([q[0] for q in ROUTE], [q[1] for q in ROUTE], color='#0044aa', lw=1.6,
         ls=(0,(1,1.6)), zorder=6)
-ax.plot([87.5], [245.0], marker='o', ms=3, color='#0044aa', zorder=7)
-ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. PARKING STRIP — ACCESSIBLE ROUTE PER NOTE 12",
-            (248, 277.8), (240, 319), fontsize=5.6, ha='center', va='center',
-            color='#00337f', fontweight='bold', zorder=9,
-            arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
-            bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
+ax.plot([82.0], [238.5], marker='o', ms=3, color='#0044aa', zorder=7)
+ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. YARD — ACCESSIBLE ROUTE PER NOTE 12",
+        fontsize=5.8, ha='center', va='top', color='#00337f', fontweight='bold', zorder=9,
+        bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
 
 # trellis garden
 tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)
@@ -527,7 +531,7 @@ crit = [
  ("c", "OPERATED BY OWNER OR TENANT", "OWNER-OPERATED", True),
  ("d", "ONE STORE PER LEGAL LOT; NO EXIST.", "NONE EXISTING", True),
  ("", "AG STAND OR LARGE AG STORE", "", None),
- ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "±415 SF — COMPLIES", True),
+ ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "100 SF — COMPLIES", True),
  ("", "CONFORM TO §4810 SETBACKS", "STORE CLEARS ALL YARDS", True),
  ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEHQ", "SEE NOTE 11", None),
  ("f", "RETAIL ONLY WITH ON-SITE PRODUCE / EGGS;", "ACKNOWLEDGED", True),
@@ -549,10 +553,9 @@ for ref, req, prov, ok in crit:
 fy -= 0.004
 fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
-for lab, val in [("STORE = ENTIRE EXIST. 'MINI BARN MARKET' BLDG.", "±415 SF"),
-                 ("   OF WHICH OFF-SITE PRODUCTS (MAX)", "200 SF"),
+for lab, val in [("STORE = ENTIRE EXIST. 'MINI BARN MARKET' 10'x10'", "100 SF"),
                  ("OPEN ROOFED DISPLAY AREA", "0 SF"),
-                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "±415 SF")]:
+                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "100 SF")]:
     b = lab.startswith("TOTAL")
     tl(fs_, fy, lab, 6.4, b, x=0.05); tl(fs_, fy, val, 6.4, b, x=0.97, ha='right')
     fy -= 0.0250
@@ -567,8 +570,8 @@ for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
     fy -= 0.0250
 fy -= 0.012
 tl(fs_, fy-0.004, "THE STORE IS THE ENTIRE EXISTING MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
-tl(fs_, fy-0.030, "±415 SF AGAINST A 1,500 SF LIMIT. NO DEMISING OF A LARGER", 6.2, True, x=0.5, ha='center', color='#0a6b16')
-tl(fs_, fy-0.056, "BUILDING IS NEEDED.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.030, "10'x10' = 100 SF AGAINST A 1,500 SF LIMIT. NO DEMISING OF A", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.056, "LARGER BUILDING IS NEEDED.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 
 # ---- Col 3 top: legend
 la = band_axes(C3, 2.20, CW, 5.35)
@@ -701,9 +704,9 @@ hrule(y); y -= 0.0098
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-srows = [("MINI BARN MARKET — PROPOSED SMALL AG. STORE","EXISTING","415 SF", True),
+srows = [("MINI BARN MARKET — PROPOSED SMALL AG. STORE","EXISTING","100 SF", True),
          ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", True),
-         ("BARN — STORAGE","EXISTING","3,400 SF", False),
+         ("BARN — STORAGE","EXISTING","2,200 SF", False),
          ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
          ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
          ("TRELLIS GARDEN (OPEN)","EXISTING","690 SF", False),
@@ -725,7 +728,8 @@ notes = [
  "1.  PARCEL BOUNDARY PER COUNTY GIS / PM 05062, OWNER-VERIFIED AGAINST THE SITE",
  "     AERIAL. BEARINGS AND DISTANCES ARE GIS-DERIVED (APPROXIMATE); RECORD BEARINGS",
  "     AND DIMENSIONS PER RECORDED PM 05062. ALL DIMENSIONS IN FEET.",
- "2.  AG AREAS AND STRUCTURE FOOTPRINTS ARE AERIAL-DERIVED AND FIELD-CORROBORATED.",
+ "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED, FIELD-CORROBORATED, AND",
+ "     PER OWNER MEASUREMENT WHERE STATED (MINI BARN MARKET 10'x10', BARN 2,200 SF).",
  "     THE SOURCE AERIAL IS CROPPED TO THE PARCEL, SO CROP AREAS RUN TO THE PROPERTY",
  "     LINE. OWNER FIELD VERIFICATION CONTINUING. AG-9 LEGS MEASURED 200' (W ALONG",
  "     RD), 130' (N), 190' (E FENCE); THE W AND N BOUNDARIES CURVE OUTWARD.",
@@ -753,7 +757,7 @@ notes = [
  "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
  "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",
  "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE ENTIRE EXISTING 'MINI BARN",
- "     MARKET' BUILDING, ±415 SF — WELL UNDER THE 1,500 SF LIMIT OF ZO §6157.a.2.e",
+ "     MARKET' BUILDING, 10'x10' = 100 SF — WELL UNDER THE 1,500 SF LIMIT OF §6157.a.2.e",
  "     INCLUDING OPEN ROOFED DISPLAY (NONE PROPOSED). NO OTHER STRUCTURE WILL BE",
  "     USED FOR ON-SITE SALES. PUBLIC-ACCESSED AREAS TO BE PERMITTED AND BUILT TO",
  "     THE APPLICABLE COMMERCIAL BUILDING CODE AND DEHQ REQUIREMENTS.",

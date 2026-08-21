@@ -32,9 +32,9 @@ that is the front yard at 40' from its centreline under Schedule C footnote (d);
 Whirlwind Ln is the exterior side yard at 35' from centreline. The barn holding
 the store clears every yard by a wide margin.
 
-**The store is the entire existing Mini Barn Market building** (±415 SF, NW of
-the parcel — owner-confirmed) against a 1,500 SF limit, so the old
-demised-portion question is closed. The big barn is storage.
+**The store is the entire existing Mini Barn Market building** — 10'×10' =
+100 SF per the owner — against a 1,500 SF limit, so the old demised-portion
+question is closed. The big barn is storage, 2,200 SF.
 
 ## Quickstart
 
