@@ -190,6 +190,9 @@
     this.which = which;            // 'p1' | 'p2'
     this.slot = which === 'p1' ? 0 : 1;
     this.dir = 5;
+    this.prevDir = 5;
+    this.dirPressed = false;
+    this.dirHeldFor = 0;
     this.held = {};                // button -> bool
     this.pressed = {};             // button -> true on the frame it went down
     this.released = {};
@@ -260,6 +263,12 @@
   /* Fold one frame of input — from hardware or from the CPU — into the port's
      state, history and charge timers. Everything downstream reads only this. */
   Port.prototype.apply = function (dir, btn, start) {
+    /* Was this the frame the stick arrived at this direction? Menus need the
+       edge, not the level: a held direction that repeats on a frame counter
+       jumps several places at once the moment the frame rate dips, which is
+       exactly what it looked like on a real machine. */
+    this.dirPressed = (dir !== 5 && dir !== this.dir);
+    this.prevDir = this.dir;
     this.dir = dir;
 
     var mask = 0;
@@ -282,6 +291,8 @@
     else if (this._backGrace > 0) { this._backGrace--; if (!this._backGrace) this._heldBack = 0; }
     if (this.chargeDown > 0) { this._heldDown = this.chargeDown; this._downGrace = 8; }
     else if (this._downGrace > 0) { this._downGrace--; if (!this._downGrace) this._heldDown = 0; }
+
+    this.dirHeldFor = (dir === this.prevDir && dir !== 5) ? this.dirHeldFor + 1 : 0;
 
     this.frame++;
     this.history.push({ dir: dir, mask: mask, frame: this.frame });
@@ -307,6 +318,22 @@
   }
 
   Port.prototype.relDir = function (facing) { return rel(this.dir, facing); };
+
+  /* Menu navigation. True on the frame a direction is first pushed, and then
+     again on a slow repeat while it is held — the shape every menu in every
+     game has, and the only shape that behaves the same at 60fps and at 12.
+
+     `want` is a list of directions on the numeric keypad, so 4 is left and
+     6 is right. */
+  var MENU_DELAY = 22, MENU_REPEAT = 7;
+  Port.prototype.menuDir = function (want) {
+    var hit = false;
+    for (var i = 0; i < want.length; i++) if (want[i] === this.dir) { hit = true; break; }
+    if (!hit) return false;
+    if (this.dirPressed) return true;
+    if (this.dirHeldFor < MENU_DELAY) return false;
+    return ((this.dirHeldFor - MENU_DELAY) % MENU_REPEAT) === 0;
+  };
 
   /* Compressed list of the distinct directions pressed inside `window` frames,
      newest last, already mirrored for facing. */

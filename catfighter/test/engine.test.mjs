@@ -1502,3 +1502,22 @@ test('every roster rect is on screen and the move rows do not overlap', () => {
     }
   }
 });
+
+test('the options rows fit above the description strip', () => {
+  const g = menuGame();
+  const rows = g.optionRows();
+  const rr = g.optionRects(rows.length);
+  const stripTop = CF.STAGE.H - 50;
+  for (const r of rr) {
+    assert.ok(r.y >= 0 && r.x >= 0 && r.x + r.w <= CF.STAGE.W,
+      `an option row is off the edge — ${JSON.stringify(r)}`);
+    assert.ok(r.y + r.h <= stripTop,
+      `option row ${r.i} runs into the description strip at y=${stripTop}`);
+  }
+  for (const row of rows) {
+    assert.ok(row.desc && row.desc.length > 20,
+      `${row.label}: no description — a settings screen that only names a thing ` +
+      `makes the player guess, and half of these change how the game plays`);
+    assert.ok(/[.!]$/.test(row.desc), `${row.label}: description is not a sentence`);
+  }
+});

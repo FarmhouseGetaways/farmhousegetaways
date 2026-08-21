@@ -216,9 +216,11 @@
     };
   };
 
+  /* Rows are packed tighter than they were, to leave a strip at the bottom for
+     the description of whichever one is highlighted. */
   Game.prototype.optionRects = function (n) {
-    var out = [];
-    for (var i = 0; i < n; i++) out.push({ x: 50, y: 56 + i * 18 - 11, w: W - 100, h: 16, i: i });
+    var top = 44, step = 16, out = [];
+    for (var i = 0; i < n; i++) out.push({ x: 50, y: top + i * step, w: W - 100, h: step - 1, i: i });
     return out;
   };
 
@@ -251,12 +253,9 @@
   /* ---- title ------------------------------------------------------------- */
   Game.prototype.stepTitle = function () {
     var p = this.ports[0];
-    var d = p.dir;
-    if (this._navCool > 0) this._navCool--;
-    if (!this._navCool) {
-      if (d === 8) { this.menuIndex = (this.menuIndex + this.menuItems.length - 1) % this.menuItems.length; this._navCool = 10; CF.Audio.play('cursor'); }
-      if (d === 2) { this.menuIndex = (this.menuIndex + 1) % this.menuItems.length; this._navCool = 10; CF.Audio.play('cursor'); }
-    }
+    var n = this.menuItems.length;
+    if (p.menuDir([8, 7, 9])) { this.menuIndex = (this.menuIndex + n - 1) % n; CF.Audio.play('cursor'); }
+    if (p.menuDir([2, 1, 3])) { this.menuIndex = (this.menuIndex + 1) % n; CF.Audio.play('cursor'); }
     /* a click picks the item under it outright */
     var tr = this.titleRects(), clicked = -1;
     for (var t = 0; t < tr.length; t++) {
@@ -296,28 +295,43 @@
   };
 
   /* ---- options ----------------------------------------------------------- */
+  /* Every row says what it does. A settings screen that only names a thing and
+     shows its value makes the player guess, and half of these change how the
+     game plays rather than how it looks. */
   Game.prototype.optionRows = function () {
     var s = this.settings;
+    var simple = CF.Input.getScheme() === 'simple';
     return [
       { label: 'CONTROLS', value: CF.Input.schemeDef().label,
+        desc: simple
+          ? 'Four buttons and two triggers. Specials come out on a pair of buttons pressed together — no motion inputs at all.'
+          : 'The arcade layout: three punches over three kicks, with quarter-circles, dragon punches and charge moves.',
         inc: function () { CF.Input.setScheme(CF.Input.getScheme() === 'simple' ? 'classic' : 'simple'); },
         dec: function () { CF.Input.setScheme(CF.Input.getScheme() === 'simple' ? 'classic' : 'simple'); } },
       { label: 'DIFFICULTY', value: CF.AI_LEVELS[s.difficulty].name,
+        desc: 'How hard the computer plays. It presses the same buttons you do and gets no advantages — harder just means it waits less and reacts sooner.',
         inc: function () { s.difficulty = Math.min(5, s.difficulty + 1); },
         dec: function () { s.difficulty = Math.max(1, s.difficulty - 1); } },
       { label: 'ROUNDS TO WIN', value: String(s.rounds),
+        desc: 'How many rounds it takes to win a match. Two is the arcade standard; one makes for a quick game.',
         inc: function () { s.rounds = Math.min(3, s.rounds + 1); },
         dec: function () { s.rounds = Math.max(1, s.rounds - 1); } },
       { label: 'ROUND TIME', value: s.roundTime >= 999 ? 'INFINITE' : String(s.roundTime),
+        desc: 'Seconds on the clock. Run it out and whoever has more health left takes the round. INFINITE turns the timer off entirely.',
         inc: function () { s.roundTime = s.roundTime >= 99 ? 999 : s.roundTime + 10; },
         dec: function () { s.roundTime = s.roundTime >= 999 ? 99 : Math.max(30, s.roundTime - 10); } },
       { label: 'MUSIC', value: CF.Audio.isMusicOn() ? 'ON' : 'OFF',
+        desc: 'The tune under the fight. Every note is generated as it plays — there is no music file anywhere in the game.',
         inc: function () { CF.Audio.toggleMusic(); }, dec: function () { CF.Audio.toggleMusic(); } },
       { label: 'SOUND FX', value: CF.Audio.isSfxOn() ? 'ON' : 'OFF',
+        desc: 'Hits, blocks, meows and the announcer. Also synthesised rather than recorded.',
         inc: function () { CF.Audio.toggleSfx(); }, dec: function () { CF.Audio.toggleSfx(); } },
       { label: 'SHOW HITBOXES', value: s.showBoxes ? 'ON' : 'OFF',
+        desc: 'Draws the boxes the game actually fights with: blue is where you can be hit, red is what your attack reaches, white is where you stand. For working out why something missed.',
         inc: function () { s.showBoxes = !s.showBoxes; }, dec: function () { s.showBoxes = !s.showBoxes; } },
-      { label: 'BACK', value: '', inc: function () {}, dec: function () {} }
+      { label: 'BACK', value: '',
+        desc: 'Return to the title screen. Everything here is kept for this session.',
+        inc: function () {}, dec: function () {} }
     ];
   };
 
@@ -336,12 +350,10 @@
         return;
       }
     }
-    if (!this._navCool) {
-      if (p.dir === 8) { this.optIndex = (this.optIndex + rows.length - 1) % rows.length; this._navCool = 10; CF.Audio.play('cursor'); }
-      if (p.dir === 2) { this.optIndex = (this.optIndex + 1) % rows.length; this._navCool = 10; CF.Audio.play('cursor'); }
-      if (p.dir === 6) { rows[this.optIndex].inc(); this._navCool = 12; CF.Audio.play('cursor'); }
-      if (p.dir === 4) { rows[this.optIndex].dec(); this._navCool = 12; CF.Audio.play('cursor'); }
-    }
+    if (p.menuDir([8, 7, 9])) { this.optIndex = (this.optIndex + rows.length - 1) % rows.length; CF.Audio.play('cursor'); }
+    if (p.menuDir([2, 1, 3])) { this.optIndex = (this.optIndex + 1) % rows.length; CF.Audio.play('cursor'); }
+    if (p.menuDir([6, 9, 3])) { rows[this.optIndex].inc(); CF.Audio.play('cursor'); }
+    if (p.menuDir([4, 7, 1])) { rows[this.optIndex].dec(); CF.Audio.play('cursor'); }
     if (this.anyStart()) {
       CF.Audio.play('select');
       if (rows[this.optIndex].label === 'BACK') this.scene = 'title';
@@ -382,21 +394,12 @@
     else if (this.hit(r.next)) { this.roster.cat = (this.roster.cat + 1) % n; this.roster.pick = 0; CF.Audio.play('cursor'); }
     else if (this.hit(r.back)) { this.scene = 'title'; CF.Audio.play('cursor'); return; }
 
-    if (!this._navCool) {
-      var d = p.dir;
-      if (d === 4 || d === 7 || d === 1) {
-        this.roster.cat = (this.roster.cat + n - 1) % n; this.roster.pick = 0;
-        this._navCool = 11; CF.Audio.play('cursor');
-      }
-      if (d === 6 || d === 9 || d === 3) {
-        this.roster.cat = (this.roster.cat + 1) % n; this.roster.pick = 0;
-        this._navCool = 11; CF.Audio.play('cursor');
-      }
-      if (d === 8) { this.roster.pick = (this.roster.pick + 2) % 3; this._navCool = 11; CF.Audio.play('cursor'); }
-      if (d === 2) { this.roster.pick = (this.roster.pick + 1) % 3; this._navCool = 11; CF.Audio.play('cursor'); }
-      if (p.cancelPressed() || p.confirmPressed()) {
-        this.scene = 'title'; this._navCool = 12; CF.Audio.play('cursor');
-      }
+    if (p.menuDir([4])) { this.roster.cat = (this.roster.cat + n - 1) % n; this.roster.pick = 0; CF.Audio.play('cursor'); }
+    if (p.menuDir([6])) { this.roster.cat = (this.roster.cat + 1) % n; this.roster.pick = 0; CF.Audio.play('cursor'); }
+    if (p.menuDir([8])) { this.roster.pick = (this.roster.pick + 2) % 3; CF.Audio.play('cursor'); }
+    if (p.menuDir([2])) { this.roster.pick = (this.roster.pick + 1) % 3; CF.Audio.play('cursor'); }
+    if (!this._navCool && (p.cancelPressed() || p.confirmPressed())) {
+      this.scene = 'title'; this._navCool = 12; CF.Audio.play('cursor');
     }
   };
 
@@ -465,14 +468,12 @@
       if (i >= players) continue;
       var p = this.ports[i];
       if (this.select.locked[i]) continue;
-      if (!this._navCool) {
-        var c = this.select.cursor[i], moved = false;
-        if (p.dir === 4) { c = (c + 5) % 6; moved = true; }
-        if (p.dir === 6) { c = (c + 1) % 6; moved = true; }
-        if (p.dir === 8) { c = (c + 3) % 6; moved = true; }
-        if (p.dir === 2) { c = (c + 3) % 6; moved = true; }
-        if (moved) { this.select.cursor[i] = c; this._navCool = 10; CF.Audio.play('cursor'); }
-      }
+      var c = this.select.cursor[i], moved = false;
+      if (p.menuDir([4])) { c = (c + 5) % 6; moved = true; }
+      if (p.menuDir([6])) { c = (c + 1) % 6; moved = true; }
+      if (p.menuDir([8])) { c = (c + 3) % 6; moved = true; }
+      if (p.menuDir([2])) { c = (c + 3) % 6; moved = true; }
+      if (moved) { this.select.cursor[i] = c; CF.Audio.play('cursor'); }
       var clickedCat = -1;
       if (i === mouseSlot) {
         var sr = this.selectRects();
@@ -522,22 +523,14 @@
       return;
     }
 
-    if (!this._navCool) {
-      if (p.dir === 4 || p.dir === 7 || p.dir === 1) {
-        this.select.stage = (this.select.stage + n - 1) % n;
-        this._navCool = 11; CF.Audio.play('cursor');
-      }
-      if (p.dir === 6 || p.dir === 9 || p.dir === 3) {
-        this.select.stage = (this.select.stage + 1) % n;
-        this._navCool = 11; CF.Audio.play('cursor');
-      }
+    if (p.menuDir([4, 7, 1])) { this.select.stage = (this.select.stage + n - 1) % n; CF.Audio.play('cursor'); }
+    if (p.menuDir([6, 9, 3])) { this.select.stage = (this.select.stage + 1) % n; CF.Audio.play('cursor'); }
+    if (!this._navCool && p.cancelPressed()) {
       /* back out and change your cat */
-      if (p.cancelPressed()) {
-        this.select.phase = 'chars';
-        this.select.locked = [false, false];
-        this._navCool = 12; CF.Audio.play('cursor');
-        return;
-      }
+      this.select.phase = 'chars';
+      this.select.locked = [false, false];
+      this._navCool = 12; CF.Audio.play('cursor');
+      return;
     }
     if (p.confirmPressed()) this.startPicked();
   };
@@ -903,6 +896,12 @@
       case 'options':  this.drawOptions(ctx); break;
       case 'fight':    this.drawFight(ctx); break;
       case 'result':   this.drawResult(ctx); break;
+    }
+    if (this.fps) {
+      HUD.text(ctx, this.fps + ' FPS  ' + (this.deviceScale || '?') + 'x', W - 4, 8, 7,
+               this.fps >= 55 ? 'rgba(150,255,150,.85)'
+             : this.fps >= 30 ? 'rgba(255,220,120,.9)' : 'rgba(255,120,120,.95)',
+               'right', 800, 0.4);
     }
     ctx.restore();
   };
@@ -1376,14 +1375,35 @@
     ctx.fillStyle = '#1a1424'; ctx.fillRect(0, 0, W, H);
     HUD.text(ctx, 'OPTIONS', W / 2, 26, 14, '#ffe07a', 'center', 800, 2);
     var rows = this.optionRows();
+    var rr = this.optionRects(rows.length);
     for (var i = 0; i < rows.length; i++) {
-      var y = 56 + i * 18, sel = i === this.optIndex;
-      if (sel) { ctx.fillStyle = 'rgba(255,224,122,.14)'; ctx.fillRect(50, y - 11, W - 100, 16); }
-      HUD.text(ctx, rows[i].label, 62, y, 10, sel ? '#ffe07a' : 'rgba(255,240,220,.7)', 'left', sel ? 800 : 600, 0.8);
-      HUD.text(ctx, rows[i].value, W - 62, y, 10, sel ? '#8fd6ff' : 'rgba(255,240,220,.7)', 'right', sel ? 800 : 600, 0.8);
+      var r = rr[i], y = r.y + r.h - 4, sel = i === this.optIndex;
+      if (sel) {
+        ctx.fillStyle = 'rgba(255,224,122,.14)';
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = '#ffe07a';
+        ctx.fillRect(r.x, r.y, 2, r.h);
+      }
+      HUD.text(ctx, rows[i].label, r.x + 12, y, 9.5, sel ? '#ffe07a' : 'rgba(255,240,220,.7)', 'left', sel ? 800 : 600, 0.8);
+      HUD.text(ctx, rows[i].value, r.x + r.w - 12, y, 9.5, sel ? '#8fd6ff' : 'rgba(255,240,220,.7)', 'right', sel ? 800 : 600, 0.8);
     }
+
+    /* what the highlighted row actually does */
+    var pick = rows[this.optIndex];
+    if (pick && pick.desc) {
+      var by = H - 50;
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.fillRect(50, by, W - 100, 34);
+      ctx.fillStyle = '#8fd6ff';
+      ctx.fillRect(50, by, 2, 34);
+      var lines = HUD.wrapText(ctx, pick.desc, W - 124, 7.4, 600);
+      for (var L = 0; L < Math.min(lines.length, 3); L++) {
+        HUD.text(ctx, lines[L], 60, by + 11 + L * 9, 7.4, 'rgba(255,240,220,.86)', 'left', 600, 0.2);
+      }
+    }
+
     HUD.text(ctx, 'LEFT / RIGHT TO CHANGE   •   ENTER TO CONFIRM',
-             W / 2, H - 10, 7.5, 'rgba(255,240,220,.55)', 'center', 700, 0.8);
+             W / 2, H - 6, 7.5, 'rgba(255,240,220,.55)', 'center', 700, 0.8);
   };
 
   /* ---- the fight ---------------------------------------------------------- */
@@ -1470,6 +1490,14 @@
     var fs = [this.p1, this.p2];
     ctx.save();
     ctx.lineWidth = 1;
+
+    /* Say so. This is a debugging view, it is reachable from the options
+       screen and from a key next to Escape, and boxes drawn round a cat with
+       nothing explaining them look like the game has gone wrong. */
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(0, H - 11, W, 11);
+    HUD.text(ctx, 'HITBOX DISPLAY IS ON  —  F1 TO HIDE, OR TURN IT OFF IN OPTIONS',
+             W / 2, H - 3, 7, 'rgba(120,220,255,.95)', 'center', 800, 0.6);
     for (var i = 0; i < 2; i++) {
       var f = fs[i];
       var hb = f.hurtboxes();
