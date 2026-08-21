@@ -1403,6 +1403,10 @@ function mixHex(hex, other, amt) {
   return out;
 }
 const SHADE_TO = '#2a2140';
+/* How far a shadow is pushed towards SHADE_TO. Must track `celFill` in
+   rig.js — it was raised from 0.34 to 0.46 on 21 Aug 2026 because three tones
+   that close together read as one at the arcade resolution. */
+const SHADE_AMT = 0.46;
 
 /* Every cel-shaded part shows up as a shadow fill immediately followed by the
    base fill it was derived from. */
@@ -1411,7 +1415,7 @@ function shadedPairs(ctx) {
   const pairs = [];
   for (let i = 0; i < fills.length - 1; i++) {
     const shadow = fills[i].style, base = fills[i + 1].style;
-    if (base[0] === '#' && shadow === mixHex(base, SHADE_TO, 0.34)) pairs.push(base);
+    if (base[0] === '#' && shadow === mixHex(base, SHADE_TO, SHADE_AMT)) pairs.push(base);
   }
   return pairs;
 }

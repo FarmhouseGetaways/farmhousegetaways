@@ -216,10 +216,10 @@
       palette: {
         /* All of him, and a champion's belt that has to go round all of it. */
         kit: { belt: '#7a2230', beltPlate: '#f5d76e' },
-        fur: '#332d2c', fur2: '#241f20', belly: '#f6f2e8', marks: '#171314',
+        fur: '#4b4243', fur2: '#332c2e', belly: '#f6f2e8', marks: '#211b1d',
         eye: '#d9c04a', nose: '#e8a2ac', inner: '#c98d95',
         accent: '#7a4a3c', accessory: 'none', pattern: 'tuxedo',
-        tailTip: '#332d2c', longhair: true, line: 'rgba(14,11,12,.6)'
+        tailTip: '#4b4243', longhair: true, line: 'rgba(14,11,12,.6)'
       },
       stats: { walkF: 1.02, walkB: 0.86, jumpVy: 8.8, jumpVx: 2.2, gravity: 0.54,
                health: 800, stunMax: 138, weight: 1.48, hasDash: false },
@@ -294,10 +294,10 @@
         /* The lean twin. A scarf that streams behind him, which is most of
            what tells the two of them apart in a hurry. */
         kit: { scarf: '#3f7f5f' },
-        fur: '#2b2728', fur2: '#1e1a1b', belly: '#f8f5ee', marks: '#141112',
+        fur: '#433b3d', fur2: '#2c2628', belly: '#f8f5ee', marks: '#1b1719',
         eye: '#cdd94a', nose: '#e8a2ac', inner: '#c98d95',
         accent: '#4a7a4c', accessory: 'none', pattern: 'tuxedo',
-        tailTip: '#2b2728', longhair: true,
+        tailTip: '#433b3d', longhair: true,
         /* the white sleeve on his front leg — the one way to tell them apart */
         sock: true, sockColor: '#f8f5ee',
         line: 'rgba(12,10,11,.6)'

@@ -7,7 +7,7 @@
    simulation is on.
    ========================================================================== */
 (function () {
-  var U = CF.util, S = CF.STAGE, HUD = CF.HUD;
+  var U = CF.util, S = CF.STAGE, HUD = CF.HUD, K = CF.StageKit;
   var W = S.W, H = S.H, FLOOR_Y = S.FLOOR_Y;
 
   var WALL_L = -380, WALL_R = 380;
@@ -1137,6 +1137,7 @@
     ctx.scale(pw / W, ph / H);
     var camX = -190 + Math.sin(t * 0.006) * 120;
     stage.drawBack(ctx, camX, t, 0.55);
+    K.deepen(ctx, stage.air ? stage.air : null);
     var a = CF.ROSTER[this.select.cursor[0]];
     var b = CF.ROSTER[this.settings.mode === 'versus' ? this.select.cursor[1] : (this.select.cursor[0] + 1) % 6];
     drawFighterAt(ctx, a, CF.Anim.cycle([CF.Pose.stand, CF.Pose.standB], 22, t), 140, FLOOR_Y, 1, 1, { eyes: 'angry' });
@@ -1470,6 +1471,9 @@
       ctx.translate(-fx2, -fy2);
     }
     this.stage.drawBack(ctx, camX, this.t, this.crowdMood);
+    /* Atmosphere, laid over the background and under the cats. A stage cannot
+       forget it, and it is what stops a dark cat vanishing into a dark wall. */
+    K.deepen(ctx, this.stage.air ? this.stage.air : null);
 
     /* shadows first so both cats cast onto the same floor */
     var fs = [this.p1, this.p2];
@@ -1500,6 +1504,9 @@
     /* the foreground pass — what makes the cats feel inside the place
        rather than pasted on top of a picture of it */
     if (this.stage.drawFore) this.stage.drawFore(ctx, camX, this.t, this.crowdMood);
+    /* the near edge of the floor, turning away from the light as it comes
+       towards you — the frame along the bottom of the picture */
+    K.nearLip(ctx, 13, 0.40);
 
     if (this.settings.showBoxes) this.drawBoxes(ctx, camX);
     ctx.restore();

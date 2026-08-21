@@ -24,6 +24,8 @@
   var barn = {
     id: 'barn', name: 'THE GAME BARN',
     blurb: 'Arcade cabinets, string lights, and a full house on the hay bales.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#6b4038', haze: 0.07, floorDark: 0.34, horizon: 128 },
     init: function () {
       this.dust = new P({ count: 30, kind: 'dust', depth: 0.75, seed: 11,
                           band: [24, FLOOR_Y - 6], vx: 0.06, vy: -0.03,
@@ -31,7 +33,7 @@
     },
     drawBack: function (ctx, camX, t, mood) {
       /* --- the far wall: boards, not a flat field --- */
-      K.sky(ctx, [[0, '#25121f'], [0.45, '#4d2432'], [1, '#7d3d33']], 0, FLOOR_Y);
+      K.sky(ctx, [[0, '#3a1b28'], [0.42, '#6f3038'], [1, '#a8583c']], 0, FLOOR_Y);
       K.layer(ctx, camX, 0.18, function () {
         K.repeatX(camX, 0, 17, function (x, i) {
           ctx.fillStyle = 'rgba(0,0,0,' + (0.05 + K.hash(i, 21) * 0.16).toFixed(3) + ')';
@@ -45,17 +47,64 @@
         });
       });
 
-      /* --- the loft window, and the light that falls out of it --- */
+      /* --- THE HAYLOFT. The top third of this stage used to be an empty
+             maroon wall with a small window in it. It is now the whole open
+             end of the loft: a moonlit doorway two thirds the height of a
+             fighter, bales stacked in it, a ladder down, and a block and
+             tackle hanging off the beam. Something huge and far away, framing
+             something small and near, is the whole trick. --- */
       K.layer(ctx, camX, 0.22, function () {
         var wx = K.at(camX, 0, 250);
-        ctx.fillStyle = '#1a1020';
-        ctx.fillRect(wx - 26, 12, 52, 34);
-        ctx.fillStyle = '#5b7fb8';
-        ctx.fillRect(wx - 23, 15, 46, 28);
-        ctx.fillStyle = 'rgba(20,12,26,.85)';
-        ctx.fillRect(wx - 1.5, 15, 3, 28);
-        ctx.fillRect(wx - 23, 27.5, 46, 3);
-        K.spill(ctx, wx - 22, 44, 44, FLOOR_Y - 44, 'rgba(150,185,235,.5)', 0.22);
+        /* the opening itself */
+        ctx.fillStyle = '#150e1c';
+        ctx.fillRect(wx - 62, 2, 124, 74);
+        ctx.fillStyle = '#33507f';                    /* night outside */
+        ctx.fillRect(wx - 57, 6, 114, 66);
+        ctx.fillStyle = '#4d76ad';
+        ctx.fillRect(wx - 57, 6, 114, 30);
+        /* a moon, and hills under it */
+        ctx.fillStyle = '#e8eaf6';
+        ctx.beginPath(); ctx.arc(wx + 28, 22, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#22355c';
+        ctx.beginPath();
+        ctx.moveTo(wx - 57, 72);
+        for (var hx = -57; hx <= 57; hx += 8) {
+          ctx.lineTo(wx + hx, 50 - Math.sin(hx * 0.05) * 7 - Math.sin(hx * 0.13) * 3);
+        }
+        ctx.lineTo(wx + 57, 72); ctx.closePath(); ctx.fill();
+        /* bales stacked in the mouth of it, so the scale reads */
+        K.mass(ctx, wx - 54, 48, 30, 24, '#b8933f', { top: 3, side: 4 });
+        K.mass(ctx, wx - 50, 26, 26, 22, '#c2a04a', { top: 3, side: 4 });
+        K.mass(ctx, wx + 22, 52, 32, 20, '#ad8a3a', { top: 3, side: 4 });
+        /* the frame round it */
+        ctx.strokeStyle = '#40261c'; ctx.lineWidth = 5;
+        ctx.strokeRect(wx - 59.5, 4.5, 119, 69);
+        ctx.fillStyle = '#4a2c1e';
+        ctx.fillRect(wx - 66, 74, 132, 7);
+        ctx.fillStyle = 'rgba(255,225,170,.12)';
+        ctx.fillRect(wx - 66, 74, 132, 2);
+        /* block and tackle on the hoist beam, swinging a little */
+        var hook = wx + 74, swing = Math.sin(t * 0.011) * 5;
+        ctx.fillStyle = '#3a2418'; ctx.fillRect(hook - 4, 0, 8, 10);
+        ctx.strokeStyle = 'rgba(24,16,12,.9)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(hook, 10); ctx.lineTo(hook + swing, 44); ctx.stroke();
+        K.mass(ctx, hook + swing - 5, 44, 10, 12, '#6b5a3a', { top: 2, side: 3 });
+        /* the ladder down out of it */
+        ctx.strokeStyle = '#5c3a24'; ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(wx - 46, 78); ctx.lineTo(wx - 52, FLOOR_Y - 20);
+        ctx.moveTo(wx - 30, 78); ctx.lineTo(wx - 36, FLOOR_Y - 20);
+        ctx.stroke();
+        ctx.lineWidth = 1.8;
+        for (var rung = 0; rung < 9; rung++) {
+          var ry = 84 + rung * ((FLOOR_Y - 104) / 9);
+          var lean = (ry - 78) / (FLOOR_Y - 98) * 6;
+          ctx.beginPath();
+          ctx.moveTo(wx - 46 - lean, ry); ctx.lineTo(wx - 30 - lean, ry);
+          ctx.stroke();
+        }
+        /* the moonlight falling out of the opening */
+        K.spill(ctx, wx - 54, 76, 108, FLOOR_Y - 76, 'rgba(150,185,235,.55)', 0.26);
       });
 
       /* --- roof trusses --- */
@@ -86,13 +135,9 @@
           var dead = K.chance(i, 32, 0.18);
           var body = K.pick(i, 33, ['#2f3a6b', '#6b2f4a', '#2f6b4a', '#6b5a2f',
                                     '#472f6b', '#6b3f2f']);
-          /* the cabinet */
-          ctx.fillStyle = body;
-          ctx.fillRect(x, top, wdt, bh + 22);
-          ctx.fillStyle = 'rgba(0,0,0,.34)';
-          ctx.fillRect(x + wdt - 6, top, 6, bh + 22);
-          ctx.fillStyle = 'rgba(255,255,255,.07)';
-          ctx.fillRect(x, top, 3, bh + 22);
+          /* the cabinet — a painted mass with a lit face, a shaded side and
+             an edge, not a flat rectangle */
+          K.mass(ctx, x, top, wdt, bh + 22, body, { top: 3, side: 6, foot: false });
           /* marquee, in one of three shapes */
           var mc = dead ? '#5a5148' : K.pick(i, 34, ['#ffd166', '#ff7a8a', '#8fe6ff',
                                                      '#b6ff8f', '#ffa04a']);
@@ -165,13 +210,16 @@
              a place rather than a pattern. --- */
       K.layer(ctx, camX, 0.42, function () {
         var cx = K.at(camX, 0, 96);
-        ctx.fillStyle = '#b8342f';
-        ctx.fillRect(cx - 30, FLOOR_Y - 96, 60, 96);
-        ctx.fillStyle = 'rgba(0,0,0,.3)';
-        ctx.fillRect(cx + 22, FLOOR_Y - 96, 8, 96);
-        /* the glass box of prizes */
+        K.mass(ctx, cx - 30, FLOOR_Y - 96, 60, 96, '#b8342f', { top: 4, side: 8, foot: false });
+        /* the glass box of prizes, sunk into the front of it */
+        ctx.fillStyle = '#141c30';
+        ctx.fillRect(cx - 26, FLOOR_Y - 89, 49, 54);
         ctx.fillStyle = '#1d2740';
         ctx.fillRect(cx - 25, FLOOR_Y - 88, 47, 52);
+        ctx.fillStyle = 'rgba(190,225,255,.10)';   /* the glass catching light */
+        ctx.beginPath();
+        ctx.moveTo(cx - 25, FLOOR_Y - 88); ctx.lineTo(cx - 4, FLOOR_Y - 88);
+        ctx.lineTo(cx - 25, FLOOR_Y - 52); ctx.closePath(); ctx.fill();
         for (var q2 = 0; q2 < 9; q2++) {
           ctx.fillStyle = K.pick(q2, 50, ['#ffd166', '#ff7a8a', '#8fe6ff', '#b6ff8f', '#ffa04a']);
           ctx.beginPath();
@@ -205,10 +253,9 @@
           var bw = K.vary(i, 61, 40, 50);
           for (var lvl = 0; lvl < stack; lvl++) {
             var by = FLOOR_Y - 4 - lvl * 25;
-            ctx.fillStyle = K.pick(i * 3 + lvl, 62, ['#c9a24a', '#bf9743', '#d3ac54']);
-            ctx.fillRect(x + lvl * 5, by - 26, bw, 26);
-            ctx.fillStyle = 'rgba(255,255,255,.10)';
-            ctx.fillRect(x + lvl * 5, by - 26, bw, 4);
+            K.mass(ctx, x + lvl * 5, by - 26, bw, 26,
+                   K.pick(i * 3 + lvl, 62, ['#c9a24a', '#bf9743', '#d3ac54']),
+                   { top: 4, side: 5 });
             ctx.strokeStyle = 'rgba(90,64,20,.55)'; ctx.lineWidth = 1.4;
             ctx.beginPath();
             ctx.moveTo(x + lvl * 5 + 12, by - 26); ctx.lineTo(x + lvl * 5 + 12, by);
@@ -246,16 +293,16 @@
         var drift = camX * 0.05;
         [[-16, 1], [W + 16, -1]].forEach(function (side) {
           var ex = side[0] - drift * side[1], dir = side[1];
-          ctx.fillStyle = '#3d2418';
-          ctx.beginPath();
-          ctx.moveTo(ex, H);
-          ctx.lineTo(ex, -10);
-          ctx.lineTo(ex + dir * 50, -10);
-          ctx.lineTo(ex + dir * 42, 44);
-          ctx.lineTo(ex + dir * 38, H);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = 'rgba(255,220,160,.07)';
+          K.paint(ctx, function (c) {
+            c.beginPath();
+            c.moveTo(ex, H);
+            c.lineTo(ex, -10);
+            c.lineTo(ex + dir * 50, -10);
+            c.lineTo(ex + dir * 42, 44);
+            c.lineTo(ex + dir * 38, H);
+            c.closePath();
+          }, '#4a2c1c', { step: 3, lx: -dir * 0.9, ly: 0.2, hi: 0.16, edgeW: 1.6 });
+          ctx.fillStyle = 'rgba(255,220,160,.10)';
           ctx.fillRect(ex + dir * 36, -10, dir * 5, H + 10);
           ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
           for (var q = 0; q < 4; q++) {
@@ -272,17 +319,18 @@
 
       /* --- a great roof beam overhead, close enough to be out of focus --- */
       K.layer(ctx, camX, 0.9, function () {
-        ctx.fillStyle = '#33200f';
-        ctx.beginPath();
-        ctx.moveTo(-20, -10); ctx.lineTo(W + 20, -10);
-        ctx.lineTo(W + 20, 16); ctx.lineTo(-20, 22);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = 'rgba(255,220,160,.07)';
+        K.paint(ctx, function (c) {
+          c.beginPath();
+          c.moveTo(-20, -10); c.lineTo(W + 20, -10);
+          c.lineTo(W + 20, 16); c.lineTo(-20, 22);
+          c.closePath();
+        }, '#3f2812', { step: 3, lx: 0, ly: -1, hi: 0.20, edgeW: 1.6 });
+        ctx.fillStyle = 'rgba(255,220,160,.10)';
         ctx.fillRect(-20, 14, W + 40, 3);
       });
 
       /* --- the floor --- */
-      K.grain(ctx, camX, 56, ['#5f4028', '#9a6c42'], 0.1);
+      K.grain(ctx, camX, 56, ['#6d4a2c', '#bd854e'], 0.1);
       K.floorPool(ctx, W * 0.5, 190, 'rgba(255,196,110,.6)', 0.34);
       K.repeatX(camX, 1, 92, function (x) {
         K.glow(ctx, x, FLOOR_Y + 16, 46, 'rgba(255,196,110,.55)', 0.1);
@@ -316,7 +364,7 @@
           ctx.globalAlpha = 1;
         });
       });
-      K.vignette(ctx, 0.38);
+      K.vignette(ctx, 0.26);
     }
   };
 
@@ -327,6 +375,8 @@
   var pool = {
     id: 'pool', name: 'THE POOL DECK',
     blurb: 'Hot, blue, and somebody is asleep on the flamingo.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#c2dcef', haze: 0.30, floorDark: 0.26, horizon: 118 },
     init: function () {
       this.sparkle = new P({ count: 20, kind: 'sparkle', depth: 0.9, seed: 22,
                              band: [FLOOR_Y - 22, FLOOR_Y - 4], vx: 0.05, vy: 0,
@@ -370,24 +420,79 @@
         });
       });
 
-      /* --- the landmark: a water slide coming down off the hill, with a
-             lifeguard chair beside it. Fixed in the world, so the eye has
-             somewhere to go back to. --- */
+      /* --- THE LANDMARK: a water slide, and not a small one. It starts off
+             the top of the picture, turns through most of the frame on its
+             scaffold, and dumps into the pool — with a cat coming down it
+             every few seconds and a splash where they land. It was a nine
+             pixel line before; something huge with something happening on it
+             is what the reference does and what this needed. --- */
       K.layer(ctx, camX, 0.3, function () {
         var sx = K.at(camX, 0, 78);
-        ctx.strokeStyle = '#ffb02e'; ctx.lineWidth = 9; ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(sx - 26, 112);
-        ctx.quadraticCurveTo(sx + 6, 128, sx - 4, 152);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(sx - 26, 110);
-        ctx.quadraticCurveTo(sx + 4, 126, sx - 6, 150);
-        ctx.stroke();
-        ctx.strokeStyle = '#c8891f'; ctx.lineWidth = 2.4;
-        ctx.beginPath(); ctx.moveTo(sx - 22, 122); ctx.lineTo(sx - 22, 152);
-        ctx.moveTo(sx - 2, 138); ctx.lineTo(sx - 2, 152); ctx.stroke();
+
+        /* the scaffold it stands on */
+        ctx.strokeStyle = '#9aa4b0'; ctx.lineWidth = 2.6;
+        [[-34, -6], [10, 30]].forEach(function (leg) {
+          ctx.beginPath();
+          ctx.moveTo(sx + leg[0], 30); ctx.lineTo(sx + leg[1], 158);
+          ctx.stroke();
+        });
+        ctx.lineWidth = 1.6;
+        for (var br = 0; br < 5; br++) {
+          var by = 44 + br * 24;
+          var k = (by - 30) / 128;
+          ctx.beginPath();
+          ctx.moveTo(sx - 34 + k * 28, by); ctx.lineTo(sx + 10 + k * 20, by);
+          ctx.stroke();
+        }
+
+        /* the flume: a fat outer wall, a dark trough, and a lit inner edge */
+        function flume(w, style) {
+          ctx.strokeStyle = style; ctx.lineWidth = w; ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(sx - 40, -12);
+          ctx.bezierCurveTo(sx + 26, 30, sx - 44, 62, sx - 16, 96);
+          ctx.bezierCurveTo(sx + 4, 120, sx + 30, 132, sx + 16, 156);
+          ctx.stroke();
+        }
+        flume(20, '#1f6f96');
+        flume(15, '#2fa3cf');
+        flume(7, 'rgba(180,240,255,.85)');
+
+        /* somebody coming down it, once every four seconds or so */
+        var ride = (t % 260) / 260;
+        if (ride < 0.62) {
+          var u = ride / 0.62;
+          /* the same bezier, sampled — one curve, so the rider cannot drift
+             off the slide when the slide is redrawn */
+          function bez(p0, p1, p2, p3, k2) {
+            var m = 1 - k2;
+            return m*m*m*p0 + 3*m*m*k2*p1 + 3*m*k2*k2*p2 + k2*k2*k2*p3;
+          }
+          var rx, ry;
+          if (u < 0.5) {
+            var k3 = u / 0.5;
+            rx = bez(sx - 40, sx + 26, sx - 44, sx - 16, k3);
+            ry = bez(-12, 30, 62, 96, k3);
+          } else {
+            var k4 = (u - 0.5) / 0.5;
+            rx = bez(sx - 16, sx + 4, sx + 30, sx + 16, k4);
+            ry = bez(96, 120, 132, 156, k4);
+          }
+          ctx.fillStyle = 'rgba(255,255,255,.75)';
+          ctx.beginPath(); ctx.ellipse(rx, ry + 4, 9, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+          K.spectator(ctx, rx, ry + 5, 0.62, 909, t * 3, 1);
+        } else if (ride < 0.72) {
+          /* the splash at the bottom */
+          var sp = (ride - 0.62) / 0.10;
+          ctx.fillStyle = 'rgba(255,255,255,' + (0.8 * (1 - sp)).toFixed(2) + ')';
+          for (var d2 = 0; d2 < 7; d2++) {
+            var a2 = -0.4 - d2 * 0.34, r2 = 6 + sp * 26;
+            ctx.beginPath();
+            ctx.arc(sx + 18 + Math.cos(a2) * r2, 158 + Math.sin(a2) * r2 * 0.8,
+                    3.2 * (1 - sp) + 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
         /* the lifeguard, watching nothing in particular */
         var lx = K.at(camX, 0, 322);
         ctx.strokeStyle = '#d9c08a'; ctx.lineWidth = 2.6;
@@ -558,6 +663,40 @@
       this.heat.draw(ctx, camX, t);
     },
     drawFore: function (ctx, camX, t) {
+      /* --- the frame: one enormous parasol at the left edge and a lounger
+             under it, close enough that they dwarf the fighters. The sky was
+             a big flat field of blue with nothing to measure it against. --- */
+      K.layer(ctx, camX, 1.15, function () {
+        var drift = camX * 0.05;
+        var px2 = -34 - drift;
+        /* the pole */
+        K.mass(ctx, px2 + 44, -10, 7, H + 20, '#c9b48a', { top: 0, side: 3, foot: false });
+        /* the canopy, filling the top-left corner */
+        ['#e4574c', '#f4f0e4'].forEach(function (col, seg) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(px2 + 47, -30);
+          ctx.quadraticCurveTo(px2 + 150, 6, px2 + 176 - seg * 40, 54 - seg * 10);
+          ctx.quadraticCurveTo(px2 + 110, 34, px2 + 47, 46 - seg * 8);
+          ctx.closePath();
+          ctx.fillStyle = col;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(60,30,26,.45)'; ctx.lineWidth = 1.4; ctx.stroke();
+          ctx.restore();
+        });
+        ctx.fillStyle = 'rgba(0,0,0,.16)';
+        ctx.beginPath();
+        ctx.moveTo(px2 + 47, 40); ctx.quadraticCurveTo(px2 + 110, 30, px2 + 150, 44);
+        ctx.lineTo(px2 + 150, 50); ctx.quadraticCurveTo(px2 + 110, 38, px2 + 47, 48);
+        ctx.closePath(); ctx.fill();
+        /* a cooler and a stack of towels at the foot of it, on the deck */
+        K.mass(ctx, px2 + 16, H - 34, 34, 20, '#3f8fc4', { top: 4, side: 5 });
+        ctx.fillStyle = '#e8eef4';
+        ctx.fillRect(px2 + 16, H - 38, 34, 4);
+        K.mass(ctx, px2 + 56, H - 24, 22, 5, '#f2e0d2', { top: 2, side: 3 });
+        K.mass(ctx, px2 + 58, H - 29, 20, 5, '#e0b8c4', { top: 2, side: 3 });
+      });
+
       /* pool coping tiles running across the very front */
       K.layer(ctx, camX, 1.35, function () {
         K.repeatX(camX, 0, 26, function (x, i) {
@@ -578,6 +717,8 @@
   var orchard = {
     id: 'orchard', name: 'THE ORCHARD',
     blurb: 'Golden hour, falling blossom, and chickens who are not watching.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#f4c684', haze: 0.28, floorDark: 0.28, horizon: 122 },
     init: function () {
       this.petals = new P({ count: 30, kind: 'petal', depth: 0.85, seed: 33,
                             band: [10, FLOOR_Y + 10], vx: 0.28, vy: 0.20,
@@ -603,6 +744,61 @@
 
       K.hills(ctx, camX, 0.1, '#c98f5e', 150, 20, 4);
       K.hills(ctx, camX, 0.16, '#a9764c', 158, 13, 12);
+
+      /* --- the second landmark: the red barn out across the field, with the
+             low sun on the near face of it. One landmark on one side of the
+             picture leaves the other side empty; two, at different distances,
+             is what makes it a place. --- */
+      K.layer(ctx, camX, 0.19, function () {
+        /* Screen-anchored, like every other landmark here: K.at with a depth
+           of 0 returns the coordinate unchanged, so a landmark placed this way
+           stays put in the frame while the layers slide past behind it. Put it
+           past 384 and it is simply never on screen. */
+        var bx = K.at(camX, 0, 196) - camX * 0.04;
+        /* the gambrel roof */
+        ctx.fillStyle = '#7e2b22';
+        ctx.beginPath();
+        ctx.moveTo(bx - 46, 118); ctx.lineTo(bx - 40, 96);
+        ctx.lineTo(bx - 16, 82); ctx.lineTo(bx + 16, 82);
+        ctx.lineTo(bx + 40, 96); ctx.lineTo(bx + 46, 118);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,224,160,.16)';
+        ctx.beginPath();
+        ctx.moveTo(bx - 46, 118); ctx.lineTo(bx - 40, 96);
+        ctx.lineTo(bx - 16, 82); ctx.lineTo(bx - 12, 88);
+        ctx.lineTo(bx - 34, 100); ctx.lineTo(bx - 39, 118);
+        ctx.closePath(); ctx.fill();
+        /* the walls, lit down the sunward side */
+        K.mass(ctx, bx - 44, 118, 88, 42, '#a8382a', { top: 0, side: 9, light: -1, foot: false });
+        /* the big door, and the hay hood over it */
+        ctx.fillStyle = '#f0e2c4';
+        ctx.fillRect(bx - 15, 124, 30, 36);
+        ctx.fillStyle = '#8e3026';
+        ctx.fillRect(bx - 15, 124, 30, 4);
+        ctx.strokeStyle = '#f0e2c4'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bx - 15, 128); ctx.lineTo(bx + 15, 158);
+        ctx.moveTo(bx + 15, 128); ctx.lineTo(bx - 15, 158);
+        ctx.stroke();
+        ctx.fillStyle = '#4a1c16';
+        ctx.beginPath();
+        ctx.moveTo(bx - 8, 84); ctx.lineTo(bx + 8, 84);
+        ctx.lineTo(bx + 6, 94); ctx.lineTo(bx - 6, 94);
+        ctx.closePath(); ctx.fill();
+        /* the silo beside it, catching the same light */
+        K.mass(ctx, bx + 50, 88, 24, 72, '#c3b49a', { top: 0, side: 7, light: -1, foot: false });
+        ctx.fillStyle = '#8d8272';
+        ctx.beginPath();
+        ctx.ellipse(bx + 62, 88, 12, 7, 0, Math.PI, 0);
+        ctx.fill();
+        /* a weather vane, turning slowly */
+        var vn = Math.sin(t * 0.004);
+        ctx.strokeStyle = '#3a1c16'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(bx, 76); ctx.lineTo(bx, 84); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx - 5 * vn, 76); ctx.lineTo(bx + 5 * vn, 76);
+        ctx.stroke();
+      });
 
       /* --- the landmark: one enormous old tree with a rope swing, and a
              ladder leaning against it. Everything else is a row. --- */
@@ -724,6 +920,19 @@
 
       /* --- grass, and things moving in it --- */
       K.ground(ctx, camX, '#4e8f3a', '#6fae4c', 0.07);
+      /* mown stripes: the mower went up and back, so every other band is
+         lighter. A lawn with no stripes in it is a green rectangle. */
+      K.repeatX(camX, 1, 46, function (x, i) {
+        if (Math.abs(i) % 2) return;
+        ctx.fillStyle = 'rgba(255,255,210,.13)';
+        ctx.beginPath();
+        ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x + 46, FLOOR_Y);
+        ctx.lineTo(x + 46 - 30, H); ctx.lineTo(x - 30, H);
+        ctx.closePath(); ctx.fill();
+      });
+      /* clover and windfall apples lying in it */
+      K.litter(ctx, camX, 1, 34, ['rgba(210,60,44,.75)', 'rgba(255,244,190,.5)',
+                                  'rgba(40,90,30,.35)'], 1.1, 2.6);
       K.floorPool(ctx, W * 0.42, 210, 'rgba(255,238,180,.6)', 0.32);
       K.layer(ctx, camX, 1, function () {
         K.repeatX(camX, 0, 9, function (x, i) {
@@ -773,7 +982,7 @@
         });
         ctx.restore();
       });
-      K.vignette(ctx, 0.30);
+      K.vignette(ctx, 0.24);
     }
   };
 
@@ -784,6 +993,8 @@
   var retreat = {
     id: 'retreat', name: 'MOUNTAIN RETREAT',
     blurb: 'Night on the granite. Firelight, fireflies, and bats over the moon.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#33436b', haze: 0.22, floorDark: 0.26, horizon: 126 },
     init: function () {
       this.flies = new P({ count: 26, kind: 'firefly', depth: 0.8, seed: 44,
                            band: [96, FLOOR_Y + 14], vx: 0.07, vy: -0.03,
@@ -796,7 +1007,7 @@
       this.shoot = { x: -100, y: 0, t: -1 };
     },
     drawBack: function (ctx, camX, t, mood) {
-      K.sky(ctx, [[0, '#0a0e26'], [0.5, '#1c2145'], [1, '#3b2f4e']], 0, 150);
+      K.sky(ctx, [[0, '#0d1330'], [0.5, '#252c58'], [1, '#4d3d63']], 0, 150);
 
       /* stars, of three different brightnesses, some of them twinkling */
       K.layer(ctx, camX, 0.03, function () {
@@ -881,28 +1092,91 @@
         });
       });
 
-      /* --- the landmark: a lean-to shelter with a lamp burning in it, up on
-             the granite. Somewhere for the eye to rest in all that dark. --- */
+      /* --- THE LANDMARK: the cabin. It was a lean-to the size of a kennel,
+             which is no use at all in a stage this dark — the eye had nowhere
+             to go. It is now a whole log cabin with four lit windows, a porch
+             with somebody on it, a stone chimney and smoke going up out of
+             it. Warm light in a cold picture is the strongest landmark there
+             is. --- */
       K.layer(ctx, camX, 0.4, function () {
-        var hx = K.at(camX, 0, 300);
-        ctx.fillStyle = '#2b2438';
+        var hx = K.at(camX, 0, 296);
+        var flick = 0.78 + 0.22 * Math.sin(t * 0.13) * Math.sin(t * 0.31);
+
+        /* the stone chimney, up the near end */
+        K.mass(ctx, hx + 46, 76, 18, 88, '#4e4a5e', { top: 3, side: 4, foot: false });
+        for (var st2 = 0; st2 < 7; st2++) {
+          ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(hx + 46, 84 + st2 * 12); ctx.lineTo(hx + 64, 84 + st2 * 12);
+          ctx.stroke();
+        }
+        /* smoke, rising and spreading */
+        for (var sm = 0; sm < 6; sm++) {
+          var sp2 = ((t * 0.5 + sm * 22) % 132) / 132;
+          ctx.globalAlpha = 0.22 * (1 - sp2);
+          ctx.fillStyle = '#c9cbe0';
+          ctx.beginPath();
+          ctx.arc(hx + 55 + Math.sin(sp2 * 4 + sm) * 9, 74 - sp2 * 62,
+                  3 + sp2 * 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        /* the body of it, in logs */
+        K.mass(ctx, hx - 54, 104, 102, 60, '#3a3048', { top: 0, side: 8, foot: false });
+        ctx.strokeStyle = 'rgba(0,0,0,.34)'; ctx.lineWidth = 1;
+        for (var lg = 1; lg < 7; lg++) {
+          ctx.beginPath();
+          ctx.moveTo(hx - 54, 104 + lg * 8.5); ctx.lineTo(hx + 48, 104 + lg * 8.5);
+          ctx.stroke();
+        }
+        /* the roof, overhanging at both ends */
+        ctx.fillStyle = '#2a2336';
         ctx.beginPath();
-        ctx.moveTo(hx - 34, 162); ctx.lineTo(hx - 26, 126);
-        ctx.lineTo(hx + 30, 134); ctx.lineTo(hx + 34, 162);
+        ctx.moveTo(hx - 66, 106); ctx.lineTo(hx - 4, 74);
+        ctx.lineTo(hx + 60, 106); ctx.lineTo(hx + 60, 112);
+        ctx.lineTo(hx - 4, 80); ctx.lineTo(hx - 66, 112);
         ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#3c3149';
+        ctx.fillStyle = 'rgba(210,222,255,.10)';    /* moon on the near pitch */
         ctx.beginPath();
-        ctx.moveTo(hx - 40, 128); ctx.lineTo(hx - 22, 118);
-        ctx.lineTo(hx + 36, 128); ctx.lineTo(hx + 18, 137);
+        ctx.moveTo(hx - 66, 106); ctx.lineTo(hx - 4, 74);
+        ctx.lineTo(hx - 4, 80); ctx.lineTo(hx - 66, 112);
         ctx.closePath(); ctx.fill();
-        /* the doorway, and the lamp inside it */
-        ctx.fillStyle = '#12101c';
-        ctx.fillRect(hx - 10, 140, 20, 22);
-        var flick = 0.7 + 0.3 * Math.sin(t * 0.13) * Math.sin(t * 0.31);
-        K.glow(ctx, hx, 148, 26, 'rgba(255,186,90,.95)', 0.38 * flick);
-        ctx.fillStyle = 'rgba(255,206,130,' + (0.7 * flick).toFixed(2) + ')';
-        ctx.fillRect(hx - 7, 143, 14, 16);
-        K.spill(ctx, hx - 9, 162, 18, H - 162, 'rgba(255,186,90,.6)', 0.2 * flick);
+
+        /* four windows, all lit, one of them with somebody moving past it */
+        [[-42, 112], [-14, 112], [14, 112], [-42, 138]].forEach(function (wp, wi) {
+          ctx.fillStyle = '#171325';
+          ctx.fillRect(hx + wp[0] - 1, wp[1] - 1, 20, 18);
+          ctx.fillStyle = 'rgba(255,206,130,' + (0.62 + 0.24 * flick).toFixed(2) + ')';
+          ctx.fillRect(hx + wp[0], wp[1], 18, 16);
+          if (wi === 1) {                       /* a shape crossing the light */
+            var pw2 = ((t * 0.7) % 200) / 200;
+            if (pw2 < 0.4) {
+              ctx.fillStyle = 'rgba(40,26,20,.75)';
+              ctx.fillRect(hx + wp[0] + pw2 * 44 - 4, wp[1] + 2, 7, 14);
+            }
+          }
+          ctx.strokeStyle = 'rgba(30,22,16,.8)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(hx + wp[0] + 9, wp[1]); ctx.lineTo(hx + wp[0] + 9, wp[1] + 16);
+          ctx.moveTo(hx + wp[0], wp[1] + 8); ctx.lineTo(hx + wp[0] + 18, wp[1] + 8);
+          ctx.stroke();
+          K.glow(ctx, hx + wp[0] + 9, wp[1] + 8, 22, 'rgba(255,186,90,.9)', 0.24 * flick);
+        });
+
+        /* the porch, its rail, and somebody out on it watching */
+        ctx.fillStyle = '#241e30';
+        ctx.fillRect(hx - 58, 160, 110, 5);
+        ctx.strokeStyle = '#3c3349'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(hx - 56, 160); ctx.lineTo(hx - 56, 148);
+        ctx.moveTo(hx + 48, 160); ctx.lineTo(hx + 48, 148);
+        ctx.moveTo(hx - 56, 150); ctx.lineTo(hx + 48, 150);
+        ctx.stroke();
+        K.spectator(ctx, hx + 30, 160, 0.7, 511, t, mood);
+
+        /* the light it throws down onto the granite */
+        K.spill(ctx, hx - 50, 164, 96, H - 164, 'rgba(255,186,90,.6)', 0.24 * flick);
       });
 
       /* --- boulders: every one a different lump, not the same oval --- */
@@ -972,7 +1246,7 @@
       });
 
       /* --- granite underfoot, wet-looking, with the moon on it --- */
-      K.ground(ctx, camX, '#2c2a38', '#413e4f', 0.14);
+      K.ground(ctx, camX, '#39364a', '#565169', 0.14);
       K.floorPool(ctx, 96, 150, 'rgba(190,205,245,.5)', 0.22);
       K.litter(ctx, camX, 1, 58, ['rgba(150,150,175,.3)', 'rgba(90,88,110,.4)'], 0.9, 2.4);
       this.flies.update();
@@ -996,7 +1270,7 @@
         ctx.fill();
       }
       ctx.restore();
-      K.vignette(ctx, 0.46);
+      K.vignette(ctx, 0.32);
     }
   };
 
@@ -1007,13 +1281,15 @@
   var kitchen = {
     id: 'kitchen', name: 'THE FARMHOUSE KITCHEN',
     blurb: 'Something is on the stove and something is going off the counter.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#caa87c', haze: 0.06, floorDark: 0.34, horizon: 130 },
     init: function () {
       this.flour = new P({ count: 22, kind: 'dust', depth: 0.7, seed: 55,
                            band: [30, FLOOR_Y], vx: 0.05, vy: 0.06,
                            size: 1.4, color: 'rgba(255,248,226,.95)', wobble: 1.5 });
     },
     drawBack: function (ctx, camX, t, mood) {
-      K.sky(ctx, [[0, '#e4d6bd'], [0.6, '#d6c5a8'], [1, '#c2ad8c']], 0, FLOOR_Y);
+      K.sky(ctx, [[0, '#f2e6cd'], [0.6, '#e3d2b4'], [1, '#cdb995']], 0, FLOOR_Y);
 
       /* tongue-and-groove behind everything, with real variation */
       K.layer(ctx, camX, 0.14, function () {
@@ -1023,6 +1299,53 @@
           ctx.fillStyle = 'rgba(255,255,255,.05)';
           ctx.fillRect(x, 0, 1.5, FLOOR_Y);
         });
+      });
+
+      /* --- THE SECOND LANDMARK: the big sash window over the sink, with the
+             evening outside it and the light coming through. A room with no
+             window in it has no light source, which is why this stage read as
+             a flat wall of wood however much was hung on it. --- */
+      K.layer(ctx, camX, 0.24, function () {
+        var wx2 = K.at(camX, 0, 200);
+        /* the reveal, and the sky through it */
+        K.mass(ctx, wx2 - 38, 22, 76, 78, '#8a6a44', { top: 0, side: 6, foot: false });
+        var g2 = ctx.createLinearGradient(0, 32, 0, 94);
+        g2.addColorStop(0, '#f6c98a');
+        g2.addColorStop(0.55, '#f3ab72');
+        g2.addColorStop(1, '#cf8f74');
+        ctx.fillStyle = g2;
+        ctx.fillRect(wx2 - 33, 28, 66, 66);
+        /* what you can see out of it: the hills and a line of poplars */
+        ctx.fillStyle = '#a97a63';
+        ctx.beginPath();
+        ctx.moveTo(wx2 - 33, 94);
+        for (var hx2 = -33; hx2 <= 33; hx2 += 6) {
+          ctx.lineTo(wx2 + hx2, 78 - Math.sin(hx2 * 0.06) * 5 - Math.sin(hx2 * 0.15) * 2);
+        }
+        ctx.lineTo(wx2 + 33, 94); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#7e5a4e';
+        for (var pl = 0; pl < 5; pl++) {
+          var px3 = wx2 - 26 + pl * 13 + (pl % 2) * 3;
+          ctx.beginPath();
+          ctx.ellipse(px3, 70 - (pl % 3) * 4, 3.4, 11 + (pl % 3) * 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        /* the bars */
+        ctx.fillStyle = '#7a5c3c';
+        ctx.fillRect(wx2 - 2, 28, 4, 66);
+        ctx.fillRect(wx2 - 33, 58, 66, 4);
+        ctx.fillStyle = 'rgba(255,240,205,.20)';   /* the glass */
+        ctx.beginPath();
+        ctx.moveTo(wx2 - 33, 28); ctx.lineTo(wx2 - 4, 28);
+        ctx.lineTo(wx2 - 33, 72); ctx.closePath(); ctx.fill();
+        /* the sill, with a jar of something on it */
+        ctx.fillStyle = '#c2a67e';
+        ctx.fillRect(wx2 - 42, 94, 84, 6);
+        ctx.fillStyle = 'rgba(255,255,255,.16)';
+        ctx.fillRect(wx2 - 42, 94, 84, 1.5);
+        K.mass(ctx, wx2 + 22, 84, 10, 10, '#6fae4c', { top: 2, side: 2 });
+        /* and the light it throws across the room and down onto the boards */
+        K.spill(ctx, wx2 - 32, 100, 64, FLOOR_Y - 100, 'rgba(255,214,150,.75)', 0.38);
       });
 
       /* --- the landmark: the range, with a pot going on it --- */
@@ -1174,7 +1497,7 @@
         ctx.fillRect(ox - 50, 20, 48, 6);
       });
 
-      K.grain(ctx, camX, 62, ['#7a5330', '#b1834e'], 0.1);
+      K.grain(ctx, camX, 62, ['#6a4728', '#a97b48'], 0.1);
       K.floorPool(ctx, W * 0.55, 200, 'rgba(255,226,160,.6)', 0.34);
       K.litter(ctx, camX, 1, 52, ['rgba(210,180,120,.45)', 'rgba(140,110,70,.4)'], 0.7, 1.8);
       this.flour.update();
@@ -1205,6 +1528,8 @@
   var porch = {
     id: 'porch', name: 'THE FRONT PORCH',
     blurb: 'Sunset, a windmill turning, and moths around the lantern.',
+    /* the colour of the air here — see K.deepen */
+    air: { air: '#9c7099', haze: 0.24, floorDark: 0.28, horizon: 122 },
     init: function () {
       this.moths = new P({ count: 12, kind: 'moth', depth: 0.95, seed: 66,
                            band: [26, 96], vx: 0.06, vy: 0.02,
@@ -1227,25 +1552,82 @@
       K.ridge(ctx, camX, 0.07, '#4a3a5e', 132, 30, 7);
       K.ridge(ctx, camX, 0.13, '#3a2c4a', 146, 20, 21);
 
-      /* --- the landmark: the windmill on the ridge, turning --- */
+      /* --- THE LANDMARK: the windmill. It was eleven pixels across on the
+             far ridge and you could not tell what it was. It is now most of
+             the height of the picture, close enough that the sun goes down
+             behind it, with the tank on its platform and a pair of birds
+             sitting on the crosspiece. --- */
       K.layer(ctx, camX, 0.13, function () {
-        var mx = K.at(camX, 0, 300);
-        ctx.strokeStyle = '#2e2440'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(mx - 7, 146); ctx.lineTo(mx - 1, 104);
-        ctx.moveTo(mx + 7, 146); ctx.lineTo(mx + 1, 104);
-        ctx.moveTo(mx - 5, 132); ctx.lineTo(mx + 5, 132);
-        ctx.moveTo(mx - 3, 118); ctx.lineTo(mx + 3, 118);
-        ctx.stroke();
-        ctx.save();
-        ctx.translate(mx, 102);
-        ctx.rotate(t * 0.02);
-        ctx.strokeStyle = '#2e2440'; ctx.lineWidth = 1.6;
-        for (var q = 0; q < 8; q++) {
-          ctx.rotate(Math.PI / 4);
-          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(11, 0); ctx.stroke();
+        var mx = K.at(camX, 0, 306) - camX * 0.03;
+        var base = 158, topY = 46;
+
+        /* the tower: four legs in perspective, braced */
+        function leg(x0, x1) {
+          ctx.beginPath();
+          ctx.moveTo(mx + x0, base); ctx.lineTo(mx + x1, topY + 10);
+          ctx.stroke();
         }
+        ctx.strokeStyle = '#241b34'; ctx.lineWidth = 2.6;
+        leg(-26, -6); leg(26, 6);
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = '#2e2440';
+        leg(-17, -4); leg(17, 4);
+        /* the cross bracing, narrowing as it goes up */
+        ctx.lineWidth = 1.4;
+        for (var bnd = 0; bnd < 5; bnd++) {
+          var k5 = bnd / 5, k6 = (bnd + 1) / 5;
+          var y0 = base + (topY + 10 - base) * k5, y1 = base + (topY + 10 - base) * k6;
+          var w0 = 26 - 20 * k5, w1 = 26 - 20 * k6;
+          ctx.beginPath();
+          ctx.moveTo(mx - w0, y0); ctx.lineTo(mx + w1, y1);
+          ctx.moveTo(mx + w0, y0); ctx.lineTo(mx - w1, y1);
+          ctx.moveTo(mx - w1, y1); ctx.lineTo(mx + w1, y1);
+          ctx.stroke();
+        }
+
+        /* the platform and the tank on it */
+        ctx.fillStyle = '#2a2138';
+        ctx.fillRect(mx - 14, topY + 6, 28, 3);
+        K.mass(ctx, mx - 11, topY - 14, 22, 20, '#4a3d5e', { top: 3, side: 5, foot: false });
+
+        /* the head, the tail vane, and the wheel */
+        ctx.save();
+        ctx.translate(mx, topY - 18);
+        ctx.fillStyle = '#332845';
+        ctx.fillRect(-5, -4, 10, 8);
+        /* the tail vane, off to one side */
+        ctx.fillStyle = '#3d3050';
+        ctx.beginPath();
+        ctx.moveTo(4, -2); ctx.lineTo(30, -9); ctx.lineTo(30, 7); ctx.lineTo(4, 2);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,190,140,.30)'; ctx.lineWidth = 1;
+        ctx.stroke();
+        /* the wheel: a rim, a hub and eighteen blades */
+        ctx.rotate(t * 0.014);
+        ctx.strokeStyle = '#241b34'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI * 2); ctx.stroke();
+        for (var q = 0; q < 18; q++) {
+          ctx.rotate(Math.PI * 2 / 18);
+          ctx.fillStyle = q % 2 ? '#3d3050' : '#332845';
+          ctx.beginPath();
+          ctx.moveTo(6, -1.6); ctx.lineTo(25, -3.4); ctx.lineTo(25, 2.6); ctx.lineTo(6, 1.6);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = '#241b34';
+        ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+
+        /* two birds on the brace, one of them shuffling along */
+        var shuffle = Math.sin(t * 0.008) * 4;
+        ctx.fillStyle = '#241b34';
+        [[-9, 0], [7, shuffle]].forEach(function (bd) {
+          ctx.beginPath();
+          ctx.ellipse(mx + bd[0] + bd[1], topY + 3, 3, 2.2, -0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(mx + bd[0] + bd[1] + 2.4, topY + 0.6, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
       });
 
       /* --- the house wall the porch belongs to, with a lit window --- */
@@ -1356,7 +1738,7 @@
         });
       });
 
-      K.grain(ctx, camX, 60, ['#5f4530', '#976f49'], 0.1);
+      K.grain(ctx, camX, 60, ['#6b4c33', '#a87c52'], 0.1);
       K.floorPool(ctx, W * 0.3, 190, 'rgba(255,206,130,.6)', 0.3);
       K.litter(ctx, camX, 1, 66, ['rgba(120,96,64,.4)', 'rgba(200,170,120,.35)'], 0.7, 1.9);
       this.fluff.update();
@@ -1414,7 +1796,7 @@
           }
         });
       });
-      K.vignette(ctx, 0.34);
+      K.vignette(ctx, 0.26);
     }
   };
 

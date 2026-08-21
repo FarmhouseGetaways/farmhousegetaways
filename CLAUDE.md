@@ -651,6 +651,37 @@ Three things a later session needs to know:
   `K.vary`/`K.pick`/`K.chance` so no two are identical, `K.floorPool` and
   `K.litter` so the floor is not a blank band, and `K.crowdRow` for a crowd
   that is not one cat printed eleven times.
+- **`K.at(camX, 0, x)` pins to the SCREEN, not the world.** Depth 0 makes it
+  return `x` unchanged, so every landmark placed that way stays where it is in
+  the frame. Two consequences: the width of the frame is 384, so anything
+  anchored past that is never visible — a red barn was drawn at 400 and
+  simply never appeared — and a landmark that should drift needs an explicit
+  `- camX * 0.04` on the end. `K.repeatX` treats depth 0 as "inherit the
+  layer's", which is the opposite convention. Do not assume they match.
+- **The landmarks were all too small, and the fix was to make them enormous.**
+  21 Aug 2026, after the owner asked twice for backgrounds as good as Street
+  Fighter II's. A lean-to the size of a kennel and an eleven-pixel windmill
+  are decoration, not landmarks. They are now: a moonlit hayloft with bales
+  and a block and tackle (barn), a water slide running off the top of the
+  frame with a cat coming down it every four seconds (pool), a red barn and
+  silo behind the fighters (orchard), a log cabin with four lit windows and
+  smoke (retreat), a sash window with the evening coming through it
+  (kitchen), and a windmill most of the height of the picture with birds on
+  the brace (porch). **Warm light in a dark picture is the strongest landmark
+  there is** — the cabin did more for Mountain Retreat than everything else
+  on the stage put together.
+- **Paint the big shapes, leave the small ones flat.** `K.mass` is a box with
+  a lit top, a base front, a shaded side and an edge; `K.paint` is the same
+  three-tone recipe for an arbitrary path. Every large element in a stage
+  should go through one of them — a solid fill is what made all six read as
+  coloured paper cut out and laid down. Small details can stay flat; Street
+  Fighter II's do.
+- **`K.deepen` is called by the game, not by the stage.** It sits between
+  `drawBack` and the fighters and lays down the haze and the contact shadow
+  where the background meets the floor, from the `air` block on the stage.
+  A first version washed the whole bottom half of the picture with grey and
+  turned every stage to mud; it is now a **short, dark** band, because a hard
+  narrow shadow reads as contact and a soft wide one reads as fog.
 - **The menus take the mouse, and that is not decoration.** A page in an iframe
   gets no key presses until it has focus, so a keyboard-only title screen is
   dead on arrival in an artifact viewer — which is exactly what the owner hit
@@ -669,6 +700,18 @@ Three things a later session needs to know:
 - **The cats are drawn as one silhouette, in two passes** (`rig.js`): stroke
   every shape with a thick contour, then fill them all in order so the interior
   strokes are painted over. Do not give a body part its own outline.
+- **Three tones, and no more.** Every fill in `celFill` is offset in the same
+  direction and paints over the one before, so the tones stack up as crescents
+  on one side and the last fill owns the whole of the other. A fourth,
+  brighter pass added at the end therefore does not become a rim light — it
+  becomes a pale blob across the middle of the part, and every cat goes back
+  to looking pieced together. Tried and reverted 21 Aug 2026; there is a note
+  in the function saying so.
+- **Small parts are filled flat, on purpose.** A paw is about five pixels
+  across at the arcade resolution, and cel-shading it costs a clip and four
+  fills to change nothing anybody can see. `fillShape(..., { flat: true })`
+  marks them. Flattening the paws, hands and joint caps took two cats from
+  13.5ms a frame to 7.5 under software rendering.
 - **Shading is HARD-EDGED, three tones per material.** Rewritten 21 Aug 2026
   against a Street Fighter II screenshot the owner sent. A gradient reads as a
   smooth plastic tube however carefully it is aimed; a hard shadow edge reads

@@ -164,12 +164,12 @@ something moving in every one of them:
 
 | Stage | What is going on |
 |---|---|
-| **The Game Barn** | Arcade cabinets with live screens, string lights swinging in the foreground, cats on the hay bales, dust in the light |
-| **The Pool Deck** | Moving water, an inflatable flamingo with a cat asleep on it, sunbathers, birds crossing, tiles passing in front |
-| **The Orchard** | Three ranks of trees swaying at different rates, chickens who stop to peck, falling blossom, sun rays, a branch hanging into frame |
-| **Mountain Retreat** | Stars, a shooting star now and then, bats across the moon, a campfire throwing light on the granite, fireflies, mist round the ankles |
-| **The Farmhouse Kitchen** | A pot steaming on the range, the oven glowing, a clock whose hands move, pans swinging overhead, a cat on the counter batting something towards the edge |
-| **The Front Porch** | A windmill turning on the ridge, a rocking chair rocking, moths at the lantern, wind chimes, hanging ferns |
+| **The Game Barn** | The hayloft standing open on a moonlit hillside, bales stacked in the mouth of it and a block and tackle swinging off the beam. Arcade cabinets with live screens, string lights in the foreground, cats on the hay bales, dust in the light |
+| **The Pool Deck** | A water slide running off the top of the frame, down its scaffold and into the pool — with somebody coming down it every few seconds and a splash where they land. An enormous parasol at the near edge, moving water, a cat asleep on the flamingo |
+| **The Orchard** | The red barn and its silo out across the field with the low sun on them, one enormous old tree with a rope swing, ranks of trees swaying at different rates, mown stripes and windfall apples in the grass, falling blossom |
+| **Mountain Retreat** | A log cabin with four lit windows, smoke going up out of the stone chimney and somebody out on the porch watching. Stars, bats across the moon, campfires on the granite, fireflies, mist round the ankles |
+| **The Farmhouse Kitchen** | The sash window over the sink with the evening coming through it and the light falling across the boards. A pot steaming on the range, the oven glowing, pans swinging overhead, a cat batting something towards the edge of the counter |
+| **The Front Porch** | The windmill, most of the height of the picture, turning on its braced tower with two birds sat on the crosspiece. A rocking chair rocking, moths at the lantern, wind chimes, hanging ferns |
 
 **You pick the stage.** After both cats are locked in, the stage select shows
 a live, moving preview of each one with your two fighters standing in it —

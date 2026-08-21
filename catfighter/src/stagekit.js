@@ -639,12 +639,181 @@
     }
   }
 
+
+  /* ---- paint ------------------------------------------------------------
+
+     Everything below exists because the stages were flat. Each element was a
+     solid fill, so a barrel and a wall and a hay bale all read as the same
+     material — coloured paper cut out and laid down. A Street Fighter II
+     background has none of that: every crate, brick and lantern carries three
+     tones with the light coming from the same place, and the picture recedes
+     because the far half is hazed towards the colour of the air.
+
+     Same recipe as the cats, so the fighters sit INSIDE the picture rather
+     than on top of it: one cool dark for every shadow, one warm light, and
+     a hard edge between them.                                             */
+
+  var AIR = '#b9c6d8';                 /* default colour of the air */
+  var PAINT_DARK = '#241d33';          /* the one cool dark, as in rig.js */
+  var PAINT_LIGHT = '#fff2d4';
+
+  function hex(c) {
+    if (c.charAt(0) !== '#') return null;
+    if (c.length === 4) return [parseInt(c[1] + c[1], 16), parseInt(c[2] + c[2], 16), parseInt(c[3] + c[3], 16)];
+    return [parseInt(c.substr(1, 2), 16), parseInt(c.substr(3, 2), 16), parseInt(c.substr(5, 2), 16)];
+  }
+  function toHex(r, g, b) {
+    function h(v) { v = Math.round(v < 0 ? 0 : v > 255 ? 255 : v).toString(16); return v.length < 2 ? '0' + v : v; }
+    return '#' + h(r) + h(g) + h(b);
+  }
+  /* Mix two colours. Returns hex, always — anything that builds a gradient
+     downstream checks for a leading '#', and an rgb() string silently falls
+     back to a flat fill. That bug cost a day in rig.js; do not repeat it. */
+  function mix(a, b, t) {
+    var A = hex(a), B = hex(b);
+    if (!A || !B) return a;
+    return toHex(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t);
+  }
+  function darker(c, t) { return mix(c, PAINT_DARK, t === undefined ? 0.3 : t); }
+  function lighter(c, t) { return mix(c, PAINT_LIGHT, t === undefined ? 0.24 : t); }
+
+  /* A painted box: a lit top face, a base front face, a shaded side, and a
+     dark edge round the lot. The workhorse — a crate, a step, a beam, a
+     cabinet, a hay bale are all this with different numbers. `top` is how
+     much of the top face you can see (0 for something at eye level). */
+  function mass(ctx, x, y, w, h, colour, o) {
+    o = o || {};
+    var top = o.top === undefined ? 3 : o.top;
+    var side = o.side === undefined ? Math.min(4, w * 0.18) : o.side;
+    var lit = o.light === undefined ? 1 : o.light;    /* -1 lights from the right */
+    ctx.save();
+    /* front face */
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, y, w, h);
+    /* the shaded side, on the away side of the light */
+    if (side > 0) {
+      ctx.fillStyle = darker(colour, 0.34);
+      ctx.fillRect(lit > 0 ? x + w - side : x, y, side, h);
+    }
+    /* a lit strip down the light side — the hard edge, one step wide */
+    ctx.fillStyle = lighter(colour, 0.20);
+    ctx.fillRect(lit > 0 ? x : x + w - Math.max(1, side * 0.6), y,
+                 Math.max(1, side * 0.6), h);
+    /* the top face, catching the most light */
+    if (top > 0) {
+      ctx.fillStyle = lighter(colour, 0.40);
+      ctx.fillRect(x, y - top, w, top);
+      ctx.fillStyle = lighter(colour, 0.62);
+      ctx.fillRect(x, y - top, w, 1);
+    }
+    /* a shadow pooling at the foot of it */
+    if (o.foot !== false) {
+      ctx.fillStyle = 'rgba(0,0,0,.22)';
+      ctx.fillRect(x, y + h - Math.max(1, h * 0.09), w, Math.max(1, h * 0.09));
+    }
+    if (o.edge !== false) {
+      ctx.strokeStyle = o.edge || darker(colour, 0.62);
+      ctx.lineWidth = o.edgeW || 1;
+      ctx.strokeRect(x + 0.5, y - (top > 0 ? top : 0) + 0.5, w - 1, h + (top > 0 ? top : 0) - 1);
+    }
+    ctx.restore();
+  }
+
+  /* Any shape, painted the way `celFill` paints a cat: filled in shadow,
+     clipped, then the base tone laid back over it shifted towards the light,
+     so what survives at the edge is a crescent of shadow one step wide. */
+  function paint(ctx, path, colour, o) {
+    o = o || {};
+    var step = o.step === undefined ? 2 : o.step;
+    var lx = o.lx === undefined ? -0.55 : o.lx;
+    var ly = o.ly === undefined ? 0.85 : o.ly;
+    ctx.save();
+    path(ctx);
+    ctx.fillStyle = darker(colour, o.shade === undefined ? 0.36 : o.shade);
+    ctx.fill();
+    ctx.save();
+    path(ctx); ctx.clip();
+    ctx.translate(lx * step, ly * step);
+    path(ctx); ctx.fillStyle = colour; ctx.fill();
+    if (o.band !== false) {                    /* the highlight along the lit rim */
+      ctx.translate(lx * step * 0.9, ly * step * 0.9);
+      path(ctx);
+      ctx.fillStyle = lighter(colour, o.hi === undefined ? 0.22 : o.hi);
+      ctx.fill();
+    }
+    ctx.restore();
+    if (o.edge !== false) {
+      path(ctx);
+      ctx.strokeStyle = o.edge || darker(colour, 0.7);
+      ctx.lineWidth = o.edgeW || 1.2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* Atmospheric perspective, in one call.
+
+     Laid over the finished background and under the fighters. Everything
+     drawn so far is pushed a step towards the colour of the air, densest at
+     the horizon, which is what stops a far hill and a near fence reading as
+     the same distance. Then the band the fighters actually stand in is taken
+     down a little, so a dark cat never disappears into a dark wall.
+
+     Called by the game between `drawBack` and the fighters — a stage gets it
+     for free and cannot forget it. */
+  function deepen(ctx, o) {
+    o = o || {};
+    var air = o.air || AIR;
+    var A = hex(air) || [185, 198, 216];
+    var rgb = A[0] + ',' + A[1] + ',' + A[2];
+    var horizon = o.horizon === undefined ? FLOOR_Y - 34 : o.horizon;
+    var strength = o.haze === undefined ? 0.20 : o.haze;
+
+    /* haze: thickest at the horizon, gone by the top of the sky and gone
+       again by the fighters' feet */
+    var g = ctx.createLinearGradient(0, horizon - 74, 0, FLOOR_Y + 6);
+    g.addColorStop(0, 'rgba(' + rgb + ',0)');
+    g.addColorStop(0.62, 'rgba(' + rgb + ',' + (strength * 0.72).toFixed(3) + ')');
+    g.addColorStop(0.88, 'rgba(' + rgb + ',' + strength.toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, horizon - 74, W, FLOOR_Y + 6 - (horizon - 74));
+
+    /* The shadow that collects where whatever is back there meets the floor.
+       Kept SHORT and dark rather than tall and grey: a tall wash over the
+       bottom half turns a colourful stage to mud, which is exactly what the
+       first attempt at this did. A hard, narrow shadow reads as contact; a
+       soft, wide one reads as fog indoors. */
+    var d = o.floorDark === undefined ? 0.24 : o.floorDark;
+    var f = ctx.createLinearGradient(0, FLOOR_Y - 22, 0, FLOOR_Y + 1);
+    f.addColorStop(0, 'rgba(0,0,0,0)');
+    f.addColorStop(1, 'rgba(0,0,0,' + d.toFixed(3) + ')');
+    ctx.fillStyle = f;
+    ctx.fillRect(0, FLOOR_Y - 22, W, 23);
+  }
+
+  /* The near edge of the floor. The bottom of a Street Fighter II screen is
+     never the same tone as the middle of it — the plane turns away from the
+     light as it comes towards you, and that alone reads as a floor rather
+     than a coloured band. Drawn in front of the fighters' feet, at the very
+     bottom, so it frames the fight from below. */
+  function nearLip(ctx, depth, alpha) {
+    var h = depth === undefined ? 13 : depth;
+    var g = ctx.createLinearGradient(0, H - h, 0, H);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,' + (alpha === undefined ? 0.42 : alpha) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, H - h, W, h);
+  }
+
   CF.StageKit = {
     W: W, H: H, FLOOR_Y: FLOOR_Y,
     layer: layer, repeatX: repeatX, hash: hash, sway: sway,
     vary: vary, pick: pick, chance: chance, at: at,
     floorPool: floorPool, litter: litter, crowdRow: crowdRow, prop: prop, spill: spill,
-    grain: grain,
+    grain: grain, mass: mass, paint: paint, deepen: deepen, nearLip: nearLip,
+    mix: mix, darker: darker, lighter: lighter,
     sky: sky, glow: glow, lightShaft: lightShaft, vignette: vignette,
     hills: hills, ridge: ridge, ground: ground, planks: planks, tree: tree,
     spectator: spectator, Particles: Particles,
