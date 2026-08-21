@@ -154,6 +154,10 @@ a { color: inherit; }
 }
 
 /* ---------- masthead ---------- */
+/* The masthead is sticky, so an in-page link like "Check dates" -> #book would
+   otherwise land with the section heading tucked underneath it. Every element
+   that can be jumped to keeps a header's worth of room above it. */
+[id] { scroll-margin-top: 5.5rem; }
 .masthead {
   position: sticky; top: 0; z-index: 40;
   background: rgba(252,248,246,.94);
