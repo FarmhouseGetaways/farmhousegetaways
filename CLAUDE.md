@@ -151,6 +151,18 @@ meant hunting down the original zip by hand. Restored 6 Aug 2026 in `1bec6a5`.
 
 The repo is the source of truth. Changes go in as commits, or they don't go in.
 
+## Do not hand back a list of open questions
+
+Settled 21 Aug 2026, after one too many replies that ended with a tidy little
+list of things to confirm. **Make the call and get on with it.** Small
+decisions — a colour, a spelling, a name, which of two reasonable layouts —
+are yours. Decide, do the work, and say in one line what you decided so it can
+be overturned later if it matters.
+
+Ask only when getting it wrong would cost real money, break something live, or
+mean the work has to be thrown away and done again. A detail that can be
+changed in thirty seconds next week is not that.
+
 ## How the owner works
 
 They talk in plain language — often dictated, so expect transcription quirks
@@ -563,7 +575,8 @@ Three things a later session needs to know:
   The supers were invented rather than given, and on 20 Aug 2026 **the owner
   accepted them as they stand**, on the condition that they are properly
   documented — so that item is closed. Gracie's eye colour and the spelling of
-  FIGURO (it may be Figaro) are still guesses.
+  FIGURO stand as they are; the owner closed those on 21 Aug 2026 and does not
+  want them raised again.
 - **Every cat has a character card**, `catfighter/src/card.js`, added 20 Aug
   2026 in the style of Broforce's unlock screens: the cat lit from behind by
   turning rays, its name, its weight class, and its two specials and super
