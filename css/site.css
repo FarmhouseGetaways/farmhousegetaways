@@ -190,6 +190,19 @@ a { color: inherit; }
   padding-block: clamp(3.5rem, 8vw, 7.25rem);
   border-bottom: var(--rule);
 }
+/* The hero photograph on the interior pages.
+   Without it these heroes were a pale gradient and a lot of nothing: the grid
+   is bottom-aligned, and a tall numbers board left 541px of blank above the
+   headline on red-barn-ranch and 499px on mountain-retreat. The picture fills
+   that space and gives the page the establishing shot it never had. */
+.hero-lead {
+  width: 100%; height: auto; display: block;
+  aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  background: var(--bloom-2);
+}
+
 .hero-grid { display: grid; gap: clamp(2.5rem,5vw,4rem); grid-template-columns: 1fr; align-items: end; }
 @media (min-width: 62rem) { .hero-grid { grid-template-columns: 1.5fr .85fr; } }
 .hero .display { color: var(--plum); }
