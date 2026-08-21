@@ -16,11 +16,30 @@ Quality (DEHQ). **Both are now on one sheet** — rev 6 documents the agricultur
 operations and the proposed store together, which is what qualifies the parcel
 under ZO §6157. See §16.
 
-**Current status: plot plan REV 7 generated — the submittal sheet. It now carries
-the Small Agricultural Store itself (1,500 SF in the barn, 6 parking spaces) and
-the §6157 compliance block, not just the ag percentage. Compliance is met with
-large margin on the correct (gross) basis. See `SUBMITTAL.md` for the
-take-to-county packet and `research/FINDINGS.md` for every citation.**
+**Current status: plot plan REV 7 generated — the submittal sheet. The Small
+Agricultural Store is the entire existing MINI BARN MARKET building (±415 SF,
+the small building at the NW — owner-confirmed 8/21/2026), with 6 parking spaces
+on the gravel yard beside it and the §6157 compliance block on the sheet.
+Compliance is met with large margin on the correct (gross) basis, and the store
+size question is CLOSED — 415 SF against a 1,500 SF limit needs no demising. See
+`SUBMITTAL.md` for the take-to-county packet, `research/FINDINGS.md` for every
+citation.**
+
+**Owner corrections, 8/21/2026 — get these right forever:**
+
+- **The MINI BARN MARKET is the small ~21'×20' building at the NW** (structure
+  #4 on `output/Structures_To_Confirm.png`), NOT the big ~3,400 SF barn. The big
+  barn is **storage**. Every earlier draft that put the store "in the barn" was
+  wrong, and the demised-portion question it created is void.
+- **All 9 structures on the confirmation image are the owner's.** The two
+  trailers/outbuildings at the aerial's top-right are the neighbour's and stay
+  off the sheet.
+- **The property boundary is the county GIS polygon the zones were traced
+  against — it was right from the start.** Do not clip crops to it, do not
+  raise record-vs-GIS discrepancy alarms on the sheet face, and do not derive
+  encroachments from it against the owner's word.
+- **The front yard is on Handlebar Rd** (the residence faces it); Whirlwind Ln
+  is the exterior side yard at 35' from centreline.
 
 **Two things previously open are now RESOLVED and must not be re-litigated:**
 
@@ -84,8 +103,11 @@ These are hard-won and matter more than any technical detail here.
   Lot drains to pond.
 - 400A main electrical panel sits adjacent NE of the barn.
 - The west-side long structure is a **TINY HOME to be removed** — not a shed.
-- NE corner has a storage shed + canopy (existing).
-- The Mini Barn Market barn is **not** counted as ag area. Rotated ~56'×53'.
+- The shed + canopy once drawn at the NE corner are the NEIGHBOUR'S (top-right
+  of the aerial, beyond the line). They are off the sheet and stay off.
+- The big rotated ~56'×53' barn is **storage** and is **not** counted as ag
+  area. It is NOT the Mini Barn Market — MBM is the small ~21'×20' building at
+  the NW (owner correction, 8/21/2026).
 - No County-mandated setback exists between poultry areas and greenhouse/garden
   beds on the same parcel. §3112 setbacks measure only to street centerlines and
   lot lines.
@@ -102,7 +124,7 @@ as a false detection — do not renumber** until field measurements are complete
 
 | # | Location | Crop | SF |
 |---|---|---|---:|
-| AG-1 | NW patch around old shed | Fruit trees (orchard) | 688 |
+| AG-1 | NW patch around the Mini Barn Market | Fruit trees (orchard) | 688 |
 | AG-2 | North strip — west | Fruit trees (orchard) | 4,672 |
 | AG-3 | North strip — east | Fruit trees (orchard) | 1,814 |
 | AG-4 | Triangle behind Mini Barn Market | Vineyard | 2,074 |
@@ -409,23 +431,19 @@ the sheet. The ones with teeth:
 - **≥50% of gross suitable/available** and **≥25% of gross in active ag use** —
   83.4% and 35.1%. Both pass.
 - **Store ≤1,500 SF** including all open roofed display area, conforming to
-  §4810 setbacks. Shown as a demised 50'×30' portion of the barn.
+  §4810 setbacks. The store is the entire ±415 SF Mini Barn Market building.
 - **Minimum 6 parking spaces**, gravel expressly allowed, disabled access per
   CBC ch. 11B. Six drawn to scale, one van accessible.
 - **≤200 SF** of the store for products not raised on the property.
 - Hours 10 a.m. to legal sunset; one sign ≤4 SF; **events prohibited**.
 
-### The one real obstacle — do not paper over it
+### The store-size question — CLOSED (8/21/2026)
 
-**§6157(e) caps the store at 1,500 SF total. The barn is ~3,400 SF.**
-
-The sheet shows the store as a **demised 1,500 SF portion** of the barn, with
-note 14 stating no other structure will be used for on-site sales. Whether the
-county accepts a demised portion of a larger building, or reads §6157(e) as
-requiring the whole building to be ≤1,500 SF, is **the question that decides the
-project**. Ask PDS Zoning before spending money. If they require a standalone
-building, the store moves to a separate ≤1,500 SF structure and the sheet
-changes accordingly.
+Earlier drafts put the store inside the big barn and agonised over §6157.a.2.e's
+1,500 SF cap versus a 3,400 SF building. That was built on a mislabel. **The
+store is the Mini Barn Market building itself, ±415 SF — the whole building,
+well under the cap.** No demising, no PDS interpretation question, nothing to
+ask. Do not reopen this.
 
 ### Setback compliance — the store is safe
 
@@ -436,13 +454,11 @@ centreline**. That makes **Whirlwind Ln the exterior side yard at 35' from ℄**
 the figure the owner gave from the start — and north/south **interior side yards
 at 15'**. No rear yard applies; the lot fronts streets east and west.
 
-The barn holding the store clears **104' to the Whirlwind centreline, 109' and
-105' to the side lines**.
-
-The NE shed (165 SF) and canopy (285 SF) sit inside the 15' interior side yard
-and are legal under **ZO §4842**: walls ≥3' from the lot line, combined area
-within the setback 450 SF against a 1,000 SF limit. The tiny home encroaches the
-35' exterior side yard; removal, already planned, resolves it.
+The store (Mini Barn Market) clears every required yard by 30'+ — 67' to the
+Whirlwind centreline (35' required), 47' to the north line (15'), and hundreds
+of feet from the south line and Handlebar. Do not draw per-structure
+encroachment claims for the owner's other buildings; road centrelines are
+approximate pending PM 5062, and no new work is proposed in any yard.
 
 ---
 

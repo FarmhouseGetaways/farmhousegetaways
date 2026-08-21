@@ -1,8 +1,14 @@
 {
   "_comment": "All coordinates verified against owner markups through 2026-08-06. Two coordinate systems: 'px' = pixel in source/Plot_Plan_Layout.png (2188x1137, north-up Google aerial, cropped exactly to parcel bbox); 'ft' = feet, origin SW corner of parcel bbox, +x east, +y north.",
   "registration": {
-    "px_per_image": [2188, 1137],
-    "parcel_bbox_ft": [583.1, 294.1],
+    "px_per_image": [
+      2188,
+      1137
+    ],
+    "parcel_bbox_ft": [
+      583.1,
+      294.1
+    ],
     "ft_per_px_x": 0.26674,
     "ft_per_px_y": 0.25889,
     "note": "Red overlay edges in the aerial run exactly along property lines (owner confirmed). ft_x = px_x * 0.26674; ft_y = 294.1 - px_y * 0.25889"
@@ -18,79 +24,505 @@
     "gross_net_delta_explanation": "Handlebar Rd private road easement crossing E portion",
     "requirement_25pct_sf": 39313,
     "boundary_stateplane_2230_usft": [
-      [6353226.9968340546, 1952258.6981569827],
-      [6353223.028009966, 1951977.018930316],
-      [6353222.0001248866, 1951977.0199145675],
-      [6353202.0090231299, 1951977.4231289774],
-      [6352974.9999627173, 1951981.9998914748],
-      [6352821.0071604699, 1951984.3630757332],
-      [6352676.9119762182, 1951983.9211474806],
-      [6352643.874968797, 1951983.8191135675],
-      [6352643.874968797, 1952099.0770851374],
-      [6352643.874968797, 1952230.2329908162],
-      [6352643.874968797, 1952270.9274632335],
-      [6352656.9769767225, 1952270.6528574824],
-      [6352731.2146891356, 1952269.09577398],
-      [6352753.893121466, 1952268.6203812212],
-      [6353127.6863371432, 1952260.7811580598],
-      [6353167.9398655593, 1952259.936671555],
-      [6353226.9968340546, 1952258.6981569827]
+      [
+        6353226.996834055,
+        1952258.6981569827
+      ],
+      [
+        6353223.028009966,
+        1951977.018930316
+      ],
+      [
+        6353222.000124887,
+        1951977.0199145675
+      ],
+      [
+        6353202.00902313,
+        1951977.4231289774
+      ],
+      [
+        6352974.999962717,
+        1951981.9998914748
+      ],
+      [
+        6352821.00716047,
+        1951984.3630757332
+      ],
+      [
+        6352676.911976218,
+        1951983.9211474806
+      ],
+      [
+        6352643.874968797,
+        1951983.8191135675
+      ],
+      [
+        6352643.874968797,
+        1952099.0770851374
+      ],
+      [
+        6352643.874968797,
+        1952230.2329908162
+      ],
+      [
+        6352643.874968797,
+        1952270.9274632335
+      ],
+      [
+        6352656.9769767225,
+        1952270.6528574824
+      ],
+      [
+        6352731.214689136,
+        1952269.09577398
+      ],
+      [
+        6352753.893121466,
+        1952268.6203812212
+      ],
+      [
+        6353127.686337143,
+        1952260.7811580598
+      ],
+      [
+        6353167.939865559,
+        1952259.936671555
+      ],
+      [
+        6353226.996834055,
+        1952258.6981569827
+      ]
     ]
   },
   "structures_px": {
-    "sfd": {"poly": [[1222,103],[1590,138],[1575,300],[1208,262]], "label": "EXISTING SFD (4BR/2BA, 2,724 SF liv.)"},
-    "garage_accessory": {"poly": [[1622,85],[1795,90],[1795,275],[1622,280]], "label": "EXISTING GARAGE/ACCESSORY BLDG"},
-    "barn": {"poly": [[426,430],[632,476],[605,680],[520,704],[390,640]], "label": "EXISTING BARN ('Mini Barn Market') — NOT counted as ag"},
-    "shed_nw": {"poly": [[250,188],[328,188],[328,265],[250,265]], "label": "EXISTING SHED (NW)"},
-    "tiny_home_w": {"poly": [[130,505],[188,520],[165,705],[107,690]], "label": "TINY HOME — TO BE REMOVED (owner). Not a shed. Drop from plan if removed before submittal."},
-    "shed_ne_storage": {"poly": [[1778,18],[1828,18],[1828,66],[1778,66]], "label": "EXISTING SHED (NE storage)"},
-    "canopy_ne": {"poly": [[1854,46],[1940,46],[1940,94],[1854,94]], "label": "EXISTING CANOPY (NE)"},
-    "trellis": {"poly": [[862,608],[966,608],[966,704],[862,704]], "label": "EXISTING TRELLIS GARDEN (open)"},
-    "greenhouse": {"rect_ft": [294.0, 95.9, 20, 12], "label": "AS-BUILT GREENHOUSE 12'x20' (240 SF, unpermitted; may qualify for ag bldg exemption — confirm with PDS)"},
-    "coop": {"rect_ft": [326, 95, 10, 10], "label": "EXISTING POULTRY COOP 10'x10'"},
-    "run": {"rect_ft": [326, 75, 12, 20], "label": "EXISTING POULTRY RUN 12'x20'"},
-    "pool": {"ellipse_ft_center_wh": [232.6, 233.3, 40, 44], "label": "EXISTING POOL"}
+    "sfd": {
+      "poly": [
+        [
+          1222,
+          103
+        ],
+        [
+          1590,
+          138
+        ],
+        [
+          1575,
+          300
+        ],
+        [
+          1208,
+          262
+        ]
+      ],
+      "label": "EXISTING SFD (4BR/2BA, 2,724 SF liv.)"
+    },
+    "garage_accessory": {
+      "poly": [
+        [
+          1622,
+          85
+        ],
+        [
+          1795,
+          90
+        ],
+        [
+          1795,
+          275
+        ],
+        [
+          1622,
+          280
+        ]
+      ],
+      "label": "EXISTING GARAGE/ACCESSORY BLDG"
+    },
+    "barn": {
+      "poly": [
+        [
+          426,
+          430
+        ],
+        [
+          632,
+          476
+        ],
+        [
+          605,
+          680
+        ],
+        [
+          520,
+          704
+        ],
+        [
+          390,
+          640
+        ]
+      ],
+      "label": "EXISTING BARN \u2014 STORAGE (owner-confirmed 8/21/2026; NOT the Mini Barn Market). Not counted as ag."
+    },
+    "shed_nw": {
+      "poly": [
+        [
+          250,
+          188
+        ],
+        [
+          328,
+          188
+        ],
+        [
+          328,
+          265
+        ],
+        [
+          250,
+          265
+        ]
+      ],
+      "label": "EXISTING 'MINI BARN MARKET' (~21'x20', \u00b1415 SF) \u2014 the PROPOSED SMALL AGRICULTURAL STORE occupies this entire building (owner-confirmed 8/21/2026)"
+    },
+    "tiny_home_w": {
+      "poly": [
+        [
+          130,
+          505
+        ],
+        [
+          188,
+          520
+        ],
+        [
+          165,
+          705
+        ],
+        [
+          107,
+          690
+        ]
+      ],
+      "label": "TINY HOME \u2014 TO BE REMOVED (owner). Not a shed. Drop from plan if removed before submittal."
+    },
+    "shed_ne_storage": {
+      "poly": [
+        [
+          1778,
+          18
+        ],
+        [
+          1828,
+          18
+        ],
+        [
+          1828,
+          66
+        ],
+        [
+          1778,
+          66
+        ]
+      ],
+      "label": "EXISTING SHED (NE storage)"
+    },
+    "canopy_ne": {
+      "poly": [
+        [
+          1854,
+          46
+        ],
+        [
+          1940,
+          46
+        ],
+        [
+          1940,
+          94
+        ],
+        [
+          1854,
+          94
+        ]
+      ],
+      "label": "EXISTING CANOPY (NE)"
+    },
+    "trellis": {
+      "poly": [
+        [
+          862,
+          608
+        ],
+        [
+          966,
+          608
+        ],
+        [
+          966,
+          704
+        ],
+        [
+          862,
+          704
+        ]
+      ],
+      "label": "EXISTING TRELLIS GARDEN (open)"
+    },
+    "greenhouse": {
+      "rect_ft": [
+        294.0,
+        95.9,
+        20,
+        12
+      ],
+      "label": "AS-BUILT GREENHOUSE 12'x20' (240 SF, unpermitted; may qualify for ag bldg exemption \u2014 confirm with PDS)"
+    },
+    "coop": {
+      "rect_ft": [
+        326,
+        95,
+        10,
+        10
+      ],
+      "label": "EXISTING POULTRY COOP 10'x10'"
+    },
+    "run": {
+      "rect_ft": [
+        326,
+        75,
+        12,
+        20
+      ],
+      "label": "EXISTING POULTRY RUN 12'x20'"
+    },
+    "pool": {
+      "ellipse_ft_center_wh": [
+        232.6,
+        233.3,
+        40,
+        44
+      ],
+      "label": "EXISTING POOL"
+    }
   },
   "utilities": {
-    "well_ft": [174.4, 218.5], "well_px": [654, 292],
-    "septic_tank_ft_rect": [422.5, 274.7, 22.4, 10.1], "septic_px_bbox": [1584, 36, 1668, 75],
-    "leach_ft_rect": [447.8, 259.2, 110.2, 24.0], "leach_px_bbox": [1679, 42, 2092, 135],
-    "leach_note": "Rectangular bed patches visible in aerial grass here — corroborates location. All utility locations per owner, approximate.",
+    "well_ft": [
+      174.4,
+      218.5
+    ],
+    "well_px": [
+      654,
+      292
+    ],
+    "septic_tank_ft_rect": [
+      422.5,
+      274.7,
+      22.4,
+      10.1
+    ],
+    "septic_px_bbox": [
+      1584,
+      36,
+      1668,
+      75
+    ],
+    "leach_ft_rect": [
+      447.8,
+      259.2,
+      110.2,
+      24.0
+    ],
+    "leach_px_bbox": [
+      1679,
+      42,
+      2092,
+      135
+    ],
+    "leach_note": "Rectangular bed patches visible in aerial grass here \u2014 corroborates location. All utility locations per owner, approximate.",
     "electrical": "400A main panel adjacent NE of barn, ~(169.5, 173.6) ft, location approx."
   },
   "roads": {
     "handlebar_rd": {
-      "side": "EAST — private road easement crossing E portion of parcel, N-S curve. NOT along north PL (early error, corrected).",
-      "centerline_px": [[2100,10],[2040,160],[1950,300],[1860,400],[1770,470],[1690,545],[1650,630],[1660,730],[1720,830],[1810,930],[1920,1030],[2030,1120],[2065,1136]],
-      "easement_width": "UNKNOWN — pending readable PM 69370 from owner"
+      "side": "EAST \u2014 private road easement crossing E portion of parcel, N-S curve. NOT along north PL (early error, corrected).",
+      "centerline_px": [
+        [
+          2100,
+          10
+        ],
+        [
+          2040,
+          160
+        ],
+        [
+          1950,
+          300
+        ],
+        [
+          1860,
+          400
+        ],
+        [
+          1770,
+          470
+        ],
+        [
+          1690,
+          545
+        ],
+        [
+          1650,
+          630
+        ],
+        [
+          1660,
+          730
+        ],
+        [
+          1720,
+          830
+        ],
+        [
+          1810,
+          930
+        ],
+        [
+          1920,
+          1030
+        ],
+        [
+          2030,
+          1120
+        ],
+        [
+          2065,
+          1136
+        ]
+      ],
+      "easement_width": "UNKNOWN \u2014 pending readable PM 69370 from owner"
     },
     "whirlwind_ln": "off-parcel at NW corner",
     "garjan_ln": "~2,000 ft west (verified via county reverse geocode)",
     "driveway": {
-      "centerline_px": [[1655,600],[1520,530],[1350,485],[1150,460],[980,452],[800,470],[600,502],[455,540]],
+      "centerline_px": [
+        [
+          1655,
+          600
+        ],
+        [
+          1520,
+          530
+        ],
+        [
+          1350,
+          485
+        ],
+        [
+          1150,
+          460
+        ],
+        [
+          980,
+          452
+        ],
+        [
+          800,
+          470
+        ],
+        [
+          600,
+          502
+        ],
+        [
+          455,
+          540
+        ]
+      ],
       "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%"
     }
   },
   "pond": {
-    "ellipse_ft_center_wh": [189.4, 197.0, 90, 62],
+    "ellipse_ft_center_wh": [
+      189.4,
+      197.0,
+      90,
+      62
+    ],
     "role": "Existing irrigation source with pump (owner confirmed) + area of inundation; lot drains to pond"
   },
   "ag_areas": {
-    "numbering_note": "FROZEN numbering — AG-5 was removed (false detection); do NOT renumber until owner field measurements arrive. Owner references these numbers.",
+    "numbering_note": "FROZEN numbering \u2014 AG-5 was removed (false detection); do NOT renumber until owner field measurements arrive. Owner references these numbers.",
     "areas": [
-      {"n": 1,  "crop": "Orchard (fruit trees)", "sf": 688,   "where": "NW patch around old shed"},
-      {"n": 2,  "crop": "Orchard (fruit trees)", "sf": 4672,  "where": "North strip west"},
-      {"n": 3,  "crop": "Orchard (fruit trees, same orchard as 2)", "sf": 1814, "where": "North strip east"},
-      {"n": 4,  "crop": "Vineyard", "sf": 2074, "where": "Triangle behind barn (contains well at NE)"},
-      {"n": 6,  "crop": "Spice (pepper trees) + nut trees", "sf": 1896, "where": "Patio patch S of residence"},
-      {"n": 7,  "crop": "Loofa crop + various vegetables", "sf": 2844, "where": "Trellis + greenhouse patch"},
-      {"n": 8,  "crop": "Vegetable garden + flowers", "sf": 2521, "where": "E of bird garden"},
-      {"n": 9,  "crop": "Fruit trees (Orchard 2)", "sf": 17125, "where": "East field"},
-      {"n": 10, "crop": "Fruit trees + pumpkin", "sf": 7530, "where": "West strip"},
-      {"n": 11, "crop": "Fruit trees + pumpkin (same as 10)", "sf": 8467, "where": "South strip"},
-      {"n": 12, "crop": "Rosemary (herbs)", "sf": 1734, "where": "SE strip along road"}
+      {
+        "n": 1,
+        "crop": "Orchard (fruit trees)",
+        "sf": 688,
+        "where": "NW patch around old shed"
+      },
+      {
+        "n": 2,
+        "crop": "Orchard (fruit trees)",
+        "sf": 4672,
+        "where": "North strip west"
+      },
+      {
+        "n": 3,
+        "crop": "Orchard (fruit trees, same orchard as 2)",
+        "sf": 1814,
+        "where": "North strip east"
+      },
+      {
+        "n": 4,
+        "crop": "Vineyard",
+        "sf": 2074,
+        "where": "Triangle behind barn (contains well at NE)"
+      },
+      {
+        "n": 6,
+        "crop": "Spice (pepper trees) + nut trees",
+        "sf": 1896,
+        "where": "Patio patch S of residence"
+      },
+      {
+        "n": 7,
+        "crop": "Loofa crop + various vegetables",
+        "sf": 2844,
+        "where": "Trellis + greenhouse patch"
+      },
+      {
+        "n": 8,
+        "crop": "Vegetable garden + flowers",
+        "sf": 2521,
+        "where": "E of bird garden"
+      },
+      {
+        "n": 9,
+        "crop": "Fruit trees (Orchard 2)",
+        "sf": 17125,
+        "where": "East field"
+      },
+      {
+        "n": 10,
+        "crop": "Fruit trees + pumpkin",
+        "sf": 7530,
+        "where": "West strip"
+      },
+      {
+        "n": 11,
+        "crop": "Fruit trees + pumpkin (same as 10)",
+        "sf": 8467,
+        "where": "South strip"
+      },
+      {
+        "n": 12,
+        "crop": "Rosemary (herbs)",
+        "sf": 1734,
+        "where": "SE strip along road"
+      }
     ],
-    "bird_garden": {"crop": "Poultry", "sf": 6331, "structures": "coop 10x10 + run 12x20"},
+    "bird_garden": {
+      "crop": "Poultry",
+      "sf": 6331,
+      "structures": "coop 10x10 + run 12x20"
+    },
     "red_total_sf": 51365,
     "ag_total_sf": 57696,
     "pct_of_net": 36.7,

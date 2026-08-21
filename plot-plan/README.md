@@ -32,9 +32,9 @@ that is the front yard at 40' from its centreline under Schedule C footnote (d);
 Whirlwind Ln is the exterior side yard at 35' from centreline. The barn holding
 the store clears every yard by a wide margin.
 
-**The one open question:** §6157(e) caps the store at 1,500 SF and the barn is
-about 3,400 SF. The sheet shows a demised 1,500 SF portion. Confirm with PDS
-that this satisfies §6157(e) before spending anything — see `SUBMITTAL.md`.
+**The store is the entire existing Mini Barn Market building** (±415 SF, NW of
+the parcel — owner-confirmed) against a 1,500 SF limit, so the old
+demised-portion question is closed. The big barn is storage.
 
 ## Quickstart
 

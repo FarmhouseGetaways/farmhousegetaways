@@ -54,27 +54,19 @@ ax.plot([p[0] for p in drv], [p[1] for p in drv], color="lime", lw=2, ls=(0,(5,3
 pc = F["pond"]["ellipse_ft_center_wh"]
 ax.add_patch(Ellipse((pc[0], pc[1]), pc[2], pc[3], fill=False, ec="deepskyblue", lw=2, zorder=6))
 
-# ---- rev 6 additions: proposed small agricultural store + customer parking.
-# Same coordinates the plot plan uses, so the owner can check them on the aerial.
-import math
-_ang = math.radians(-12.2)
-_u = (math.cos(_ang), math.sin(_ang)); _w = (-0.2113, -0.9774)
-_p0 = (116.0, 181.0)
-STORE = [_p0,
-         (_p0[0]+50*_u[0], _p0[1]+50*_u[1]),
-         (_p0[0]+50*_u[0]+30*_w[0], _p0[1]+50*_u[1]+30*_w[1]),
-         (_p0[0]+30*_w[0], _p0[1]+30*_w[1])]
+# ---- proposed store + customer parking (rev 7: store = the Mini Barn Market
+# building itself, owner-confirmed 8/21/2026; parking on the gravel yard E of it).
+STORE = poly_px([[250,188],[328,188],[328,265],[250,265]])
 ax.add_patch(MPoly(STORE, closed=True, fill=False, ec="red", lw=3, zorder=8))
-_sx = sum(q[0] for q in STORE)/4; _sy = sum(q[1] for q in STORE)/4
-ax.text(_sx, _sy, "PROPOSED STORE\n1,500 SF", fontsize=9, color="red", ha="center",
-        va="center", fontweight="bold", zorder=9)
+ax.text(77, 210, "PROPOSED STORE =\nMINI BARN MARKET, ±415 SF", fontsize=9, color="red",
+        ha="center", va="top", fontweight="bold", zorder=9)
 
 PK_Y0, PK_D = 142.0, 18.0
-for _lab, _x0, _w2 in [("VAN", 180.0, 9.0), ("AISLE", 189.0, 8.0)] + \
-                      [("", 197.0 + i*9.0, 9.0) for i in range(5)]:
-    ax.add_patch(Rectangle((_x0, PK_Y0), _w2, PK_D, fill=False, ec="red",
+for _lab, _x0, _w2 in [("VAN", 108.0, 9.0), ("AISLE", 117.0, 8.0)] + \
+                      [("", 125.0 + i*9.0, 9.0) for i in range(5)]:
+    ax.add_patch(Rectangle((_x0, 232.0), _w2, 18.0, fill=False, ec="red",
                            lw=1.6, ls="--" if _lab == "AISLE" else "-", zorder=8))
-ax.text(211, PK_Y0-9, "PROPOSED PARKING - 6 SPACES", fontsize=9, color="red",
+ax.text(139, 228, "PROPOSED PARKING - 6 SPACES", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
 ax.set_title("VERIFICATION OVERLAY v3 - plan geometry on registered aerial\n"

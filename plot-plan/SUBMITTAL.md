@@ -5,8 +5,10 @@ the regulatory citations behind every number here.
 
 ## What you are asking for
 
-A **Small Agricultural Store** (≤1,500 SF) at 17054 Handlebar Rd, under
-**Zoning Ordinance §6157**.
+A **Small Agricultural Store** at 17054 Handlebar Rd under **Zoning Ordinance
+§6157** — the entire existing **Mini Barn Market** building (±415 SF, NW of the
+parcel), with six customer parking spaces on the gravel yard beside it. The
+building is less than a third of the 1,500 SF cap.
 
 **This does not need a Zoning Verification Permit.** ZO Update 102 (March 2020)
 removed it. In the A70 zone a small agricultural store is **permitted by right**
@@ -84,29 +86,21 @@ The NE shed and canopy sit inside the 15' interior side yard and are legal under
 tiny home encroaches the 35' exterior side yard; removing it, already planned,
 resolves that.
 
-## The three questions to ask at the counter
+## The two questions to ask at the counter
 
-Ask these in this order. The first is the only one that can change the plan.
+The store-size question that used to lead this list is **gone**: the store is
+the entire existing Mini Barn Market building, ±415 SF against a 1,500 SF
+limit. Nothing to ask about it.
 
-**1. Does a demised ≤1,500 SF portion of a larger building satisfy §6157(e)?**
-§6157(e) caps the store at 1,500 SF total, including any open roofed display
-area. The barn is about 3,400 SF. The sheet shows the store as a demised
-50' × 30' = 1,500 SF portion of it, with a note that no other structure will be
-used for on-site sales. If the county reads §6157(e) as requiring the *whole
-building* to be ≤1,500 SF, the store has to go in a separate ≤1,500 SF structure
-instead — so get this answered before spending anything.
+**1. Confirm the front yard runs off Handlebar Rd at 40' from centreline.**
+The residence fronts Handlebar, a private easement 30' wide where the assessor's
+map dimensions it, so Schedule C footnote (d) applies. That makes Whirlwind the
+exterior side yard at 35' from centreline — the figure you have always used.
+Nothing about the store changes either way; worth having on the record.
 
-**2. Which frontage is the front yard — Whirlwind Ln or Handlebar Rd?**
-Handlebar Rd is a private easement, 30' wide where the assessor's map dimensions
-it. Schedule C footnote (d) gives a 40' front yard from centerline for a lot
-fronting a private easement under 40' wide. Nothing on the plan changes either
-way, but it is worth having on the record.
-
-**3. Confirm no Zoning Verification Permit is required** for the small store post
-Update 102 — and what the building permit path is for the public areas. Ask at
-the same time about the **existing structures inside the side yard** (note 5):
-whether they are accepted as legal nonconforming, and whether a surveyor's
-setback certificate will be required.
+**2. Confirm no Zoning Verification Permit is required** for the small store
+post Update 102 — and what the building permit path is for the public-accessed
+areas of the Mini Barn Market.
 
 PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
@@ -114,31 +108,28 @@ PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
 These are on the sheet as notes rather than hidden:
 
-- **Recorded Parcel Map PM 5062 has not been obtained, and this is now the top
-  item.** The assessor's map shows the record parcel as a rectangle
-  **550.50' × 285.58' = 157,212 SF**. The county GIS polygon the sheet is drawn
-  from is **164,443 SF** and an irregular shape. PDS 090 item 1 says the plot
-  plan must match the legal lot plat 100%, so a counter tech may well catch this.
-  Note 1 discloses it and the ag tests are shown passing on both bases, but
-  getting the recorded map is what actually settles it.
+- **Recorded Parcel Map PM 5062** — still to be obtained from the County
+  Recorder, for the Handlebar Rd easement width/centreline and the Whirlwind
+  frontage geometry. The boundary on the sheet is the county GIS parcel you
+  verified against the aerial; PM 5062 supplies the record bearings when it
+  arrives.
 - **Preliminary title report** — not obtained. Definitive easement locations.
 - **Fence heights — a straight rejection item.** PDS 090 item 8 requires the
   height of every free-standing fence, wall and gate to be shown and labelled.
   Nothing is drawn. Note 10 defers it. Walk the property with a tape, note the
   pool barrier, the bird garden and the perimeter runs, and send me the heights
   and rough locations; they go on the sheet in one pass.
-- **Tiny home** sits 29' from the west line, inside the 35' exterior side yard.
-  Removing it — already the plan — resolves the encroachment. Better to remove it
-  before submitting so it comes off the sheet entirely.
+- **Tiny home** — to be removed; best removed before submitting so it comes off
+  the sheet entirely.
 - **Greenhouse** is shown honestly as as-built/unpermitted. Ask whether it
   qualifies for the agricultural building exemption.
 - **The 200 SF off-site products area** inside the store has not been located
   yet. §6157(g) caps it at 200 SF including refrigeration cases. Decide where it
   goes when the store is laid out.
 - **Parking location** is a proposal, not a survey. Six spaces are drawn to
-  scale on the bare yard east of the barn, clear of every crop zone. Gravel is
-  expressly allowed by §6157(h). Move it if it does not suit how you actually
-  want people to drive in.
+  scale on your existing gravel yard just east of the Mini Barn Market, clear of
+  every crop zone, the well and the pond. Gravel is expressly allowed by
+  §6157.a.2.h. Move it if it does not suit how people actually drive in.
 - **DEHQ handwash / catch tank** — still the open call from the earlier work.
 
 ## What is on the sheet
