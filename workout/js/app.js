@@ -853,15 +853,14 @@ function settingsSheet() {
     <p class="eyebrow">Where this is saved</p>
     ${s.mode === "server"
       ? (s.signedIn
-        ? `<p class="note note--good">Signed in. The week saves to the server and shows up on every device.</p>
-           ${s.historySync
-             ? `<p class="note note--good">The record syncs too.</p>`
-             : `<p class="note">The record of finished workouts is kept on this phone and nowhere else.
-                  The website's repository is public, so workouts are deliberately not committed to it.
-                  Use <strong>Download the record</strong> on the history screen to keep a copy.</p>`}
+        ? `<p class="note note--good">Signed in. The week and the record both save here and show up on every device.
+             The record is private &mdash; reading it needs this password.</p>
            <div class="btn-row"><button class="btn btn--ghost" data-action="sign-out">Sign out</button></div>`
-        : `<p class="note">The plan is coming from the server. Sign in to save workouts to it and to edit the week.</p>
-           <div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>`)
+        : (s.hasPassword
+          ? `<p class="note">The week is coming from the server. Sign in to see the record, log workouts to it, and edit the week.</p>
+             <div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>`
+          : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it and
+               the record stays on this phone. Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`))
       : `<p class="note note--warn">Saving to this browser only.${s.note ? " " + esc(s.note) : ""}</p>
          ${s.signedIn
            ? `<p class="small muted">Editing is unlocked on this device. Changes stay here until the server is reachable.</p>
@@ -894,20 +893,20 @@ function settingsSheet() {
 
 function askSignIn(returnTo) {
   openSheet("Sign in", `
-    <p class="small muted" style="margin-bottom:1rem">The same password as the website editor. It unlocks editing
-      the week and saving workouts to the server.</p>
+    <p class="small muted" style="margin-bottom:1rem">The app's own password &mdash; <code>WORKOUT_PASSWORD</code> in
+      Netlify. It unlocks editing the week, and it is what keeps the record private: nobody can read it without this.</p>
     <label class="field"><span>Password</span>
       <input type="password" id="s-key" autocomplete="current-password" enterkeyhint="go"></label>
     <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-sign-in">Sign in</button></div>
-    <p class="small dimmer" style="margin-top:1rem">Everything works without signing in — the week can be followed and
-      workouts are kept on this phone. Signing in is what shares them.</p>
+    <p class="small dimmer" style="margin-top:1rem">The week can be followed without signing in, and workouts done that
+      way are kept on this phone and go up when you next sign in. Signing in is what shares them between devices.</p>
   `, (root) => {
     const input = root.querySelector("#s-key");
     const submit = async () => {
       const res = await store.signIn(input.value);
       if (!res.ok) { toast(res.error, "bad"); return; }
       closeSheet();
-      toast(res.local ? "Signed in on this device." : "Signed in.", "good");
+      toast("Signed in.", "good");
       if (returnTo) go(returnTo); else render();
     };
     root.querySelector('[data-action="do-sign-in"]').addEventListener("click", submit);
@@ -920,17 +919,16 @@ function askSignIn(returnTo) {
 function storageNotice() {
   const s = store.get();
   if (s.mode === "server") return "";
-  return `<p class="note note--warn">Saving to this browser only.
-    ${s.note ? esc(s.note) + " " : ""}The week and the workouts are safe here, but they are not shared with another device.</p>`;
+  return `<p class="note note--warn">Working offline &mdash; this browser only.
+    ${s.note ? esc(s.note) + " " : ""}The week and the workouts are safe here, and anything logged now goes up
+    on its own when the app can reach its server again.</p>`;
 }
 
 function footer() {
   const s = store.get();
   return `<div class="foot">
     <p>${s.mode === "server"
-        ? (s.signedIn
-            ? `Signed in &middot; the week syncs${s.historySync ? ", and so does the record" : " &middot; the record stays on this phone"}`
-            : "Reading the week from the server")
+        ? (s.signedIn ? "Signed in &middot; everything syncs" : "Reading the week from the server")
         : "This browser only"}
       &middot; <a href="#" data-action="open-settings">Settings</a></p>
     <p class="dimmer">Calories are an estimate from body weight, the effort of each exercise and how long it took. Treat them as a guide.</p>
@@ -1038,7 +1036,10 @@ document.addEventListener("click", (e) => {
     case "edit-day": closeSheet(); go(`#/edit/${day}`); break;
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "sign-in": closeSheet(); askSignIn(null); break;
-    case "sign-out": store.signOut(); closeSheet(); toast("Signed out."); render(); break;
+    case "sign-out":
+      closeSheet();
+      store.signOut().then(() => { toast("Signed out."); render(); });
+      break;
     default: break;
   }
 });

@@ -1,35 +1,43 @@
 /* ==========================================================================
-   The store — the plan, the history, and which copy is in charge.
+   The store — the plan, the record, and which copy is in charge.
 
    There are three copies of everything, and the whole sync story is about
    which one wins:
 
-   1. THE SERVER — /api/workout, which reads and writes two JSON files in the
-      repository. When the site is deployed with GITHUB_TOKEN and
-      ADMIN_PASSWORD set, this is the truth. Signing in lets you write to it,
-      and a workout logged on a phone is on the iPad a minute later.
-   2. THE COMMITTED FILE — workout/data/plan.json. The floor under everything.
-      If the server cannot be reached, the app still knows the week.
-   3. THIS BROWSER — localStorage. With a server it is a cache, so an
-      installed copy still works in a gym with no signal. Without a server it
-      IS the working copy, and the app says so on screen rather than
-      pretending a save went somewhere.
+   1. THE SERVER — /api/plan and /api/history, two Netlify Blobs belonging to
+      this site alone. When the site is deployed with WORKOUT_PASSWORD set,
+      this is the truth. A workout logged on a phone is on the iPad a minute
+      later.
+   2. THE COMMITTED FILE — data/plan.json. The floor under everything. If the
+      store has never been written or cannot be reached, the app still knows
+      the week.
+   3. THIS BROWSER — localStorage. With a server it is a cache, so an installed
+      copy works in a gym with no signal. Without a server it IS the working
+      copy, and the app says so on screen rather than pretending a save went
+      somewhere.
 
    Nothing above this layer has to know which mode is in force. Every write
    returns having succeeded locally, whatever the network did; anything that
    could not be sent is queued and goes out on the next successful call.
+
+   THE PASSWORD IS NEVER STORED HERE. Signing in posts it once to /api/auth,
+   which sets an HttpOnly cookie the page cannot read. Every later request
+   carries that cookie on its own.
    ========================================================================== */
 
 import { sessionCalories, todayKey, DAY_KEYS, startOfDay } from "./catalog.js";
 
-const API = "/api/workout";
+const API = {
+  auth: "/api/auth",
+  plan: "/api/plan",
+  history: "/api/history",
+};
 const SOURCE = "data/plan.json";
 
 const KEYS = {
-  auth: "fg-workout-key",        // the admin password, once she has typed it
   plan: "fg-workout-plan",
   history: "fg-workout-history",
-  pending: "fg-workout-pending", // sessions that have not reached the server yet
+  pending: "fg-workout-pending", // workouts that have not reached the server yet
   live: "fg-workout-live",       // a workout in progress, so closing the app loses nothing
 };
 
@@ -94,13 +102,8 @@ export const uid = (prefix) =>
 const state = {
   plan: emptyPlan(),
   history: emptyHistory(),
-  mode: "local",        // "server" once /api/workout has answered
+  mode: "local",        // "server" once /api/plan has answered
   signedIn: false,
-  /* Whether the RECORD may leave this device. The plan always syncs — it is a
-     list of exercises written on one device and followed on another. The
-     history does not, unless WORKOUT_HISTORY_SYNC is set on the server, because
-     this repository is public and a training log is not. */
-  historySync: false,
   hasPassword: true,    // assumed until the server says otherwise
   note: "",             // why the mode is what it is, in plain English
   loaded: false,
@@ -116,26 +119,34 @@ export const history = () => state.history;
 export const settings = () => state.history.settings;
 export const dayPlan = (key) => state.plan.days.find((d) => d.day === key) || emptyDay(key);
 
-/* ---------- the key ---------- */
+/* ---------- talking to the server ---------- */
 
-export const authKey = () => read(KEYS.auth, "") || "";
-export const setAuthKey = (key) => { write(KEYS.auth, key || null); };
-export const forgetAuthKey = () => { write(KEYS.auth, null); state.signedIn = false; emit(); };
-
-const authHeaders = () => {
-  const key = authKey();
-  return key ? { "x-admin-password": key } : {};
-};
+/**
+ * The session cookie is SameSite=Strict and HttpOnly. `credentials: "include"`
+ * is what makes fetch send it; the default would too for a same-origin call,
+ * but saying so means an installed copy on a different scope cannot silently
+ * stop authenticating.
+ */
+async function call(url, options = {}) {
+  const res = await fetch(url, {
+    credentials: "include",
+    cache: "no-store",
+    ...options,
+    headers: { ...(options.body ? { "content-type": "application/json" } : {}), ...(options.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  return { res, body };
+}
 
 /* ---------- loading ---------- */
 
 /**
  * Work out which mode we are in and fill the state.
  *
- * Order matters. The cached copy is put on screen first so the app is usable
- * in the time the network takes, then the server's answer replaces it. On a
- * phone in a gym with two bars that is the difference between a working app
- * and a spinner.
+ * Order matters. The cached copy goes on screen first so the app is usable in
+ * the time the network takes, then the server's answer replaces it. On a phone
+ * in a gym with two bars that is the difference between a working app and a
+ * spinner.
  */
 export async function load() {
   state.plan = shapePlan(read(KEYS.plan, null) || emptyPlan());
@@ -144,25 +155,24 @@ export async function load() {
 
   let served = null;
   try {
-    const res = await fetch(API, { headers: { ...authHeaders() }, cache: "no-store" });
-    served = await res.json().catch(() => null);
+    const { res, body } = await call(API.plan);
+    if (res.ok && body.plan) served = body;
   } catch {
     served = null;                                    // no signal: the cache stands
   }
 
-  if (served && served.storage === "server") {
+  if (served) {
     state.mode = "server";
     state.signedIn = !!served.signedIn;
-    state.hasPassword = served.hasPassword !== false;
-    state.historySync = !!served.historySync;
-    state.note = "";
-    if (served.plan) { state.plan = shapePlan(served.plan); write(KEYS.plan, state.plan); }
-    if (served.history) { state.history = shapeHistory(served.history); write(KEYS.history, state.history); }
+    state.hasPassword = served.editable !== false;
+    state.note = state.hasPassword ? "" : "No password is set on this site, so nothing can be saved to it.";
+    state.plan = shapePlan(served.plan);
+    write(KEYS.plan, state.plan);
+    if (state.signedIn) await pullHistory();
   } else {
     state.mode = "local";
-    state.signedIn = !!authKey();                     // no server to check it against
-    state.hasPassword = served ? served.hasPassword !== false : true;
-    state.note = served?.why || "";
+    state.signedIn = false;
+    state.note = "";
     // No server, and nothing cached: fall back to the committed plan so the
     // week is never blank on a fresh phone.
     if (!state.plan.days.some((d) => d.exercises.length)) {
@@ -179,81 +189,63 @@ export async function load() {
   return state;
 }
 
-/* ---------- signing in ---------- */
-
-/**
- * There is one password, and it is the same one that guards /edit.html. It is
- * checked on the server; storing it here only saves her typing it again.
- */
-export async function signIn(key) {
-  const trimmed = String(key || "").trim();
-  if (!trimmed) return { ok: false, error: "Type the password first." };
-
+/** Read the record back and fold in anything this device logged while away. */
+async function pullHistory() {
   try {
-    const res = await fetch(API, { headers: { "x-admin-password": trimmed }, cache: "no-store" });
-    const body = await res.json().catch(() => ({}));
-
-    if (body.storage === "server") {
-      if (!body.signedIn) return { ok: false, error: "That is not the password." };
-      setAuthKey(trimmed);
-      state.mode = "server";
-      state.signedIn = true;
-      state.historySync = !!body.historySync;
-      if (body.plan) { state.plan = shapePlan(body.plan); write(KEYS.plan, state.plan); }
-      if (body.history) { state.history = mergeLocalInto(shapeHistory(body.history)); write(KEYS.history, state.history); }
-      emit();
-      flush();
-      return { ok: true };
-    }
-
-    // No server to ask. Keep the key anyway — she may be in the gym with no
-    // signal, and it unlocks the editor for this browser either way.
-    setAuthKey(trimmed);
-    state.signedIn = true;
-    state.note = body.why || state.note;
-    emit();
-    return { ok: true, local: true };
-  } catch {
-    setAuthKey(trimmed);
-    state.signedIn = true;
-    emit();
-    return { ok: true, local: true };
-  }
+    const { res, body } = await call(API.history);
+    if (!res.ok || !body.history) return false;
+    state.history = mergeLocalInto(shapeHistory(body.history));
+    write(KEYS.history, state.history);
+    return true;
+  } catch { return false; }
 }
 
-/** Anything logged on this device that the server has not got yet survives a sign-in. */
+/** Anything logged on this device that the server has not got yet survives. */
 function mergeLocalInto(serverHistory) {
-  const mine = state.history.sessions || [];
   const seen = new Set(serverHistory.sessions.map((s) => s.id));
-  const extra = mine.filter((s) => !seen.has(s.id));
+  const extra = (state.history.sessions || []).filter((s) => !seen.has(s.id));
   return {
     ...serverHistory,
     sessions: [...serverHistory.sessions, ...extra].sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : -1)),
   };
 }
 
-export function signOut() {
-  forgetAuthKey();
+/* ---------- signing in ---------- */
+
+/**
+ * The password goes to the server once and is not kept anywhere in the
+ * browser. What comes back is an HttpOnly cookie the page cannot read.
+ */
+export async function signIn(password) {
+  const trimmed = String(password || "").trim();
+  if (!trimmed) return { ok: false, error: "Type the password first." };
+
+  let res, body;
+  try {
+    ({ res, body } = await call(API.auth, { method: "POST", body: JSON.stringify({ password: trimmed }) }));
+  } catch {
+    return { ok: false, error: "Could not reach the app's server. Check the connection and try again." };
+  }
+
+  if (!res.ok || !body.ok) {
+    return { ok: false, error: body.error || "That password isn't right." };
+  }
+
+  state.signedIn = true;
+  state.mode = "server";
+  await pullHistory();
+  emit();
+  flush();
+  return { ok: true };
+}
+
+export async function signOut() {
+  try { await call(API.auth, { method: "DELETE" }); } catch { /* the cookie expires anyway */ }
+  state.signedIn = false;
+  emit();
 }
 
 /* ---------- writing ---------- */
-
-async function post(payload) {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...authHeaders() },
-    body: JSON.stringify(payload),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const err = new Error(body.error || `The server said ${res.status}.`);
-    err.detail = body.detail;
-    err.status = res.status;
-    if (res.status === 401) { forgetAuthKey(); }      // a stale key asks again next time
-    throw err;
-  }
-  return body;
-}
 
 /**
  * Save the week.
@@ -269,11 +261,16 @@ export async function savePlan(next) {
 
   if (state.mode !== "server" || !state.signedIn) {
     return { ok: true, storage: "local",
-      note: "Saved on this device. It is not on the server — sign in on a site with the password set to share it." };
+      note: "Saved on this device. Sign in to share it with the other ones." };
   }
-  const body = await post({ plan: state.plan });
+
+  const { res, body } = await call(API.plan, { method: "PUT", body: JSON.stringify({ plan: state.plan }) });
+  if (!res.ok) {
+    if (res.status === 401) { state.signedIn = false; emit(); }
+    throw new Error(body.error || `The server said ${res.status}.`);
+  }
   if (body.plan) { state.plan = shapePlan(body.plan); write(KEYS.plan, state.plan); emit(); }
-  return { ok: true, storage: "server", commit: body.commit };
+  return { ok: true, storage: "server" };
 }
 
 /**
@@ -302,9 +299,13 @@ export async function saveSettings(patch) {
   write(KEYS.history, state.history);
   emit();
 
-  if (state.mode !== "server" || !state.signedIn || !state.historySync) return { ok: true, storage: "local" };
+  if (state.mode !== "server" || !state.signedIn) return { ok: true, storage: "local" };
   try {
-    await post({ settings: state.history.settings, sessions: [] });
+    const { res, body } = await call(API.history, {
+      method: "POST",
+      body: JSON.stringify({ settings: state.history.settings, sessions: [] }),
+    });
+    if (!res.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
     return { ok: true, storage: "server" };
   } catch (err) {
     return { ok: false, error: err.message };
@@ -314,14 +315,16 @@ export async function saveSettings(patch) {
 export async function deleteSession(id) {
   state.history = { ...state.history, sessions: state.history.sessions.filter((s) => s.id !== id) };
   write(KEYS.history, state.history);
-  // A queued session that is deleted before it is ever sent should not come
-  // back to life on the next flush.
+  // A queued workout deleted before it was ever sent must not come back to
+  // life on the next flush.
   write(KEYS.pending, (read(KEYS.pending, []) || []).filter((s) => s.id !== id));
   emit();
 
-  if (state.mode !== "server" || !state.signedIn || !state.historySync) return { ok: true, storage: "local" };
+  if (state.mode !== "server" || !state.signedIn) return { ok: true, storage: "local" };
   try {
-    await post({ deleteSessions: [id] });
+    const { res, body } = await call(API.history, { method: "DELETE", body: JSON.stringify({ ids: [id] }) });
+    if (!res.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
+    if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); emit(); }
     return { ok: true, storage: "server" };
   } catch (err) {
     return { ok: false, error: err.message };
@@ -331,23 +334,23 @@ export async function deleteSession(id) {
 /* ---------- the queue ---------- */
 
 async function send(sessions) {
-  /* Sync deliberately off: the record lives here and nowhere else. Nothing is
-     queued, because there is nothing for a queue to be waiting for — a pending
-     count that never clears is a warning light that means nothing. */
-  if (state.mode === "server" && !state.historySync) {
-    return { ok: true, storage: "local", note: "Logged. The record is kept on this phone." };
-  }
   if (state.mode !== "server" || !state.signedIn) {
     queue(sessions);
     return { ok: true, storage: "local",
-      note: state.signedIn ? "Saved on this phone." : "Saved on this phone. Sign in to keep it on the server too." };
+      note: state.mode === "server"
+        ? "Saved on this phone. Sign in to keep it on the server too."
+        : "Saved on this phone." };
   }
   try {
     const pending = read(KEYS.pending, []) || [];
-    const body = await post({ sessions: [...pending, ...sessions], settings: state.history.settings });
+    const { res, body } = await call(API.history, {
+      method: "POST",
+      body: JSON.stringify({ sessions: [...pending, ...sessions], settings: state.history.settings }),
+    });
+    if (!res.ok) throw new Error(body.error || `The server said ${res.status}.`);
     write(KEYS.pending, []);
     if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); emit(); }
-    return { ok: true, storage: "server", commit: body.commit };
+    return { ok: true, storage: "server" };
   } catch (err) {
     queue(sessions);
     return { ok: false, storage: "local", error: err.message,
@@ -367,9 +370,13 @@ export const pendingCount = () => (read(KEYS.pending, []) || []).length;
 /** Push anything queued. Called on load, after signing in, and when the network returns. */
 export async function flush() {
   const pending = read(KEYS.pending, []) || [];
-  if (!pending.length || state.mode !== "server" || !state.signedIn || !state.historySync) return { ok: false, sent: 0 };
+  if (!pending.length || state.mode !== "server" || !state.signedIn) return { ok: false, sent: 0 };
   try {
-    const body = await post({ sessions: pending, settings: state.history.settings });
+    const { res, body } = await call(API.history, {
+      method: "POST",
+      body: JSON.stringify({ sessions: pending, settings: state.history.settings }),
+    });
+    if (!res.ok) return { ok: false, sent: 0 };
     write(KEYS.pending, []);
     if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); }
     emit();
@@ -386,7 +393,7 @@ if (typeof window !== "undefined") {
 /* ---------- a workout in progress ---------- */
 
 /* Saved on every set so that a locked phone, a dropped call or a closed tab
-   costs nothing. Kept apart from the history: it is not a workout until it is
+   costs nothing. Kept apart from the record: it is not a workout until it is
    finished, and a half-done one must never turn up in the totals. */
 export const loadLive = () => read(KEYS.live, null);
 export const saveLive = (live) => write(KEYS.live, live);

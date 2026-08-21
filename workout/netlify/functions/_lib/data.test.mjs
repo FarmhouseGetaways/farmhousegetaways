@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import {
   DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
-} from "./workout.mjs";
+} from "./data.mjs";
 
 /* ---------- the week ---------- */
 

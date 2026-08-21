@@ -45,47 +45,6 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# ---------------------------------------------------------------------------
-#  The workout tracker's own files.
-#
-#  The site's css and images are pinned for a year because their URLs carry a
-#  version string. The app's do not — it is a folder of plain files that get
-#  edited — so they are revalidated instead. The service worker and the
-#  manifest are the important ones: cache either and a phone that installed
-#  the app keeps serving an old copy for ever, with no way to reach it.
-# ---------------------------------------------------------------------------
-[[headers]]
-  for = "/workout/css/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/workout/js/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/workout/data/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-    Content-Type = "application/json; charset=utf-8"
-
-[[headers]]
-  for = "/workout/sw.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/workout/manifest.webmanifest"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-    Content-Type = "application/manifest+json"
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Cache-Control = "no-store"
-
 # friendly alias for the publish function
 [[redirects]]
   from = "/api/publish"
@@ -110,31 +69,24 @@
   status = 404
   force = true
 
-# The workout record is never served over the web, whatever ends up in that
-# file. `publish = "."` would otherwise hand a year of somebody's training log
-# to anyone who guessed the path. force = true is required — Netlify serves a
-# real file in preference to a redirect that matches it, so without it this
-# rule parses fine, deploys fine, and does nothing at all.
+# Carissa's workout tracker lives in workout/ and is DELIBERATELY NOT PART OF
+# THIS SITE. It is a separate Netlify site pointed at the same repository with
+# the base directory set to `workout` — see workout/netlify.toml. The folder is
+# in this repository only because that is where the branch was; it is not a
+# page here and must not become one.
+#
+# `publish = "."` would otherwise serve the whole app at
+# farmhousegetaways.com/workout/, on the wrong domain, without its functions,
+# and with the plan readable by anyone who guessed the path.
+#
+# force = true is required. Netlify serves a real file in preference to a
+# redirect that matches it — "shadowing" — so without it this rule parses fine,
+# deploys fine, and does absolutely nothing.
 [[redirects]]
-  from = "/workout/data/history.json"
+  from = "/workout/*"
   to = "/404.html"
   status = 404
   force = true
-
-# Carissa's workout tracker at /workout/. Reads the plan without a password;
-# writing the plan or logging a workout needs ADMIN_PASSWORD, the same one that
-# guards /api/publish and /api/emailoctopus. The function stores everything as
-# JSON committed to this repository — see netlify/functions/workout.mjs.
-[[redirects]]
-  from = "/api/workout"
-  to = "/.netlify/functions/workout"
-  status = 200
-
-# A short way in, for a home-screen shortcut.
-[[redirects]]
-  from = "/workout"
-  to = "/workout/"
-  status = 301
 
 # EmailOctopus setup and health check. Needs ?key=ADMIN_PASSWORD.
 # There is no redirect for submission-created — Netlify calls that one itself

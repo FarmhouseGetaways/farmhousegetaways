@@ -1,25 +1,25 @@
 /**
- * Carissa's workout tracker — the shape of the data, and the rules about it.
+ * The shape of the data, and the rules about it.
  *
- * Two files hold everything:
+ * Two things are stored:
  *
- *   workout/data/plan.json      the seven days, and what is in each of them.
- *                               Written by whoever is signed in as admin.
- *   workout/data/history.json   every workout that has been finished, plus the
- *                               couple of settings the estimate needs.
- *                               Written by the app when a workout ends.
+ *   the plan       the seven days and what is in each of them. Public to read
+ *                  — it is a list of exercises — and written by whoever holds
+ *                  the password.
+ *   the history    every workout finished, plus the couple of settings the
+ *                  calorie estimate needs. Private: it is a record of one
+ *                  person's body and what it did every day, and reading it
+ *                  needs the password as much as writing it does.
  *
- * Both are committed to this repository, which is the whole reason this file
- * exists: anything that arrives from a browser is treated as a suggestion, not
- * as truth. Everything is clamped, trimmed, capped and given an id here before
- * it is allowed anywhere near a commit — a phone with a stuck finger must not
- * be able to write a hundred-megabyte plan into the repo, and a hand-edited
- * JSON file must not be able to take the app down.
+ * Both live in Netlify Blobs, which is why this file exists: anything arriving
+ * from a browser is a suggestion, not truth. Everything is clamped, trimmed,
+ * capped and given an id here before it is allowed near the store — a phone
+ * with a stuck finger must not be able to write a hundred megabytes, and a
+ * hand-edited plan.json must not be able to take the app down.
  *
- * It is a plain module with no dependencies so it can be tested with nothing
- * installed:
+ * Plain module, no dependencies, so it can be tested with nothing installed:
  *
- *     node --test netlify/functions/_lib/*.test.mjs
+ *     node --test workout/netlify/functions/_lib/*.test.mjs
  */
 
 /* The week, in the order a week happens. Monday first, because a training

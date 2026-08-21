@@ -1,14 +1,25 @@
 # Carissa's workout tracker
 
-An installable web app at **/workout/** on the Farmhouse Getaways site. Seven
-days of the week, a workout on each, a video for every exercise, a big button
-for finishing a set, and a record of everything ever done.
+An installable web app: seven days of the week, a workout on each, a video for
+every exercise, a big button for finishing a set, and a record of everything
+ever done.
 
-Plain HTML, CSS and three JavaScript modules. No framework, no build step, no
-npm. Open the folder through any web server and it runs.
+**It is its own site, not part of the Farmhouse Getaways website.** The folder
+lives in this repository, but the root `netlify.toml` deliberately 404s
+`/workout/*` on farmhousegetaways.com — this is deployed as a separate Netlify
+site pointed at the same repository with the base directory set to `workout`.
+See *Deploying*, below.
 
-    python3 -m http.server 8099
-    # then http://127.0.0.1:8099/workout/
+Plain HTML, CSS and three JavaScript modules, with three small Netlify
+functions behind them. No framework and no build step; the one dependency,
+`@netlify/blobs`, is used by the functions and never reaches the browser.
+
+    cd workout && python3 -m http.server 8099
+    # then http://127.0.0.1:8099/
+
+Opened that way there is no server, so the app runs from the committed plan and
+this browser — which is the same thing that happens to a phone in a gym with no
+signal, and worth seeing.
 
 ## What it does
 
@@ -68,9 +79,8 @@ over 10 MB belongs on YouTube as an unlisted video instead of in the repository.
 
 ## Editing the week
 
-Sign in — **Settings → Sign in** — with the same password as the website's
-editor at `/edit.html`, which is `ADMIN_PASSWORD` in Netlify. Then every day
-gets an **Edit this day** button, and Settings grows a grid of all seven.
+Sign in — **Settings → Sign in** — with `WORKOUT_PASSWORD`. Then every day gets
+an **Edit this day** button, and Settings grows a grid of all seven.
 
 Per day: a title, a description, and an estimated time (leave it empty and the
 app works it out from the sets and the rests). Per exercise: the name, the
@@ -79,56 +89,68 @@ video, **sets from 1 to 10**, reps or time as free text — "12", "45 seconds",
 that drives the calorie estimate, and notes shown to her while she does it.
 Exercises can be reordered and removed. **Make it a rest day** clears one.
 
-Saving commits `workout/data/plan.json` to the repository and Netlify rebuilds,
-so the change is on every device in about thirty seconds.
+Saving writes to the store and is live on every device on their next load. No
+committing, no deploy.
 
-## Where things are stored
+## Where things are stored, and who can read what
 
-**The plan** — `workout/data/plan.json`, committed to this repository by
-`netlify/functions/workout.mjs` when you press Save. It is a list of exercises,
-it is not private, and it has to be shared: written on one device and followed
-on another.
+Two Netlify Blobs belonging to this site alone. Not files in this repository —
+`FarmhouseGetaways/farmhousegetaways` is **public**, and a training log is not.
 
-**The record** — this browser, and only this browser, unless somebody
-deliberately turns sync on.
+| | Read | Write |
+|---|---|---|
+| **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the password |
+| **The record** (`/api/history`) | the password | the password |
 
-That default is not laziness. **FarmhouseGetaways/farmhousegetaways is a public
-repository.** Committing a training log to it would publish dates, sets,
-minutes and a body weight under a person's name, for as long as she keeps
-training, and the site being hidden from Google would not change that. So the
-record stays on her phone, the app says so plainly in Settings, and the CSV
-download means nothing is trapped there.
+`data/plan.json` stays committed as the floor underneath: if the store has
+never been written, or is wiped, the app falls back to it rather than to a
+blank week. It is imported by the function rather than fetched, so there is no
+network call to fail silently in production.
 
-To turn sync on — **only once the repository is private**, or once the store
-has been moved somewhere private — set one variable in Netlify:
+**How signing in works.** The password lives in a Netlify environment variable
+and is compared on the server. Signing in sets an `HttpOnly` session cookie —
+the page's own JavaScript cannot read it, and nor can anything else that ends
+up running on the page — which is a signed, expiring token, not the password
+itself. Every write and every read of the record checks that cookie
+server-side, so a visitor editing the page in dev tools changes what *they* see
+and nothing else. Ten wrong guesses from one address inside fifteen minutes and
+that address waits.
 
-    WORKOUT_HISTORY_SYNC = on
+With `WORKOUT_PASSWORD` unset, signing in is impossible, every write is refused
+and the record cannot be read. **A misconfigured site is a read-only site,
+never an open one.**
 
-Then redeploy. The record then commits to `workout/data/history.json` and
-appears on every signed-in device. `netlify.toml` already refuses to serve that
-path over the web, so even with sync on the file is not readable from the site
-itself — but on a public repository it would still be readable on GitHub, which
-is the whole point of the switch.
+The app works completely with no server at all — the committed week, the
+browser, and a whole workout logged offline, which goes up on its own when
+there is a connection again. That fallback is not a nicety; it is the normal
+state of a phone in a garage.
 
-Reading the plan needs no password. Reading the record needs one, and needs
-sync to be on.
+## Deploying
 
-## Set-up
+Its own Netlify site, separate from the Farmhouse Getaways one in the
+repository root:
 
-Nothing, if the site already has the website editor working: it uses the same
-two variables.
+1. Netlify → **Add new site** → *Import an existing project* → this repository.
+2. **Base directory:** `workout`
+3. **Build command:** leave empty
+4. **Publish directory:** `workout`
+5. **Environment variables** → add:
 
-| Variable | What for |
-|---|---|
-| `ADMIN_PASSWORD` | Signing in. Without it nobody can write, the owner included — it fails closed |
-| `GITHUB_TOKEN` | Contents: read and write on this repository, so the plan can be saved |
-| `WORKOUT_HISTORY_SYNC` | Optional, and off unless it says `on`. See above |
+       WORKOUT_PASSWORD = whatever you want to type to edit the week and see the record
 
-Environment variables only reach the code on the next build, so a **Deploys →
-Trigger deploy** is needed after adding one.
+   Optionally `WORKOUT_SESSION_SECRET` (any long random string). Without it the
+   signing key is derived from the password, which means changing the password
+   signs every device out — usually what you want anyway.
 
-With neither variable set the app still works completely — it keeps everything
-in the browser and says so at the top of the week.
+6. Deploy. Then *Domain management* if it should have a name of its own.
+
+Netlify installs `package.json` so the functions can import `@netlify/blobs`;
+there is no build step for the site itself. Blobs storage needs nothing turned
+on.
+
+**A deploy must happen after setting the password.** Environment variables are
+read when the functions are built, so a site deployed before the variable
+existed stays read-only until it is redeployed.
 
 ## On a phone
 
@@ -137,25 +159,30 @@ menu, then **Install app**. It then opens without browser chrome, keeps the
 screen awake during a workout, and works in a gym with no signal — the shell is
 precached and the plan is already in the browser. A workout done offline is
 logged locally and goes to the server on its own when there is a connection
-again, if sync is on.
+again.
 
 ## What is in here
 
     index.html                the shell — everything else is rendered into it
     css/workout.css           all of the styling
     js/catalog.js             effort levels, the calorie maths, video links, formatting
-    js/store.js               the plan and the record: load, save, sync, the numbers
+    js/store.js               the week and the record: load, save, sync, the numbers
     js/app.js                 the six screens and the one click handler
-    data/plan.json            the published week
+    data/plan.json            the committed week — the floor under the live one
     icons/                    app icons, generated from icons/favicon.svg
     manifest.webmanifest      makes it installable
     sw.js                     the offline cache — bump VERSION when the file list changes
+    netlify.toml              this folder's own site config
+    package.json              one dependency: @netlify/blobs, for the functions
 
-    ../netlify/functions/workout.mjs        the only server there is
-    ../netlify/functions/_lib/workout.mjs   the shape of the data and the rules about it
+    netlify/functions/auth.mjs       signing in, out, and the lockout
+    netlify/functions/plan.mjs       the week: public to read, password to write
+    netlify/functions/history.mjs    the record: password to read and to write
+    netlify/functions/_lib/auth.mjs  the password, the cookie, the stores
+    netlify/functions/_lib/data.mjs  the shape of the data and every clamp
 
 Run the tests after touching anything under `_lib/`:
 
-    node --test netlify/functions/_lib/*.test.mjs
+    node --test workout/netlify/functions/_lib/*.test.mjs
 
 Plain Node, nothing to install.
