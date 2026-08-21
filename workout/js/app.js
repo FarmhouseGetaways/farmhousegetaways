@@ -243,7 +243,23 @@ const livePlanned = (live) => live.exercises.reduce((n, ex) => n + ex.setsPlanne
    phone cannot invent five hundred calories. */
 const SET_CAP_SEC = 240;
 
+/* True while a player is actually on screen. The store must not repaint over
+   a running workout — that would restart the video — but it MUST be allowed to
+   paint the first one, which is the difference between this flag and asking
+   whether the hash starts with #/go/. */
+let playerPainted = false;
+
 function renderPlayer(key) {
+  /* Opened cold on a workout URL — a bookmark, a reload mid-session, the app
+     restored by the phone. The plan is not in memory yet, and without this the
+     day looks like a rest day and the app bounces to the day screen. Wait for
+     the store; it re-renders the moment it has answered. */
+  if (!store.get().loaded) {
+    screen.innerHTML = `<p class="muted">Loading the workout…</p>`;
+    bar.hidden = true;
+    return;
+  }
+
   let live = store.loadLive();
 
   // A workout in progress for a different day is offered rather than silently
@@ -280,6 +296,7 @@ function askCarryOn(live, wantedKey) {
 }
 
 function paintPlayer(live) {
+  playerPainted = true;
   const ex = live.exercises[live.i];
   if (!ex) { finishWorkout(live); return; }
 
@@ -349,7 +366,10 @@ function paintPlayer(live) {
     </div>`;
 
   barIn.innerHTML = resting
-    ? `<button class="btn btn--big btn--go" data-action="skip-rest">Skip the rest &mdash; <span id="rest-mini">${restLeft(live)}</span>s</button>`
+    /* The label is one element rather than three. `.btn` is a flex box with a
+       gap, and a bare text node beside a <span> becomes its own flex item —
+       which is how "Skip the rest — 60 s" grew two stray spaces. */
+    ? `<button class="btn btn--big btn--go" data-action="skip-rest"><span>Skip the rest &mdash; <b id="rest-mini">${restLeft(live)}</b>s</span></button>`
     : live.pausedAt
       ? `<button class="btn btn--big" data-action="pause">Carry on</button>`
       : `<button class="btn btn--big btn--done" data-action="set-done">Set ${Math.min(setNo, ex.setsPlanned)} complete</button>`;
@@ -554,6 +574,7 @@ async function finishWorkout(live) {
 }
 
 function renderSummary(id) {
+  if (!store.get().loaded) { screen.innerHTML = `<p class="muted">Loading…</p>`; bar.hidden = true; return; }
   const session = store.history().sessions.find((s) => s.id === id);
   if (!session) { go("#/"); return; }
   const stats = store.stats();
@@ -929,7 +950,7 @@ function render() {
   const hash = location.hash || "#/";
   const [, route, arg] = hash.split("/");
 
-  if (route !== "go") { stopTicking(); }
+  if (route !== "go") { stopTicking(); playerPainted = false; }
   if (route !== "edit") draft = null;
 
   if (route === "day" && DAY_KEYS.includes(arg)) return renderDay(arg);
@@ -1034,9 +1055,11 @@ window.addEventListener("pagehide", () => { releaseWake(); });
 /* ---------- start ---------- */
 
 store.subscribe(() => {
-  // A repaint mid-workout would restart the video, so the player looks after
-  // itself and only the other screens follow the store.
-  if (!location.hash.startsWith("#/go/")) render();
+  // A repaint mid-workout would restart the video, so a player already on
+  // screen looks after itself. One that has not been painted yet — a cold
+  // start straight onto a workout URL — still needs this to draw it.
+  if (location.hash.startsWith("#/go/") && playerPainted) return;
+  render();
 });
 
 store.load().then(() => {
