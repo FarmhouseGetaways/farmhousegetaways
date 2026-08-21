@@ -450,10 +450,10 @@
           <p class="fs-title">Get the Ramona Farmstand Map, free.</p>
           <p>30+ farm stands, hand-drawn by us. Scan for Google navigation to all of them. Farmstand tourism lives here, adventure awaits!</p>
         </div>
-        <form class="fs-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="company" action="/thanks-list.html">
+        <form class="fs-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html">
           <input type="hidden" name="form-name" value="newsletter">
           <input type="hidden" name="source" value="footer-mr">
-          <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+          <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" aria-hidden="true"></label></p>
           <label for="fs-mr-email">Email address</label>
           <input id="fs-mr-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
           <button class="btn btn-primary" type="submit">Send the map</button>

@@ -156,10 +156,10 @@
       <h2 class="headline">Start the conversation.</h2>
       <p class="prose" style="margin-bottom:2.5rem;">Tell us your dates and your headcount and we will come back with what is available and what it costs. We answer these ourselves, usually within a day.</p>
 
-      <form class="form" name="group-inquiry" method="POST" data-netlify="true" netlify-honeypot="company" action="/thanks.html">
+      <form class="form" name="group-inquiry" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks.html">
         <input type="hidden" name="form-name" value="group-inquiry">
         <input type="hidden" name="source" value="book-both">
-        <p class="hp"><label>Leave this empty <input name="company"></label></p>
+        <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" aria-hidden="true"></label></p>
 
         <div class="field-pair">
           <div class="field">

@@ -364,7 +364,7 @@ What is actually wired into the code, verified 7 Aug 2026:
 |---|---|---|
 | **GitHub** | This repo. Claude GitHub App installed with write access | Working |
 | **Netlify** | Builds `main` automatically, `publish = "."`, no build command | Working |
-| **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `company` | Working |
+| **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `bot-field` | Working |
 | **Lodgify** | `renderBookNowBox.js` embed on both property pages | Working |
 | **Google Maps** | Embedded map on the farmstand map page | Working |
 | **EmailOctopus** | `netlify/functions/submission-created.mjs` — see `EMAIL.md` | Code shipped, **setup unfinished** |
@@ -578,6 +578,23 @@ Run it after any change to the encoding. Two rules the tests hold in place:
 
 `tolerant()` also matches `&nbsp;` in the *source*, so a page damaged by the old
 bug can still be edited back out through the editor.
+
+### The honeypot must never be called `company`
+
+Every form carries a hidden trap field. If it arrives filled, Netlify treats
+the submission as spam, discards it, and **still shows the visitor the thanks
+page**. Silent by design.
+
+It was named `company` on Farmhouse Getaways and Farmstand.TV until 20 Aug
+2026, and that is a field browsers autofill: Chrome and Safari both store an
+Organization for an address, and the Farmstand.TV form asks for owner name,
+address, city, state and zip — exactly the shape that triggers it. A real
+person filling that form in with autofill on had their submission thrown away
+without a trace.
+
+Renamed to `bot-field` everywhere, which no browser has ever offered to fill.
+**Never name a honeypot after anything a person or a browser might recognise**
+— company, organisation, address, phone, website.
 
 ## Form alerts — three sites, one phone
 
