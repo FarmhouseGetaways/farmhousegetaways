@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carissa's Workouts</title>
+<meta name="description" content="The week's workouts, one exercise at a time — video, sets, and a record of everything done.">
+<meta name="theme-color" content="#131013">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workouts">
+
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<!-- The display face, to keep it in the family with the websites. It is a
+     progressive enhancement in the true sense: with no signal the fallback
+     serif is used and nothing else changes. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" media="print" onload="this.media='all'">
+
+<link rel="stylesheet" href="css/workout.css">
+</head>
+
+<body>
+
+<a class="only-sr" href="#main">Skip to the workout</a>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="topbar__in">
+      <button type="button" class="icon-btn icon-btn--back" id="back" hidden aria-label="Back">&larr;</button>
+      <h1 class="topbar__title" id="title">
+        Carissa
+        <span class="topbar__sub" id="subtitle">The week</span>
+      </h1>
+      <button type="button" class="icon-btn" id="history-btn" aria-label="History" title="History">&#9202;</button>
+      <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap" id="screen">
+      <!-- Every screen is rendered here by js/app.js. -->
+      <p class="muted">Loading the week…</p>
+    </div>
+  </main>
+
+</div>
+
+<!-- The player's bottom bar lives outside the scrolling area so it stays
+     under her thumb while the page scrolls behind it. -->
+<div class="bar" id="bar" hidden><div class="bar__in" id="bar-in"></div></div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="sheet__panel">
+    <div class="sheet__head">
+      <h2 id="sheet-title">Settings</h2>
+      <button type="button" class="icon-btn" id="sheet-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="sheet-body"></div>
+  </div>
+</div>
+
+<noscript>
+  <div class="wrap">
+    <p class="note note--warn">This app needs JavaScript. The workouts, the videos and the timer are all
+    on this page rather than on a server, which is what lets it work in a gym with no signal.</p>
+  </div>
+</noscript>
+
+<script type="module" src="js/app.js"></script>
+<script>
+  /* Offline first. Registered here rather than in the module so a failure to
+     register can never stop the app itself from starting. */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* nothing to do */ });
+    });
+  }
+</script>
+
+</body>
+</html>

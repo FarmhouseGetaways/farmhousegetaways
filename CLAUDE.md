@@ -224,6 +224,7 @@ moved.
 | `ramona.html` | The region |
 | `thanks.html` / `thanks-list.html` | Form landing pages |
 | `edit.html` | Visual editor (see below) |
+| `workout/` | Carissa's workout tracker — a small app of its own (see below) |
 | `404.html` | Not-found page |
 | `css/site.css` | All styling, one file |
 
@@ -595,6 +596,47 @@ without a trace.
 Renamed to `bot-field` everywhere, which no browser has ever offered to fill.
 **Never name a honeypot after anything a person or a browser might recognise**
 — company, organisation, address, phone, website.
+
+## Carissa's workout tracker at `/workout/`
+
+An installable app in its own folder, added 21 Aug 2026. Seven days of the
+week, a workout on each, a video per exercise, a big **Set complete** button,
+and a record of everything done with a calorie estimate. Plain HTML, one
+stylesheet and three JavaScript modules — no framework and no npm, like
+everything else here. **`workout/README.md` is the long form**; read it before
+touching any of it.
+
+Three things a future session needs to know before changing anything:
+
+**The record is deliberately not on the server.** This repository is public.
+The plan is a list of exercises and commits happily to
+`workout/data/plan.json`; a training log is dates, sets, minutes and a body
+weight under a person's name, and committing that publishes it. So the history
+stays in the browser unless `WORKOUT_HISTORY_SYNC=on` is set in Netlify, which
+should only happen once the repository is private. `netlify.toml` also refuses
+to serve `/workout/data/history.json` over the web. **Do not "fix" either by
+switching sync on to make cross-device sync work** — that is the whole trade,
+and it is the owner's to make.
+
+**It uses the two variables that already exist.** `ADMIN_PASSWORD` and
+`GITHUB_TOKEN`, the same pair behind `/edit.html`. Nothing new to configure,
+and the same expiry in November applies — when the editor's Publish button
+starts complaining about the token, so will saving the week.
+
+**Everything works with no server at all.** If `/api/workout` cannot be
+reached, the app falls back to the committed `workout/data/plan.json` and the
+browser, says so at the top of the week, and keeps working — including a whole
+workout done in a gym with no signal. That fallback is not a nicety, it is the
+normal state of a phone in a garage, so keep it working.
+
+Server side is `netlify/functions/workout.mjs`, with the shape of the data and
+every clamp in `_lib/workout.mjs`, guarded by `_lib/workout.test.mjs`:
+
+    node --test netlify/functions/_lib/*.test.mjs
+
+`workout/sw.js` precaches the shell. **Bump `VERSION` in it whenever the file
+list changes**, or a phone that installed the app keeps serving the old copy
+for ever.
 
 ## Form alerts — three sites, one phone
 
