@@ -73,7 +73,7 @@ layout, and you switch between them under Options.
 | **A** | Jump |
 | **Y** (or LB) | Block |
 | **LT** | Dodge — an invincible hop away |
-| **RT** | Lunge — a fast advance |
+| **RT** | Lunge — closes the distance fast, and a punch or a kick during it comes straight out of the dash and carries its speed |
 
 Specials are two buttons pressed together:
 
@@ -115,6 +115,14 @@ the simple scheme arrived — see [MOVES.md](MOVES.md) for the motion list.
 
 `F1` toggles the hitbox display. `F11` is fullscreen. Two controllers give you
 two players, assigned in the order they were plugged in. The pad rumbles.
+
+### Getting back
+
+The **back** button — B on a pad, `K` on the keyboard in SIMPLE — steps back one
+screen from anywhere: out of the stage screen to the cats, off the cat screen to
+the title. On the cat screen in versus it un-picks the last cat locked in before
+it leaves, so one player changing their mind does not throw the other's away.
+Every one of those screens also has a **BACK** you can click.
 
 ### The menus take the mouse
 
@@ -186,7 +194,9 @@ water, weather, crowds, smoke — are all in `src/stagekit.js`.
 
 ## Modes
 
-- **Arcade** — one player against all five other cats in a row.
+- **Arcade** — one player against all five other cats in a row. Each win stops
+  on the winner screen and asks: CONTINUE to the next cat, or QUIT TO TITLE.
+  Health comes back either way and your meter carries over.
 - **Versus** — two players on one keyboard, or two gamepads.
 - **Training** — infinite health on the dummy, infinite meter for you. Turn on
   the hitbox display with `F1` and the frame data appears alongside it.

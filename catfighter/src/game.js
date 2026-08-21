@@ -45,7 +45,8 @@
        lock a cat in */
     this.roster = { cat: 0, pick: 0 };
     this.reveal = { t: 0, chr: null };
-    this.arcade = { step: 0, order: [] };
+    this.arcade = { step: 0, order: [], pending: null };
+    this.resultPick = 0;
     this.ghost = [0, 0];
     this.announce = null;
     this.announceT = 0;
@@ -251,11 +252,15 @@
         var s = this.stageRects();
         return [s.prev, s.next, s.go, s.back];
       }
-      return this.selectRects();
+      return this.selectRects().concat([this.selectBackRect()]);
     }
     if (this.scene === 'roster') {
       var rr = this.rosterRects();
       return [rr.prev, rr.next, rr.back].concat(rr.rows);
+    }
+    if (this.scene === 'result' && this.resultKind === 'advance' && this.arcade.pending) {
+      var rs = this.resultRects();
+      return [rs.go, rs.quit];
     }
     if (this.scene === 'controls' || this.scene === 'result' || this.scene === 'reveal') {
       return [{ x: 0, y: 0, w: W, h: H }];
@@ -523,6 +528,23 @@
       }
     }
 
+    /* Back out. In versus this un-locks whoever locked in last, so one player
+       changing their mind does not throw the other's pick away; with nobody
+       locked there is nothing left to undo and it goes to the title. Getting
+       stuck on this screen with no way home was the first thing the owner
+       hit with a pad in hand. */
+    if (!this._navCool && (this.ports[0].cancelPressed() ||
+                           (players > 1 && this.ports[1].cancelPressed()) ||
+                           this.hit(this.selectBackRect()))) {
+      this._navCool = 12;
+      CF.Audio.play('cursor');
+      if (this.select.locked[1]) { this.select.locked[1] = false; return; }
+      if (this.select.locked[0]) { this.select.locked[0] = false; return; }
+      this.scene = 'title';
+      this.menuIndex = 0;
+      return;
+    }
+
     var ready = this.select.locked[0] && (players === 1 || this.select.locked[1]);
     if (ready) {
       this.select.phase = 'stage';
@@ -536,6 +558,12 @@
         CF.Audio.play('select');
       }
     }
+  };
+
+  /* The BACK strip on the cat screen. Same shape and place as the one on the
+     stage screen, so the way out is in the same spot on both. */
+  Game.prototype.selectBackRect = function () {
+    return { x: 4, y: 4, w: 44, h: 13 };
   };
 
   /* index === CF.Stages.length means "surprise me" */
@@ -878,15 +906,26 @@
           this.resultStart = undefined;
           this.resultKind = 'clear';
           this.resultTimer = 400;
+          this.arcade.pending = null;
           CF.Audio.stopMusic();
           return;
         }
-        /* next opponent, health restored, meter kept */
-        var meter = this.p1.meter;
-        var next = CF.ROSTER[this.arcade.order[this.arcade.step]];
-        var stage = (this.select.stage + this.arcade.step) % CF.Stages.length;
-        this.startMatch(this.p1.chr, next, stage, 'arcade');
-        this.p1.meter = Math.min(this.p1.maxMeter, meter);
+        /* The ladder used to drop you straight into the next fight with no
+           break at all, which reads as a bug rather than a feature. It now
+           stops on the winner screen and asks: CONTINUE, or back to the
+           title. Health is restored either way and meter carries over. */
+        this.arcade.pending = {
+          chr: this.p1.chr,
+          next: CF.ROSTER[this.arcade.order[this.arcade.step]],
+          stage: (this.select.stage + this.arcade.step) % CF.Stages.length,
+          meter: this.p1.meter
+        };
+        this.scene = 'result';
+        this.resultStart = undefined;
+        this.resultKind = 'advance';
+        this.resultTimer = 0;          /* no clock — it waits for an answer */
+        this.resultPick = 0;
+        CF.Audio.stopMusic();
         return;
       }
       this.scene = 'result';
@@ -901,12 +940,58 @@
   };
 
   Game.prototype.stepResult = function () {
+    /* Between arcade fights this is a menu, not a card that times out. */
+    if (this.resultKind === 'advance' && this.arcade.pending) {
+      var p = this.ports[0], r = this.resultRects();
+      if (p.menuDir([4, 8])) { this.resultPick = 0; CF.Audio.play('cursor'); }
+      if (p.menuDir([6, 2])) { this.resultPick = 1; CF.Audio.play('cursor'); }
+      if (this.hover(r.go)) this.resultPick = 0;
+      if (this.hover(r.quit)) this.resultPick = 1;
+
+      var goOn = this.hit(r.go);
+      var quit = this.hit(r.quit) || p.cancelPressed();
+      if (!goOn && !quit && (p.confirmPressed() || p.startPressed)) {
+        if (this.resultPick === 0) goOn = true; else quit = true;
+      }
+      if (goOn) {
+        var pend = this.arcade.pending;
+        this.arcade.pending = null;
+        CF.Audio.play('select');
+        this.startMatch(pend.chr, pend.next, pend.stage, 'arcade');
+        this.p1.meter = Math.min(this.p1.maxMeter, pend.meter);
+        return;
+      }
+      if (quit) {
+        this.arcade.pending = null;
+        this.arcade.step = 0;
+        this.arcade.order = [];
+        this.scene = 'title';
+        this.menuIndex = 0;
+        CF.Audio.play('cursor');
+        CF.Audio.stopMusic();
+      }
+      return;
+    }
+
     this.resultTimer--;
-    if (this.resultTimer <= 0 || this.anyStart() || this.pointer.clicked) {
+    if (this.resultTimer <= 0 || this.anyStart() || this.pointer.clicked ||
+        this.ports[0].confirmPressed() || this.ports[0].cancelPressed()) {
       this.scene = 'title';
       this.menuIndex = 0;
+      this.arcade.step = 0;
+      this.arcade.order = [];
       CF.Audio.stopMusic();
     }
+  };
+
+  /* The two buttons on the between-fights screen. One function, used for
+     drawing and for hit-testing — a menu drawn where the hit test cannot see
+     it is a menu that does not work. */
+  Game.prototype.resultRects = function () {
+    return {
+      go:   { x: W / 2 - 88, y: H - 30, w: 84, h: 16 },
+      quit: { x: W / 2 + 4,  y: H - 30, w: 84, h: 16 }
+    };
   };
 
   /* ======================================================================
@@ -1040,6 +1125,16 @@
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
     HUD.text(ctx, 'SELECT YOUR CAT', W / 2, 18, 13, '#ffe07a', 'center', 800, 2);
+
+    /* the way out, drawn exactly where selectBackRect says it is */
+    var br = this.selectBackRect();
+    var overBack = this.over(br);
+    ctx.fillStyle = overBack ? 'rgba(255,224,122,.24)' : 'rgba(0,0,0,.42)';
+    ctx.fillRect(br.x, br.y, br.w, br.h);
+    ctx.strokeStyle = 'rgba(255,224,122,.45)'; ctx.lineWidth = 1;
+    ctx.strokeRect(br.x + 0.5, br.y + 0.5, br.w - 1, br.h - 1);
+    HUD.text(ctx, '\u25C0 BACK', br.x + br.w / 2, br.y + br.h - 4, 7,
+             overBack ? '#ffe07a' : 'rgba(255,224,122,.75)', 'center', 800, 0.5);
 
     var cw = 52, ch = 46, gapX = 8, gapY = 8;
     var totalW = 3 * cw + 2 * gapX;
@@ -1374,7 +1469,7 @@
       }
       var extra = [['BLOCK', 'hold it — add down for lows'],
                    ['DODGE (LT)', 'invincible hop away'],
-                   ['LUNGE (RT)', 'fast advance']];
+                   ['LUNGE (RT)', 'close in — punch or kick out of it']];
       for (var e2 = 0; e2 < extra.length; e2++) {
         var ey = 170 + e2 * 13;
         ctx.fillStyle = 'rgba(143,214,255,.07)';
@@ -1661,6 +1756,16 @@
                W / 2 - slam, 50, 8.5, '#ffd9b0', 'center', 700, 1);
     } else if (this.resultKind === 'draw') {
       HUD.outlineText(ctx, 'DRAW GAME', W / 2 + slam, 42, 25, '#ffd166', '#2a0e18');
+    } else if (this.resultKind === 'advance') {
+      HUD.outlineText(ctx, 'WINNER', W / 2 + slam, 28, 20, '#ffe07a', '#2a0e18');
+      HUD.outlineText(ctx, champ.chr.displayName, W / 2 - slam, 50, 21, '#fff', '#2a0e18');
+      /* the line goes UNDER the champion, not across their ears */
+      var pend2 = this.arcade.pending;
+      if (pend2) {
+        HUD.text(ctx, 'MATCH ' + (this.arcade.step + 1) + ' OF ' + this.arcade.order.length +
+                      '   \u00B7   NEXT UP: ' + pend2.next.displayName,
+                 W / 2 - slam, H - 36, 8, '#ffb8a0', 'center', 700, 1.2);
+      }
     } else {
       HUD.outlineText(ctx, 'WINNER', W / 2 + slam, 28, 20, '#ffe07a', '#2a0e18');
       HUD.outlineText(ctx, champ.chr.displayName, W / 2 - slam, 50, 21, '#fff', '#2a0e18');
@@ -1685,7 +1790,23 @@
       ctx.globalAlpha = 1;
     }
 
-    if (tt > 34) {
+    if (this.resultKind === 'advance' && this.arcade.pending) {
+      /* CONTINUE or go home. Drawn from resultRects, which is the same
+         function the hit test uses. */
+      var rr2 = this.resultRects(), self = this;
+      ctx.globalAlpha = ease;
+      [[rr2.go, 'CONTINUE', 0], [rr2.quit, 'QUIT TO TITLE', 1]].forEach(function (b2) {
+        var box = b2[0], on = (self.resultPick === b2[2]) || self.over(box);
+        ctx.fillStyle = on ? 'rgba(255,224,122,.26)' : 'rgba(0,0,0,.55)';
+        ctx.fillRect(box.x, box.y, box.w, box.h);
+        ctx.strokeStyle = on ? '#ffe07a' : 'rgba(255,224,122,.4)';
+        ctx.lineWidth = on ? 1.6 : 1;
+        ctx.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+        HUD.text(ctx, b2[1], box.x + box.w / 2, box.y + box.h - 5, 8,
+                 on ? '#fff6e0' : 'rgba(255,224,122,.7)', 'center', 800, 0.6);
+      });
+      ctx.globalAlpha = 1;
+    } else if (tt > 34) {
       HUD.text(ctx, 'PRESS ANYTHING', W / 2, H - 3, 7.5,
                t % 60 < 36 ? '#ffe07a' : 'rgba(255,224,122,.3)', 'center', 800, 1.4);
     }

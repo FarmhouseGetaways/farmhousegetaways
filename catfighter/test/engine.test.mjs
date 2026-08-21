@@ -1606,3 +1606,188 @@ test('the CPU lets a cornered player back out', () => {
       `at difficulty ${level} the CPU never gave the corner back in fifteen seconds`);
   }
 });
+
+/* ==========================================================================
+   Getting out, going on, and hitting out of a lunge
+   ========================================================================== */
+
+test('a lunge can be cancelled into an attack, and keeps its speed', () => {
+  /* A dash you cannot hit out of is a way of walking quickly. The attack has
+     to come out DURING the lunge and has to carry the forward momentum, or
+     closing the distance is not worth the button. */
+  const g = headlessGame(CF);
+  g.arcade = { step: 0, order: [] };
+  CF.Input.setScheme('simple');
+  /* the ports the game polls, not the ones hung off the fighters */
+  g.ports[0] = new CF.VirtualPort();
+  g.ports[1] = new CF.VirtualPort();
+  g.startMatch(CF.byId('gracie'), CF.byId('mario'), 0, 'versus');
+  for (let i = 0; i < 130; i++) g.step();
+
+  g.p1.setState('idle');
+  g.p1.startMove(g.p1.chr.moves.lunge, 0);
+  for (let i = 0; i < 6; i++) g.step();
+  assert.equal(g.p1.move && g.p1.move.name, 'Lunge', 'the lunge should still be running');
+  const speed = Math.abs(g.p1.vx);
+  assert.ok(speed > 2, `the lunge should be moving, not ${speed.toFixed(2)}`);
+
+  /* punch, mid-lunge */
+  g.ports[0].clear();
+  g.ports[0].qBtn(5, 'P', 3);
+  g.step();
+  assert.ok(g.p1.move && g.p1.move.name !== 'Lunge',
+    'a punch mid-lunge should cancel it into the punch, not be ignored');
+  assert.equal(g.p1.state, 'move');
+  assert.ok(Math.abs(g.p1.vx) > 2,
+    `the attack should carry the dash, not stop dead at ${Math.abs(g.p1.vx).toFixed(2)}`);
+});
+
+test('the lunge cancel window closes', () => {
+  /* It is a cancel, not a free attack for the whole move — otherwise the
+     recovery on the lunge costs nothing at all. */
+  const lunge = CF.byId('gracie').moves.lunge;
+  assert.ok(Array.isArray(lunge.attackCancel), 'the lunge needs an attackCancel window');
+  const total = lunge.startup + lunge.active + lunge.recovery;
+  assert.ok(lunge.attackCancel[1] < total,
+    'the window has to close before the lunge does');
+});
+
+test('back gets you out of character select', () => {
+  /* Being stuck on the cat screen with a pad in your hand and no way home is
+     what this answers. Cancel un-picks first, then leaves. */
+  const g = headlessGame(CF);
+  g.settings.mode = 'versus';
+  g.scene = 'select';
+  g.select = { cursor: [0, 3], locked: [true, true], stage: 0, phase: 'chars' };
+  g._navCool = 0;
+  g.ports[0] = new CF.VirtualPort();
+  g.ports[1] = new CF.VirtualPort();
+
+  /* A button has to be RELEASED before it can be pressed again — `pressed`
+     is the edge, not the level — so every tap here is a neutral frame and
+     then the button. */
+  const tapBack = () => {
+    g._navCool = 0;
+    g.ports[0].clear(); g.ports[0].qDir(5, 1);
+    g.ports[0].poll(); g.ports[1].poll();
+    g.ports[0].clear(); g.ports[0].qBtn(5, 'K', 2);
+    g.ports[0].poll(); g.ports[1].poll();
+    g.stepSelect();
+  };
+
+  tapBack();
+  assert.deepStrictEqual([g.select.locked[0], g.select.locked[1]], [true, false],
+    'the first cancel should un-pick player two');
+
+  tapBack();
+  assert.equal(g.select.locked[0], false, 'the second should un-pick player one');
+
+  tapBack();
+  assert.equal(g.scene, 'title', 'and the third should leave the screen');
+});
+
+test('the character select draws its back button where the hit test looks', () => {
+  const g = headlessGame(CF);
+  const r = g.selectBackRect();
+  assert.ok(r.w > 0 && r.h > 0);
+  g.scene = 'select';
+  g.select = { cursor: [0, 3], locked: [false, false], stage: 0, phase: 'chars' };
+  const targets = g.clickTargets();
+  assert.ok(targets.some(t => t.x === r.x && t.y === r.y && t.w === r.w && t.h === r.h),
+    'the back button has to be in clickTargets or the mouse cannot press it');
+});
+
+test('the arcade ladder stops between fights and asks', () => {
+  /* Winning used to drop you straight into the next match with no break at
+     all, which reads as a bug. It now waits on the winner screen. */
+  const g = headlessGame(CF);
+  g.settings.mode = 'arcade';
+  g.settings.rounds = 1;
+  g.select = { cursor: [0, 1], locked: [true, false], stage: 0, phase: 'stage' };
+  g.startPicked();
+  assert.equal(g.scene, 'fight');
+  const firstFoe = g.p2.chr.id;
+
+  g.p1.roundWins = 1;
+  g.afterRound();
+  assert.equal(g.scene, 'result', 'a match win should land on the result screen');
+  assert.equal(g.resultKind, 'advance');
+  assert.ok(g.arcade.pending, 'the next fight should be waiting, not started');
+  assert.equal(g.scene === 'fight', false);
+
+  /* CONTINUE */
+  g.ports[0] = new CF.VirtualPort();
+  g.resultPick = 0;
+  g.ports[0].qBtn(5, 'JUMP', 2);
+  g.ports[0].poll();
+  g.stepResult();
+  assert.equal(g.scene, 'fight', 'CONTINUE should start the next fight');
+  assert.notEqual(g.p2.chr.id, firstFoe, 'and it should be a new opponent');
+  assert.equal(g.p1.health, g.p1.maxHealth, 'with health restored');
+});
+
+test('quitting the ladder goes to the title and forgets the run', () => {
+  const g = headlessGame(CF);
+  g.settings.mode = 'arcade';
+  g.settings.rounds = 1;
+  g.select = { cursor: [0, 1], locked: [true, false], stage: 0, phase: 'stage' };
+  g.startPicked();
+  g.p1.roundWins = 1;
+  g.afterRound();
+
+  g.ports[0] = new CF.VirtualPort();
+  g.resultPick = 1;
+  g.ports[0].qBtn(5, 'K', 2);
+  g.ports[0].poll();
+  g.stepResult();
+  assert.equal(g.scene, 'title');
+  assert.equal(g.arcade.pending, null);
+  assert.equal(g.arcade.order.length, 0, 'a new run should not inherit the old ladder');
+});
+
+test('the continue buttons are drawn where the hit test looks', () => {
+  const g = headlessGame(CF);
+  g.scene = 'result';
+  g.resultKind = 'advance';
+  g.arcade = { step: 1, order: [1, 2, 3, 4, 5], pending: { next: CF.ROSTER[1] } };
+  const r = g.resultRects();
+  const targets = g.clickTargets();
+  assert.equal(targets.length, 2, 'two buttons, and only those two');
+  for (const box of [r.go, r.quit]) {
+    assert.ok(targets.some(t => t.x === box.x && t.y === box.y),
+      'both buttons have to be clickable');
+    assert.ok(box.y + box.h <= 224 && box.x >= 0 && box.x + box.w <= 384,
+      'and both have to be on the screen');
+  }
+});
+
+test('a lunge punch reaches where a standing punch whiffs', () => {
+  /* The reason to have the cancel at all: it turns a gap you cannot hit
+     across into one you can. If these two ever come out the same, the lunge
+     has stopped carrying its speed into the attack. */
+  CF.Input.setScheme('simple');
+  const hit = (withLunge, gap) => {
+    const g = headlessGame(CF);
+    g.arcade = { step: 0, order: [] };
+    g.ports[0] = new CF.VirtualPort();
+    g.ports[1] = new CF.VirtualPort();
+    g.startMatch(CF.byId('gracie'), CF.byId('mario'), 0, 'versus');
+    for (let i = 0; i < 130; i++) g.step();
+    g.p1.x = -gap / 2; g.p2.x = gap / 2;
+    g.p2.health = g.p2.maxHealth;
+    const before = g.p2.health;
+    g.p1.setState('idle');
+    if (withLunge) {
+      g.p1.startMove(g.p1.chr.moves.lunge, 0);
+      for (let i = 0; i < 6; i++) g.step();
+    }
+    g.ports[0].clear();
+    g.ports[0].qBtn(5, 'P', 3);
+    for (let i = 0; i < 60; i++) { g.p2.x = gap / 2; g.step(); }
+    return before - g.p2.health > 0;
+  };
+  assert.equal(hit(false, 55), true, 'a standing punch should land up close');
+  assert.equal(hit(false, 100), false, 'and should whiff from a long way out');
+  assert.equal(hit(true, 100), true,
+    'a punch out of a lunge should close that gap — that is the whole point of it');
+});

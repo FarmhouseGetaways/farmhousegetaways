@@ -295,6 +295,11 @@
       lunge: {
         name: 'Lunge', kind: 'system', stance: 'stand',
         startup: 2, active: 14, recovery: 8, noAttack: true,
+        /* An attack button between these frames takes the lunge straight
+           into that attack, and the forward speed goes with it. Without
+           this the lunge is just a way of walking quickly into range and
+           then standing there, which is what it was. */
+        attackCancel: [2, 18],
         anim: [{ at: 0, p: CF.Pose.stand }, { at: 3, p: CF.Pose.walkF1 },
                { at: 9, p: CF.Pose.walkF3 }, { at: 15, p: CF.Pose.walkF1 },
                { at: 24, p: CF.Pose.stand }],

@@ -611,6 +611,26 @@
     }
     if (this.moveFrame > 3) this.pendingPairFrom = null;
 
+    /* Cancelling a lunge into an attack. The whole point of a forward dash in
+       a fighting game is that it closes the distance and the attack comes out
+       of it — a dash you cannot hit out of is a way of walking quickly. The
+       speed carries into the attack, so a lunge punch reaches further and
+       hits harder-looking than the same punch standing still. */
+    if (m.attackCancel && this.moveFrame >= m.attackCancel[0] &&
+        this.moveFrame <= m.attackCancel[1]) {
+      var carried = this.vx, was = this.move;
+      /* Normals only. Specials on the four-button scheme are a PAIR of
+         buttons, and one of the two is LUNGE — so letting a special cancel
+         the lunge means the dodge you press to get back out fires a special
+         instead, which is worse than not having the cancel at all. */
+      if (this.tryNormal('stand') && this.move !== was) {
+        /* keep at least half the dash speed going into the attack */
+        this.vx = this.facing * Math.max(Math.abs(carried) * 0.6, 2.4);
+        this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 4 });
+        return;
+      }
+    }
+
     /* cancels: a connected light or medium can be taken into a special */
     if (this.moveConnected && m.cancel && m.cancel.length && !this.canceled) {
       if (m.cancel.indexOf('super') >= 0 || m.cancel.indexOf('special') >= 0) {

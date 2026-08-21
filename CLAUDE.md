@@ -690,6 +690,25 @@ Three things a later session needs to know:
   it. The rects used for drawing and for hit-testing are **the same function**
   (`titleRects`, `selectRects`, `stageRects`, `optionRects` in `game.js`).
   Never let a menu draw itself at coordinates the hit test does not know about.
+- **Every screen has a way back, and it is B.** The cat screen had none —
+  once you were on it with a pad in your hand you were stuck, which the owner
+  hit on 21 Aug 2026. Cancel now un-picks the last cat locked in and then
+  leaves for the title, and there is a clickable BACK chip drawn from
+  `selectBackRect()` — the same function the hit test uses, as everywhere else.
+- **The arcade ladder stops between fights.** It used to call `startMatch` for
+  the next opponent the instant you won, with no break at all, which reads as
+  a bug rather than a feature. `afterRound` now parks the next fight in
+  `arcade.pending` and goes to the winner screen with `resultKind = 'advance'`,
+  which is a menu with CONTINUE and QUIT TO TITLE and **no timeout** — it
+  waits for an answer. Quitting clears `arcade.order` so the next run does not
+  inherit the old ladder.
+- **The lunge can be cancelled into a normal**, `attackCancel: [2, 18]` on the
+  move, handled in `Fighter.updateMove`. The attack keeps 60% of the dash
+  speed, so a lunge punch lands across a gap a standing punch whiffs — a test
+  asserts exactly that. **Normals only, deliberately**: specials on the
+  four-button scheme are a pair of buttons and one of them is LUNGE, so
+  allowing a special cancel means the dodge you press to get back out fires a
+  special instead.
 - **There are two control schemes**, in `catfighter/src/input.js`. SIMPLE is the
   default — four buttons (punch, kick, jump, block), two triggers (dodge,
   lunge), and specials on a pair of buttons. CLASSIC is the original six-button
