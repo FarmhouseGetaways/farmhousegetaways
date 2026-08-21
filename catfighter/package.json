@@ -2,7 +2,7 @@
   "name": "cat-fighter-ii",
   "productName": "Cat Fighter II",
   "version": "0.1.0",
-  "description": "Cat Fighter II \u2014 The Farmhouse Warriors. A six-button arcade fighting game.",
+  "description": "Cat Fighter II — The Farmhouse Warriors. A six-button arcade fighting game.",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
@@ -13,7 +13,8 @@
     "dist:win32": "electron-builder --win --ia32",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "dist:steam": "electron-builder --win --x64 --dir"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -22,7 +23,7 @@
   "build": {
     "appId": "com.farmhousegetaways.catfighter",
     "productName": "Cat Fighter II",
-    "copyright": "Copyright \u00a9 2026 Farmhouse Getaways",
+    "copyright": "Copyright © 2026 Farmhouse Getaways",
     "directories": {
       "output": "dist"
     },

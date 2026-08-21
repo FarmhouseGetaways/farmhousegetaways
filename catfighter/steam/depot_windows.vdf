@@ -1,0 +1,21 @@
+// The Windows depot: everything electron-builder leaves in dist\win-unpacked.
+//
+// Steam ships a FOLDER, not an installer. The NSIS .exe the GitHub Action
+// builds is for handing to somebody directly; Steam wants the unpacked
+// directory, which is what `npm run dist:steam` produces.
+"DepotBuild"
+{
+	"DepotID"	"0000001"
+	"contentroot"	"..\dist\win-unpacked"
+
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+
+	// debug symbols are large and no use to a player
+	"FileExclusion"	"*.pdb"
+	"FileExclusion"	"*.map"
+}

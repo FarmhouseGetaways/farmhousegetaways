@@ -656,8 +656,18 @@ Three things a later session needs to know:
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**
   It only fires for changes under `catfighter/`, so it cannot slow down or
-  interfere with a site deploy. Actions tab → Run workflow → download the
-  artifact.
+  interfere with a site deploy. Actions tab → the run → Artifacts →
+  `CatFighterII-windows`. It contains an NSIS installer and a portable zip,
+  is about 193 MB because Electron is a whole copy of Chromium, and
+  **GitHub deletes it thirty days after the build**. A build older than that
+  means re-running the workflow, not hunting for the file.
+- **`catfighter/STEAM.md` is the route to Steam**, and `catfighter/steam/`
+  holds the two SteamPipe scripts, already written and commented with
+  placeholder IDs. Three things a session should not have to rediscover:
+  Steam ships the **unpacked folder** (`npm run dist:steam` → `dist\win-unpacked`),
+  not the installer; the Steam **overlay does not work with Electron**; and
+  there is a **thirty-day wait** between paying the $100 app fee and being
+  allowed to release.
 
 **If this branch is ever merged to `main`, the game ships with the site.**
 `netlify.toml` sets `publish = "."`, so `catfighter/` would go live at

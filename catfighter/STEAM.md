@@ -1,164 +1,121 @@
-# Putting it on Steam
+# Getting Cat Fighter II onto Steam
 
-Electron games ship on Steam routinely, so there is nothing unusual about this
-one. What follows is the whole path, in order, with the costs stated plainly.
+Written 21 Aug 2026. Valve moves the details around — treat the money and the
+waiting periods as "check this on the partner site", not as gospel.
 
----
+## Before Steam: put it in front of people
 
-## What it costs and how long it takes
+Steam charges per title and makes you wait a month. **itch.io is free and
+takes about ten minutes**, and it will host the same `dist/win-unpacked` zip
+or even the single-file `dist/catfighter-bundle.html` to play in a browser.
+If the point right now is to find out whether the game is any good, do that
+first. Steam is for selling it, not for testing it.
 
-| Step | Cost | Time |
-|---|---|---|
-| Steamworks account | free | a day or two to be approved |
-| App fee, per game | **$100 USD**, one-off, refundable against $1,000 of sales | — |
-| Store page review | free | 1–5 working days |
-| Build review | free | 1–5 working days |
-| Mandatory wait after the store page goes live | — | **2 weeks minimum** before you may release |
+## What Steam needs from us
 
-So from a standing start: about a month, and $100.
+1. **A Steamworks partner account** at partner.steamgames.com. Individual is
+   fine — it does not have to be a company. Expect to hand over identity
+   verification, a tax form (W-9 in the US), bank details for payment, and a
+   digital signature on the distribution agreement. Payment details have to
+   clear before anything else moves.
 
----
+2. **The Steam Direct fee — $100 per title.** It comes back to you once the
+   game has made $1,000 in adjusted gross revenue. One fee per app, so this is
+   $100 for Cat Fighter II specifically.
 
-## 1. Set up the account
+3. **A thirty-day wait.** Valve will not let an app release until thirty days
+   after the fee is paid. It exists to stop people spraying junk onto the
+   store, and there is no way around it, so pay early if there is any date in
+   mind.
 
-1. Sign up at <https://partner.steamgames.com>.
-2. Complete the tax and banking forms. This is the slow part — Valve will not
-   let anything go live until they are done, and they need a real bank account
-   and tax identification.
-3. Pay the $100 app fee. You get an **AppID** — a number like `3210987`. Write
-   it down; everything else refers to it.
+4. **A store page, live as "Coming Soon", for at least two weeks** before
+   release. Valve reviews the page separately from the build and will send it
+   back over small things, so leave more room than you think.
 
-## 2. Build the game
+5. **Store artwork, at sizes Valve is strict about.** Roughly:
+
+   | Asset | Size |
+   |---|---|
+   | Header capsule | 460 × 215 |
+   | Small capsule | 462 × 174 |
+   | Main capsule | 616 × 353 |
+   | Vertical capsule | 374 × 448 |
+   | Library capsule | 600 × 900 |
+   | Library hero | 1920 × 620 |
+   | Library logo | 1280 × 720, transparent |
+   | Page background | 1438 × 810 |
+   | Screenshots | 1920 × 1080, at least five |
+
+   A trailer is optional and worth far more than it costs. **All of this can
+   be rendered by the game itself** — the character cards, the stages and the
+   cats are all drawn in code at whatever size you ask for, so the capsules
+   can be generated rather than drawn by hand, and they will always match what
+   the game actually looks like.
+
+6. **The content survey and age rating questionnaire.** Quick, but it gates
+   the page going live.
+
+7. **A build, uploaded through SteamPipe.** See below.
+
+## Uploading a build
+
+Steam ships a **folder**, not an installer. The NSIS `.exe` the GitHub Action
+produces is for handing to somebody directly; Steam wants the unpacked
+directory.
 
 ```
 cd catfighter
 npm install
-npm run dist:win
+npm run dist:steam        # leaves dist\win-unpacked
+cd steam
+steamcmd +login <partner-account> +run_app_build ..\steam\app_build.vdf +quit
 ```
 
-Steam wants the **unpacked folder**, not the installer — Steam does its own
-installing. Use:
+`steam/app_build.vdf` and `steam/depot_windows.vdf` are already written and
+commented. Both carry placeholder IDs — Valve gives you a real App ID and
+Depot ID when the app is created, and those two numbers are the only things
+that need filling in. `setlive` is deliberately left empty so a build uploads
+without going live; publish it from the Steamworks page instead.
 
-```
-npm run pack
-```
+Valve then reviews the build. It is a functional check rather than a taste
+test — does it launch, does it do what the page says — and it usually takes a
+few working days.
 
-which leaves a ready-to-upload folder at `catfighter/dist/win-unpacked/`.
+## Things about this build in particular
 
-## 3. Upload it
+**It is 193 MB, and the game is 332 KB.** All of the rest is Electron, which
+is a whole copy of Chromium. That is fine on Steam and plenty of shipped games
+do it, but if the size ever matters, the game is a single self-contained HTML
+file and would run just as well inside a WebView2 shim on Windows — a few
+megabytes rather than nearly two hundred. Worth doing before launch, not
+after: changing the shipping vehicle after release means every player
+re-downloads.
 
-Steam uploads through a tool called **SteamPipe**, which comes in the
-Steamworks SDK.
+**The Steam overlay will probably not work.** It hooks the graphics API, and
+Chromium's compositor does not cooperate. In practice that means no Shift+Tab
+overlay in-game, no Steam screenshots with F12, and no overlay-based purchases
+or invites. Nothing else breaks. Worth saying on the store page rather than
+letting people find out.
 
-1. Download the SDK from the Steamworks site.
-2. In `tools/ContentBuilder/scripts/`, make an app build script:
+**Controllers should just work, but configure Steam Input anyway.** The game
+reads the browser Gamepad API, and Steam Input presents pads as XInput
+devices by default, so an Xbox controller will be recognised. Publishing an
+official Steam Input configuration is what gets you the "Full Controller
+Support" tag and lets people rebind without touching the game.
 
-```
-"appbuild"
-{
-  "appid"    "YOUR_APPID"
-  "desc"     "Cat Fighter II 0.1.0"
-  "buildoutput" "..\\output\\"
-  "contentroot" "..\\content\\"
-  "setlive"  ""
-  "depots"
-  {
-    "YOUR_DEPOTID"
-    {
-      "FileMapping" { "LocalPath" "*" "DepotPath" "." "recursive" "1" }
-    }
-  }
-}
-```
+**The build is unsigned.** Steam delivers its own files so this does not
+matter on Steam, but it very much matters if you hand the `.exe` to a friend —
+Windows SmartScreen will tell them it is dangerous. A code-signing certificate
+is a few hundred dollars a year and is only worth it if you plan to distribute
+outside Steam.
 
-3. Copy the contents of `dist/win-unpacked/` into `tools/ContentBuilder/content/`.
-4. Run:
+**The version is still 0.1.0**, in `package.json`. Bump it before any build
+you intend to keep, because Steam build lists get confusing fast otherwise.
 
-```
-steamcmd.exe +login YOUR_ACCOUNT +run_app_build ..\scripts\app_build.vdf +quit
-```
+## What is optional
 
-5. In the Steamworks dashboard, set the launch executable to
-   `Cat Fighter II.exe` and push the build to a branch.
-
-## 4. Store page
-
-You will need, at minimum:
-
-- **Capsule art** in several sizes — 616×353, 460×215, 231×87, 374×448 and a
-  1438×810 header. This is the fiddliest part of the whole process.
-- **Five screenshots** at 1920×1080.
-- A short description and a long description.
-- A trailer is optional but the store algorithm strongly favours having one.
-
-The screenshots are easy: run the game fullscreen and press Print Screen. The
-capsule art is the real work, and is worth doing properly — it is the only
-thing most people ever see.
-
-## 5. Release
-
-Once the store page is approved it must sit live for **two weeks** before you
-are allowed to press release. Use that fortnight to fix whatever the build
-review flags.
-
----
-
-## Controllers on Steam
-
-Nothing needs doing. The game reads controllers through the standard gamepad
-interface, and Steam Input presents an Xbox, PlayStation or Switch pad to the
-game in exactly that shape. An Xbox pad works with no configuration at all,
-and a DualSense or a Switch Pro controller is handed over already translated.
-
-Two things worth setting on the Steamworks store page when you get there:
-
-- Tick **Full Controller Support** in the app's controller settings. It puts
-  the game in front of Steam Deck and living-room users, who filter on it.
-- Upload a **controller configuration** if you want the button prompts in the
-  Steam overlay to match. The default gamepad template is already correct for
-  this layout, so this is polish rather than a requirement.
-
-The game also rumbles, which Steam Input passes through untouched.
-
-## Optional: the Steam overlay and achievements
-
-The game does not need the Steamworks API to run on Steam — it will launch and
-play perfectly well without it. Two things need it:
-
-- **Shift+Tab overlay** — works out of the box for most Electron apps, but is
-  more reliable when the API is initialised.
-- **Achievements, cloud saves, the friends list.**
-
-If you want those, add [`steamworks.js`](https://github.com/ceifa/steamworks.js):
-
-```
-npm install steamworks.js
-```
-
-Then in `electron/main.js`, after `app.whenReady()`:
-
-```js
-const steamworks = require('steamworks.js');
-const client = steamworks.init(YOUR_APPID);
-steamworks.electronEnableSteamOverlay();
-```
-
-and expose whatever you need through `electron/preload.js`. That file is
-already set up as the bridge and currently exposes nothing, which is
-deliberate — see the comment in it.
-
-Achievements worth having, once the real cats are in: win a round without
-taking a hit, land a super, clear arcade with every cat, get a double KO.
-
----
-
-## An honest word about whether to
-
-Steam is the right home if the game is going to be sold or given to strangers.
-It handles installation, updates, refunds and the thousand different Windows
-configurations out there.
-
-If the real audience is family, friends and guests at the farmhouse, the
-portable zip from [BUILD-WINDOWS.md](BUILD-WINDOWS.md) does the same job for
-free and today — unzip, double-click, play. It even runs off a memory stick,
-which is a rather good thing to leave in the game barn.
+The Steamworks SDK is **not** required to ship. You need it only for
+achievements, cloud saves, leaderboards, rich presence, or the Steam Input
+rebinding UI. The game currently uses none of those, and adding the SDK to an
+Electron app means a native module, which is real work. Ship without it, add
+it later if the game earns it.

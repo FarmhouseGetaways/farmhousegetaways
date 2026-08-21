@@ -1,0 +1,26 @@
+// SteamPipe build script for Cat Fighter II.
+//
+// Run from catfighter\steam on Windows, after `npm run dist:steam`:
+//
+//   steamcmd +login <partner-account> +run_app_build ..\steam\app_build.vdf +quit
+//
+// The two IDs below are handed to you by Valve once the app exists in
+// Steamworks. Until then they are zeros and this will not run.
+"appbuild"
+{
+	"appid"		"0000000"		// App ID, from Steamworks
+	"desc"		"Cat Fighter II"	// shown in the Steamworks build list
+	"buildoutput"	"..\dist\steam_output"	// logs and chunk cache, not shipped
+	"contentroot"	"..\dist\win-unpacked"	// the UNPACKED build, not the installer
+	"setlive"	""			// empty = upload only. Put a branch name
+						// here to publish straight to it; safer
+						// to leave empty and press the button
+						// in Steamworks yourself.
+	"preview"	"0"			// "1" is a dry run and ships nothing
+	"local"		""
+
+	"depots"
+	{
+		"0000001"	"depot_windows.vdf"	// Depot ID, from Steamworks
+	}
+}
