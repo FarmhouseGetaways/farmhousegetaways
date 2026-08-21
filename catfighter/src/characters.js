@@ -207,7 +207,7 @@
            weight down. Nothing about him is quick and he knows it. */
       stance: { torso: -2, py: -2.5, armF: [30, -78], armB: [26, -84],
                 legF: [12, -12], legB: [-12, 12] },
-      build: { s: 1.12, girth: 1.62, limb: 0.88, head: 1.04, muscle: 0.45,
+      build: { s: 1.12, girth: 1.62, limb: 0.88, head: 0.94, muscle: 0.45,
                headShape: 'broad', ear: 'wide', shoulder: 1.22, waist: 1.24, limbW: 1.22 },
       displayName: 'MARIO',
       subtitle: 'The Immovable',
@@ -565,7 +565,7 @@
            where a jaw like that wants to be. */
       stance: { torso: 12, py: -2, head: [1, -2, 9], armF: [6, -14],
                 armB: [4, -8], legF: [6, -8], legB: [-4, 8] },
-      build: { s: 1.06, girth: 1.34, limb: 0.94, head: 1.06, muscle: 1.10,
+      build: { s: 1.06, girth: 1.34, limb: 0.94, head: 0.98, muscle: 1.10,
                headShape: 'blocky', ear: 'torn', shoulder: 1.18, waist: 1.06, limbW: 1.16 },
       displayName: 'RUBY',
       subtitle: 'The Jaw',

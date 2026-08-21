@@ -723,7 +723,8 @@
         this.hitstop(stop);
         this.shake(heavy ? 5 : 2.5);
         this.fx.push({ kind: 'impact', x: mid, y: fxY, t: 0, big: heavy,
-                       color: m.kind === 'super' ? '#ffd166' : '#fff2c4' });
+                       spin: Math.random() * Math.PI,
+                       color: m.kind === 'super' ? '#ffd166' : '#ff9c3a' });
         if (m.fx === 'spark') this.fx.push({ kind: 'spark', x: def.x, y: 70, t: 0 });
         if (result === 'counter') {
           var hasCounter = this.fx.some(function (e) { return e.kind === 'text' && e.str === 'COUNTER'; });
@@ -883,7 +884,7 @@
     }
 
     ctx.save();
-    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, W, H);
 
     switch (this.scene) {

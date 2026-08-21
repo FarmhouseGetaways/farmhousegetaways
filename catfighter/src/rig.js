@@ -454,26 +454,60 @@
 
   /* The skull. Round is the default; the rest are what stop six cats being
      the same cat in six colours. */
+  /* At the arcade resolution a head is about twenty-five pixels across, and
+     nothing inside it survives. Whatever tells one cat from another has to be
+     in the OUTLINE — so the differences here are large, and the muzzle and
+     the cheek tufts are silhouette shapes rather than markings painted on.
+     `cheek` is how much fur stands out at the side of the face, `muzzle` how
+     far the snout is pushed forward. */
   var SKULLS = {
-    round:  { rx: 1.10, ry: 1.00, jaw: 0 },
-    broad:  { rx: 1.32, ry: 0.92, jaw: 0.14 },
-    narrow: { rx: 0.94, ry: 1.08, jaw: 0 },
-    blocky: { rx: 1.16, ry: 1.04, jaw: 0.22 },
-    long:   { rx: 1.00, ry: 1.16, jaw: 0 }
+    round:  { rx: 1.08, ry: 1.02, jaw: 0,    cheek: 0.32, muzzle: 0.46, brow: 0.5 },
+    broad:  { rx: 1.26, ry: 0.88, jaw: 0.14, cheek: 0.50, muzzle: 0.40, brow: 0.7 },
+    narrow: { rx: 0.86, ry: 1.16, jaw: 0,    cheek: 0.10, muzzle: 0.62, brow: 0.3 },
+    blocky: { rx: 1.14, ry: 1.00, jaw: 0.22, cheek: 0.40, muzzle: 0.52, brow: 1.0 },
+    long:   { rx: 0.94, ry: 1.24, jaw: 0,    cheek: 0.22, muzzle: 0.56, brow: 0.4 }
   };
+  function skull(kind) { return SKULLS[kind] || SKULLS.round; }
+
   function skullPath(ctx, r, kind) {
-    var k = SKULLS[kind] || SKULLS.round;
+    var k = skull(kind);
     ctx.beginPath();
     ctx.ellipse(0, 0, r * k.rx, r * k.ry, 0, 0, Math.PI * 2);
     ctx.closePath();
     if (k.jaw) {
       /* a heavy jaw, thrown forward under the skull */
       ctx.moveTo(r * k.rx * 0.98, -r * k.ry * 0.30);
-      ctx.ellipse(r * k.rx * 0.40, -r * k.ry * 0.36,
-                  r * k.rx * (0.52 + k.jaw), r * k.ry * (0.42 + k.jaw * 0.6),
+      ctx.ellipse(r * k.rx * 0.40, -r * k.ry * 0.34,
+                  r * k.rx * (0.54 + k.jaw), r * k.ry * (0.44 + k.jaw * 0.6),
                   0, 0, Math.PI * 2);
       ctx.closePath();
     }
+  }
+
+  /* The snout, as part of the head's outline rather than a pale patch on it.
+     A cat with no muzzle in its silhhouette is a ball with a face drawn on. */
+  function muzzlePath(ctx, r, kind) {
+    var k = skull(kind);
+    var mx = r * k.rx * 0.46, my = -r * k.ry * 0.30;
+    var mw = r * (0.40 + k.muzzle * 0.34), mh = r * (0.30 + k.muzzle * 0.20);
+    ctx.beginPath();
+    ctx.ellipse(mx, my, mw, mh, -0.06, 0, Math.PI * 2);
+    ctx.closePath();
+  }
+
+  /* Cheek fur, which is most of the difference between a lean face and a
+     broad one at this size. */
+  function cheekPath(ctx, r, kind, sx) {
+    var k = skull(kind);
+    var cw = r * k.cheek;
+    if (cw < r * 0.16) { ctx.beginPath(); return; }
+    ctx.beginPath();
+    ctx.moveTo(sx * r * k.rx * 0.42, -r * k.ry * 0.52);
+    ctx.quadraticCurveTo(sx * r * (k.rx + k.cheek * 0.7), -r * k.ry * 0.42,
+                         sx * r * (k.rx + k.cheek * 0.55), r * k.ry * 0.10);
+    ctx.quadraticCurveTo(sx * r * (k.rx * 0.9), r * k.ry * 0.32,
+                         sx * r * k.rx * 0.5, r * k.ry * 0.18);
+    ctx.closePath();
   }
 
   /* ---- fur patterns, drawn inside the body silhouette --------------------- */
@@ -750,7 +784,11 @@
     var headShapes = [
       { p: inHead(function (cx) { earPath(cx, r, 1, EAR); }), c: c.points ? c.marks : fur },
       { p: inHead(function (cx) { earPath(cx, r, -0.76, EAR); }), c: c.points ? c.marks : fur },
-      { p: inHead(function (cx) { skullPath(cx, r, SKULL); }), c: fur, band: true }
+      { p: inHead(function (cx) { cheekPath(cx, r, SKULL, -0.55); }), c: c.points ? c.marks : fur },
+      { p: inHead(function (cx) { skullPath(cx, r, SKULL); }), c: fur, band: true },
+      { p: inHead(function (cx) { cheekPath(cx, r, SKULL, 1); }), c: fur },
+      { p: inHead(function (cx) { muzzlePath(cx, r, SKULL); }),
+        c: c.muzzleColor || belly, band: true }
     ];
     headShapes.forEach(function (hs) { fillShape(hs.p, hs.c, { band: hs.band }); });
 
@@ -1132,10 +1170,6 @@
       ctx.globalAlpha = 1;
     }
 
-    /* muzzle */
-    ctx.beginPath();
-    ctx.ellipse(r * 0.42, -r * 0.34, r * 0.56, r * 0.42, 0, 0, Math.PI * 2);
-    ctx.fillStyle = c.muzzleColor || belly; ctx.fill();
 
     /* an open mouth, for a cat that is making a noise */
     if (opts.mouth === 'open') {
@@ -1217,7 +1251,7 @@
     }
 
     /* whiskers */
-    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.85 * es;
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, 0.95 * es);
     ctx.lineCap = 'round';
     for (var w2 = -1; w2 <= 1; w2++) {
       ctx.beginPath();

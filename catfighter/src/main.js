@@ -9,56 +9,42 @@
 (function () {
   var W = CF.STAGE.W, H = CF.STAGE.H;
   var DT = 1000 / 60;
-  var canvas, game, scale = 1, dpr = 1;
+  var canvas, game, scale = 1;
 
-  /* How many device pixels the game is allowed to draw into, per axis.
+  /* ---- THE GAME IS DRAWN AT 384 x 224. FULL STOP. ------------------------
 
-     A 384 x 224 game on a 4K monitor would otherwise get a backing store of
-     7405 x 4320 — thirty-two million pixels, redrawn sixty times a second,
-     for artwork with no detail finer than a whisker. The drawing itself
-     survives that; handing the compositor a texture that size every frame
-     does not. Five times the arcade resolution is 1920 x 1120, which is
-     sharper than any of the art actually is, and CSS stretches it the rest of
-     the way. */
-  var MAX_DEVICE_SCALE = 5, MIN_DEVICE_SCALE = 2;
-  var quality = MAX_DEVICE_SCALE;     // lowered if the machine cannot keep up
+     This is the whole reason it looks like a fighting game rather than a
+     cartoon. Street Fighter II is not "vector art with hard shading" — it is
+     a 384 x 224 grid of pixels, and the grid IS the style: chunky aliased
+     edges, no half-tones smoothing anything over, every edge landing on a
+     pixel boundary because there is nowhere else for it to land.
+
+     Drawing into a 1920 x 1120 backing store and calling it a 384 x 224 game
+     gets you smooth anti-aliased curves — which is exactly what a cartoon
+     looks like and exactly what Street Fighter II does not. So the backing
+     store is the arcade resolution, and CSS blows it up with nearest
+     neighbour. The staircase on every edge is the point.
+
+     The scale is a whole number. A fractional one makes some game pixels two
+     screen pixels across and their neighbours three, which shimmers when
+     anything moves and is the one thing worse than being slightly small.
+
+     It is also about twenty times less to draw, so the frame rate problem
+     this game had stops being possible.                                   */
 
   function resize() {
     var wrap = document.getElementById('wrap');
     var cw = wrap.clientWidth, ch = wrap.clientHeight;
-    dpr = Math.min(window.devicePixelRatio || 1, 3);
-    scale = Math.min(cw / W, ch / H);
-    if (!isFinite(scale) || scale <= 0) scale = 1;
-    var device = Math.max(1, Math.min(scale * dpr, quality));
-    canvas.style.width = Math.floor(W * scale) + 'px';
-    canvas.style.height = Math.floor(H * scale) + 'px';
-    canvas.width = Math.round(W * device);
-    canvas.height = Math.round(H * device);
+    var fit = Math.min(cw / W, ch / H);
+    if (!isFinite(fit) || fit <= 0) fit = 1;
+    scale = Math.max(1, Math.floor(fit));
+    canvas.style.width = (W * scale) + 'px';
+    canvas.style.height = (H * scale) + 'px';
+    if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
     var ctx = canvas.getContext('2d');
-    ctx.setTransform(device, 0, 0, device, 0, 0);
-    game && (game.deviceScale = +device.toFixed(2));
-  }
-
-  /* If the machine cannot hold a frame rate at this resolution, draw fewer
-     pixels. Some machines have no working GPU acceleration at all and end up
-     compositing the canvas in software, where the cost is all in the pixel
-     count and nothing else — and a fighting game that runs is worth more than
-     a sharp one that does not.
-
-     It only ever steps down, never back up. Hunting between two resolutions
-     looks far worse than sitting at the lower one. */
-  var slowFor = 0;
-  function adaptQuality(measured) {
-    if (!measured) return;
-    if (measured < 50 && quality > MIN_DEVICE_SCALE) {
-      if (++slowFor >= 6) {           // about three seconds of it
-        quality = Math.max(MIN_DEVICE_SCALE, quality - 1);
-        slowFor = 0;
-        resize();
-      }
-    } else if (measured >= 50) {
-      slowFor = 0;
-    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    game && (game.deviceScale = scale);
   }
 
   function loop(now) {
@@ -101,7 +87,6 @@
       fps.value = Math.round(fps.frames * 1000 / (now - fps.since));
       fps.frames = 0;
       fps.since = now;
-      adaptQuality(fps.value);
     }
     game.fps = fps.on ? fps.value : 0;
   }

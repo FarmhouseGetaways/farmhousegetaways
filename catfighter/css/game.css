@@ -25,7 +25,11 @@ html, body {
 
 #screen {
   display: block;
-  image-rendering: auto;
+  /* Nearest neighbour, so one game pixel becomes a square block of screen
+     pixels with a hard edge. Smoothing it would put back exactly the blur
+     that drawing at the arcade resolution exists to remove. */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   box-shadow: 0 0 0 2px #2a2233, 0 18px 60px rgba(0, 0, 0, .8);
   outline: none;
   touch-action: none;

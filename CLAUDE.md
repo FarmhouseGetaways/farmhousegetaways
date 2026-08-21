@@ -612,11 +612,22 @@ Three things a later session needs to know:
   everything each time, the compositor backs up, and you get about one frame a
   second. **Do not put them back.** The simulation is a fixed 60Hz with its own
   accumulator and never wanted an uncapped display.
-- **The canvas is capped at five times the arcade resolution**, and steps down
-  on its own to a floor of two if the frame rate will not hold. Uncapped, a
-  4K screen gave a 384x224 game a 7405x4320 backing store. It only ever steps
-  down — hunting between two resolutions looks worse than the lower one. **F3**
-  shows the frame rate and the scale it settled on.
+- **THE GAME IS DRAWN AT 384x224. FULL STOP.** The backing store is the arcade
+  resolution and CSS blows it up with nearest neighbour at a whole-number
+  scale. This is not an optimisation, it is the art direction: Street Fighter
+  II is not vector art with hard shading, it is a grid of pixels, and the grid
+  IS the style — chunky aliased edges, nothing smoothed over. Drawing into a
+  1920x1120 buffer and calling it a 384x224 game gets you a cartoon. The owner
+  worked this out on 21 Aug 2026 and was right.
+  **Never raise the backing store, never turn `imageSmoothingEnabled` on, and
+  never let the CSS scale be fractional** — a fractional one makes some game
+  pixels two screen pixels wide and their neighbours three, which shimmers the
+  moment anything moves.
+  It also fixed the frame rate for good: 0.1 megapixels instead of 32, a
+  locked 60fps at 4K under software rendering. **F3** shows the frame rate and
+  the scale.
+- **Anything thinner than one pixel disappears.** Whiskers, grain lines and
+  creases all need `Math.max(1, ...)` on their width.
 - **Menus trigger on the edge of a direction, never a frame counter.**
   `port.menuDir([...])` is the only correct way to read a menu direction. A
   frame-counted repeat moves the cursor two or three places the moment several
@@ -668,6 +679,15 @@ Three things a later session needs to know:
   Shadows are the base colour mixed towards one cool dark (`SHADE_TO`),
   never just darker. A test asserts the recipe, because it leaves no trace in
   the finished picture.
+- **A head has to read in the OUTLINE.** At the arcade resolution a skull is
+  about twenty-five pixels across and nothing inside it survives. The muzzle
+  and the cheek tufts are silhouette shapes for that reason, and the five
+  skull shapes differ by a lot rather than a little. A cat with no muzzle in
+  its silhouette is a ball with a face drawn on it.
+- **Hit sparks are solid shapes, not sprays of lines.** A 2px line radiating
+  outwards at this resolution is a scratch and reads as a rendering error. The
+  impact is a fat star with a white core, gone in five frames, with chips
+  thrown off it.
 - **A material boundary carries a line; fur on fur does not.** A piece of kit
   is a different material from the fur under it and gets `edge: true`. Putting
   a line round a limb instead is what turns it into a sticker.

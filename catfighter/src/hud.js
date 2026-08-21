@@ -196,30 +196,69 @@
       e.t++;
       ctx.save();
       if (e.kind === 'impact') {
-        var n = e.big ? 9 : 6, R = (e.big ? 20 : 13) + e.t * (e.big ? 2.6 : 1.9);
-        ctx.globalAlpha = Math.max(0, 1 - e.t / (e.big ? 12 : 9));
-        ctx.strokeStyle = e.color || '#fff2c4';
-        ctx.lineWidth = e.big ? 3 : 2;
-        for (var k = 0; k < n; k++) {
-          var a = (k / n) * Math.PI * 2 + e.t * 0.1;
+        /* A Street Fighter II hit spark is a solid shape, not a spray of
+           lines: a fat white star that flashes out over four or five frames
+           with a coloured rim behind it. At the arcade resolution a 2px line
+           radiating outwards is a scratch, and reads as an error rather than
+           a hit. */
+        var life = e.big ? 6 : 5;
+        if (e.t > life) { list.splice(i, 1); ctx.restore(); continue; }
+        var k1 = e.t / life;
+        var R = (e.big ? 13 : 9) * (0.62 + k1 * 0.62);
+        var pts = e.big ? 5 : 4;
+        function star(rad, inner, spin) {
           ctx.beginPath();
-          ctx.moveTo(sx + Math.cos(a) * R * 0.45, sy + Math.sin(a) * R * 0.45);
-          ctx.lineTo(sx + Math.cos(a) * R, sy + Math.sin(a) * R);
-          ctx.stroke();
+          for (var q = 0; q < pts * 2; q++) {
+            var a2 = (q / (pts * 2)) * Math.PI * 2 + spin;
+            var rr = (q % 2 ? rad * inner : rad);
+            var px = sx + Math.cos(a2) * rr, py = sy + Math.sin(a2) * rr;
+            if (q === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
         }
-        ctx.globalAlpha = Math.max(0, 0.8 - e.t / 7);
-        ctx.beginPath(); ctx.arc(sx, sy, R * 0.4, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff'; ctx.fill();
-        if (e.t > (e.big ? 14 : 10)) list.splice(i, 1);
+        ctx.globalAlpha = Math.max(0, 1 - k1 * 1.15);
+        ctx.fillStyle = e.color || '#ffb43a';
+        star(R * 1.28, 0.34, e.spin || 0.3);
+        ctx.fill();
+        ctx.globalAlpha = Math.max(0, 1 - k1 * 1.8);
+        ctx.fillStyle = '#fff8dc';
+        star(R * 0.92, 0.38, (e.spin || 0.3) + 0.4);
+        ctx.fill();
+        /* the white core, gone in three frames */
+        if (e.t < 3) {
+          ctx.globalAlpha = 1 - e.t / 3;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(sx, sy, R * (e.big ? 0.6 : 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        /* chips thrown off the impact */
+        ctx.globalAlpha = Math.max(0, 1 - k1);
+        ctx.fillStyle = e.color || '#ffb43a';
+        for (var cq = 0; cq < (e.big ? 6 : 4); cq++) {
+          var ca = (cq / (e.big ? 6 : 4)) * Math.PI * 2 + (e.spin || 0);
+          var cd = R * (1.6 + k1 * 2.2);
+          ctx.fillRect(sx + Math.cos(ca) * cd - 1, sy + Math.sin(ca) * cd - 1, 2, 2);
+        }
       } else if (e.kind === 'guard') {
-        ctx.globalAlpha = Math.max(0, 1 - e.t / 8);
-        ctx.strokeStyle = '#a8e0ff'; ctx.lineWidth = 2.4;
-        for (var r = 0; r < 3; r++) {
-          ctx.beginPath();
-          ctx.arc(sx, sy, 8 + r * 5 + e.t * 1.2, -0.8, 0.8);
-          ctx.stroke();
-        }
-        if (e.t > 9) list.splice(i, 1);
+        ctx.globalAlpha = Math.max(0, 1 - e.t / 6);
+        ctx.fillStyle = '#bfe9ff';
+        var gr = 9 + e.t * 1.2;
+        ctx.beginPath();
+        ctx.moveTo(sx - 3, sy - gr);
+        ctx.quadraticCurveTo(sx + gr * 0.9, sy, sx - 3, sy + gr);
+        ctx.quadraticCurveTo(sx + gr * 0.34, sy, sx - 3, sy - gr);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = Math.max(0, 0.9 - e.t / 5);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(sx - 2, sy - gr * 0.6);
+        ctx.quadraticCurveTo(sx + gr * 0.5, sy, sx - 2, sy + gr * 0.6);
+        ctx.quadraticCurveTo(sx + gr * 0.18, sy, sx - 2, sy - gr * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        if (e.t > 6) list.splice(i, 1);
       } else if (e.kind === 'dust') {
         ctx.globalAlpha = Math.max(0, 0.55 - e.t / 18);
         ctx.fillStyle = '#e8dcc4';
