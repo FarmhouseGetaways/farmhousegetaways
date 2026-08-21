@@ -123,7 +123,7 @@
     var t3 = seg(t2, pose.tail[0] + pose.tail[1] + pose.tail[2], L(P.tail[2]) * tl);
 
     return {
-      s: s, girth: (B.girth || 1), pose: pose,
+      s: s, girth: (B.girth || 1), build: B, pose: pose,
       pelvis: pelvis, neck: neck, head: head,
       headR: P.headR * s * (B.head || 1), headRot: pose.head[2] || 0,
       shF: shF, elbF: elbF, handF: handF,
@@ -193,6 +193,46 @@
       ctx.arc(rx * 0.20, ry * 0.60, ry * 0.42, 0, Math.PI * 2);
     }
     ctx.restore();
+  }
+
+  /* A limb with muscle in it.
+
+     A capsule is the same width the whole way down apart from an even taper,
+     which is exactly what makes a limb read as a tube — and a figure built
+     from tubes reads as a doll however well it is lit. A real limb swells at
+     the belly of the muscle and pulls in at the joint. `bulge` is how much,
+     so an acrobat and a heavyweight are not made from the same part. */
+  var LIMB_T = [0, 0.16, 0.34, 0.56, 0.78, 1];
+  var LIMB_W = [1.00, 1.20, 1.13, 0.90, 0.83, 1.00];
+  function limbPath(ctx, a, b, rA, rB, bulge) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var len = Math.hypot(dx, dy) || 0.001;
+    var ux = dx / len, uy = dy / len;
+    var nx = -uy, ny = ux;
+    var k = bulge === undefined ? 1 : bulge;
+    var i, t, w, side = [], back = [];
+    for (i = 0; i < LIMB_T.length; i++) {
+      t = LIMB_T[i];
+      w = (rA + (rB - rA) * t) * (1 + (LIMB_W[i] - 1) * k);
+      var px = a.x + dx * t, py = a.y + dy * t;
+      side.push({ x: px + nx * w, y: py + ny * w });
+      back.push({ x: px - nx * w, y: py - ny * w });
+    }
+    ctx.beginPath();
+    ctx.moveTo(side[0].x, side[0].y);
+    for (i = 1; i < side.length; i++) {
+      var m = { x: (side[i - 1].x + side[i].x) / 2, y: (side[i - 1].y + side[i].y) / 2 };
+      ctx.quadraticCurveTo(side[i - 1].x, side[i - 1].y, m.x, m.y);
+    }
+    ctx.lineTo(side[side.length - 1].x, side[side.length - 1].y);
+    ctx.arc(b.x, b.y, rB, Math.atan2(ny, nx), Math.atan2(-ny, -nx), true);
+    for (i = back.length - 1; i >= 1; i--) {
+      var m2 = { x: (back[i].x + back[i - 1].x) / 2, y: (back[i].y + back[i - 1].y) / 2 };
+      ctx.quadraticCurveTo(back[i].x, back[i].y, m2.x, m2.y);
+    }
+    ctx.lineTo(back[0].x, back[0].y);
+    ctx.arc(a.x, a.y, rA, Math.atan2(-ny, -nx), Math.atan2(ny, nx), true);
+    ctx.closePath();
   }
 
   function ellipsePath(ctx, x, y, rx, ry, rot) {
@@ -336,12 +376,53 @@
     ctx.closePath();
   }
 
-  function earPath(ctx, r, sx) {
+  /* Ears carry more of a cat's identity than anything but colour, so they are
+     per-character: tall and pointed, small and round, wide and low. */
+  var EARS = {
+    normal: { h: 1.00, w: 1.00, lean: 0.00 },
+    tall:   { h: 1.34, w: 0.86, lean: 0.06 },
+    small:  { h: 0.74, w: 0.96, lean: -0.04 },
+    wide:   { h: 0.88, w: 1.28, lean: 0.10 },
+    torn:   { h: 1.06, w: 1.02, lean: 0.02, notch: true }
+  };
+  function earPath(ctx, r, sx, kind) {
+    var e = EARS[kind] || EARS.normal;
+    var h = e.h, w = e.w, lean = e.lean * sx;
     ctx.beginPath();
-    ctx.moveTo(sx * r * 0.34, r * 0.56);
-    ctx.quadraticCurveTo(sx * r * 0.74, r * 1.14, sx * r * 0.96, r * 1.60);
-    ctx.quadraticCurveTo(sx * r * 1.06, r * 1.02, sx * r * 1.02, r * 0.40);
+    ctx.moveTo(sx * r * 0.34 * w, r * 0.56);
+    ctx.quadraticCurveTo(sx * r * (0.74 + lean) * w, r * (1.14 * h),
+                         sx * r * (0.96 + lean * 2) * w, r * (1.60 * h));
+    if (e.notch) {
+      /* one ear that has been through something */
+      ctx.lineTo(sx * r * (0.80 + lean) * w, r * (1.24 * h));
+      ctx.lineTo(sx * r * (1.04 + lean) * w, r * (1.14 * h));
+    }
+    ctx.quadraticCurveTo(sx * r * 1.06 * w, r * (1.02 * h), sx * r * 1.02 * w, r * 0.40);
     ctx.closePath();
+  }
+
+  /* The skull. Round is the default; the rest are what stop six cats being
+     the same cat in six colours. */
+  var SKULLS = {
+    round:  { rx: 1.10, ry: 1.00, jaw: 0 },
+    broad:  { rx: 1.32, ry: 0.92, jaw: 0.14 },
+    narrow: { rx: 0.94, ry: 1.08, jaw: 0 },
+    blocky: { rx: 1.16, ry: 1.04, jaw: 0.22 },
+    long:   { rx: 1.00, ry: 1.16, jaw: 0 }
+  };
+  function skullPath(ctx, r, kind) {
+    var k = SKULLS[kind] || SKULLS.round;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * k.rx, r * k.ry, 0, 0, Math.PI * 2);
+    ctx.closePath();
+    if (k.jaw) {
+      /* a heavy jaw, thrown forward under the skull */
+      ctx.moveTo(r * k.rx * 0.98, -r * k.ry * 0.30);
+      ctx.ellipse(r * k.rx * 0.40, -r * k.ry * 0.36,
+                  r * k.rx * (0.52 + k.jaw), r * k.ry * (0.42 + k.jaw * 0.6),
+                  0, 0, Math.PI * 2);
+      ctx.closePath();
+    }
   }
 
   /* ---- fur patterns, drawn inside the body silhouette --------------------- */
@@ -411,9 +492,17 @@
 
     /* A real taper — thick at the shoulder, slim at the wrist — is most of
        what stops a limb reading as a sausage. */
-    var R_TOP = 6.2 * s * G, R_MID = 4.6 * s * G, R_END = 3.4 * s * G;
-    var HAND = 4.8 * s * G, FOOT_X = 7.4 * s * G, FOOT_Y = 4.2 * s * G;
-    var hipW = 8.8 * s * G, waistW = 7.4 * s * G, chestW = 11.8 * s * G;
+    var B = j.build || {};
+    var MUS = B.muscle === undefined ? 1 : B.muscle;     // how shaped the limbs are
+    var SKULL = B.headShape || 'round';
+    var EAR = B.ear || 'normal';
+    var SH = B.shoulder === undefined ? 1 : B.shoulder;  // chest, apart from girth
+    var WA = B.waist === undefined ? 1 : B.waist;
+    var LIMBW = B.limbW === undefined ? 1 : B.limbW;     // how thick the limbs are
+
+    var R_TOP = 6.2 * s * G * LIMBW, R_MID = 4.6 * s * G * LIMBW, R_END = 3.4 * s * G * LIMBW;
+    var HAND = 4.8 * s * G * LIMBW, FOOT_X = 7.4 * s * G, FOOT_Y = 4.2 * s * G;
+    var hipW = 8.8 * s * G, waistW = 7.4 * s * G * WA, chestW = 11.8 * s * G * SH;
     var OUTLINE = 1.8 * s;
 
     /* Three tones front to back: the shaded far side, the torso, and a
@@ -446,13 +535,13 @@
 
     /* back leg and arm, in the shade */
     fillShape(function (cx) { ellipsePath(cx, j.hipB.x, j.hipB.y, R_TOP * 1.10, R_TOP * 1.02); }, back);
-    fillShape(function (cx) { capsulePath(cx, j.hipB, j.kneeB, R_TOP * 0.94, R_MID * 0.9); }, back);
-    fillShape(function (cx) { capsulePath(cx, j.kneeB, j.footB, R_MID * 0.9, R_END * 0.9); }, back);
+    fillShape(function (cx) { limbPath(cx, j.hipB, j.kneeB, R_TOP * 0.94, R_MID * 0.9, MUS * 0.9); }, back);
+    fillShape(function (cx) { limbPath(cx, j.kneeB, j.footB, R_MID * 0.9, R_END * 0.9, MUS * 0.55); }, back);
     fillShape(function (cx) { pawPath(cx, j.footB, j.kneeB, FOOT_X * 0.80, FOOT_Y * 0.92, false); }, back);
     var armBack = c.points ? c.marks : furBack;
     fillShape(function (cx) { ellipsePath(cx, j.shB.x, j.shB.y, R_TOP * 1.24, R_TOP * 1.16); }, armBack);
-    fillShape(function (cx) { capsulePath(cx, j.shB, j.elbB, R_TOP * 0.94, R_MID * 0.90); }, armBack);
-    fillShape(function (cx) { capsulePath(cx, j.elbB, j.handB, R_MID * 0.90, R_END * 0.88); }, armBack);
+    fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.94, R_MID * 0.90, MUS * 0.9); }, armBack);
+    fillShape(function (cx) { limbPath(cx, j.elbB, j.handB, R_MID * 0.90, R_END * 0.88, MUS * 0.6); }, armBack);
     fillShape(function (cx) { pawPath(cx, j.handB, j.elbB, HAND * 0.84, HAND * 0.72, false); }, c.gloves || armBack);
 
     /* the long-haired underlayer, wider than the body it sits behind */
@@ -471,11 +560,11 @@
     /* front leg and arm */
     var frontParts = [
       function (cx) { ellipsePath(cx, j.shF.x, j.shF.y, R_TOP * 1.16, R_TOP * 1.06); },
-      function (cx) { capsulePath(cx, j.hipF, j.kneeF, R_TOP, R_MID); },
-      function (cx) { capsulePath(cx, j.kneeF, j.footF, R_MID, R_END); },
+      function (cx) { limbPath(cx, j.hipF, j.kneeF, R_TOP, R_MID, MUS); },
+      function (cx) { limbPath(cx, j.kneeF, j.footF, R_MID, R_END, MUS * 0.6); },
       function (cx) { pawPath(cx, j.footF, j.kneeF, FOOT_X * 0.92, FOOT_Y, true); },
-      function (cx) { capsulePath(cx, j.shF, j.elbF, R_TOP * 0.90, R_MID * 0.90); },
-      function (cx) { capsulePath(cx, j.elbF, j.handF, R_MID * 0.90, R_END * 0.90); },
+      function (cx) { limbPath(cx, j.shF, j.elbF, R_TOP * 0.90, R_MID * 0.90, MUS); },
+      function (cx) { limbPath(cx, j.elbF, j.handF, R_MID * 0.90, R_END * 0.90, MUS * 0.65); },
       function (cx) { pawPath(cx, j.handF, j.elbF, HAND * 1.02, HAND * 0.82, true); }
     ];
     var frontStart = shapes.length;
@@ -486,6 +575,85 @@
     fillShape(frontParts[4], furFront);
     fillShape(frontParts[5], furFront);
     fillShape(frontParts[6], c.gloves || furFront);
+
+    /* ---- the kit -------------------------------------------------------
+
+       Six cats in six colours are still one cat. What separates a Ryu from a
+       Zangief at a glance is not the face, it is the gear: a headband with
+       tails, a champion's belt, gloves the size of your head. These pieces go
+       into the shape list where they change the outline, and are drawn on top
+       where they only mark it. */
+    var kit = c.kit || {};
+
+    if (kit.gloves) {
+      var gw = 7.4 * s * G, gc = kit.gloves;
+      shapes.push({ k: 'f', c: gc, p: function (cx) {
+        ellipsePath(cx, j.handB.x, j.handB.y, gw * 0.86, gw * 0.80); } });
+      shapes.push({ k: 'f', c: gc, p: function (cx) {
+        ellipsePath(cx, j.handF.x, j.handF.y, gw, gw * 0.92); } });
+    }
+    if (kit.boots) {
+      var bw = 8.6 * s * G, bc = kit.boots;
+      shapes.push({ k: 'f', c: bc, p: function (cx) {
+        limbPath(cx, j.kneeB, j.footB, R_MID * 1.02, R_END * 1.3, 0.3); } });
+      shapes.push({ k: 'f', c: bc, p: function (cx) {
+        pawPath(cx, j.footB, j.kneeB, bw * 0.86, FOOT_Y * 1.02, false); } });
+      shapes.push({ k: 'f', c: bc, p: function (cx) {
+        limbPath(cx, j.kneeF, j.footF, R_MID * 1.06, R_END * 1.34, 0.3); } });
+      shapes.push({ k: 'f', c: bc, p: function (cx) {
+        pawPath(cx, j.footF, j.kneeF, bw, FOOT_Y * 1.06, true); } });
+    }
+    if (kit.scarf) {
+      /* A knot at the throat with two tails falling away behind. It was a
+         single wide wedge to begin with, which read as a paper aeroplane
+         stuck to his neck. */
+      var sc = kit.scarf;
+      var nk = { x: U.lerp(j.neck.x, j.head.x, 0.22), y: U.lerp(j.neck.y, j.head.y, 0.22) };
+      var lag = (j.pose && j.pose.tail && j.pose.tail[0] || 240) - 240;
+      function tail(len, drop, wid) {
+        var mid = { x: nk.x - len * 0.55 * s, y: nk.y - drop * 0.35 * s };
+        var end = { x: nk.x - len * s + lag * 0.06 * s, y: nk.y - drop * s };
+        return function (cx) {
+          var pts = [], q;
+          for (q = 0; q <= 6; q++) {
+            var t = q / 6, u = 1 - t;
+            var px = u * u * nk.x + 2 * u * t * mid.x + t * t * end.x;
+            var py = u * u * nk.y + 2 * u * t * mid.y + t * t * end.y;
+            pts.push({ x: px, y: py, w: wid * s * (1 - t * 0.62) });
+          }
+          var fwd = [], bwd = [];
+          for (q = 0; q < pts.length; q++) {
+            var a2 = pts[Math.max(0, q - 1)], b2 = pts[Math.min(pts.length - 1, q + 1)];
+            var ddx = b2.x - a2.x, ddy = b2.y - a2.y, dl = Math.hypot(ddx, ddy) || 1;
+            fwd.push({ x: pts[q].x - ddy / dl * pts[q].w, y: pts[q].y + ddx / dl * pts[q].w });
+            bwd.push({ x: pts[q].x + ddy / dl * pts[q].w, y: pts[q].y - ddx / dl * pts[q].w });
+          }
+          cx.beginPath();
+          cx.moveTo(fwd[0].x, fwd[0].y);
+          for (q = 1; q < fwd.length; q++) cx.lineTo(fwd[q].x, fwd[q].y);
+          for (q = bwd.length - 1; q >= 0; q--) cx.lineTo(bwd[q].x, bwd[q].y);
+          cx.closePath();
+        };
+      }
+      shapes.push({ k: 'f', c: shade(sc, -0.18), p: tail(26, -9, 2.6) });
+      shapes.push({ k: 'f', c: sc, p: tail(20, 5, 3.0) });
+      shapes.push({ k: 'f', c: sc, p: function (cx) {
+        ellipsePath(cx, nk.x, nk.y, chestW * 0.46, chestW * 0.34, 0.2); } });
+    }
+    if (kit.mane) {
+      /* a ruff of fur round the neck, which widens the head into the body */
+      var mn = kit.mane;
+      var mx = U.lerp(j.neck.x, j.head.x, 0.30), my = U.lerp(j.neck.y, j.head.y, 0.30);
+      shapes.splice(frontStart, 0, { k: 'f', c: mn, p: function (cx) {
+        var pts = [], n = 11;
+        for (var q = 0; q < n; q++) {
+          var a2 = (q / n) * Math.PI * 2;
+          var rr = (q % 2 ? 1.34 : 1.00) * chestW * 0.86;
+          pts.push({ x: mx + Math.cos(a2) * rr, y: my + Math.sin(a2) * rr * 0.86 });
+        }
+        smoothClosed(cx, pts);
+      } });
+    }
 
     if (tailUp) addTail();
 
@@ -501,9 +669,9 @@
       };
     }
     var headShapes = [
-      { p: inHead(function (cx) { earPath(cx, r, 1); }), c: c.points ? c.marks : fur },
-      { p: inHead(function (cx) { earPath(cx, r, -0.76); }), c: c.points ? c.marks : fur },
-      { p: inHead(function (cx) { ellipsePath(cx, 0, 0, r * 1.10, r * 1.00); }), c: fur }
+      { p: inHead(function (cx) { earPath(cx, r, 1, EAR); }), c: c.points ? c.marks : fur },
+      { p: inHead(function (cx) { earPath(cx, r, -0.76, EAR); }), c: c.points ? c.marks : fur },
+      { p: inHead(function (cx) { skullPath(cx, r, SKULL); }), c: fur }
     ];
     headShapes.forEach(function (hs) { fillShape(hs.p, hs.c); });
 
@@ -532,7 +700,7 @@
       shapes: shapes, frontParts: frontParts, bodyPts: bodyPts, bounds: bounds,
       frontStart: frontStart,
       fur: fur, fur2: fur2, belly: belly, line: line, white: white,
-      hipW: hipW, waistW: waistW, chestW: chestW, tailW: tailW,
+      hipW: hipW, waistW: waistW, chestW: chestW, tailW: tailW, kit: c.kit || {},
       OUTLINE: OUTLINE, s: s, G: G
     };
   }
@@ -643,7 +811,87 @@
     ctx.fill();
     ctx.restore();
 
+    if (!white) drawKit(ctx, fig, j, c);
     drawHead(ctx, j, c, fig.fur, fig.fur2, fig.belly, fig.line, opts);
+  }
+
+  /* The parts of the kit that mark the body rather than change its outline.
+     Drawn after the fills so they sit on the fur, and before the face so a
+     headband goes under the eyes rather than over them. */
+  function drawKit(ctx, fig, j, c) {
+    var kit = c.kit || {};
+    var s = fig.s, G = fig.G;
+    var lit = fig.lit || function (x) { return x; };
+
+    if (kit.belt) {
+      var bx = U.lerp(j.pelvis.x, j.neck.x, 0.30), by = U.lerp(j.pelvis.y, j.neck.y, 0.30);
+      var ang = Math.atan2(j.neck.x - j.pelvis.x, j.neck.y - j.pelvis.y);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(-ang);
+      ctx.fillStyle = lit(kit.belt);
+      ctx.fillRect(-fig.hipW * 1.15, -2.6 * s * G, fig.hipW * 2.3, 5.2 * s * G);
+      ctx.fillStyle = kit.beltPlate || '#f5d76e';
+      ctx.beginPath();
+      ctx.ellipse(fig.hipW * 0.22, 0, 4.4 * s * G, 3.4 * s * G, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+      ctx.lineWidth = 0.9 * s;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (kit.wraps) {
+      /* bandage over the forearm, the mark of somebody who has been doing
+         this a long time */
+      ctx.save();
+      ctx.strokeStyle = lit(kit.wraps);
+      ctx.lineCap = 'butt';
+      [[j.elbF, j.handF, 1], [j.elbB, j.handB, 0.86]].forEach(function (arm) {
+        var a = arm[0], b = arm[1], k = arm[2];
+        var dx = b.x - a.x, dy = b.y - a.y;
+        ctx.lineWidth = 3.4 * s * G * k;
+        for (var q = 0; q < 4; q++) {
+          var t0 = 0.34 + q * 0.16;
+          ctx.beginPath();
+          ctx.moveTo(a.x + dx * t0, a.y + dy * t0);
+          ctx.lineTo(a.x + dx * (t0 + 0.11), a.y + dy * (t0 + 0.11));
+          ctx.stroke();
+        }
+      });
+      ctx.restore();
+    }
+
+    if (kit.anklets) {
+      ctx.save();
+      ctx.strokeStyle = lit(kit.anklets);
+      ctx.lineWidth = 3.6 * s * G;
+      ctx.lineCap = 'butt';
+      [[j.kneeF, j.footF], [j.kneeB, j.footB]].forEach(function (leg) {
+        var a = leg[0], b = leg[1];
+        ctx.beginPath();
+        ctx.moveTo(U.lerp(a.x, b.x, 0.74), U.lerp(a.y, b.y, 0.74));
+        ctx.lineTo(U.lerp(a.x, b.x, 0.90), U.lerp(a.y, b.y, 0.90));
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    if (kit.scars) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,236,220,.55)';
+      ctx.lineWidth = 1.15 * s;
+      ctx.lineCap = 'round';
+      var sx = U.lerp(j.pelvis.x, j.neck.x, 0.80) + 1 * s * G;
+      var sy = U.lerp(j.pelvis.y, j.neck.y, 0.80);
+      for (var q2 = 0; q2 < kit.scars; q2++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + q2 * 3.4 * s, sy + 5 * s);
+        ctx.lineTo(sx + q2 * 3.4 * s - 2 * s, sy - 6 * s);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
 
   /* ---- the face, drawn on top of the finished silhouette ------------------ */
@@ -686,7 +934,7 @@
     /* a shadow across the top of the skull, so the head reads as a ball */
     if (!white) {
       ctx.save();
-      ellipsePath(ctx, 0, 0, r * 1.06, r * 0.98);
+      skullPath(ctx, r, (j.build && j.build.headShape) || 'round');
       ctx.clip();
       var hg = ctx.createLinearGradient(0, -r, 0, r);
       hg.addColorStop(0, 'rgba(0,0,0,.22)');
@@ -842,13 +1090,24 @@
 
     /* per-cat accessory */
     if (c.accessory === 'headband') {
+      /* Its own colour, not the palette accent — an accent picked to sit
+         beside the fur is by definition too close to the fur to read as a
+         band across it. */
+      var bandCol = (c.kit && c.kit.band) || '#b8332f';
       ctx.save();
       ctx.beginPath();
-      ctx.ellipse(0, r * 0.02, r * 1.0, r * 0.93, 0, Math.PI * 0.08, Math.PI * 0.92);
-      ctx.lineWidth = r * 0.30;
-      ctx.strokeStyle = c.accent;
+      ctx.ellipse(0, r * 0.06, r * 1.02, r * 0.90, 0, Math.PI * 0.06, Math.PI * 0.94);
+      ctx.lineWidth = r * 0.34;
+      ctx.strokeStyle = bandCol;
+      ctx.stroke();
+      ctx.lineWidth = r * 0.34;
+      ctx.strokeStyle = 'rgba(0,0,0,.22)';
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.06, r * 1.02, r * 0.90, 0, Math.PI * 0.06, Math.PI * 0.30);
       ctx.stroke();
       ctx.restore();
+      c = Object.create(c);
+      c.accent = bandCol;
       ctx.beginPath();
       ctx.arc(-r * 0.86, r * 0.42, r * 0.17, 0, Math.PI * 2);
       ctx.fillStyle = c.accent; ctx.fill();

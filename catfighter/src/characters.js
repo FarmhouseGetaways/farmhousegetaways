@@ -103,15 +103,22 @@
     {
       id: 'gracie',
       weightClass: 'medium',
-      build: { s: 1.02, girth: 1.07, limb: 0.99, head: 1.02 },
+        /* Upright, weight back, lead paw open and low. She does not chase
+           anybody — she waits, and you come to her. */
+      stance: { torso: -3, py: 1.5, armF: [-10, -20], armB: [-8, 2], head: [0, 0, -2] },
+      build: { s: 1.02, girth: 1.06, limb: 0.99, head: 1.00, muscle: 0.9,
+               headShape: 'round', ear: 'small', shoulder: 1.02, waist: 0.98, limbW: 1.02 },
       displayName: 'GRACIE',
       subtitle: 'The Elder',
       blurb: 'Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.\nLet them come to you.',
       difficulty: 2,
       palette: {
+        /* The old master. A headband gone soft with age and the wrapped
+           forepaws of somebody who has been doing this a long time. */
+        kit: { wraps: '#e8e0cf', band: '#b8332f' },
         fur: '#8d887f', fur2: '#6f6b64', belly: '#b9b3a6', marks: '#5e5a54',
         silver: '#d6d1c4', eye: '#7fc24a', nose: '#7d6f6c', inner: '#b89a95',
-        accent: '#8a7f70', accessory: 'none', pattern: 'solid',
+        accent: '#8a7f70', accessory: 'headband', pattern: 'solid',
         tailTip: '#8d887f', elder: true, line: 'rgba(38,34,30,.55)'
       },
       stats: { walkF: 1.30, walkB: 1.22, jumpVy: 9.2, jumpVx: 2.8, gravity: 0.48,
@@ -196,12 +203,19 @@
     {
       id: 'mario',
       weightClass: 'heavy',
-      build: { s: 1.10, girth: 1.46, limb: 0.92, head: 1.06 },
+        /* A wrestler's stance: as wide as he is, arms out to the sides,
+           weight down. Nothing about him is quick and he knows it. */
+      stance: { torso: -2, py: -2.5, armF: [30, -78], armB: [26, -84],
+                legF: [12, -12], legB: [-12, 12] },
+      build: { s: 1.12, girth: 1.62, limb: 0.88, head: 1.04, muscle: 0.45,
+               headShape: 'broad', ear: 'wide', shoulder: 1.22, waist: 1.24, limbW: 1.22 },
       displayName: 'MARIO',
       subtitle: 'The Immovable',
       blurb: 'Enormous, and entirely aware of it. Getting to you takes a while. Being under him does not take long at all.',
       difficulty: 2,
       palette: {
+        /* All of him, and a champion's belt that has to go round all of it. */
+        kit: { belt: '#7a2230', beltPlate: '#f5d76e' },
         fur: '#332d2c', fur2: '#241f20', belly: '#f6f2e8', marks: '#171314',
         eye: '#d9c04a', nose: '#e8a2ac', inner: '#c98d95',
         accent: '#7a4a3c', accessory: 'none', pattern: 'tuxedo',
@@ -266,12 +280,20 @@
     {
       id: 'luigi',
       weightClass: 'light',
-      build: { s: 1.00, girth: 1.00, limb: 1.07, head: 0.98 },
+        /* Up on his toes, leaning in, guard high and narrow. The twin who
+           moves. */
+      stance: { torso: 5, py: 1, armF: [12, 0], armB: [6, 6],
+                legF: [-6, 6], legB: [6, -6], head: [0, 0, 2] },
+      build: { s: 1.02, girth: 0.88, limb: 1.16, head: 0.94, muscle: 1.15,
+               headShape: 'long', ear: 'tall', shoulder: 0.90, waist: 0.84, limbW: 0.84 },
       displayName: 'LUIGI',
       subtitle: 'The Twin',
       blurb: 'Same coat, half the cat. Comes in over the top or takes your legs — and you have to guess which.',
       difficulty: 2,
       palette: {
+        /* The lean twin. A scarf that streams behind him, which is most of
+           what tells the two of them apart in a hurry. */
+        kit: { scarf: '#3f7f5f' },
         fur: '#2b2728', fur2: '#1e1a1b', belly: '#f8f5ee', marks: '#141112',
         eye: '#cdd94a', nose: '#e8a2ac', inner: '#c98d95',
         accent: '#4a7a4c', accessory: 'none', pattern: 'tuxedo',
@@ -357,16 +379,24 @@
     {
       id: 'lilly',
       weightClass: 'light',
-      build: { s: 0.95, girth: 0.86, limb: 1.12, head: 1.00 },
+        /* Poised on the back leg with the front one light, lead paw high
+           and open. Everything about her is ready to leave the ground. */
+      stance: { torso: 2, py: 2, armF: [22, -34], armB: [-4, 12],
+                legF: [-12, -6], legB: [-8, 20] },
+      build: { s: 0.96, girth: 0.82, limb: 1.20, head: 0.94, muscle: 1.25,
+               headShape: 'narrow', ear: 'tall', shoulder: 0.88, waist: 0.76, limbW: 0.80 },
       displayName: 'LILLY',
       subtitle: 'The Acrobat',
       blurb: 'Seal point, blue eyes, and never on the floor for long. Hits like a rumour, but she is already behind you.',
       difficulty: 3,
       palette: {
+        /* The acrobat. Anklets and a collar with a bell on it, so you can
+           hear where she is going to be. */
+        kit: { anklets: '#d9b26a' },
         fur: '#e2d5bd', fur2: '#c9b99c', belly: '#f6efe2', marks: '#4a352b',
         eye: '#69b0e8', nose: '#5a4038', inner: '#a8827a',
         muzzleColor: '#6b5042',
-        accent: '#8fb6d9', accessory: 'none', pattern: 'siamese',
+        accent: '#8fb6d9', accessory: 'collar', pattern: 'siamese',
         tailTip: '#4a352b', longhair: true, points: true,
         line: 'rgba(48,36,28,.5)'
       },
@@ -446,12 +476,20 @@
     {
       id: 'figuro',
       weightClass: 'medium',
-      build: { s: 1.00, girth: 1.08, limb: 1.00, head: 1.00 },
+        /* Peek-a-boo: both gloves up by the cheeks, elbows tucked in, chin
+           down behind them. He is a boxer before he is a cat. */
+      stance: { torso: 4, py: -1, armF: [-30, 52], armB: [-8, 32],
+                head: [1, -1.5, 5] },
+      build: { s: 1.00, girth: 1.12, limb: 0.98, head: 1.00, muscle: 1.45,
+               headShape: 'blocky', ear: 'small', shoulder: 1.26, waist: 0.82, limbW: 1.14 },
       displayName: 'FIGURO',
       subtitle: 'The Boxer',
       blurb: 'Stands up on his back legs and throws hands until you stop enjoying it, then he is somewhere else entirely.',
       difficulty: 2,
       palette: {
+        /* The boxer. Gloves the size of his head, and a belt he wears in
+           the ring and out of it. */
+        kit: { gloves: '#b83a3a', belt: '#2b2f4a', beltPlate: '#d9d2c4' },
         fur: '#b28e5e', fur2: '#957246', belly: '#f0e2c8', marks: '#5a4128',
         eye: '#8fc24a', nose: '#d99aa0', inner: '#e2a8a0',
         accent: '#8a6a3c', accessory: 'none', pattern: 'tabby',
@@ -523,16 +561,24 @@
     {
       id: 'ruby',
       weightClass: 'heavy',
-      build: { s: 1.05, girth: 1.22, limb: 0.98, head: 1.04 },
+        /* Hunched forward over her shoulders with her head low, which is
+           where a jaw like that wants to be. */
+      stance: { torso: 12, py: -2, head: [1, -2, 9], armF: [6, -14],
+                armB: [4, -8], legF: [6, -8], legB: [-4, 8] },
+      build: { s: 1.06, girth: 1.34, limb: 0.94, head: 1.06, muscle: 1.10,
+               headShape: 'blocky', ear: 'torn', shoulder: 1.18, waist: 1.06, limbW: 1.16 },
       displayName: 'RUBY',
       subtitle: 'The Jaw',
       blurb: 'Rubidoux when she is in trouble. Hold down and wait, and anything that jumps at her gets flipped out of the sky.',
       difficulty: 3,
       palette: {
-        fur: '#807464', fur2: '#665c4f', belly: '#b8ab96', marks: '#3a332a',
-        eye: '#a8c24a', nose: '#a08a80', inner: '#b89a95',
-        accent: '#6a5a44', accessory: 'none', pattern: 'tabby',
-        tailTip: '#3a332a', line: 'rgba(30,26,20,.58)'
+        /* The jaw. A studded collar, a torn ear and the marks of every
+           argument she has ever won. */
+        kit: { scars: 3 },
+        fur: '#a55c34', fur2: '#82452a', belly: '#e8c9a4', marks: '#5d2f1c',
+        eye: '#e0b23a', nose: '#c4736a', inner: '#d99a90',
+        accent: '#6b2f22', accessory: 'collar', pattern: 'tabby',
+        tailTip: '#5d2f1c', line: 'rgba(38,20,14,.6)'
       },
       stats: { walkF: 1.22, walkB: 1.04, jumpVy: 9.0, jumpVx: 2.6, gravity: 0.50,
                health: 1120, stunMax: 128, weight: 1.30, hasDash: false },

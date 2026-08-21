@@ -393,6 +393,30 @@
     return keys[keys.length - 1].p;
   }
 
+  /* A character's own posture, added on top of a shared pose.
+
+     Six cats standing in exactly the same guard are six cats in six colours,
+     whatever else is done to them. These are deltas rather than whole poses,
+     so the idle keeps breathing and the walk keeps walking underneath — a
+     boxer's peek-a-boo guard and an old cat's open-handed one are the same
+     animation with a different posture laid over it. */
+  function restyle(pose, style) {
+    if (!style) return pose;
+    var out = {}, k;
+    for (k in pose) out[k] = pose[k];
+    for (k in style) {
+      var d = style[k], base = pose[k];
+      if (Array.isArray(d) && Array.isArray(base)) {
+        var arr = [];
+        for (var i = 0; i < base.length; i++) arr.push(base[i] + (d[i] || 0));
+        out[k] = arr;
+      } else if (typeof d === 'number' && typeof base === 'number') {
+        out[k] = base + d;
+      }
+    }
+    return out;
+  }
+
   /* Secondary motion. A tail that arrives exactly when the body does belongs
      to a puppet; a real one is still catching up a few frames later, and each
      joint along it lags a little more than the one before. The head does the
@@ -429,6 +453,6 @@
   }
 
   CF.Pose = L;
-  CF.Anim = { blend: blend, sample: sample, cycle: cycle, settle: settle,
+  CF.Anim = { blend: blend, sample: sample, cycle: cycle, settle: settle, restyle: restyle,
               easeIn: easeIn, easeOut: easeOut, BASE: BASE, make: P };
 })();

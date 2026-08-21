@@ -874,6 +874,14 @@
   /* ---- what to draw ------------------------------------------------------ */
 
   Fighter.prototype.currentPose = function () {
+    var p = this.basePose();
+    /* The character's own posture, on everything except an authored attack —
+       those are drawn frame by frame and already say who is throwing them. */
+    if (this.state === 'move') return p;
+    return A.restyle(p, this.chr.stance);
+  };
+
+  Fighter.prototype.basePose = function () {
     var s = this.state, f = this.stateFrame;
 
     if (s === 'move' && this.move) {
