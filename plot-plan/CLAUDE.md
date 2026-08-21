@@ -560,11 +560,13 @@ What changed:
   stall, aisle and route required to be stable, firm and slip-resistant (note
   12) — §6157.a.2.h requires CBC ch. 11B compliance even though gravel is fine
   for the rest of the bay.
-- **Parking (owner direction, 8/21):** the six spaces are a rotated row set
-  tangent against the NE 3/4 of AG-2's bottom line — the segment from
-  (97.4, 266.8) to (200.3, 255.4), row anchored to its NE end — van stall at the
-  SW end nearest the store, verified clear of every zone, the pool, the well and
-  all structures. Do not move it back to an axis-aligned bay.
+- **Parking (owner direction, 8/21, corrected same day):** the six spaces are a
+  rotated row tangent against the NE stretch of AG-2's bottom line — the segment
+  from (215.0, 276.1) to (278.7, 278.2), east of the notch — sitting on the
+  existing parking strip where vehicles are visible in the aerial, 3.4' clear of
+  the pool, van stall at the SW end. A first attempt put the row on the sloping
+  (97.4→200.3) segment further west; the owner said "try again" — the NE stretch
+  is the one. Do not move it.
 - **Citations are in the county's own form**, §6157.a.2.(x), and the compliance
   table now carries criterion (f) and the "commercial agriculture must be the
   principal use" preamble.

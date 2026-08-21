@@ -62,7 +62,7 @@ ax.text(77, 210, "PROPOSED STORE =\nMINI BARN MARKET, ±415 SF", fontsize=9, col
         ha="center", va="top", fontweight="bold", zorder=9)
 
 import math as _m
-_P1, _P2 = (97.4, 266.8), (200.3, 255.4)
+_P1, _P2 = (215.0, 276.1), (278.7, 278.2)
 _L = _m.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
 _u = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L); _n = (_u[1], -_u[0]); _t0 = _L-62.0
 for _lab, _t, _w in [("VAN",0,9.0),("AISLE",9.0,8.0)]+[("",17.0+i*9.0,9.0) for i in range(5)]:
@@ -71,7 +71,7 @@ for _lab, _t, _w in [("VAN",0,9.0),("AISLE",9.0,8.0)]+[("",17.0+i*9.0,9.0) for i
     _poly=[_a,_b,(_b[0]+_n[0]*18,_b[1]+_n[1]*18),(_a[0]+_n[0]*18,_a[1]+_n[1]*18)]
     ax.add_patch(MPoly(_poly, closed=True, fill=False, ec="red",
                        lw=1.6, ls="--" if _lab=="AISLE" else "-", zorder=8))
-ax.text(168, 232, "PROPOSED PARKING - 6 SPACES\n(AGAINST AG-2 BOTTOM LINE)", fontsize=9, color="red",
+ax.text(248, 252, "PROPOSED PARKING - 6 SPACES\n(AGAINST AG-2 BOTTOM LINE, NE)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
 ax.set_title("VERIFICATION OVERLAY v3 - plan geometry on registered aerial\n"

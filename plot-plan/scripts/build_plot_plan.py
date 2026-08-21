@@ -198,7 +198,7 @@ crop_name = {
  '8': "VEGETABLES + FLOWERS", '9': "ORCHARD 2 (FRUIT TREES)",
  '10': "FRUIT TREES + PUMPKIN", '11': "FRUIT TREES + PUMPKIN",
  '12': "ROSEMARY (HERBS)"}
-lab_pos = {'1': (75,203), '4': (166,200), '7': (250,105), '10': (25,100),
+lab_pos = {'1': (75,203), '2': (150,277), '4': (166,200), '7': (250,105), '10': (25,100),
            '11': (300,4), '12': (492,32)}
 for k in ZONE_KEYS:
     for ring in rings(clipped[k]):
@@ -274,11 +274,11 @@ ax.annotate("EXIST. 'MINI BARN MARKET' — PROPOSED\nSMALL AGRICULTURAL STORE, �
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
 # ---- PROPOSED CUSTOMER PARKING: 6 spaces (1 van accessible) set as a row
-# RIGHT AGAINST the NE 3/4 of AG-2's bottom line (owner direction, 8/21).
-# The row is rotated to match that edge (S83.7E, -6.3 deg) with stall tops
-# tangent to it — 0 SF overlap, verified with shapely, and clear of the pool,
-# well, vineyard and every structure. Van stall at the SW end, nearest the store.
-_P1, _P2 = (97.4, 266.8), (200.3, 255.4)          # AG-2 bottom edge (SW -> NE)
+# RIGHT AGAINST the NE stretch of AG-2's bottom line (owner direction, 8/21 —
+# "try again" correction: the NE end of the bottom line is the segment east of
+# the notch, over the existing parking strip where vehicles sit in the aerial).
+# Stall tops tangent to the edge — 0 SF overlap — 3.4' clear of the pool.
+_P1, _P2 = (215.0, 276.1), (278.7, 278.2)          # AG-2 bottom edge, NE stretch
 _L  = math.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
 _u  = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L)     # along the edge
 _n  = (_u[1], -_u[0])                              # perpendicular, into the yard
@@ -303,14 +303,16 @@ for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
     elif lab:
         ax.text(cxp, cyp, lab, fontsize=3.4, ha='center', va='center', color='#0044aa',
                 fontweight='bold', rotation=_ang, rotation_mode='anchor', zorder=7)
-# accessible route: van stall -> store entry, through the gap between AG-1 and AG-2
-ROUTE = [(137.7, 253.3), (97.0, 252.0), (87.5, 243.5)]
+# accessible route: van stall -> store entry, under AG-2's spike and over AG-1's crown
+ROUTE = [(217.3, 258.2), (204.0, 250.5), (100.0, 250.0), (90.0, 249.0), (87.5, 245.0)]
 ax.plot([q[0] for q in ROUTE], [q[1] for q in ROUTE], color='#0044aa', lw=1.6,
         ls=(0,(1,1.6)), zorder=6)
-ax.plot([87.5], [243.5], marker='o', ms=3, color='#0044aa', zorder=7)
-ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. GRAVEL YARD — ACCESSIBLE ROUTE PER NOTE 12",
-        fontsize=5.8, ha='center', va='top', color='#00337f', fontweight='bold', zorder=9,
-        bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
+ax.plot([87.5], [245.0], marker='o', ms=3, color='#0044aa', zorder=7)
+ax.annotate("PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. PARKING STRIP — ACCESSIBLE ROUTE PER NOTE 12",
+            (248, 277.8), (240, 319), fontsize=5.6, ha='center', va='center',
+            color='#00337f', fontweight='bold', zorder=9,
+            arrowprops=dict(arrowstyle='-|>', lw=0.9, color='#0044aa'),
+            bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
 
 # trellis garden
 tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)
