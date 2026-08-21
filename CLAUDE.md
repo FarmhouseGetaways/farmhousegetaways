@@ -605,6 +605,35 @@ Three things a later session needs to know:
   cannot also be tough. Do not add a cat without a class.
 - **Photographs**: the colours were read by eye from photographs pasted into
   the chat. That is all they are needed for — see the character card above.
+- **The lag was two Chromium switches, not the game.** `electron/main.js` was
+  passing `disable-frame-rate-limit` and `disable-gpu-vsync`, on the theory
+  that a fighting game must not be paced by the compositor. They did the
+  opposite: rAF then runs as fast as the machine allows and redraws
+  everything each time, the compositor backs up, and you get about one frame a
+  second. **Do not put them back.** The simulation is a fixed 60Hz with its own
+  accumulator and never wanted an uncapped display.
+- **The canvas is capped at five times the arcade resolution**, and steps down
+  on its own to a floor of two if the frame rate will not hold. Uncapped, a
+  4K screen gave a 384x224 game a 7405x4320 backing store. It only ever steps
+  down — hunting between two resolutions looks worse than the lower one. **F3**
+  shows the frame rate and the scale it settled on.
+- **Menus trigger on the edge of a direction, never a frame counter.**
+  `port.menuDir([...])` is the only correct way to read a menu direction. A
+  frame-counted repeat moves the cursor two or three places the moment several
+  simulation steps run between two visible frames.
+- **A character is a build, a kit and a stance**, not a palette. `build` carries
+  shoulder, waist, limb thickness, muscle, skull shape and ear shape;
+  `palette.kit` carries the gear (headband, belt, scarf, gloves, wraps,
+  anklets, scars); `chr.stance` is a set of pose deltas laid over the shared
+  idle so each cat holds itself differently. Adding a cat without all three
+  gets you the same cat in a new colour, which is what the owner objected to
+  on 21 Aug 2026.
+- **A stage needs a landmark.** Every one of them was a repeating strip until
+  21 Aug 2026. The pattern that fixed it: one thing fixed in world space
+  (`K.at`) that the eye can return to, every repeated element varied by
+  `K.vary`/`K.pick`/`K.chance` so no two are identical, `K.floorPool` and
+  `K.litter` so the floor is not a blank band, and `K.crowdRow` for a crowd
+  that is not one cat printed eleven times.
 - **The menus take the mouse, and that is not decoration.** A page in an iframe
   gets no key presses until it has focus, so a keyboard-only title screen is
   dead on arrival in an artifact viewer — which is exactly what the owner hit

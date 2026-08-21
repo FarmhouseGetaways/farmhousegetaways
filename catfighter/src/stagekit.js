@@ -484,9 +484,115 @@
     ctx.restore();
   }
 
+  /* ---- variety ------------------------------------------------------------
+
+     A row of identical things is the thing that makes a background look
+     cheap, and it is what every one of these stages was doing: the same
+     cabinet seven times, the same bush eleven times. These take the stable
+     hash and turn it into per-instance difference — a size, a tilt, a colour,
+     a choice of which of four things this one is. Stable between frames,
+     because a prop that changes shape as the camera moves is worse than a
+     repeated one. */
+  /* Where a fixed thing in the world lands on screen at this depth. Repeated
+     props are what a `repeatX` is for; a landmark needs to stay put, and a
+     stage without one is a strip of wallpaper. */
+  function at(camX, depth, worldX) { return worldX - camX * depth; }
+
+  function vary(i, salt, lo, hi) { return lo + hash(i, salt) * (hi - lo); }
+  function pick(i, salt, arr) { return arr[Math.floor(hash(i, salt) * arr.length) % arr.length]; }
+  function chance(i, salt, p) { return hash(i, salt) < p; }
+
+  /* ---- light on the floor -------------------------------------------------
+
+     The band the fighters stand on was a flat gradient in every stage, which
+     is most of why they read as a backdrop with a carpet in front of it.
+     A pool of light gives the floor somewhere to be, and puts the fight in
+     the middle of the picture rather than on top of it. */
+  function floorPool(ctx, cx, w, colour, alpha) {
+    var g = ctx.createRadialGradient(cx, FLOOR_Y + 6, 2, cx, FLOOR_Y + 6, w);
+    g.addColorStop(0, colour);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.globalAlpha = alpha === undefined ? 0.5 : alpha;
+    ctx.fillStyle = g;
+    ctx.fillRect(0, FLOOR_Y - 10, W, H - FLOOR_Y + 10);
+    ctx.restore();
+  }
+
+  /* Grit, gravel, crumbs — whatever the floor of this place would have on it.
+     Twenty specks kill more of the "flat carpet" feeling than any amount of
+     gradient. */
+  function litter(ctx, camX, depth, spacing, colours, sizeLo, sizeHi) {
+    repeatX(camX, depth, spacing, function (x, i) {
+      var n = 2 + Math.floor(hash(i, 5) * 3);
+      for (var q = 0; q < n; q++) {
+        var yy = FLOOR_Y + 4 + hash(i * 7 + q, 6) * (H - FLOOR_Y - 8);
+        var r = vary(i * 7 + q, 7, sizeLo, sizeHi);
+        ctx.fillStyle = pick(i * 7 + q, 8, colours);
+        ctx.beginPath();
+        ctx.ellipse(x + hash(i * 7 + q, 9) * spacing, yy, r, r * 0.62, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
+
+  /* A crowd that is not one cat printed eleven times: each gets its own size,
+     colour, bob and a chance of doing something. */
+  function crowdRow(ctx, camX, depth, spacing, yBase, t, mood, opts) {
+    opts = opts || {};
+    var salt = opts.seed || 0;
+    layer(ctx, camX, depth, function () {
+      repeatX(camX, 0, spacing, function (x, i) {
+        if (chance(i, salt + 1, opts.gap === undefined ? 0.18 : opts.gap)) return;
+        var sc = vary(i, salt + 2, opts.min || 0.72, opts.max || 1.12);
+        var yy = yBase + vary(i, salt + 3, -2, 2);
+        spectator(ctx, x + vary(i, salt + 4, -4, 4), yy, sc,
+                  Math.abs(Math.floor(hash(i, salt + 5) * 997)), t + i * 13, mood);
+      });
+    });
+  }
+
+  /* A shape drawn with a heavy dark edge, the way every prop in a Street
+     Fighter II background is: a solid mass with a rim, not a flat fill. */
+  function prop(ctx, path, fill, edge, edgeW) {
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    path(ctx);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (edge) {
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = edgeW || 1.4;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* Warm light falling out of a window or a doorway, onto whatever is under
+     it. Cheap, and it does more for depth than another parallax layer. */
+  function spill(ctx, x, y, w, h, colour, alpha) {
+    var g = ctx.createLinearGradient(x, y, x - w * 0.4, y + h);
+    g.addColorStop(0, colour);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.globalAlpha = alpha === undefined ? 0.35 : alpha;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w * 0.55, y + h);
+    ctx.lineTo(x - w * 0.45, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   CF.StageKit = {
     W: W, H: H, FLOOR_Y: FLOOR_Y,
     layer: layer, repeatX: repeatX, hash: hash, sway: sway,
+    vary: vary, pick: pick, chance: chance, at: at,
+    floorPool: floorPool, litter: litter, crowdRow: crowdRow, prop: prop, spill: spill,
     sky: sky, glow: glow, lightShaft: lightShaft, vignette: vignette,
     hills: hills, ridge: ridge, ground: ground, planks: planks, tree: tree,
     spectator: spectator, Particles: Particles,
