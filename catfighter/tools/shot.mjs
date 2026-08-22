@@ -157,7 +157,7 @@ roster: (a) => `
   /* A presentation sheet: every cat big, lit, named, on a dark ground — what
      you hand somebody when they ask what the roster looks like. */
   const SC = ${Number(a[0]) || 2.6};
-  const CW = Math.round(168*SC/2.6), CH = Math.round(330*SC/2.6), COLS = 3;
+  const CW = Math.round(168*SC/2.6), CH = Math.round(360*SC/2.6), COLS = 3;
   const ROWS = Math.ceil(CF.ROSTER.length/COLS);
   size(CW*COLS, CH*ROWS);
   const bgGrad = ctx.createLinearGradient(0,0,0,CH*ROWS);
