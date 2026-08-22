@@ -77,64 +77,104 @@
         });
       });
 
-      /* --- THE HAYLOFT. The top third of this stage used to be an empty
-             maroon wall with a small window in it. It is now the whole open
-             end of the loft: a moonlit doorway two thirds the height of a
-             fighter, bales stacked in it, a ladder down, and a block and
-             tackle hanging off the beam. Something huge and far away, framing
-             something small and near, is the whole trick. --- */
+      /* --- THE HAYLOFT, and the hoist.
+
+             The far mass. It was a 124-pixel window and it read as a window;
+             at 172 across and nearly half the height of the picture it reads
+             as the whole open end of the barn with the night behind it. That
+             is the scale contrast the reference lives on — the claw machine is
+             enormous and near, this is enormous and far, and the fighters are
+             small between them.
+
+             The second loop lives here: a bale on the block and tackle,
+             hauled up out of the dark and swung into the loft, over and over.
+             It runs on a different period from the claw so the two never
+             settle into lockstep. --- */
       K.layer(ctx, camX, 0.22, function () {
-        var wx = K.at(camX, 0, 250);
+        var wx = K.at(camX, 0, 252) - camX * 0.03;
+        var OW = 86, OT = 4, OB = 100;                 /* half-width, top, bottom */
         /* the opening itself */
         ctx.fillStyle = '#150e1c';
-        ctx.fillRect(wx - 62, 2, 124, 74);
-        ctx.fillStyle = '#33507f';                    /* night outside */
-        ctx.fillRect(wx - 57, 6, 114, 66);
-        ctx.fillStyle = '#4d76ad';
-        ctx.fillRect(wx - 57, 6, 114, 30);
-        /* a moon, and hills under it */
-        ctx.fillStyle = '#e8eaf6';
-        ctx.beginPath(); ctx.arc(wx + 28, 22, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#22355c';
-        ctx.beginPath();
-        ctx.moveTo(wx - 57, 72);
-        for (var hx = -57; hx <= 57; hx += 8) {
-          ctx.lineTo(wx + hx, 50 - Math.sin(hx * 0.05) * 7 - Math.sin(hx * 0.13) * 3);
+        ctx.fillRect(wx - OW - 5, OT - 2, OW * 2 + 10, OB - OT + 4);
+        /* night sky through it, dark at the top so the moon has somewhere to be */
+        ctx.fillStyle = '#22345c'; ctx.fillRect(wx - OW, OT, OW * 2, OB - OT);
+        ctx.fillStyle = '#33507f'; ctx.fillRect(wx - OW, OT, OW * 2, (OB - OT) * 0.52);
+        ctx.fillStyle = '#4d76ad'; ctx.fillRect(wx - OW, OT, OW * 2, (OB - OT) * 0.24);
+        /* stars, and the moon with a halo */
+        for (var s2 = 0; s2 < 16; s2++) {
+          ctx.fillStyle = 'rgba(226,236,255,' + K.vary(s2, 80, 0.3, 0.85).toFixed(2) + ')';
+          ctx.fillRect(wx - OW + 6 + K.hash(s2, 81) * (OW * 2 - 12),
+                       OT + 3 + K.hash(s2, 82) * 44, 1, 1);
         }
-        ctx.lineTo(wx + 57, 72); ctx.closePath(); ctx.fill();
-        /* bales stacked in the mouth of it, so the scale reads */
-        K.mass(ctx, wx - 54, 48, 30, 24, '#b8933f', { top: 3, side: 4 });
-        K.mass(ctx, wx - 50, 26, 26, 22, '#c2a04a', { top: 3, side: 4 });
-        K.mass(ctx, wx + 22, 52, 32, 20, '#ad8a3a', { top: 3, side: 4 });
-        /* the frame round it */
-        ctx.strokeStyle = '#40261c'; ctx.lineWidth = 5;
-        ctx.strokeRect(wx - 59.5, 4.5, 119, 69);
-        ctx.fillStyle = '#4a2c1e';
-        ctx.fillRect(wx - 66, 74, 132, 7);
-        ctx.fillStyle = 'rgba(255,225,170,.12)';
-        ctx.fillRect(wx - 66, 74, 132, 2);
-        /* block and tackle on the hoist beam, swinging a little */
-        var hook = wx + 74, swing = Math.sin(t * 0.011) * 5;
-        ctx.fillStyle = '#3a2418'; ctx.fillRect(hook - 4, 0, 8, 10);
-        ctx.strokeStyle = 'rgba(24,16,12,.9)'; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(hook, 10); ctx.lineTo(hook + swing, 44); ctx.stroke();
-        K.mass(ctx, hook + swing - 5, 44, 10, 12, '#6b5a3a', { top: 2, side: 3 });
-        /* the ladder down out of it */
+        K.glow(ctx, wx + 44, OT + 22, 30, 'rgba(190,215,255,.7)', 0.3);
+        ctx.fillStyle = '#e8eaf6';
+        ctx.beginPath(); ctx.arc(wx + 44, OT + 22, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#cdd3e8';
+        ctx.beginPath(); ctx.arc(wx + 47, OT + 19, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wx + 40, OT + 26, 1.6, 0, Math.PI * 2); ctx.fill();
+        /* two ridges of hill, the far one hazed towards the night sky */
+        [[0.55, '#2b4068', 62, 9], [1, '#1b2b4c', 74, 13]].forEach(function (r) {
+          ctx.fillStyle = r[1];
+          ctx.beginPath();
+          ctx.moveTo(wx - OW, OB);
+          for (var hx = -OW; hx <= OW; hx += 7) {
+            ctx.lineTo(wx + hx, r[2] - Math.sin(hx * 0.04 + r[0] * 3) * r[3]
+                                     - Math.sin(hx * 0.11) * r[3] * 0.4);
+          }
+          ctx.lineTo(wx + OW, OB); ctx.closePath(); ctx.fill();
+        });
+        /* a bird crossing the moon, once in a while */
+        var bp = (t * 0.18) % 520;
+        if (bp < 170) K.bird(ctx, wx - OW + bp * 0.9, OT + 20 + Math.sin(bp * 0.05) * 6, 0.8, t, 0, '#1a2338');
+
+        /* bales stacked in the mouth of it — the thing that makes the opening
+           read as a room you could stand in rather than a hole */
+        K.mass(ctx, wx - OW + 4, OB - 34, 40, 34, '#a3823a', { top: 4, side: 5 });
+        K.mass(ctx, wx - OW + 10, OB - 62, 32, 28, '#b08d40', { top: 4, side: 5 });
+        K.mass(ctx, wx + OW - 46, OB - 28, 44, 28, '#987a36', { top: 4, side: 5 });
+
+        /* THE HOIST. Rope over the beam, a bale coming up on it. */
+        var HC = 420, hu = (t % HC) / HC;
+        var hoistX = wx - 8, beamY = OT - 2;
+        var bY = hu < 0.62
+          ? FLOOR_Y - 30 - (FLOOR_Y - 30 - (OB - 36)) * (hu / 0.62)   /* rising */
+          : hu < 0.78 ? OB - 36                                        /* held  */
+          : FLOOR_Y - 30 - (FLOOR_Y - 30 - (OB - 36)) * (1 - (hu - 0.78) / 0.22);
+        var swingX = Math.sin(t * 0.017) * 4 * (hu < 0.78 ? 1 : 0.4);
+        ctx.strokeStyle = 'rgba(28,20,14,.95)'; ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(hoistX, beamY); ctx.lineTo(hoistX + swingX, bY - 8); ctx.stroke();
+        ctx.fillStyle = '#3a2418'; ctx.fillRect(hoistX + swingX - 5, bY - 12, 10, 6);
+        K.mass(ctx, hoistX + swingX - 15, bY - 4, 30, 22, '#c2a04a', { top: 3, side: 4 });
+        ctx.strokeStyle = 'rgba(90,64,20,.6)'; ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(hoistX + swingX - 7, bY - 4); ctx.lineTo(hoistX + swingX - 7, bY + 18);
+        ctx.moveTo(hoistX + swingX + 7, bY - 4); ctx.lineTo(hoistX + swingX + 7, bY + 18);
+        ctx.stroke();
+
+        /* the frame round the opening, and the loft floor it sits on */
+        ctx.strokeStyle = '#40261c'; ctx.lineWidth = 6;
+        ctx.strokeRect(wx - OW - 2, OT - 1, OW * 2 + 4, OB - OT + 2);
+        K.mass(ctx, wx - OW - 12, OB + 1, OW * 2 + 24, 9, '#54321f', { top: 3, side: 6 });
+        /* the hoist beam sticking out over the drop */
+        K.mass(ctx, wx - 26, beamY - 3, 46, 7, '#4a2c1e', { top: 2, side: 4, foot: false });
+
+        /* the ladder down out of it, leaning */
         ctx.strokeStyle = '#5c3a24'; ctx.lineWidth = 2.6;
         ctx.beginPath();
-        ctx.moveTo(wx - 46, 78); ctx.lineTo(wx - 52, FLOOR_Y - 20);
-        ctx.moveTo(wx - 30, 78); ctx.lineTo(wx - 36, FLOOR_Y - 20);
+        ctx.moveTo(wx + OW - 14, OB + 10); ctx.lineTo(wx + OW - 26, FLOOR_Y - 18);
+        ctx.moveTo(wx + OW + 4, OB + 10); ctx.lineTo(wx + OW - 8, FLOOR_Y - 18);
         ctx.stroke();
         ctx.lineWidth = 1.8;
-        for (var rung = 0; rung < 9; rung++) {
-          var ry = 84 + rung * ((FLOOR_Y - 104) / 9);
-          var lean = (ry - 78) / (FLOOR_Y - 98) * 6;
+        for (var rung = 0; rung < 8; rung++) {
+          var f2 = rung / 8, ry = OB + 14 + f2 * (FLOOR_Y - 34 - OB);
           ctx.beginPath();
-          ctx.moveTo(wx - 46 - lean, ry); ctx.lineTo(wx - 30 - lean, ry);
+          ctx.moveTo(wx + OW - 14 - f2 * 12, ry); ctx.lineTo(wx + OW + 4 - f2 * 12, ry);
           ctx.stroke();
         }
-        /* the moonlight falling out of the opening */
-        K.spill(ctx, wx - 54, 76, 108, FLOOR_Y - 76, 'rgba(150,185,235,.55)', 0.26);
+        /* the moonlight falling out of the opening onto the barn floor */
+        K.spill(ctx, wx - OW + 6, OB + 10, OW * 2 - 12, FLOOR_Y - OB - 10,
+                'rgba(150,185,235,.55)', 0.24);
       });
 
       /* --- roof trusses --- */
@@ -255,7 +295,7 @@
            compromise the other stages use. */
         var mx = K.at(camX, 0, 0) - camX * 0.02;
         var MW = 104, MTOP = 16, MBOT = FLOOR_Y;
-        var bx = mx - 8;                       /* off the left edge on purpose */
+        var bx = mx + 16;                       /* the near stall partition crops it */
 
         /* the cabinet: one painted mass, lit from the right because the light
            in this barn comes off the string lights over the fight */
@@ -271,6 +311,14 @@
 
         /* the pile of plushes at the bottom of the box */
         var pileY = gy + gh - 9;
+        /* the prizes were drawn in mid-air over a navy box. A mound under them
+           is one fill and it is the difference between a pile and a pattern. */
+        ctx.fillStyle = '#141c34';
+        ctx.beginPath();
+        ctx.moveTo(gx, gy + gh);
+        ctx.lineTo(gx, pileY - 1);
+        ctx.quadraticCurveTo(gx + gw * 0.5, pileY - 9, gx + gw, pileY - 3);
+        ctx.lineTo(gx + gw, gy + gh); ctx.closePath(); ctx.fill();
         for (var q2 = 0; q2 < 11; q2++) {
           plush(ctx, gx + 7 + (q2 % 6) * 12 + (q2 > 5 ? 6 : 0),
                 pileY - (q2 > 5 ? 9 : 0), K.vary(q2, 50, 4.2, 5.6),
@@ -483,15 +531,90 @@
         ctx.fillRect(-20, 14, W + 40, 3);
       });
 
-      /* --- the floor --- */
+      /* --- the floor.
+
+             A third of the picture, and it was a plank texture and twenty
+             specks. It now has something ON it: the shuffleboard court painted
+             across the boards, worn through where everyone walks, with a puck
+             left in the seven. The court is anchored in the WORLD, not the
+             screen, so it slides past as the fight moves and tells you how far
+             you have travelled — which a repeating floor never can. --- */
       K.grain(ctx, camX, 56, ['#6d4a2c', '#bd854e'], 0.1);
+      K.layer(ctx, camX, 1, function () {
+        var cx2 = K.at(camX, 1, 150);
+        var apexY = FLOOR_Y + 7, baseY = H + 6;
+        function court(f) {                       /* half-width at 0..1 down */
+          return 15 + f * 74;
+        }
+        function edge(c, w, alpha) {
+          ctx.strokeStyle = c; ctx.lineWidth = w; ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.moveTo(cx2 - court(0), apexY); ctx.lineTo(cx2 - court(1), baseY);
+          ctx.moveTo(cx2 + court(0), apexY); ctx.lineTo(cx2 + court(1), baseY);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = 'rgba(226,196,140,.10)';
+        ctx.beginPath();
+        ctx.moveTo(cx2 - court(0), apexY); ctx.lineTo(cx2 + court(0), apexY);
+        ctx.lineTo(cx2 + court(1), baseY); ctx.lineTo(cx2 - court(1), baseY);
+        ctx.closePath(); ctx.fill();
+        /* two passes: a dark one offset down, then the pale paint over it, so
+           the line has a shadow in the grain the way worn paint does */
+        edge('rgba(38,22,10,.62)', 3, 1);
+        edge('rgba(248,235,202,.62)', 1.8, 1);
+        [0.3, 0.62].forEach(function (f) {
+          var y = apexY + (baseY - apexY) * f;
+          ctx.strokeStyle = 'rgba(38,22,10,.5)'; ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.moveTo(cx2 - court(f), y + 1); ctx.lineTo(cx2 + court(f), y + 1);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(248,235,202,.5)'; ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(cx2 - court(f), y); ctx.lineTo(cx2 + court(f), y);
+          ctx.stroke();
+        });
+        /* the puck somebody left in the seven */
+        var pz = cx2 + 26, py = apexY + (baseY - apexY) * 0.46;
+        ctx.fillStyle = 'rgba(0,0,0,.3)';
+        ctx.beginPath(); ctx.ellipse(pz, py + 1.6, 6, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c23b34';
+        ctx.beginPath(); ctx.ellipse(pz, py, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e8635a';
+        ctx.beginPath(); ctx.ellipse(pz - 0.6, py - 0.8, 4.4, 1.8, 0, 0, Math.PI * 2); ctx.fill();
+      });
+
+      /* the light on it: a warm pool under the string lights, cold moonlight
+         where it falls out of the loft, and the string lights repeating */
       K.floorPool(ctx, W * 0.5, 190, 'rgba(255,196,110,.6)', 0.34);
+      K.floorPool(ctx, K.at(camX, 0, 252) - camX * 0.03, 150,
+                  'rgba(150,190,240,.5)', 0.2);
       K.repeatX(camX, 1, 92, function (x) {
         K.glow(ctx, x, FLOOR_Y + 16, 46, 'rgba(255,196,110,.55)', 0.1);
       });
-      /* tokens and straw underfoot */
+      /* tokens and straw underfoot, and one token catching the light */
       K.litter(ctx, camX, 1, 64, ['rgba(214,178,74,.6)', 'rgba(120,88,44,.5)',
                                   'rgba(255,224,140,.45)'], 0.7, 1.9);
+      K.layer(ctx, camX, 1, function () {
+        ctx.strokeStyle = 'rgba(206,168,78,.55)'; ctx.lineWidth = 1;
+        K.repeatX(camX, 0, 48, function (x, i) {
+          for (var st = 0; st < 3; st++) {
+            var sx = x + K.vary(i * 3 + st, 90, 0, 46);
+            var sy = FLOOR_Y + 6 + K.hash(i * 3 + st, 91) * (H - FLOOR_Y - 8);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + K.vary(i * 3 + st, 92, -5, 5), sy + K.vary(i * 3 + st, 93, -1.6, 1.6));
+            ctx.stroke();
+          }
+        });
+        var tk = K.at(camX, 1, 84), glint = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.03));
+        ctx.fillStyle = '#d8ae44';
+        ctx.beginPath(); ctx.ellipse(tk, H - 22, 3.2, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = glint;
+        ctx.fillStyle = '#fff4c8';
+        ctx.fillRect(tk - 1, H - 23, 2, 1);
+        ctx.globalAlpha = 1;
+      });
       this.dust.update();
       this.dust.draw(ctx, camX, t);
     },
@@ -518,6 +641,10 @@
           ctx.globalAlpha = 1;
         });
       });
+      /* the near edge of the floor, in front of the fighters feet — the
+         plane turns away from the light as it comes towards you, and that
+         alone is the difference between a floor and a coloured band */
+      K.nearLip(ctx, 15, 0.4);
       K.vignette(ctx, 0.26);
     }
   };

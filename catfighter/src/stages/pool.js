@@ -34,8 +34,8 @@
      above the top of the frame on purpose — a slide you can see the top of
      is a playground slide. */
   var FLUME = [
-    [[ 62, -26], [116,  24], [-44,  40], [ 26,  76]],
-    [[ 26,  76], [ 74, 100], [-14, 112], [-58, 148]]
+    [[ 40, -30], [ 96,  -6], [ 20,  14], [-16,  44]],
+    [[-16,  44], [-46,  66], [ 34,  96], [ 46, 152]]
   ];
 
   function bez1(a, b, c, d, k) {
@@ -125,9 +125,9 @@
           }
         });
       });
-      K.glow(ctx, 96, 30, 58, 'rgba(255,246,190,.9)', 0.5);
+      K.glow(ctx, 138, 26, 58, 'rgba(255,246,190,.9)', 0.5);
       ctx.fillStyle = '#fff8d0';
-      ctx.beginPath(); ctx.arc(96, 30, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(138, 26, 16, 0, Math.PI * 2); ctx.fill();
 
       /* --- hills, then the vineyard rows climbing them --- */
       K.hills(ctx, camX, 0.10, '#6ea84e', 124, 20, 3);
@@ -146,7 +146,7 @@
          THE LANDMARK — the slide tower, right third, top of frame to pool.
          ================================================================= */
       K.layer(ctx, camX, 0.30, function () {
-        var tx = K.at(camX, 0, 286) - camX * 0.03;   /* a hair of drift, so it
+        var tx = K.at(camX, 0, 252) - camX * 0.03;   /* a hair of drift, so it
                                                         is not glued to the glass */
 
         /* --- the tower it stands on. Painted boxes, not lines: at this size
@@ -183,14 +183,20 @@
 
         /* the platform at the top, with a queue on it waiting their turn —
            the queue is what tells you the slide is in use */
-        K.mass(ctx, tx - 6, 6, 92, 8, '#d8b45c', { top: 4, side: 5 });
+        /* The platform sat at y 6 with the queue half off the top of the
+           picture, which made it read as a yellow sign hanging in the sky.
+           It is low enough now that you can see two cats standing on it
+           waiting their turn, and that is the thing that tells you what the
+           whole structure is for. */
+        K.spectator(ctx, tx + 46, 26, 0.74, 311, t, mood);
+        K.spectator(ctx, tx + 72, 26, 0.66, 512, t + 40, mood);
+        K.mass(ctx, tx - 4, 26, 94, 7, '#d8b45c', { top: 4, side: 5 });
         ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(tx + 30, 2); ctx.lineTo(tx + 30, -18);
-        ctx.moveTo(tx + 84, 2); ctx.lineTo(tx + 84, -18);
-        ctx.moveTo(tx + 30, -16); ctx.lineTo(tx + 84, -16); ctx.stroke();
-        K.spectator(ctx, tx + 46, 4, 0.72, 311, t, mood);
-        K.spectator(ctx, tx + 70, 4, 0.66, 512, t + 40, mood);
+        ctx.moveTo(tx + 34, 26); ctx.lineTo(tx + 34, 4);
+        ctx.moveTo(tx + 86, 26); ctx.lineTo(tx + 86, 4);
+        ctx.moveTo(tx + 34, 8); ctx.lineTo(tx + 86, 8);
+        ctx.moveTo(tx + 34, 17); ctx.lineTo(tx + 86, 17); ctx.stroke();
 
         /* --- the flume itself --- */
         K.paint(ctx, flumeRibbon(tx, 32, 25), '#39b0d8',
@@ -273,9 +279,34 @@
       /* --- the pool. It reaches from the far rail almost to the fighters'
              feet, so the fight happens on the lip of it. --- */
       K.water(ctx, 0, 136, W, 32, t, '#1d76b0', '#63c3e9', 'rgba(255,255,255,.6)');
+      /* the lane tiles on the bottom of the pool, wobbling through the water */
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#0d4f78'; ctx.lineWidth = 2;
+      [146, 156].forEach(function (ly3, n3) {
+        ctx.beginPath();
+        for (var lx3 = 0; lx3 <= W; lx3 += 6) {
+          ctx.lineTo(lx3, ly3 + Math.sin((lx3 + t * 1.2 + n3 * 40) * 0.05) * 1.6);
+        }
+        ctx.stroke();
+      });
+      ctx.restore();
+      /* the sun's glitter path — a wedge of broken white running towards the
+         viewer from under the sun. One highlight line across the whole band
+         reads as a river; a hot patch under the light reads as a pool. */
+      ctx.save();
+      for (var gr = 0; gr < 22; gr++) {
+        var gy = 137 + (gr % 8) * 3.9;
+        var spread = 8 + (gy - 137) * 2.2;
+        var gx = 138 + Math.sin(gr * 2.4 + t * 0.05) * spread;
+        ctx.globalAlpha = 0.25 + 0.4 * Math.abs(Math.sin(t * 0.07 + gr));
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(gx, gy, 2 + (gr % 3) * 2.5, 1.4);
+      }
+      ctx.restore();
       /* the wobbling reflection of the tower, on the water under it */
       K.layer(ctx, camX, 0.30, function () {
-        var rx3 = K.at(camX, 0, 286) - camX * 0.03;
+        var rx3 = K.at(camX, 0, 252) - camX * 0.03;
         ctx.save();
         ctx.globalAlpha = 0.22;
         ctx.fillStyle = '#0d4f78';
@@ -432,42 +463,51 @@
             c.closePath();
           }, col, { step: 3, shade: 0.34, edgeW: 1.4, edge: 'rgba(60,30,26,.5)' });
         });
-        /* a cooler and a stack of towels at the foot of it */
-        K.mass(ctx, px2 + 16, H - 34, 34, 20, '#3f8fc4', { top: 4, side: 5 });
+        /* the cooler and the towel stack used to sit at the foot of this
+           pole; the flamingo stands there now, so they are at the other
+           corner where they still weight the bottom of the frame */
+        var cx2 = W - 62 + drift * 0.4;
+        K.mass(ctx, cx2, H - 30, 38, 22, '#3f8fc4', { top: 5, side: 6 });
         ctx.fillStyle = '#e8eef4';
-        ctx.fillRect(px2 + 16, H - 38, 34, 4);
-        K.mass(ctx, px2 + 56, H - 24, 22, 5, '#f2e0d2', { top: 2, side: 3 });
-        K.mass(ctx, px2 + 58, H - 29, 20, 5, '#e0b8c4', { top: 2, side: 3 });
+        ctx.fillRect(cx2, H - 35, 38, 5);
+        ctx.fillStyle = 'rgba(255,255,255,.4)';
+        ctx.fillRect(cx2 + 4, H - 26, 30, 2);
+        K.mass(ctx, cx2 + 44, H - 20, 24, 6, '#f2e0d2', { top: 2, side: 3 });
+        K.mass(ctx, cx2 + 46, H - 26, 22, 6, '#e0b8c4', { top: 2, side: 3 });
       });
 
-      /* --- RIGHT FRAME: the inflatable flamingo, propped on the deck to dry.
-             It is deliberately enormous — its head alone is bigger than a
-             fighter's. Something the size of a car at the edge of frame is
-             what makes the tower behind read as far away; a float bobbing in
-             the pool at the correct scale did nothing at all. --- */
+      /* --- LEFT FRAME: the inflatable flamingo, propped on the deck to dry.
+             It is deliberately enormous — twice a fighter tall, its head
+             alone bigger than one. Something the size of a car at the edge
+             of frame is what makes the tower behind read as far away; a
+             float bobbing in the pool at the correct scale did nothing.
+
+             It is on the LEFT because the slide needs the whole right third:
+             with both of them over there the flume came down through the
+             middle of the fight to get past the bird. --- */
       K.layer(ctx, camX, 1.22, function () {
-        var fx = W - 22 - camX * 0.055;
+        var fx = 30 - camX * 0.055;
         var PINK = '#ff9dbb';
 
         /* shadow on the deck under it */
         ctx.fillStyle = 'rgba(70,60,52,.26)';
-        ctx.beginPath(); ctx.ellipse(fx - 4, H - 6, 62, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(fx + 4, H - 6, 62, 12, 0, 0, Math.PI * 2); ctx.fill();
 
         /* body, running off the bottom of the frame */
         K.paint(ctx, function (c) {
           c.beginPath();
-          c.moveTo(fx - 56, H + 12);
-          c.bezierCurveTo(fx - 62, 168, fx - 26, 146, fx + 8, 150);
-          c.bezierCurveTo(fx + 44, 154, fx + 62, 176, fx + 60, H + 12);
+          c.moveTo(fx + 56, H + 12);
+          c.bezierCurveTo(fx + 62, 168, fx + 26, 146, fx - 8, 150);
+          c.bezierCurveTo(fx - 44, 154, fx - 62, 176, fx - 60, H + 12);
           c.closePath();
         }, PINK, { step: 4, shade: 0.34, hi: 0.24, edgeW: 1.6 });
 
         /* the tail, a stack of three inflated wedges */
         K.paint(ctx, function (c) {
           c.beginPath();
-          c.moveTo(fx + 34, 168);
-          c.quadraticCurveTo(fx + 78, 140, fx + 74, 178);
-          c.quadraticCurveTo(fx + 58, 172, fx + 34, 168);
+          c.moveTo(fx - 34, 168);
+          c.quadraticCurveTo(fx - 78, 140, fx - 74, 178);
+          c.quadraticCurveTo(fx - 58, 172, fx - 34, 168);
           c.closePath();
         }, K.lighter(PINK, 0.1), { step: 3, edgeW: 1.4 });
 
@@ -476,45 +516,47 @@
            throat that reads as a crack. */
         K.paint(ctx, function (c) {
           c.beginPath();
-          c.moveTo(fx - 18, 156);
-          c.bezierCurveTo(fx - 4, 116, fx + 20, 96, fx + 4, 62);
-          c.bezierCurveTo(fx - 4, 44, fx - 30, 42, fx - 40, 56);
-          c.bezierCurveTo(fx - 48, 68, fx - 40, 78, fx - 28, 76);
-          c.bezierCurveTo(fx - 14, 74, fx - 4, 88, fx - 2, 104);
-          c.bezierCurveTo(fx - 2, 124, fx - 12, 140, fx + 2, 158);
+          /* up the back of the neck, over the crown, down the throat and
+             back into the chest — one outline, so the contour never breaks */
+          c.moveTo(fx + 6, 158);
+          c.bezierCurveTo(fx - 12, 118, fx - 22, 88, fx - 4, 60);
+          c.bezierCurveTo(fx + 6, 44, fx + 32, 44, fx + 38, 60);
+          c.bezierCurveTo(fx + 42, 71, fx + 33, 79, fx + 24, 76);
+          c.bezierCurveTo(fx + 10, 71, fx - 2, 92, fx + 4, 112);
+          c.bezierCurveTo(fx + 10, 132, fx + 22, 142, fx + 20, 160);
           c.closePath();
         }, PINK, { step: 4, shade: 0.34, hi: 0.24, edgeW: 1.6 });
 
         /* the beak, black-tipped, pointing down into the fight */
         K.paint(ctx, function (c) {
           c.beginPath();
-          c.moveTo(fx - 38, 52);
-          c.lineTo(fx - 74, 70);
-          c.lineTo(fx - 36, 68);
+          c.moveTo(fx + 36, 52);
+          c.lineTo(fx + 66, 72);
+          c.lineTo(fx + 34, 68);
           c.closePath();
         }, '#f2d0a8', { step: 2, edgeW: 1.4 });
         ctx.fillStyle = '#3a3038';
         ctx.beginPath();
-        ctx.moveTo(fx - 60, 62); ctx.lineTo(fx - 74, 70); ctx.lineTo(fx - 58, 68);
+        ctx.moveTo(fx + 54, 64); ctx.lineTo(fx + 66, 72); ctx.lineTo(fx + 52, 69);
         ctx.closePath(); ctx.fill();
 
         /* eye */
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(fx - 30, 56, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(fx + 26, 57, 5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#241c22';
-        ctx.beginPath(); ctx.arc(fx - 31, 57, 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(fx + 28, 58, 2.4, 0, Math.PI * 2); ctx.fill();
 
         /* the seams and the valve — what makes it read as inflatable rather
            than as a pink bird */
         ctx.strokeStyle = 'rgba(190,90,124,.55)'; ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.moveTo(fx - 40, 176); ctx.quadraticCurveTo(fx + 6, 162, fx + 52, 182);
+        ctx.moveTo(fx + 40, 176); ctx.quadraticCurveTo(fx - 6, 162, fx - 52, 182);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(fx - 14, 150); ctx.quadraticCurveTo(fx + 4, 120, fx - 6, 86);
+        ctx.moveTo(fx + 12, 150); ctx.quadraticCurveTo(fx - 8, 118, fx + 4, 84);
         ctx.stroke();
         ctx.fillStyle = '#e07a9c';
-        ctx.beginPath(); ctx.ellipse(fx + 30, 176, 5, 3.4, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(fx - 30, 176, 5, 3.4, 0.3, 0, Math.PI * 2); ctx.fill();
       });
 
       /* pool coping tiles running across the very front */
