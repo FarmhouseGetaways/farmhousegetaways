@@ -23,10 +23,10 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 17 generated — the submittal sheet. The Small
+**Current status: plot plan REV 18 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
-UNDER CONSTRUCTION just west of the 10'×10' storage building at the NW (owner,
-8/21/2026 second round). The 10'×10' is STORAGE ONLY, no sales. 6 parking
+UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
+markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
 spaces sit in a row right against AG-2's sloping bottom line, the placement the
 owner confirmed on the overlay. Compliance is met with large margin on the
 correct (gross) basis, and the store size question is CLOSED — 120 SF against a
@@ -36,7 +36,7 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
 **Owner corrections, 8/21/2026 — get these right forever:**
 
 - **The STORE is the NEW 'MINI BARN MARKET': a 12'×10' = 120 SF building UNDER
-  CONSTRUCTION**, visible framing in the aerial immediately west of the 10'×10'
+  CONSTRUCTION**, visible framing in the aerial immediately SW of the 10'×10'
   (second round, 8/21). **The 10'×10' at the NW is STORAGE ONLY — no sales.**
   Neither is the big barn. **The barn is STORAGE, a 50' E-W × 44' N-S rectangle
   = 2,200 SF** (owner). Every earlier draft that put the store "in the barn"
@@ -490,11 +490,11 @@ offset from the access road easement; an earlier draft curved the east setback
 along it and the owner rejected that. Yard designations are flagged for PDS
 confirmation (note 4).
 
-The store (the new 12'×10' Mini Barn Market) clears every required yard — 55'
-to the Whirlwind centreline (35' required), ~46' to the north line (15'), and
-hundreds of feet from the south line and the access easement. Do not draw
-per-structure encroachment claims for the owner's other buildings; road
-centrelines are approximate pending PM 5062.
+The store (the new 12'×10' Mini Barn Market, SW of the 10'×10' storage per the
+owner's 8/22 markup) clears every required yard — 57' to the Whirlwind
+centreline (35' required), ~64' to the north line (15'), and hundreds of feet
+from the south line. Do not draw per-structure encroachment claims for the
+owner's other buildings; road centrelines are approximate pending PM 5062.
 
 ---
 
@@ -641,6 +641,18 @@ buffered off the easement centreline, which put a curved blue setback on the
 east side. Owner: "The setbacks should be from the thick black line not some
 imaginary road." Fixed — east is now a straight 25' REAR yard off the east
 property line, and no setback anywhere is measured from any road.
+
+**Fifth round, 8/22 (rev 18):** the owner marked the sheet itself in yellow —
+the definitive driveway route and the store's true location. Both digitized
+from the markup by anchoring on drawn features (store/storage/well/pond/elec
+panel at ~2.69 px/ft): the driveway starts at the store/parking yard
+(~68,263), sweeps SE past the well, runs E past the residence, then SE to
+leave the parcel near the SE corner (~579,13), with a **spur S down the west
+yard toward the barn**; and the **store sits SW of the 10'×10' storage,
+12'×10' centred ~(63.5,224)** — the earlier placement W of the storage was
+wrong. Route and clearances updated to match. When the owner sends a markup
+drawn ON the sheet, digitize it this way rather than re-deriving from the
+aerial.
 
 **Fourth round, same day:** the renamed road still wasn't right — "There's
 still some stupid road through the right side. That doesn't exist. The

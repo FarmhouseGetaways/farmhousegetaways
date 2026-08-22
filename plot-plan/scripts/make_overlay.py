@@ -50,13 +50,16 @@ ax.add_patch(Rectangle((px, py), pw, phh, fc="yellow", zorder=7))
 # no road crosses the east portion (owner 8/21) — driveway only
 drv = poly_px(F["roads"]["driveway"]["centerline_px"])
 ax.plot([p[0] for p in drv], [p[1] for p in drv], color="lime", lw=2, ls=(0,(5,3)), zorder=6)
+spur = poly_px(F["roads"]["driveway"].get("spur_to_barn_px", []))
+if spur:
+    ax.plot([p[0] for p in spur], [p[1] for p in spur], color="lime", lw=2, ls=(0,(5,3)), zorder=6)
 pc = F["pond"]["ellipse_ft_center_wh"]
 ax.add_patch(Ellipse((pc[0], pc[1]), pc[2], pc[3], fill=False, ec="deepskyblue", lw=2, zorder=6))
 
 # ---- proposed store + customer parking (owner 8/21/2026 second round: the
 # store is the NEW 12'x10' building under construction just W of the 10'x10';
 # the 10'x10' is storage only).
-STORE = [(55.0,236.5),(67.0,236.5),(67.0,246.5),(55.0,246.5)]   # 12'x10' new MBM
+STORE = [(57.5,219.0),(69.5,219.0),(69.5,229.0),(57.5,229.0)]   # 12'x10' new MBM, per owner markup 8/22
 ax.add_patch(MPoly(STORE, closed=True, fill=False, ec="red", lw=3, zorder=8))
 ax.text(50, 214, "PROPOSED STORE = NEW\nMINI BARN MARKET, 12'x10' (120 SF)\n(UNDER CONSTRUCTION)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)

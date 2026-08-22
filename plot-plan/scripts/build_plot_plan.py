@@ -38,9 +38,10 @@ of its actual (sloping) property lines.
     boundary note, with compliance shown on both bases.
 
 OWNER CORRECTIONS 8/21/2026 (second round) — carried in this file:
-  * The STORE is the NEW 12'x10' building under construction just W of the
-    10'x10' — that is the new "Mini Barn Market" (120 SF). The 10'x10' is
-    STORAGE ONLY, no sales. The barn is a 50' E-W x 44' N-S rectangle, 2,200 SF.
+  * The STORE is the NEW 12'x10' building under construction just SW of the
+    10'x10' — that is the new "Mini Barn Market" (120 SF), located per the
+    owner's yellow-square markup of 8/22 (centred ~(63.5,224) ft). The 10'x10'
+    is STORAGE ONLY, no sales. The barn is a 50'x44' rectangle, 2,200 SF.
   * Zone polygons are DRAWN clipped to the parcel boundary (they were spilling
     over the lines). Tabulated areas stay the owner's numbers in ag_areas.json.
     AG-3 additionally stops at the fence ~20' W of the septic tank.
@@ -76,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 17
+REV  = 18
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -309,15 +310,17 @@ ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (72
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
-# ---- PROPOSED SMALL AGRICULTURAL STORE = the NEW 'MINI BARN MARKET', the
-# 12'x10' building under construction immediately W of the 10'x10' storage
-# (owner, 8/21). 120 SF — one-twelfth of the 1,500 SF cap of ZO §6157.a.2.e.
-MBM = [(55.0, 236.5), (67.0, 236.5), (67.0, 246.5), (55.0, 246.5)]
+# ---- PROPOSED SMALL AGRICULTURAL STORE = the NEW 'MINI BARN MARKET', a
+# 12'x10' building under construction immediately SW of the 10'x10' storage.
+# LOCATION PER THE OWNER'S YELLOW-SQUARE MARKUP (8/22, rev 18) — centred
+# ~(63.5, 224), a few feet off the storage building's SW corner.
+# 120 SF — one-twelfth of the 1,500 SF cap of ZO §6157.a.2.e.
+MBM = [(57.5, 219.0), (69.5, 219.0), (69.5, 229.0), (57.5, 229.0)]
 MBM_G = SPoly(MBM)
 MBM_SF = 120
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
 ax.annotate("PROPOSED 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF), UNDER CONSTRUCTION\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
-            (61, 236.5), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
+            (63.5, 219.0), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
@@ -350,12 +353,12 @@ for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
     elif lab:
         ax.text(cxp, cyp, lab, fontsize=3.4, ha='center', va='center', color='#0044aa',
                 fontweight='bold', rotation=_ang, rotation_mode='anchor', zorder=7)
-# accessible route: van stall -> store entry, over AG-1's crown and N of the
-# 10'x10' storage building
-ROUTE = [(137.7, 253.3), (98.0, 252.5), (68.0, 241.5)]
+# accessible route: van stall -> store entry, over AG-1's crown, then around
+# the W side of the 10'x10' storage down to the store's N face
+ROUTE = [(137.7, 253.3), (98.0, 252.5), (83.0, 246.0), (71.0, 242.0), (66.0, 230.0)]
 ax.plot([q[0] for q in ROUTE], [q[1] for q in ROUTE], color='#0044aa', lw=1.6,
         ls=(0,(1,1.6)), zorder=6)
-ax.plot([68.0], [241.5], marker='o', ms=3, color='#0044aa', zorder=7)
+ax.plot([66.0], [230.0], marker='o', ms=3, color='#0044aa', zorder=7)
 ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. YARD — ACCESSIBLE ROUTE PER NOTE 12",
         fontsize=5.8, ha='center', va='top', color='#00337f', fontweight='bold', zorder=9,
         bbox=dict(fc='white', alpha=0.95, ec='#0044aa', lw=0.9, pad=2.0))
@@ -427,17 +430,21 @@ ax.annotate("400A MAIN ELEC. PANEL\n(LOCATION APPROX.)", (ex+2, ey), (ex+52, ey+
             ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
-# ---- driveway. There is NO road crossing the east portion (owner, 8/21
-# fourth round) — the driveway is the only travelled way: east from the
-# residence, then SE through the gap between AG-9 and AG-12, leaving the
-# parcel near the SE corner and continuing ±700' to Handlebar Rd via an
-# access easement across the adjacent parcel.
-drv_px = [(2172,1090),(2118,1067),(2043,1024),(1965,966),(1905,881),(1856,788),
-          (1792,711),(1725,626),
-          (1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
-drv = [(x*SXX, 294.1-y*SYY) for x, y in drv_px]
-ax.plot([p[0] for p in drv], [p[1] for p in drv], color='0.35', lw=1.0, ls=(0,(6,3)), zorder=2)
-ax.annotate("DRIVEWAY EXITS BETWEEN AG-9 AND AG-12 —\nCONTINUES ±700' TO HANDLEBAR RD VIA ACCESS\nESMT. ACROSS ADJACENT PARCEL (NOTE 9)", (524, 44), (400, -34),
+# ---- driveway, DIGITIZED FROM THE OWNER'S YELLOW MARKUP (8/22, rev 18).
+# No road crosses the parcel. The driveway starts at the store/parking yard
+# (NW), sweeps SE past the well, runs E past the residence, then SE to leave
+# the parcel near the SE corner — continuing ±700' to Handlebar Rd via an
+# access easement across the adjacent parcel. A spur runs S down the west
+# yard toward the barn. Coordinates in FEET, traced off the owner's markup.
+DRV_FT = [(68,263),(96,256),(126,247),(156,231),(179,207),(187,186),(219,181),
+          (260,176),(312,173),(364,167),(416,158),(457,143),(487,115),(513,83),
+          (535,50),(561,27),(579.2,13)]
+SPUR_FT = [(70,250),(76,200),(82,150),(86,120),(88,100)]
+ax.plot([p[0] for p in DRV_FT], [p[1] for p in DRV_FT], color='0.35', lw=1.0,
+        ls=(0,(6,3)), zorder=2)
+ax.plot([p[0] for p in SPUR_FT], [p[1] for p in SPUR_FT], color='0.35', lw=1.0,
+        ls=(0,(6,3)), zorder=2)
+ax.annotate("DRIVEWAY LEAVES THE PARCEL NEAR THE SE CORNER —\nCONTINUES ±700' TO HANDLEBAR RD VIA ACCESS\nESMT. ACROSS ADJACENT PARCEL (NOTE 9)", (524, 66), (400, -34),
             fontsize=6.4, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8),
             va='center', fontweight='bold',
             bbox=dict(fc='white', ec='black', lw=0.5, alpha=0.92, pad=2))
@@ -788,7 +795,7 @@ notes = [
  "     AT THE WEST P.L. PER OWNER — NOTE 9). YARD DESIGNATIONS TO BE CONFIRMED",
  "     WITH PDS AT SUBMITTAL.",
  "5.  THE PROPOSED STORE SITS IN THE BUILDABLE AREA, CLEAR OF EVERY REQUIRED YARD",
- "     (20' BEYOND THE WHIRLWIND SETBACK, 45'+ ELSEWHERE). EXIST. TINY HOME (W) IS",
+ "     (22' BEYOND THE WHIRLWIND SETBACK, 60'+ ELSEWHERE). EXIST. TINY HOME (W) IS",
  "     TO BE REMOVED. ROAD CENTRELINES ARE APPROXIMATE PENDING PM 05062 (NOTE 9).",
  "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
@@ -837,8 +844,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6  8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16 8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, f"{REV}   {DATE}  NO ROAD; DRIVEWAY EXITS", 5.4, x=0.62)
-tline(tb_h*0.095, "                SE BETWEEN AG-9 AND AG-12", 5.4, x=0.62)
+tline(tb_h*0.170, "17   8/22/2026  NO ROAD CROSSES THE PARCEL", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}   {DATE}  DRIVEWAY+STORE PER MARKUP", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
