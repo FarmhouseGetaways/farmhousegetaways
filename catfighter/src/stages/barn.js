@@ -9,6 +9,33 @@
 
   /* A prize cat in the claw machine. Two ears and a face is enough at five
      pixels across — anything more turned into a smudge. */
+  /* Crowd palettes steered towards the darker cats. CROWD_COLOURS runs cream
+     to charcoal and the pale half of it disappears against a straw bale — a
+     row of faint smudges was what the first crowd here actually looked like.
+     These are indices whose modulo lands on the four darkest entries. */
+  var DARKS = [2, 3, 5, 6, 10, 11, 13, 14, 18, 19, 21, 22];
+
+  /* One hay bale: a painted mass, two lines of twine, and a few straws off
+     the top edge so the silhouette is not a perfect rectangle. */
+  function bale(ctx, x, y, w, h, i) {
+    K.mass(ctx, x, y, w, h,
+           K.pick(i, 62, ['#c9a24a', '#bf9743', '#d3ac54', '#b78f3c']),
+           { top: 4, side: 5 });
+    ctx.strokeStyle = 'rgba(90,64,20,.55)'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x + 11, y); ctx.lineTo(x + 11, y + h);
+    ctx.moveTo(x + w - 11, y); ctx.lineTo(x + w - 11, y + h);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(214,176,78,.75)'; ctx.lineWidth = 1;
+    for (var st = 0; st < 5; st++) {
+      var sx = x + K.vary(i * 5 + st, 63, 2, w - 2);
+      ctx.beginPath();
+      ctx.moveTo(sx, y);
+      ctx.lineTo(sx + K.vary(i * 5 + st, 64, -3, 3), y - K.vary(i * 5 + st, 65, 2, 5));
+      ctx.stroke();
+    }
+  }
+
   function plush(ctx, x, y, r, col) {
     ctx.fillStyle = col;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
@@ -323,48 +350,89 @@
                { top: 0, side: 4, light: -1, foot: false });
         K.glow(ctx, bx + MW / 2, MTOP + 9, 52, 'rgba(255,214,92,.85)', lit ? 0.26 : 0.06);
         ctx.fillStyle = '#3a2410';
-        ctx.font = '800 10px "Arial Narrow", Arial, sans-serif';
+        ctx.font = '800 9px "Arial Narrow", Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('BIG CLAW', bx + MW / 2, MTOP + 13);
+        ctx.fillText('THE CLAW', bx + MW / 2, MTOP + 13);
         ctx.textAlign = 'left';
 
         /* somebody working it, and celebrating when it pays out */
         K.spectator(ctx, bx + MW + 9, FLOOR_Y - 2, 0.95, 404, t, won ? 1 : (mood || 0) * 0.5);
       });
 
-      /* --- hay bales, stacked to different heights, with a crowd on them --- */
+      /* --- the bales, and the house on them.
+
+             This row used to be one bale, 70 pixels apart, forever — the
+             flattest thing in the stage and unluckily also the band the
+             fighters stand in front of. It is now a run of clusters that are
+             not the same object: stacks one to three high, bales stood on end,
+             barrels, a tower of tyres, and gaps where the crowd stands on the
+             floor instead. The crowd sits on two tiers so the row has a front
+             and a back, and the palettes are steered towards the darker cats
+             — a cream cat on a straw bale is invisible, which is what the
+             first version was full of. --- */
       K.layer(ctx, camX, 0.62, function () {
-        K.repeatX(camX, 0, 70, function (x, i) {
-          var stack = K.chance(i, 60, 0.34) ? 2 : 1;
-          var bw = K.vary(i, 61, 40, 50);
-          for (var lvl = 0; lvl < stack; lvl++) {
-            var by = FLOOR_Y - 4 - lvl * 25;
-            K.mass(ctx, x + lvl * 5, by - 26, bw, 26,
-                   K.pick(i * 3 + lvl, 62, ['#c9a24a', '#bf9743', '#d3ac54']),
-                   { top: 4, side: 5 });
-            ctx.strokeStyle = 'rgba(90,64,20,.55)'; ctx.lineWidth = 1.4;
-            ctx.beginPath();
-            ctx.moveTo(x + lvl * 5 + 12, by - 26); ctx.lineTo(x + lvl * 5 + 12, by);
-            ctx.moveTo(x + lvl * 5 + bw - 12, by - 26); ctx.lineTo(x + lvl * 5 + bw - 12, by);
-            ctx.stroke();
-            /* loose straw off the top */
-            ctx.strokeStyle = 'rgba(210,170,70,.7)'; ctx.lineWidth = 0.8;
-            for (var st = 0; st < 4; st++) {
-              var sx2 = x + lvl * 5 + K.vary(i * 4 + st, 63, 2, bw - 2);
-              ctx.beginPath();
-              ctx.moveTo(sx2, by - 26);
-              ctx.lineTo(sx2 + K.vary(i * 4 + st, 64, -3, 3), by - 30);
-              ctx.stroke();
+        K.repeatX(camX, 0, 76, function (x, i) {
+          var kind = K.hash(i, 60);
+          var topY = FLOOR_Y - 30, seatX = x + 16, seatX2 = x + 44;
+
+          if (kind < 0.13) {
+            /* barrels — three tones, rings, no top face because you are
+               looking at them from just above standing height */
+            for (var b = 0; b < 2; b++) {
+              var bxx = x + 6 + b * 26, bh = K.vary(i * 2 + b, 69, 26, 32);
+              K.mass(ctx, bxx, FLOOR_Y - 4 - bh, 20, bh,
+                     K.pick(i + b, 70, ['#7a4b2a', '#8c5730', '#6b4023']),
+                     { top: 3, side: 4 });
+              ctx.fillStyle = 'rgba(0,0,0,.28)';
+              ctx.fillRect(bxx, FLOOR_Y - 4 - bh * 0.72, 20, 1.6);
+              ctx.fillRect(bxx, FLOOR_Y - 4 - bh * 0.26, 20, 1.6);
             }
+            topY = FLOOR_Y - 36; seatX = x + 16; seatX2 = x + 42;
+          } else if (kind < 0.22) {
+            /* a tower of tyres, because a barn has one */
+            for (var ty = 0; ty < 4; ty++) {
+              var tyY = FLOOR_Y - 8 - ty * 9;
+              ctx.fillStyle = ty % 2 ? '#22201f' : '#2b2827';
+              ctx.beginPath();
+              ctx.ellipse(x + 24 + (ty % 2 ? 1.5 : 0), tyY, 15, 5.4, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255,230,190,.10)';
+              ctx.beginPath();
+              ctx.ellipse(x + 24 + (ty % 2 ? 1.5 : 0), tyY - 2.4, 12, 2.6, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            topY = FLOOR_Y - 44; seatX = x + 24; seatX2 = null;
+          } else {
+            var stack = kind < 0.46 ? 1 : kind < 0.82 ? 2 : 3;
+            var bw = K.vary(i, 61, 40, 52);
+            for (var lvl = 0; lvl < stack; lvl++) {
+              var lx = x + lvl * K.vary(i * 3 + lvl, 71, -4, 6);
+              var lw = lvl ? bw - lvl * K.vary(i, 72, 4, 12) : bw;
+              bale(ctx, lx, FLOOR_Y - 4 - lvl * 25 - 26, lw, 26, i * 3 + lvl);
+            }
+            /* one stood on end against the stack — a different rectangle in
+               the row does more than another shade of straw */
+            if (K.chance(i, 73, 0.4)) bale(ctx, x + bw - 4, FLOOR_Y - 42, 20, 38, i + 91);
+            topY = FLOOR_Y - 4 - (stack - 1) * 25 - 26;
+            seatX = x + 13; seatX2 = x + bw - 11;
           }
-          var topY = FLOOR_Y - 4 - (stack - 1) * 25 - 26;
-          if (!K.chance(i, 65, 0.2)) {
-            K.spectator(ctx, x + 13, topY, K.vary(i, 66, 0.86, 1.08),
-                        Math.abs(i * 7), t + i * 23, mood);
+
+          /* back tier: up on whatever that cluster turned out to be */
+          if (!K.chance(i, 65, 0.22)) {
+            K.spectator(ctx, seatX, topY, K.vary(i, 66, 0.84, 1.06),
+                        K.pick(i, 74, DARKS), t + i * 23, mood);
           }
-          if (K.chance(i, 67, 0.55)) {
-            K.spectator(ctx, x + bw - 11, topY, K.vary(i, 68, 0.78, 1.0),
-                        Math.abs(i * 7 + 3), t + i * 41 + 60, mood);
+          if (seatX2 !== null && K.chance(i, 67, 0.5)) {
+            K.spectator(ctx, seatX2, topY, K.vary(i, 68, 0.76, 0.98),
+                        K.pick(i, 75, DARKS), t + i * 41 + 60, mood);
+          }
+          /* front tier: standing on the floor, bigger, cut off at the knee by
+             the bales in front of them. Two rows at two sizes is the cheapest
+             depth there is. */
+          if (K.chance(i, 76, 0.42)) {
+            K.spectator(ctx, x + K.vary(i, 77, 30, 62), FLOOR_Y - 3,
+                        K.vary(i, 78, 1.05, 1.3), K.pick(i, 79, DARKS),
+                        t + i * 11 + 30, mood);
           }
         });
       });
