@@ -60,6 +60,21 @@ export async function getLists() {
 }
 
 /**
+ * A contact's id is the MD5 of its lowercased address — not a value the API
+ * hands back — so any address can be looked up or addressed with no search.
+ */
+export const contactId = (email) =>
+  createHash("md5").update(String(email).trim().toLowerCase()).digest("hex");
+
+/** One contact, or null if this address has never been seen. */
+export async function getContact(email) {
+  const res = await call("GET", `/lists/${listId()}/contacts/${contactId(email)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+  return res.payload || null;
+}
+
+/**
  * Add or update one contact.
  *
  * PUT, NOT POST — AND THE TAG FORMAT DIFFERS BETWEEN THEM.
@@ -83,7 +98,25 @@ export async function upsertContact({ email, firstName, tags = [], status = "sub
   const address = String(email || "").trim();
   if (!address) return { ok: false, status: 0, payload: { skipped: "no email address" } };
 
-  const body = { email_address: address, status };
+  // ⚠ PUT IS AN UPSERT, SO IT CAN UNSUBSCRIBE SOMEBODY.
+  //
+  // Storing a non-consenting contact means sending status "unsubscribed". If
+  // that address is already ON the list — they asked for the map in March, and
+  // in August they used the contact form without ticking anything — a plain PUT
+  // would quietly unsubscribe them. They would never be mailed again and
+  // nothing would look broken.
+  //
+  // So an "unsubscribed" write never overrides a status that already exists.
+  // Only a genuinely new address is stored as unsubscribed. Consent can raise a
+  // status; nothing here lowers one.
+  let intended = status;
+  if (status === "unsubscribed") {
+    const existing = await getContact(address);
+    const had = String(existing?.status || "").trim().toLowerCase();
+    if (had && had !== "unsubscribed") intended = had;
+  }
+
+  const body = { email_address: address, status: intended };
 
   // FirstName is one of the two fields EmailOctopus creates on every list by
   // default, so it is safe to send without anyone having to add it first.
@@ -94,16 +127,22 @@ export async function upsertContact({ email, firstName, tags = [], status = "sub
   const tagMap = buildTags(tags);
   if (Object.keys(tagMap).length) body.tags = tagMap;
 
+  // `statusWritten` is what actually went to the API, which is not always what
+  // was asked for — see the downgrade guard above. Callers log it, and a log
+  // saying "will not be mailed" about someone who is still subscribed is how
+  // an hour gets lost later.
   const res = await call("PUT", `/lists/${listId()}/contacts`, body);
-  if (res.ok) return res;
+  if (res.ok) return { ...res, statusWritten: intended };
 
   // A rejected tag or field must never cost us the signup. If the rich version
   // is refused, put the bare address on the list and report the downgrade —
   // an untagged subscriber is a small problem, a lost one is permanent.
   const worthRetrying = (res.status === 400 || res.status === 422) && (body.tags || body.fields);
   if (worthRetrying) {
-    const bare = await call("PUT", `/lists/${listId()}/contacts`, { email_address: address, status });
-    if (bare.ok) return { ...bare, degraded: describe(res) };
+    // `intended`, not `status` — the retry must not undo the downgrade guard
+    // above and unsubscribe an existing subscriber on its way past.
+    const bare = await call("PUT", `/lists/${listId()}/contacts`, { email_address: address, status: intended });
+    if (bare.ok) return { ...bare, degraded: describe(res), statusWritten: intended };
   }
   return res;
 }
@@ -155,11 +194,7 @@ export async function queueAutomation(email, automationId) {
   const id = String(automationId || "").trim();
   if (!id) return { ok: true, skipped: "no automation configured" };
 
-  const contactId = createHash("md5")
-    .update(String(email).trim().toLowerCase())
-    .digest("hex");
-
-  const res = await call("POST", `/automations/${id}/queue`, { contact_id: contactId });
+  const res = await call("POST", `/automations/${id}/queue`, { contact_id: contactId(email) });
 
   // 409 means the contact is already in this automation. That is the correct
   // outcome for a second signup from the same address, not a failure — and it
