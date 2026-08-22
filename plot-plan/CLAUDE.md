@@ -658,6 +658,22 @@ leave the parcel near the SE corner (~579,13). Lesson: on a marked-up
 screenshot, verify no existing sheet linework (leaders, arrows) is being
 mistaken for the marker stroke before digitizing.
 
+**Seventh round, 8/22 (rev 20) — THE method for the driveway, permanent:**
+rev 19 was still rejected ("the line is still not down the middle of the
+driveway"). The fix that ended it: **trace the centreline from the visible
+track in `source/Plot_Plan_Layout.png` itself** — the driveway is plainly
+visible in the aerial — and then **verify on the overlay that the dashed
+line runs down the middle of the visible track for its whole length** before
+sending anything. The owner's markups indicate the route; the aerial track
+is the geometry. Actual alignment: from the store/parking yard, S between
+AG-1 and AG-4, around AG-4's west tip, E through the narrow gap between
+AG-4 and the barn, E past the residence along the dirt swath, then SE
+hugging just west of AG-9's drawn boundary (the zone outline follows the
+road edge) between AG-9 and AG-12, exiting near the SE corner. The 400A
+panel marker was nudged N to (169,182) so it sits beside the track, not on
+it. Never edit the driveway without re-checking the overlay crops against
+the track.
+
 **Fourth round, same day:** the renamed road still wasn't right — "There's
 still some stupid road through the right side. That doesn't exist. The
 driveway runs between AG9 and AG12 as you can see. Then it continues where

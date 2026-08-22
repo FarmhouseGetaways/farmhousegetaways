@@ -319,7 +319,7 @@
       135
     ],
     "leach_note": "Owner 8/21/2026: leach lines must NOT cross under the garage. Rect moved E of the garage (garage E edge ~478.8 ft), inside the N property line. The wider px bbox is the aerial bed-patch trace, kept for reference.",
-    "electrical": "400A main panel adjacent NE of barn, ~(169.5, 173.6) ft, location approx."
+    "electrical": "400A main panel adjacent NE of barn, ~(169, 182) ft, location approx. (nudged N off the driveway track centerline, rev 20)"
   },
   "roads": {
     "_no_road_on_east": "OWNER 8/21/2026 (fourth round): there is NO N-S road crossing the east portion — the old 'handlebar_rd'/'access_road_esmt' centerline trace was WRONG and is deleted. The driveway is the only travelled way; it exits between AG-9 and AG-12 near the SE corner and continues ±700' to Handlebar Rd via an access easement across the adjacent parcel. Never re-draw a road with edge lines on this parcel.",
@@ -328,79 +328,151 @@
     "driveway": {
       "centerline_px": [
         [
-          255,
-          124
-        ],
-        [
-          360,
-          155
+          375,
+          151
         ],
         [
           412,
-          232
+          209
         ],
         [
-          390,
-          317
+          411,
+          267
         ],
         [
-          420,
-          394
+          410,
+          321
         ],
         [
-          469,
-          472
+          392,
+          365
         ],
         [
-          592,
-          487
+          384,
+          400
         ],
         [
-          799,
-          472
+          388,
+          432
         ],
         [
-          978,
-          452
+          403,
+          450
         ],
         [
-          1151,
-          460
+          500,
+          445
+        ],
+        [
+          600,
+          458
+        ],
+        [
+          700,
+          468
+        ],
+        [
+          820,
+          478
+        ],
+        [
+          880,
+          488
+        ],
+        [
+          940,
+          497
+        ],
+        [
+          1020,
+          505
+        ],
+        [
+          1100,
+          512
+        ],
+        [
+          1200,
+          515
         ],
         [
           1350,
-          487
+          522
         ],
         [
-          1518,
-          530
+          1450,
+          528
         ],
         [
-          1713,
-          584
+          1550,
+          538
         ],
         [
-          1826,
-          692
+          1620,
+          545
         ],
         [
-          1923,
-          815
+          1690,
+          555
         ],
         [
-          2006,
-          943
+          1740,
+          560
         ],
         [
-          2103,
-          1032
+          1756,
+          588
         ],
         [
-          2171,
-          1086
+          1770,
+          618
+        ],
+        [
+          1790,
+          674
+        ],
+        [
+          1815,
+          730
+        ],
+        [
+          1835,
+          775
+        ],
+        [
+          1859,
+          825
+        ],
+        [
+          1888,
+          869
+        ],
+        [
+          1929,
+          920
+        ],
+        [
+          1974,
+          972
+        ],
+        [
+          2015,
+          1015
+        ],
+        [
+          2075,
+          1055
+        ],
+        [
+          2140,
+          1090
+        ],
+        [
+          2173,
+          1111
         ]
       ],
-      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. PER THE OWNER'S YELLOW MARKUP 8/22/2026 (rev 19 re-trace — the rev 18 trace was wrong and its 'spur' was a misread of the store label leader; there is NO spur): from the store/parking yard (NW), S along AG-1's east side past the barn's NE corner, E past the residence on the original driveway line, then SE between AG-9 and AG-12 to leave the parcel near the SE corner — +/-700' on to Handlebar Rd via access esmt. across the adjacent parcel."
+      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. REV 20: CENTERLINE TRACED FROM THE VISIBLE TRACK IN THE AERIAL — the line must run down the middle of the track; verify on the overlay after any change. Route: store/parking yard, S between AG-1 and AG-4, around AG-4's W tip, E between AG-4 and the barn, E past the residence, then SE hugging AG-9's W edge (between AG-9 and AG-12) to leave the parcel near the SE corner — +/-700' on to Handlebar Rd via access esmt. across the adjacent parcel. No spur."
     }
   },
   "pond": {
