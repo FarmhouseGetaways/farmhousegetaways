@@ -60,6 +60,13 @@ window.__run = () => {
       CF.Rig.drawCat(x, j, chr.palette, {eyes:'angry'}); x.restore(); });
   }
   CF.Rig.setDetail(2);
+  /* The full-screen passes every stage pays for, whatever it draws. */
+  const K = CF.StageKit;
+  time('  sky', () => K.sky(x, [[0,'#25121f'],[0.5,'#4d2432'],[1,'#7d3d33']], 0, 172));
+  time('  deepen', () => K.deepen(x, { air: '#6b4038', haze: 0.2, floorDark: 0.3 }));
+  time('  vignette', () => K.vignette(x, 0.3));
+  time('  nearLip', () => K.nearLip(x, 13, 0.4));
+  time('  grain floor', () => K.grain(x, -60, 56, ['#6d4a2c', '#bd854e'], 0.1));
   for (const s of CF.Stages) {
     if (s.init) s.init();
     time('stage ' + s.id, () => { s.drawBack(x,-80,400,0.8); CF.StageKit.deepen(x, s.air||null);
