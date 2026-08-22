@@ -44,7 +44,7 @@ ax.text(U["well_ft"][0], U["well_ft"][1]+10, "WELL", fontsize=9, color="yellow",
 for k, c in [("septic_tank_ft_rect", "yellow"), ("leach_ft_rect", "orange")]:
     x, y, w, h = U[k]
     ax.add_patch(Rectangle((x, y), w, h, fill=False, ec=c, lw=2.2, zorder=6))
-px, py, pw, phh = 169, 182, 5, 5   # panel nudged N off the driveway track (rev 20)
+px, py, pw, phh = 82.5, 240.5, 5, 5   # 400A panel at NE corner of the 10'x10' storage (rev 21)
 ax.add_patch(Rectangle((px, py), pw, phh, fc="yellow", zorder=7))
 
 # no road crosses the east portion (owner 8/21) — driveway only

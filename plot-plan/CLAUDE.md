@@ -133,7 +133,9 @@ These are hard-won and matter more than any technical detail here.
   Slope <5% (flat site).
 - Pond is **runoff-fed (NO pump)** — an existing irrigation source and also the
   area of inundation. Lot drains to pond.
-- 400A main electrical panel sits adjacent NE of the barn.
+- 400A main electrical panel sits **right off the NE corner of the 10'x10'
+  storage building**, ~(85,243) ft (owner 8/22/2026; the old "NE of the barn"
+  placement was wrong).
 - The west-side long structure is a **TINY HOME to be removed** — not a shed.
 - The shed + canopy once drawn at the NE corner are the NEIGHBOUR'S (top-right
   of the aerial, beyond the line). They are off the sheet and stay off.
