@@ -628,6 +628,13 @@ calorie estimate. Plain HTML, one stylesheet and three JavaScript modules, with
 three small Netlify functions behind them. **`workout/README.md` is the long
 form**; read it before touching any of it.
 
+**Live at https://carissa-workouts.netlify.app** — its own Netlify site,
+project id `67b7b2da-7f9e-4d64-b780-f447f709d7fb`, set up 22 Aug 2026 with
+`WORKOUT_PASSWORD` and a VAPID key pair. Production is public; the app's own
+password is the lock. Verified end to end that night: a wrong password
+refused, the right one returning an HttpOnly Secure cookie, the record opening
+only with it and shutting again on sign-out, and the reminder sweep running.
+
 **It is not part of this website.** The folder is in this repository because
 that is where the branch was, but it deploys as a *separate Netlify site*
 pointed at the same repository with the base directory set to `workout`, which
