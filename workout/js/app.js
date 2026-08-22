@@ -88,20 +88,39 @@ function estimateMinutes(day) {
    because a button is something you press by accident. /#/admin does the same
    thing for a laptop.
 
-   It is held in sessionStorage rather than localStorage on purpose: closing
-   the app locks the editor again. Nobody wants to hand over their phone with
-   the week one tap from being rewritten.
+   The unlock LAPSES rather than lasting for ever. It was sessionStorage at
+   first, which relocks when the app closes — correct on a phone, where there
+   is one window, and miserable on a desktop, where sessionStorage is per TAB:
+   opening a second tab locked the editor again, every time. So it is stored
+   with a timestamp and expires after twelve hours. Long enough to write a
+   week's training in one evening across as many tabs as you like; short
+   enough that a phone left on a kitchen table tomorrow is locked again.
+
+   It still requires being signed in as well, so a lapsed timestamp is the
+   second lock, not the only one. "Lock the editor" in Settings drops it on
+   the spot.
    ========================================================================== */
 
 const ADMIN_KEY = "fg-workout-admin";
+const ADMIN_HOURS = 12;
 
 const adminOn = () => {
-  try { return sessionStorage.getItem(ADMIN_KEY) === "1" && store.get().signedIn; }
-  catch { return false; }
+  if (!store.get().signedIn) return false;
+  try {
+    const raw = localStorage.getItem(ADMIN_KEY);
+    if (!raw) return false;
+    const at = Number(JSON.parse(raw)?.at) || 0;
+    return Date.now() - at < ADMIN_HOURS * 3600000;
+  } catch { return false; }
 };
+
 const setAdmin = (on) => {
-  try { on ? sessionStorage.setItem(ADMIN_KEY, "1") : sessionStorage.removeItem(ADMIN_KEY); }
-  catch { /* a browser that refuses storage simply relocks on the next screen */ }
+  try {
+    if (on) localStorage.setItem(ADMIN_KEY, JSON.stringify({ at: Date.now() }));
+    else localStorage.removeItem(ADMIN_KEY);
+    // Anything left over from when this was per-tab.
+    sessionStorage.removeItem(ADMIN_KEY);
+  } catch { /* a browser that refuses storage simply stays locked */ }
 };
 
 /**
@@ -1343,7 +1362,8 @@ function settingsSheet() {
     <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
 
     ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Editor</p>
-      <p class="small muted">Unlocked on this device until the app is closed.</p>
+      <p class="small muted">Unlocked on this device. It locks itself again twelve hours after you unlocked it,
+        or right now if you press the button.</p>
       <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor</button></div>` : ""}
 
     <p class="eyebrow" style="margin-top:1.5rem">Put it on the home screen</p>

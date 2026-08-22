@@ -647,8 +647,12 @@ farmhouse domain by accident. **Do not "fix" that 404.**
 it syncs her record. Editing the week is not, so the pencil does not appear
 just because somebody is signed in: **press and hold the title for 750ms**,
 the same gesture the farmhouse app uses for its own admin screen, or open
-`/#/admin` on a laptop. It is held in `sessionStorage`, so closing the app
-locks it again. Do not "fix" this by showing the pencil to anyone signed in.
+`/#/admin` on a laptop. **The unlock lapses after twelve hours** and is stored
+in `localStorage` — it was `sessionStorage` for one evening, which relocked on
+every new browser tab and drove the owner mad within the hour. Twelve hours is
+long enough to write a week in one sitting and short enough that a phone left
+about tomorrow is locked. Do not "fix" this by showing the pencil to anyone
+signed in.
 
 **Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
 runs hourly on Netlify's schedule and decides per device, in that device's own
