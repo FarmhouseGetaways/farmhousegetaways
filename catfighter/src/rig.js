@@ -992,7 +992,7 @@
        so it sits back in the shadow the jaw throws. */
     fillShape(function (cx) {
       capsulePath(cx, j.neck, j.head, chestW * 0.30, j.headR * 0.52);
-    }, shade(fur, dark ? -0.10 : -0.14));
+    }, shade(fur, dark ? -0.10 : -0.14), { flat: true });
 
     pour('body');
 
@@ -1223,14 +1223,12 @@
        offset copy inside the torso; the limbs are then laid down again on
        top, so all that survives is the part sticking out from under them. */
     if (!white) {
+      /* One pass, not two. The second, wider, fainter copy was fourteen more
+         fills to soften an edge nobody can see softening at ninety pixels
+         tall, and the cats are drawn twice a frame. */
       ctx.save();
-      ctx.translate(-2.6 * s, -3.3 * s);
-      ctx.fillStyle = 'rgba(18,10,24,.44)';
-      for (i = 0; i < fig.frontParts.length; i++) { fig.frontParts[i](ctx); ctx.fill(); }
-      ellipsePath(ctx, j.head.x, j.head.y, j.headR * 1.06, j.headR * 0.96);
-      ctx.fill();
-      ctx.translate(-1.7 * s, -2.1 * s);
-      ctx.fillStyle = 'rgba(18,10,24,.24)';
+      ctx.translate(-3.0 * s, -3.8 * s);
+      ctx.fillStyle = 'rgba(18,10,24,.46)';
       for (i = 0; i < fig.frontParts.length; i++) { fig.frontParts[i](ctx); ctx.fill(); }
       ellipsePath(ctx, j.head.x, j.head.y, j.headR * 1.06, j.headR * 0.96);
       ctx.fill();
@@ -1425,9 +1423,8 @@
     /* the bicep belly catching the light, and the tricep in shadow behind it */
     inLimb(j.shF, j.elbF, armR, [[0.36, 0.20], [0.72, 0.30], [0.86, 1.3], [0.34, 1.3]], lit1);
     inLimb(j.shF, j.elbF, armR, [[0.30, -1.3], [0.94, -1.3], [0.86, -0.30], [0.40, -0.40]], sh1);
-    /* the forearm */
-    inLimb(j.elbF, j.handF, armR * 0.86,
-           [[0.02, 0.10], [0.42, 0.30], [0.72, 1.3], [0.00, 1.3]], lit1);
+    /* The forearm gets ONE shape, not two. It is about six pixels across in
+       the finished picture and the second tone was invisible. */
     inLimb(j.elbF, j.handF, armR * 0.86,
            [[0.00, -1.3], [0.80, -1.3], [0.66, -0.34], [0.06, -0.44]], sh1);
     /* the quad down the front of the thigh, the hamstring behind it */

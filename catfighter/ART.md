@@ -124,6 +124,26 @@ Layers, in draw order: `back` (behind everything — a cape, a braid),
 Coordinates are the figure's own space: **+y is up**, +x is forward. Anything
 you add is contoured and cel-shaded with the body automatically.
 
+## The frame budget — this game has been unplayable once already
+
+    node tools/perf.mjs
+
+Prints the milliseconds every cat and every stage costs to draw, and the
+worst case: two of the heaviest cats plus the heaviest stage. **The budget is
+16.7ms** at 60fps, measured under software rendering with no GPU, which is
+what a laptop with the graphics card asleep actually gives you.
+
+Detail is not free. Every shape you add gets a contour stroke and a
+cel-shaded fill, and the cats are drawn twice a frame. If your cat or your
+stage is the one over budget, that is your bug — the owner's very first
+complaint about this game was that it ran at one frame a second, and going
+back there would undo everything else in this file.
+
+Cheap wins, in order: fewer shapes rather than smaller ones; `{flat: true}`
+on anything under about six pixels (it skips the clip, which is the
+expensive call); one tone instead of two on a small part; and never a
+gradient where a flat fill will do.
+
 ## Rules that were learned the hard way — do not undo them
 
 - Never raise the backing store above 384×224 logical, never turn on
