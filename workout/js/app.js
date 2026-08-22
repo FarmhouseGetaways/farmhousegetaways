@@ -244,19 +244,29 @@ function renderWeek() {
 
   const doneToday = week[today]?.done;
 
+  /* The card is pressed by a real <button> stretched across it, not by a click
+     listener on the div. A div only receives taps because of a CSS cursor and a
+     delegated listener, which is fragile on a phone; a button is a button
+     everywhere, gets the keyboard for free, and tells a screen reader what it
+     does. The content above it does not take pointer events, so a tap anywhere
+     lands on the button — except the real buttons, which put theirs back. */
   const hero = isRest(day)
-    ? `<div class="today today--rest">
+    /* An off day says Off, exactly like its card on the board below. It used to
+       show whatever the day was called before it was cleared, so today read
+       "Long walk" while the Saturday card two inches lower read "OFF". And it
+       was not pressable at all, because only the training branch carried a
+       destination — so the biggest thing on the screen was stale AND inert. */
+    ? `<div class="today today--rest today--go">
+         <button class="today__hit" data-go="#/day/${today}"
+           aria-label="Open ${DAY_NAMES[today]}"></button>
          <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="today__title">${day.title ? esc(day.title) : "Rest day"}</h2>
-         <p class="today__desc">${day.description ? esc(day.description) : "Nothing scheduled. Rest is part of the plan."}</p>
+         <h2 class="today__title">Off</h2>
+         <p class="today__desc">Nothing scheduled. Rest is part of the plan.</p>
          ${adminOn() ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-action="edit-here">Add a workout for today</button></div>` : ""}
        </div>`
-    /* The whole card starts the workout. It is the biggest, brightest thing on
-       the screen and it says today's workout on it, so a person reasonably
-       expects to press it — and a highlight you cannot press is just decoration.
-       The two buttons inside carry their own destinations, so pressing one of
-       those still does its own thing rather than the card's. */
-    : `<div class="today today--go ${doneToday ? "is-done" : ""}" data-go="#/go/${today}" role="link" tabindex="0">
+    : `<div class="today today--go ${doneToday ? "is-done" : ""}">
+         <button class="today__hit" data-go="#/go/${today}"
+           aria-label="${doneToday ? "Do" : "Start"} ${esc(day.title || "today's workout")} again"></button>
          <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
          <h2 class="today__title">${esc(day.title || "Workout")}</h2>
          ${day.image ? `<img class="today__shot" src="${esc(day.image)}" alt="">` : ""}
@@ -333,10 +343,14 @@ function renderDay(key) {
   const rest = isRest(day);
 
   screen.innerHTML = editing ? editableDay(key, day) : `
-    ${day.image ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
+    ${day.image && !rest ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
     <p class="eyebrow">${DAY_NAMES[key]}</p>
-    <h2 class="h-display">${esc(day.title || (rest ? "Rest day" : "Workout"))}</h2>
-    ${day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
+    <!-- An off day is called Off wherever it is read, so the board, today's
+         card and this page never disagree about what a day is. The name it had
+         before it was cleared is still stored, and still shown in the editor,
+         which is the one place it is any use. -->
+    <h2 class="h-display">${rest ? "Off" : esc(day.title || "Workout")}</h2>
+    ${!rest && day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
 
     ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.
         ${adminOn() ? "Press the pencil at the top to add some exercises." : ""}</p>`
@@ -362,7 +376,7 @@ function renderDay(key) {
     </div>
     ${footer()}`;
 
-  setTitle(DAY_NAMES[key], editing ? "editing" : (day.title || (rest ? "Rest day" : "Workout")));
+  setTitle(DAY_NAMES[key], editing ? "editing" : (rest ? "Off" : (day.title || "Workout")));
   if (editing) paintSaveBar(); else bar.hidden = true;
 }
 
@@ -1703,17 +1717,6 @@ function render() {
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   return renderWeek();
 }
-
-/* The card is a div rather than a button — it contains buttons, and a button
-   inside a button is invalid — so it is given a link's keyboard behaviour by
-   hand rather than being left unreachable without a mouse. */
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" && e.key !== " ") return;
-  const card = e.target.closest?.('[role="link"][data-go]');
-  if (!card || e.target.closest("button")) return;
-  e.preventDefault();
-  go(card.dataset.go);
-});
 
 window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); });
 
