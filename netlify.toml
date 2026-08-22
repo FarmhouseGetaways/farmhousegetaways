@@ -69,6 +69,25 @@
   status = 404
   force = true
 
+# The handover notes. `publish = "."` was serving CLAUDE.md and EMAIL.md on the
+# open web — checked 22 Aug 2026, both returned 200. They hold no password and
+# must not, but they are working notes describing how the estate is wired, and
+# that is not a page. README.md stays public; it is a normal repo readme.
+#
+# force = true is required, as with the rules above: Netlify prefers a real
+# file to a redirect that matches it, so without it this does nothing.
+[[redirects]]
+  from = "/CLAUDE.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/EMAIL.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
 # Carissa's workout tracker lives in workout/ and is DELIBERATELY NOT PART OF
 # THIS SITE. It is a separate Netlify site pointed at the same repository with
 # the base directory set to `workout` — see workout/netlify.toml. The folder is

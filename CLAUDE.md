@@ -27,13 +27,32 @@ and it is never anything else.
 
 ### `ADMIN_PASSWORD` is load-bearing across the estate. Never overwrite it.
 
-One value, reused deliberately, and changing it in one place breaks things in
-another. It guards `/edit.html`'s Publish button and `/api/emailoctopus` on
-Farmhouse Getaways; it is the app's own admin screen and the thing
-`sendToAdmins` checks before enrolling a phone for form alerts; and all three
-websites carry `ALERT_WEBHOOK_KEY` set to the app's copy of it, which is how
-the alert chain authenticates. Netlify masks it, so it cannot be read back
-once replaced.
+One value, reused deliberately across the estate, and Netlify masks it, so it
+cannot be read back once replaced.
+
+**It was replaced on the Farmhouse Getaways site on 22 Aug 2026** by a browser
+agent following instructions from this session that were wrong. The old value is
+gone. Ask Cory for the current one; it is not written down in this repository
+and must not be — `publish = "."` serves every file here, this one included.
+
+The blast radius turned out to be narrower than this section used to claim, and
+it is worth knowing exactly what it is. On **this website** `ADMIN_PASSWORD` is
+read by two functions and nothing else: `publish.mjs`, behind `/edit.html`'s
+Publish button, and `emailoctopus-status.mjs`, behind `/api/emailoctopus`. Both
+still work — they simply want the new value.
+
+What it does **not** touch, contrary to what this section said before:
+
+- **The alert chain.** That authenticates with `ALERT_WEBHOOK_KEY`, a separate
+  variable, added by farmhouse-app's "Give the websites their own alert key
+  instead of the admin password". Changing one does not affect the other.
+- **The app's admin screen and `sendToAdmins`.** Those read the app's own copy
+  on the app's own Netlify site, which is a different variable instance.
+
+So the honest rule is narrower and still worth keeping: **do not overwrite it
+casually**, because it cannot be recovered and the Publish button stops
+accepting the key the owner has memorised. But an overwrite is not the
+estate-wide breakage this section used to warn about.
 
 If some tool offers to overwrite `ADMIN_PASSWORD` to make a new thing work,
 the new thing is asking for the wrong variable. **Carissa's workout tracker
