@@ -1588,7 +1588,10 @@
     var order = (this.p1.y > this.p2.y) ? [this.p2, this.p1] : [this.p1, this.p2];
     for (var k = 0; k < 2; k++) {
       var ff = order[k];
-      var opts = { eyes: ff.eyeState(), mouth: ff.mouthState() };
+      var opts = { eyes: ff.eyeState(), mouth: ff.mouthState(),
+                   /* so a scarf streams and a belt end swings — see the
+                      COSTUME block in rig.js */
+                   t: this.t, vx: ff.vx, air: !ff.grounded, facing: ff.facing };
       if (ff.flash > 2) opts.flash = 'white';
       if (ff.state === 'move' && ff.move && ff.move.kind === 'super' && ff.superFreeze > 0) {
         opts.flash = (this.t % 4 < 2) ? 'white' : null;

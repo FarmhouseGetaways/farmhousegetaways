@@ -68,6 +68,14 @@ look: {
     //      FOOT_X FOOT_Y s G GW fur fur2 belly furFront furBack line
     // opts: {band: true} for a lit rim, {edge: true} for a material
     //       boundary, {flat: true} for anything under ~6px
+    //
+    // MOTION. `f.sway` is the one number a streaming piece wants: it folds
+    // the cat's own speed, a slow idle drift and being airborne into a
+    // single value, positive meaning "blown backwards". `f.t` is the clock
+    // and `f.vx` the raw speed if you want something else. A scarf that does
+    // not stream and a belt end that does not swing are two more stiff
+    // shapes glued to a cat — the reference sells its characters as much on
+    // what trails behind them as on what they are wearing.
   },
   overlay: function (ctx, j, fig) { /* drawn over the finished cat */ }
 }

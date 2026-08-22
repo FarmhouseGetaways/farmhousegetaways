@@ -776,8 +776,21 @@
         ellipse: ellipsePath,
         limb: limbPath
       };
-      /* Measurements a costume needs, in the same units the body uses. */
+      /* Measurements a costume needs, in the same units the body uses.
+
+         `t`, `vx` and `air` are what make a costume ALIVE. A scarf that does
+         not stream and a belt end that does not swing are two more stiff
+         shapes glued to a cat; the reference sells its characters as much on
+         what trails behind them as on what they are wearing. `sway` is the
+         one number most pieces want: it already folds the cat's speed and a
+         slow idle drift together, positive meaning "blown backwards". */
+      var vx = opts.vx || 0;
+      var tNow = opts.t || 0;
+      var sway = vx * (opts.facing || 1) * -0.9
+               + Math.sin(tNow * 0.055) * 1.5
+               + (opts.air ? 2.2 : 0);
       LOOK.pieces(api, j, {
+        t: tNow, vx: vx, air: !!opts.air, sway: sway,
         s: s, G: G, GW: GW, white: white,
         hipW: hipW, waistW: waistW, chestW: chestW,
         R_TOP: R_TOP, R_MID: R_MID, R_END: R_END,
