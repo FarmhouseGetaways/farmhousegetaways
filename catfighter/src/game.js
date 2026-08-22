@@ -769,6 +769,8 @@
         atk.meter = Math.min(atk.maxMeter, atk.meter + Math.round((m.meterGain || 6) * 0.4));
         atk.vx = atk.facing * -1.2;
         this.hitstop(4);
+        def.jolt(atk.facing, 2.6);
+        atk.jolt(-atk.facing, 2.0);
         def.port.rumble(0.22, 60);
         atk.port.rumble(0.12, 45);
       } else {
@@ -781,7 +783,11 @@
         atk.port.rumble(force * 0.4, 55);
         var stop = m.kind === 'super' ? 12 : (heavy ? 9 : (data.damage >= 20 ? 7 : 5));
         this.hitstop(stop);
-        this.shake(heavy ? 5 : 2.5);
+        this.shake(heavy ? 6.5 : 3);
+        /* the sprite jumps away from the blow and slides back — see
+           Fighter.jolt for why this and not more screen shake */
+        def.jolt(atk.facing, m.kind === 'super' ? 9 : (heavy ? 6.5 : 4));
+        atk.jolt(-atk.facing, heavy ? 2.2 : 1.4);
         this.fx.push({ kind: 'impact', x: mid, y: fxY, t: 0, big: heavy,
                        spin: Math.random() * Math.PI,
                        color: m.kind === 'super' ? '#ffd166' : '#ff9c3a' });
@@ -1587,7 +1593,9 @@
       if (ff.state === 'move' && ff.move && ff.move.kind === 'super' && ff.superFreeze > 0) {
         opts.flash = (this.t % 4 < 2) ? 'white' : null;
       }
-      drawFighterAt(ctx, ff.chr, ff.drawPose(), ff.x - camX, FLOOR_Y - ff.y, 1, ff.facing, opts);
+      drawFighterAt(ctx, ff.chr, ff.drawPose(),
+                    ff.x - camX + ff.joltX, FLOOR_Y - ff.y - ff.joltY,
+                    1, ff.facing, opts);
     }
 
     for (var p = 0; p < this.projectiles.length; p++) {

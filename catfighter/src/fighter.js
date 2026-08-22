@@ -67,6 +67,10 @@
     this.canceled = false;
 
     this.hitstop = 0;
+    /* How far the sprite is knocked out of place on the frame a hit lands,
+       and which way. Purely a drawing offset — the hurtbox never moves, so
+       this cannot change a trade or a combo. See `jolt()`. */
+    this.joltX = 0; this.joltY = 0;
     this.hitstunTimer = 0;
     this.blockstunTimer = 0;
     this.knockdownTimer = 0;
@@ -409,6 +413,12 @@
 
     if (this.flash > 0) this.flash--;
     if (this.blockFlash > 0) this.blockFlash--;
+
+    /* The jolt decays whether or not the fight is frozen — it is what makes
+       the freeze read as an impact rather than a pause. */
+    if (this.joltX || this.joltY) { this.joltX *= 0.74; this.joltY *= 0.74;
+      if (Math.abs(this.joltX) < 0.2) this.joltX = 0;
+      if (Math.abs(this.joltY) < 0.2) this.joltY = 0; }
 
     /* hitstop freezes animation and physics for both parties — it is what
        gives a heavy punch its weight. */
@@ -846,6 +856,20 @@
     }
 
     return counter ? 'counter' : 'hit';
+  };
+
+  /* Knock the DRAWING out of place, hard, on the frame of contact.
+
+     Street Fighter II sells a punch with three things at once: everything
+     stops for a few frames, the screen kicks, and the sprite that got hit
+     jumps several pixels away from the blow and slides back. The third is
+     the one this was missing, and it is the one that makes the freeze read
+     as a hit rather than as the game stuttering. It is a draw offset only —
+     `hurtboxes()` never sees it, so nothing about a trade or a combo can
+     change because of it. */
+  Fighter.prototype.jolt = function (dirX, force) {
+    this.joltX = dirX * force;
+    this.joltY = force * 0.35;
   };
 
   Fighter.prototype.getThrown = function (attacker, dmg, stun, dir) {

@@ -1791,3 +1791,25 @@ test('a lunge punch reaches where a standing punch whiffs', () => {
   assert.equal(hit(true, 100), true,
     'a punch out of a lunge should close that gap — that is the whole point of it');
 });
+
+test('a hit jolts the drawing without moving the hurtbox', () => {
+  /* The jolt is what makes hitstop read as an impact rather than a stutter.
+     It must be a DRAWING offset only — if it ever reached hurtboxes() a
+     trade would depend on how hard the last hit landed. */
+  const g = headlessGame(CF);
+  g.arcade = { step: 0, order: [] };
+  g.startMatch(CF.byId('gracie'), CF.byId('mario'), 0, 'versus');
+  for (let i = 0; i < 130; i++) g.step();
+  g.p1.x = -20; g.p2.x = 22;
+
+  const before = g.p2.hurtboxes().map(b => b.x + ',' + b.y).join(' ');
+  g.p2.joltX = 9; g.p2.joltY = 4;
+  const after = g.p2.hurtboxes().map(b => b.x + ',' + b.y).join(' ');
+  assert.equal(after, before, 'a jolt must never move a hurtbox');
+
+  /* and it has to decay, or a hit would displace the sprite for good */
+  const start = Math.abs(g.p2.joltX);
+  for (let i = 0; i < 12; i++) g.step();
+  assert.ok(Math.abs(g.p2.joltX) < start * 0.2,
+    `the jolt should slide back, not stick at ${g.p2.joltX}`);
+});
