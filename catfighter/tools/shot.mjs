@@ -182,12 +182,12 @@ silhouette: (a) => `
   /* Every cat as a flat black shape, costume and all. If two are confusable
      here, the costume work is not finished — this is the test that matters. */
   const SC = ${Number(a[0]) || 2.2};
-  const CW=Math.round(190*SC/2.2), CH=Math.round(265*SC/2.2);
+  const CW=Math.round(190*SC/2.2), CH=Math.round(300*SC/2.2);
   size(CW*CF.ROSTER.length, CH); bg('#e6e2da');
   CF.ROSTER.forEach((chr,i)=>{
     const j=CF.Rig.solve(CF.Pose.stand, SC, chr.build);
     clipCell(i*CW,0,CW,CH, ()=>{
-      ctx.translate(i*CW+CW/2, CH-Math.round(28*SC/2.2)); ctx.scale(1,-1);
+      ctx.translate(i*CW+CW/2, CH-Math.round(34*SC/2.2)); ctx.scale(1,-1);
       CF.Rig.drawCat(ctx,j,chr.palette,{silhouette:'#12111a'});
     });
     label(chr.id, i*CW+6, 16); frame(i*CW,0,CW,CH);

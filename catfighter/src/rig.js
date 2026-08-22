@@ -538,12 +538,19 @@
 
   /* Ears carry more of a cat's identity than anything but colour, so they are
      per-character: tall and pointed, small and round, wide and low. */
+  /* Ears are the top of the silhouette and the cheapest distinguishing mark
+     on the whole figure, so the spread here is deliberately large — the old
+     range was 0.74 to 1.34, which is not enough to tell two black shapes
+     apart from across a room. `lean` swings them forward or back, which
+     changes an outline more than height does. */
   var EARS = {
     normal: { h: 1.00, w: 1.00, lean: 0.00 },
-    tall:   { h: 1.34, w: 0.86, lean: 0.06 },
-    small:  { h: 0.74, w: 0.96, lean: -0.04 },
-    wide:   { h: 0.88, w: 1.28, lean: 0.10 },
-    torn:   { h: 1.06, w: 1.02, lean: 0.02, notch: true }
+    tall:   { h: 1.72, w: 0.80, lean: 0.10 },
+    small:  { h: 0.60, w: 1.02, lean: -0.06 },
+    wide:   { h: 0.86, w: 1.44, lean: 0.16 },
+    torn:   { h: 1.18, w: 1.06, lean: -0.14, notch: true },
+    /* laid flat back along the skull — a cat that is not pleased */
+    back:   { h: 0.94, w: 1.10, lean: -0.46 }
   };
   function earPath(ctx, r, sx, kind) {
     var e = EARS[kind] || EARS.normal;
@@ -570,11 +577,11 @@
      `cheek` is how much fur stands out at the side of the face, `muzzle` how
      far the snout is pushed forward. */
   var SKULLS = {
-    round:  { rx: 1.08, ry: 1.02, jaw: 0,    cheek: 0.32, muzzle: 0.46, brow: 0.5 },
-    broad:  { rx: 1.26, ry: 0.88, jaw: 0.14, cheek: 0.50, muzzle: 0.40, brow: 0.7 },
-    narrow: { rx: 0.86, ry: 1.16, jaw: 0,    cheek: 0.10, muzzle: 0.62, brow: 0.3 },
-    blocky: { rx: 1.14, ry: 1.00, jaw: 0.22, cheek: 0.40, muzzle: 0.52, brow: 1.0 },
-    long:   { rx: 0.94, ry: 1.24, jaw: 0,    cheek: 0.22, muzzle: 0.56, brow: 0.4 }
+    round:  { rx: 1.08, ry: 1.02, jaw: 0.02, cheek: 0.36, muzzle: 0.46, brow: 0.5 },
+    broad:  { rx: 1.38, ry: 0.84, jaw: 0.20, cheek: 0.86, muzzle: 0.36, brow: 0.7 },
+    narrow: { rx: 0.80, ry: 1.20, jaw: 0,    cheek: 0.04, muzzle: 0.70, brow: 0.3 },
+    blocky: { rx: 1.20, ry: 0.96, jaw: 0.34, cheek: 0.52, muzzle: 0.56, brow: 1.0 },
+    long:   { rx: 0.90, ry: 1.34, jaw: 0,    cheek: 0.18, muzzle: 0.62, brow: 0.4 }
   };
   function skull(kind) { return SKULLS[kind] || SKULLS.round; }
 
