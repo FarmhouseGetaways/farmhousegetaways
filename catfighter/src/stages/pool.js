@@ -34,8 +34,17 @@
      above the top of the frame on purpose — a slide you can see the top of
      is a playground slide. */
   var FLUME = [
-    [[ 40, -30], [ 96,  -6], [ 20,  14], [-16,  44]],
-    [[-16,  44], [-46,  66], [ 34,  96], [ 46, 152]]
+    [[ 36,  22], [ 80,  40], [ -6,  50], [-24,  74]],
+    [[-24,  74], [-40,  96], [ 26, 120], [ 40, 152]]
+  ];
+
+  /* A second flume, further back and running off the top of the picture.
+     The main one now starts on the platform where you can see the queue get
+     on it, which is the better read — but a slide whose top you can see is a
+     playground slide, and the whole point of this thing is that it is bigger
+     than the frame. One more ribbon, hazed back, buys both. */
+  var FLUME_B = [
+    [[-104, -34], [-64, -6], [-58,  16], [-26,  34]]
   ];
 
   function bez1(a, b, c, d, k) {
@@ -45,10 +54,11 @@
 
   /* Position along the whole chain, 0..1, plus the tangent so a wall can be
      offset square to it. */
-  function flumeAt(u, tx) {
-    var n = FLUME.length;
+  function flumeAt(u, tx, chain) {
+    var C = chain || FLUME;
+    var n = C.length;
     var i = Math.min(n - 1, Math.floor(u * n));
-    var k = u * n - i, s = FLUME[i];
+    var k = u * n - i, s = C[i];
     var x = bez1(s[0][0], s[1][0], s[2][0], s[3][0], k) + tx;
     var y = bez1(s[0][1], s[1][1], s[2][1], s[3][1], k);
     var k2 = Math.min(1, k + 0.02);
@@ -63,16 +73,16 @@
      tones as everything else in the stage — a stroked line, however fat,
      stays one flat colour and reads as a drawn squiggle, which is exactly
      what this was before. */
-  function flumeRibbon(tx, w0, w1) {
+  function flumeRibbon(tx, w0, w1, chain) {
     return function (ctx) {
       var i, p, w, N = 26;
       ctx.beginPath();
       for (i = 0; i <= N; i++) {
-        p = flumeAt(i / N, tx); w = (w0 + (w1 - w0) * (i / N)) / 2;
+        p = flumeAt(i / N, tx, chain); w = (w0 + (w1 - w0) * (i / N)) / 2;
         ctx[i ? 'lineTo' : 'moveTo'](p.x + p.nx * w, p.y + p.ny * w);
       }
       for (i = N; i >= 0; i--) {
-        p = flumeAt(i / N, tx); w = (w0 + (w1 - w0) * (i / N)) / 2;
+        p = flumeAt(i / N, tx, chain); w = (w0 + (w1 - w0) * (i / N)) / 2;
         ctx.lineTo(p.x - p.nx * w, p.y - p.ny * w);
       }
       ctx.closePath();
@@ -82,11 +92,11 @@
   /* A stroke that follows the centreline, offset square to it. Used for the
      dark trough, the sheet of water in it, and the near wall that crosses in
      front of the rider so he sits IN the tube rather than on top of it. */
-  function flumeStroke(ctx, tx, off, width, style) {
+  function flumeStroke(ctx, tx, off, width, style, chain) {
     ctx.strokeStyle = style; ctx.lineWidth = width; ctx.lineCap = 'round';
     ctx.beginPath();
     for (var i = 0; i <= 24; i++) {
-      var p = flumeAt(i / 24, tx);
+      var p = flumeAt(i / 24, tx, chain);
       ctx[i ? 'lineTo' : 'moveTo'](p.x + p.nx * off, p.y + p.ny * off);
     }
     ctx.stroke();
@@ -146,8 +156,18 @@
          THE LANDMARK — the slide tower, right third, top of frame to pool.
          ================================================================= */
       K.layer(ctx, camX, 0.30, function () {
-        var tx = K.at(camX, 0, 252) - camX * 0.03;   /* a hair of drift, so it
-                                                        is not glued to the glass */
+        /* Anchored at 296, not 252. At 252 the flume's descent came down at
+           x 252 — exactly where the right-hand fighter stands — so the cat
+           riding it was hidden behind a cat fighting, which is the one place
+           a four-second event must not happen. The tower owns everything
+           right of 250 now and the fight owns the middle. */
+        var tx = K.at(camX, 0, 296) - camX * 0.03;
+
+        /* the second flume, behind everything and pushed towards the colour
+           of the air so it sits back */
+        K.paint(ctx, flumeRibbon(tx, 22, 26, FLUME_B), '#7fc4dd',
+                { step: 2.5, shade: 0.3, hi: 0.2, edgeW: 1.2 });
+        flumeStroke(ctx, tx, 1.5, 11, 'rgba(40,110,150,.7)', FLUME_B);
 
         /* --- the tower it stands on. Painted boxes, not lines: at this size
                a stroked leg is a wire and the whole thing floats. --- */
@@ -162,12 +182,15 @@
                    { top: 0, side: 3, foot: false, edgeW: 1 });
           }
         });
+        /* one diagonal a bay, not a cross. Two of them made the top corner
+           of the picture a grey mesh and you could not see the tower for
+           the bracing. */
         ctx.strokeStyle = '#8d98a2'; ctx.lineWidth = 2;
         for (var br = 0; br < 5; br++) {
           var by = 26 + br * 34;
           ctx.beginPath();
-          ctx.moveTo(tx + 2, by); ctx.lineTo(tx + 52, by + 22);
-          ctx.moveTo(tx + 52, by); ctx.lineTo(tx + 2, by + 22);
+          ctx.moveTo(tx + 2, by + (br % 2 ? 22 : 0));
+          ctx.lineTo(tx + 52, by + (br % 2 ? 0 : 22));
           ctx.stroke();
         }
         /* the ladder up the back of it */
@@ -188,15 +211,15 @@
            It is low enough now that you can see two cats standing on it
            waiting their turn, and that is the thing that tells you what the
            whole structure is for. */
-        K.spectator(ctx, tx + 46, 26, 0.74, 311, t, mood);
-        K.spectator(ctx, tx + 72, 26, 0.66, 512, t + 40, mood);
-        K.mass(ctx, tx - 4, 26, 94, 7, '#d8b45c', { top: 4, side: 5 });
+        K.spectator(ctx, tx - 6, 22, 0.74, 311, t, mood);
+        K.spectator(ctx, tx + 18, 22, 0.66, 512, t + 40, mood);
+        K.mass(ctx, tx - 30, 22, 96, 7, '#d8b45c', { top: 4, side: 5 });
         ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(tx + 34, 26); ctx.lineTo(tx + 34, 4);
-        ctx.moveTo(tx + 86, 26); ctx.lineTo(tx + 86, 4);
-        ctx.moveTo(tx + 34, 8); ctx.lineTo(tx + 86, 8);
-        ctx.moveTo(tx + 34, 17); ctx.lineTo(tx + 86, 17); ctx.stroke();
+        ctx.moveTo(tx - 28, 22); ctx.lineTo(tx - 28, 0);
+        ctx.moveTo(tx + 30, 22); ctx.lineTo(tx + 30, 0);
+        ctx.moveTo(tx - 28, 4); ctx.lineTo(tx + 30, 4);
+        ctx.moveTo(tx - 28, 13); ctx.lineTo(tx + 30, 13); ctx.stroke();
 
         /* --- the flume itself --- */
         K.paint(ctx, flumeRibbon(tx, 32, 25), '#39b0d8',
@@ -306,7 +329,7 @@
       ctx.restore();
       /* the wobbling reflection of the tower, on the water under it */
       K.layer(ctx, camX, 0.30, function () {
-        var rx3 = K.at(camX, 0, 252) - camX * 0.03;
+        var rx3 = K.at(camX, 0, 296) - camX * 0.03;
         ctx.save();
         ctx.globalAlpha = 0.22;
         ctx.fillStyle = '#0d4f78';
@@ -500,7 +523,7 @@
           c.bezierCurveTo(fx + 62, 168, fx + 26, 146, fx - 8, 150);
           c.bezierCurveTo(fx - 44, 154, fx - 62, 176, fx - 60, H + 12);
           c.closePath();
-        }, PINK, { step: 4, shade: 0.34, hi: 0.24, edgeW: 1.6 });
+        }, PINK, { step: 9, shade: 0.34, hi: 0.24, edgeW: 1.6 });
 
         /* the tail, a stack of three inflated wedges */
         K.paint(ctx, function (c) {
@@ -525,7 +548,21 @@
           c.bezierCurveTo(fx + 10, 71, fx - 2, 92, fx + 4, 112);
           c.bezierCurveTo(fx + 10, 132, fx + 22, 142, fx + 20, 160);
           c.closePath();
-        }, PINK, { step: 4, shade: 0.34, hi: 0.24, edgeW: 1.6 });
+        }, PINK, { step: 7, shade: 0.34, hi: 0.24, edgeW: 1.6 });
+
+        /* the shadow the head and neck throw across the body. On a shape
+           this big the one-step crescent K.paint leaves is not enough form —
+           it needs a hard shadow EDGE somewhere, which is the whole
+           difference between a sprite and a piece of vector art. */
+        ctx.save();
+        ctx.fillStyle = 'rgba(196,96,130,.5)';
+        ctx.beginPath();
+        ctx.moveTo(fx - 4, 152);
+        ctx.bezierCurveTo(fx - 26, 168, fx - 44, 186, fx - 40, H);
+        ctx.lineTo(fx - 68, H);
+        ctx.bezierCurveTo(fx - 66, 178, fx - 40, 156, fx - 22, 150);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
 
         /* the beak, black-tipped, pointing down into the fight */
         K.paint(ctx, function (c) {

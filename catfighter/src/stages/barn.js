@@ -15,6 +15,10 @@
      These are indices whose modulo lands on the four darkest entries. */
   var DARKS = [2, 3, 5, 6, 10, 11, 13, 14, 18, 19, 21, 22];
 
+  /* Reused every frame rather than allocated — this runs sixty times a
+     second and a fresh array a frame is free garbage nobody needs. */
+  var seats = [];
+
   /* One hay bale: a painted mass, two lines of twine, and a few straws off
      the top edge so the silhouette is not a perfect rectangle. */
   function bale(ctx, x, y, w, h, i) {
@@ -73,6 +77,67 @@
             ctx.beginPath();
             ctx.ellipse(x + 8, K.vary(i, 23, 20, FLOOR_Y - 30), 2.2, 3.4, 0, 0, Math.PI * 2);
             ctx.fill();
+          }
+        });
+      });
+
+      /* --- what is hung on the wall.
+
+             At some scroll positions the back of this barn was a bare maroon
+             field two feet wide — nothing to look at between one cabinet and
+             the next. A barn wall is never bare: tack, wheels, a dartboard,
+             rosettes from the county fair. Drawn BEFORE the loft so the loft
+             opening covers them, which is right — you cannot hang a horseshoe
+             over a hole. --- */
+      K.layer(ctx, camX, 0.3, function () {
+        K.repeatX(camX, 0, 46, function (x, i) {
+          var wy = K.vary(i, 100, 28, 64);
+          var kind = Math.floor(K.hash(i, 101) * 5);
+          if (kind === 0) {                            /* a wagon wheel */
+            var r = K.vary(i, 102, 13, 18);
+            ctx.strokeStyle = '#71472a'; ctx.lineWidth = 2.4;
+            ctx.beginPath(); ctx.arc(x, wy, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.lineWidth = 1.4;
+            for (var sp = 0; sp < 8; sp++) {
+              var a = sp * Math.PI / 4;
+              ctx.beginPath();
+              ctx.moveTo(x, wy); ctx.lineTo(x + Math.cos(a) * r, wy + Math.sin(a) * r);
+              ctx.stroke();
+            }
+            ctx.fillStyle = '#8a5a34';
+            ctx.beginPath(); ctx.arc(x, wy, 3, 0, Math.PI * 2); ctx.fill();
+          } else if (kind === 1) {                     /* a dartboard, with a
+                                                          dart still in it */
+            [[12, '#2a2420'], [9, '#d8cbb0'], [6, '#2a2420'], [3, '#b8342f']]
+              .forEach(function (ring) {
+                ctx.fillStyle = ring[1];
+                ctx.beginPath(); ctx.arc(x, wy, ring[0], 0, Math.PI * 2); ctx.fill();
+              });
+            ctx.strokeStyle = '#e8e0cc'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(x + 4, wy - 3); ctx.lineTo(x + 11, wy - 9); ctx.stroke();
+          } else if (kind === 2) {                     /* a hanging lantern */
+            ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(x, wy - 16); ctx.lineTo(x, wy - 6); ctx.stroke();
+            K.mass(ctx, x - 5, wy - 6, 10, 12, '#6b5230', { top: 2, side: 3, foot: false });
+            ctx.fillStyle = 'rgba(255,206,120,.9)';
+            ctx.fillRect(x - 3, wy - 4, 6, 8);
+            K.glow(ctx, x, wy, 22, 'rgba(255,196,110,.8)', 0.24);
+          } else if (kind === 3) {                     /* three horseshoes */
+            for (var hs = 0; hs < 3; hs++) {
+              var hx = x + (hs - 1) * 12, hy2 = wy + (hs === 1 ? -6 : 0);
+              ctx.strokeStyle = '#8e8577'; ctx.lineWidth = 2.6;
+              ctx.beginPath(); ctx.arc(hx, hy2, 5.5, Math.PI * 0.15, Math.PI * 0.85, true);
+              ctx.stroke();
+            }
+          } else {                                     /* a rosette board */
+            K.mass(ctx, x - 14, wy - 9, 28, 20, '#5a3520', { top: 2, side: 4, foot: false });
+            for (var rz = 0; rz < 3; rz++) {
+              var rx = x - 8 + rz * 8;
+              ctx.fillStyle = K.pick(i * 3 + rz, 103, ['#c8354a', '#3f6fb0', '#d8a83a']);
+              ctx.beginPath(); ctx.arc(rx, wy - 3, 3.2, 0, Math.PI * 2); ctx.fill();
+              ctx.fillRect(rx - 2.4, wy - 1, 1.8, 6);
+              ctx.fillRect(rx + 0.6, wy - 1, 1.8, 6);
+            }
           }
         });
       });
@@ -465,24 +530,35 @@
             seatX = x + 13; seatX2 = x + bw - 11;
           }
 
-          /* back tier: up on whatever that cluster turned out to be */
-          if (!K.chance(i, 65, 0.22)) {
-            K.spectator(ctx, seatX, topY, K.vary(i, 66, 0.84, 1.06),
-                        K.pick(i, 74, DARKS), t + i * 23, mood);
+          /* Seats are collected, not drawn. Every cat used to be drawn with
+             its own cluster, and the next cluster's bales then buried it —
+             the crowd was a row of ears sticking out of hay. Two passes cost
+             one array and the whole house is visible. */
+          if (!K.chance(i, 65, 0.14)) {
+            seats.push([seatX, topY, K.vary(i, 66, 0.86, 1.1), K.pick(i, 74, DARKS), i * 23]);
           }
-          if (seatX2 !== null && K.chance(i, 67, 0.5)) {
-            K.spectator(ctx, seatX2, topY, K.vary(i, 68, 0.76, 0.98),
-                        K.pick(i, 75, DARKS), t + i * 41 + 60, mood);
+          if (seatX2 !== null && K.chance(i, 67, 0.62)) {
+            seats.push([seatX2, topY, K.vary(i, 68, 0.78, 1.0), K.pick(i, 75, DARKS), i * 41 + 60]);
           }
-          /* front tier: standing on the floor, bigger, cut off at the knee by
-             the bales in front of them. Two rows at two sizes is the cheapest
-             depth there is. */
-          if (K.chance(i, 76, 0.42)) {
-            K.spectator(ctx, x + K.vary(i, 77, 30, 62), FLOOR_Y - 3,
-                        K.vary(i, 78, 1.05, 1.3), K.pick(i, 79, DARKS),
-                        t + i * 11 + 30, mood);
+          /* A third and fourth cat along the same top, at their own sizes.
+             The front tier that used to be here stood on the floor at
+             FLOOR_Y — which is inside the contact shadow `K.deepen` lays down
+             every frame, so the whole row was quietly wiped out. Anything
+             meant to be seen belongs above y 150 in this stage. */
+          if (K.chance(i, 76, 0.55)) {
+            seats.push([x + K.vary(i, 77, 6, 52), topY + K.vary(i, 84, 0, 3),
+                        K.vary(i, 78, 0.7, 0.92), K.pick(i, 79, DARKS), i * 11 + 30]);
+          }
+          if (K.chance(i, 85, 0.4)) {
+            seats.push([x + K.vary(i, 86, 2, 58), topY - 1,
+                        K.vary(i, 87, 0.72, 0.95), K.pick(i, 88, DARKS), i * 29 + 90]);
           }
         });
+        for (var sI = 0; sI < seats.length; sI++) {
+          var st2 = seats[sI];
+          K.spectator(ctx, st2[0], st2[1], st2[2], st2[3], t + st2[4], mood);
+        }
+        seats.length = 0;
       });
 
       /* --- the frame: two enormous stall partitions at the edges of the
@@ -499,23 +575,43 @@
             c.beginPath();
             c.moveTo(ex, H);
             c.lineTo(ex, -10);
-            c.lineTo(ex + dir * 50, -10);
-            c.lineTo(ex + dir * 42, 44);
-            c.lineTo(ex + dir * 38, H);
+            c.lineTo(ex + dir * 66, -10);
+            c.lineTo(ex + dir * 58, 44);
+            c.lineTo(ex + dir * 52, H);
             c.closePath();
           }, '#4a2c1c', { step: 3, lx: -dir * 0.9, ly: 0.2, hi: 0.16, edgeW: 1.6 });
           ctx.fillStyle = 'rgba(255,220,160,.10)';
-          ctx.fillRect(ex + dir * 36, -10, dir * 5, H + 10);
+          ctx.fillRect(ex + dir * 50, -10, dir * 5, H + 10);
           ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
-          for (var q = 0; q < 4; q++) {
+          for (var q = 0; q < 5; q++) {
             ctx.beginPath();
-            ctx.moveTo(ex + dir * (10 + q * 12), -10);
-            ctx.lineTo(ex + dir * (8 + q * 11), H);
+            ctx.moveTo(ex + dir * (10 + q * 13), -10);
+            ctx.lineTo(ex + dir * (8 + q * 12), H);
             ctx.stroke();
           }
           /* an iron bracket, at fighter height so the scale reads */
           ctx.fillStyle = '#2a2028';
-          ctx.fillRect(ex + (dir > 0 ? 0 : -42), 96, 42, 9);
+          ctx.fillRect(ex + (dir > 0 ? 0 : -56), 96, 56, 9);
+          /* On the right-hand post, the house sign — hung on the near timber
+             rather than painted on the far wall, so it is a warm light at the
+             edge of the frame instead of another thing in the distance. The
+             corner it fills was dead maroon at every scroll position. */
+          if (dir < 0) {
+            var sx3 = ex - 46, sy3 = 26;
+            K.mass(ctx, sx3, sy3, 34, 84, '#2f1a12', { top: 3, side: 5, foot: false });
+            var buzz = (t % 190) < 4 ? 0.35 : 1;      /* the tube is on its way out */
+            ctx.globalAlpha = buzz;
+            'GAME BARN'.split('').forEach(function (ch, k) {
+              if (ch === ' ') return;
+              ctx.fillStyle = '#ffdf8c';
+              ctx.font = '800 9px "Arial Narrow", Arial, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(ch, sx3 + 17, sy3 + 13 + k * 8);
+            });
+            ctx.textAlign = 'left';
+            ctx.globalAlpha = 1;
+            K.glow(ctx, sx3 + 17, sy3 + 42, 46, 'rgba(255,206,120,.75)', 0.22 * buzz);
+          }
         });
       });
 
