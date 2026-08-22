@@ -78,12 +78,12 @@ black boundary — per your direction: north and south **interior side yards at
 15'**, east **rear yard at 25'** (a straight line parallel to the straight east
 boundary), and west **exterior side yard at 35' from the Whirlwind Ln
 centreline**, which is drawn at the west property line, so it too reads
-straight off the black line. No setback follows the access road easement.
+straight off the black line. No setback follows any road or easement.
 
-**Handlebar Rd is not on the parcel** — it is roughly 700' away, reached by the
-driveway through an access easement across the adjacent parcel. The road
-crossing the east portion is that private access road easement; it is drawn and
-named, but no setback is measured from it.
+**Handlebar Rd is not on the parcel, and no road crosses it.** The driveway is
+the only travelled way — east from the residence, then southeast between AG-9
+and AG-12, leaving the parcel near the SE corner and continuing roughly 700'
+to Handlebar Rd through an access easement across the adjacent parcel.
 
 **The store clears every required yard** — it sits 55' from the Whirlwind
 centreline (35' required) and about 46' from the north line (15' required).

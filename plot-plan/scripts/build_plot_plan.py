@@ -47,9 +47,13 @@ OWNER CORRECTIONS 8/21/2026 (second round) — carried in this file:
   * Pond is RUNOFF-FED, no pump. Greenhouse labelled AS-BUILT (the county's
     term) without "unpermitted". Leach lines relocated E of the garage — they
     do not cross under any structure.
-  * HANDLEBAR RD IS NOT ON THIS LAYOUT — it is far away. The road crossing the
-    east portion is the private access easement / driveway, ±700' to Handlebar
-    Rd across the adjacent parcel. Do not name that road Handlebar.
+  * HANDLEBAR RD IS NOT ON THIS LAYOUT — it is far away — and THERE IS NO N-S
+    ROAD CROSSING THE EAST PORTION AT ALL (owner, fourth round: "There's still
+    some stupid road through the right side. That doesn't exist."). The only
+    travelled way on the parcel is the DRIVEWAY: east from the residence, then
+    SE through the gap between AG-9 and AG-12, leaving the parcel near the SE
+    corner and continuing ±700' to Handlebar Rd via an access easement across
+    the adjacent parcel. Never draw a road with edge lines on this parcel.
   * SETBACKS ARE MEASURED FROM THE PROPERTY LINES ONLY (third round): N/S
     interior side 15', east rear 25' (a straight offset of the straight east
     line — NO curved setback following the access road), west 35'. Never
@@ -119,14 +123,8 @@ LINE_N = LineString([PB[i] for i in IDX_N])
 LINE_S = LineString([PB[i] for i in IDX_S])
 LINE_E = LineString([PB[0], PB[1]])      # east (rear) line
 LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centreline
-SXX0, SYY0 = 583.1/2186, 294.1/1136
-# The N-S curve crossing the east portion is the PRIVATE ACCESS ROAD EASEMENT
-# (the driveway route, ±700' to Handlebar Rd across the adjacent parcel).
-# Handlebar Rd itself is NOT on this layout (owner, 8/21). The residence fronts
-# this easement, so the front yard is 40' from its centreline.
-LINE_ACC = LineString([(x*SXX0, 294.1-y*SYY0) for x, y in
-    [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),(1650,630),
-     (1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]])
+# There is NO road crossing the east portion (owner). The driveway alone
+# serves the parcel; it is drawn from drv_px below.
 
 # Buildable envelope: the parcel less everything within each required yard.
 # Subtracting a line buffered by d leaves exactly the ground more than d away
@@ -405,8 +403,8 @@ ax.annotate("EXIST. WELL", (wx+4, wy), (wx+44, wy+26), fontsize=6,
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # septic tank per site_features.json (x 422.5-444.9, just N of the garage);
-# leach lines relocated E of the garage and W of the access road esmt. so they
-# cross under NO structure (owner, 8/21) and stay clear of the travelled way.
+# leach lines relocated E of the garage so they cross under NO structure
+# (owner, 8/21) and stay inside the north property line.
 sx0, sy0 = px2ft(422.5, 19.4); sx1, sy1 = px2ft(444.9, 9.3)
 ax.add_patch(Rectangle((sx0, sy0), sx1-sx0, sy1-sy0, fc='none', ec='black', lw=1.1, zorder=5))
 lx0, ly0 = px2ft(481.0, 36.6); lx1, ly1 = px2ft(530.0, 12.6)
@@ -423,28 +421,20 @@ ax.annotate("400A MAIN ELEC. PANEL\n(LOCATION APPROX.)", (ex+2, ey), (ex+52, ey+
             ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
-# ---- PRIVATE ACCESS ROAD EASEMENT (the driveway route). Handlebar Rd is NOT
-# on this layout — it is far away; the driveway runs ±700' to it via an
-# easement across the adjacent parcel (owner, 8/21).
-road_px = [(2100,10),(2040,160),(1950,300),(1860,400),(1770,470),(1690,545),
-           (1650,630),(1660,730),(1720,830),(1810,930),(1920,1030),(2030,1120),(2065,1136)]
-road = [(x*SXX, 294.1-y*SYY) for x, y in road_px]
-rx = [p[0] for p in road]; ry = [p[1] for p in road]
-ax.plot(rx, ry, color='black', lw=0.9, ls=(0,(10,4,2,4)), zorder=2)
-rxa, rya = np.array(rx), np.array(ry)
-dxg, dyg = np.gradient(rxa), np.gradient(rya)
-nrm = np.hypot(dxg, dyg); nxv, nyv = -dyg/nrm, dxg/nrm
-for s in (+10, -10):
-    ax.plot(rxa+nxv*s, rya+nyv*s, color='0.25', lw=1.1, zorder=2)
-ax.annotate("PRIVATE ACCESS ROAD ESMT. (DRIVEWAY —\n±700' TO HANDLEBAR RD VIA ESMT.\nACROSS ADJACENT PARCEL, NOTE 9)", (497, 57), (392, 24),
+# ---- driveway. There is NO road crossing the east portion (owner, 8/21
+# fourth round) — the driveway is the only travelled way: east from the
+# residence, then SE through the gap between AG-9 and AG-12, leaving the
+# parcel near the SE corner and continuing ±700' to Handlebar Rd via an
+# access easement across the adjacent parcel.
+drv_px = [(2172,1090),(2118,1067),(2043,1024),(1965,966),(1905,881),(1856,788),
+          (1792,711),(1725,626),
+          (1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
+drv = [(x*SXX, 294.1-y*SYY) for x, y in drv_px]
+ax.plot([p[0] for p in drv], [p[1] for p in drv], color='0.35', lw=1.0, ls=(0,(6,3)), zorder=2)
+ax.annotate("DRIVEWAY EXITS BETWEEN AG-9 AND AG-12 —\nCONTINUES ±700' TO HANDLEBAR RD VIA ACCESS\nESMT. ACROSS ADJACENT PARCEL (NOTE 9)", (524, 44), (400, -34),
             fontsize=6.4, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8),
             va='center', fontweight='bold',
             bbox=dict(fc='white', ec='black', lw=0.5, alpha=0.92, pad=2))
-
-# ---- driveway
-drv_px = [(1655,600),(1520,530),(1350,485),(1150,460),(980,452),(800,470),(600,502),(455,540)]
-drv = [(x*SXX, 294.1-y*SYY) for x, y in drv_px]
-ax.plot([p[0] for p in drv], [p[1] for p in drv], color='0.35', lw=1.0, ls=(0,(6,3)), zorder=2)
 for lp, lab in [((417,158),"GRAVEL, 12' W"), ((285,182),"DIRT DRIVE, 12' W"), ((252,166),"GRAVEL")]:
     ax.text(*lp, lab, fontsize=5.8, color='0.25', style='italic', zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
@@ -696,10 +686,10 @@ vm.text(sx0-0.028, 0.76, "WHIRLWIND LN", fontsize=6.8, rotation=90, va='center',
 vm.plot([0.79, 0.775, 0.77, 0.78, 0.80],
         [0.86, 0.68, 0.50, 0.32, 0.16], color='0.3', lw=2.0)
 vm.text(0.812, 0.74, "HANDLEBAR RD", fontsize=6.8, rotation=85, va='center')
-vm.plot([0.64, 0.71, 0.773], [0.615, 0.645, 0.655], color='0.3', lw=1.2,
+vm.plot([0.64, 0.70, 0.777], [0.503, 0.46, 0.42], color='0.3', lw=1.2,
         ls=(0, (4, 3)))
-vm.text(0.705, 0.578, "ACCESS ESMT.\n±700'", fontsize=6.0, ha='center', va='top',
-        style='italic', color='0.25')
+vm.text(0.705, 0.398, "DRIVEWAY /\nACCESS ESMT.\n±700'", fontsize=6.0, ha='center',
+        va='top', style='italic', color='0.25')
 vm.plot([0.12, 0.13, 0.14], [0.86, 0.50, 0.16], color='0.3', lw=1.8)
 vm.text(0.094, 0.50, "GARJAN LN", fontsize=6.8, rotation=87, va='center', ha='center')
 vm.plot([0.10, 0.90], [0.885, 0.885], color='0.3', lw=2.4)
@@ -798,12 +788,13 @@ notes = [
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT; MAY QUALIFY FOR THE AGRICULTURAL BUILDING",
  "     EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
- "8.  DRIVEWAY RUNS FROM THE RESIDENCE E THEN N TO THE NE PROPERTY CORNER AND",
- "     CONTINUES ±700' TO HANDLEBAR RD VIA AN ACCESS ESMT. ACROSS THE ADJACENT",
- "     PARCEL. GRAVEL BOTH ENDS, DIRT MID-SEGMENT, 12' WIDE; SLOPE 2% DRAINING W.",
+ "8.  DRIVEWAY RUNS E FROM THE RESIDENCE, THEN SE BETWEEN AG-9 AND AG-12, LEAVING",
+ "     THE PARCEL NEAR THE SE CORNER AND CONTINUING ±700' TO HANDLEBAR RD VIA AN",
+ "     ACCESS ESMT. ACROSS THE ADJACENT PARCEL. GRAVEL BOTH ENDS, DIRT MID-",
+ "     SEGMENT, 12' WIDE; SLOPE 2% DRAINING W. NO OTHER ROAD CROSSES THE PARCEL.",
  "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
- "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL; THE PRIVATE ACCESS",
- "     ROAD ESMT. SHOWN CROSSES THE EAST PORTION. ESMT. WIDTHS PER PM 05062, TBD.",
+ "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL — ACCESS IS BY THE",
+ "     DRIVEWAY AND ESMT. OF NOTE 8. ESMT. GEOMETRY PER RECORDED PM 05062, TBD.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
  "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
  "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",

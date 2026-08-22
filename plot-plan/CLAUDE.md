@@ -44,9 +44,13 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   extend over the property lines… everything needs to be re-drawn so that's
   inside the property line") — but the TABULATED areas stay the owner's numbers
   in `data/ag_areas.json`. AG-3 also stops at the fence ~20' W of the septic.
-- **Handlebar Rd is NOT on the layout** — it is far away. The N-S road crossing
-  the east portion is the **private access road easement / driveway route,
-  ±700' to Handlebar Rd across the adjacent parcel**.
+- **Handlebar Rd is NOT on the layout, and NO road crosses the east portion at
+  all** (fourth round, 8/21: "There's still some stupid road through the right
+  side. That doesn't exist."). The **driveway is the only travelled way**: east
+  from the residence, then SE through the gap between AG-9 and AG-12, off the
+  parcel near the SE corner, then **±700' to Handlebar Rd via an access
+  easement across the adjacent parcel**. Never draw a road with edge lines on
+  this parcel.
 - **Setbacks are measured from the PROPERTY LINES, full stop** (third round,
   8/21: "The setbacks should be from the thick black line not some imaginary
   road"). N/S interior side 15', east REAR 25' — a straight offset of the
@@ -108,17 +112,18 @@ These are hard-won and matter more than any technical detail here.
 
 **Site orientation — these were owner corrections, get them right:**
 
-- The private **access road easement** crosses the **EAST portion** of the
-  parcel on a N–S curve, entrance at the NE. It is **NOT** along the north
-  property line, and it is **NOT Handlebar Rd** (owner 8/21/2026: Handlebar is
-  far away; the driveway runs ±700' to it via an easement across the adjacent
-  parcel).
+- **No road crosses the parcel.** The N–S "road" once traced through the east
+  portion (first called Handlebar Rd, then an access road easement) **does not
+  exist** — owner, 8/21/2026. The driveway alone serves the parcel, exiting
+  between AG-9 and AG-12 near the SE corner and continuing ±700' to Handlebar
+  Rd via an easement across the adjacent parcel.
 - **Whirlwind Lane** runs along the **WEST** frontage.
 - **West setback is 35', measured from the CENTERLINE of Whirlwind Lane.**
 - A 30' road easement runs along the west boundary.
-- Driveway runs from the residence E then N to the NE corner and continues
-  ±700' to Handlebar Rd via the access easement: gravel at both ends, dirt
-  mid-segment passing the residence. Slope <5% (flat site).
+- Driveway runs from the residence E, then SE between AG-9 and AG-12, exits
+  near the SE corner and continues ±700' to Handlebar Rd via the access
+  easement: gravel at both ends, dirt mid-segment passing the residence.
+  Slope <5% (flat site).
 - Pond is **runoff-fed (NO pump)** — an existing irrigation source and also the
   area of inundation. Lot drains to pond.
 - 400A main electrical panel sits adjacent NE of the barn.
@@ -618,13 +623,25 @@ docs were updated together:
    structure, stay W of the access road edge and inside the north PL. The
    septic tank is drawn at its site_features position (x 422.5–444.9).
 6. **AG-3 stops at the fence ~20' W of the septic** (clip at x ≤ 402.5).
-7. **"Handlebar Rd" removed from the drawing.** The N-S curve is the private
-   access road easement / driveway route, labelled as such, ±700' to Handlebar
-   Rd via an easement across the adjacent parcel. The vicinity map shows
-   Handlebar detached, linked by a dashed "ACCESS ESMT. ±700'" connector.
+7. **"Handlebar Rd" removed from the drawing.** First cut renamed the N-S
+   curve to "private access road easement" — see the fourth round below for
+   where this actually landed. The vicinity map shows Handlebar detached,
+   linked by a dashed "DRIVEWAY / ACCESS ESMT. ±700'" connector from the
+   site's SE corner.
 
 **Third round, same day:** the first cut of item 7 kept a 40' front setback
 buffered off the easement centreline, which put a curved blue setback on the
 east side. Owner: "The setbacks should be from the thick black line not some
 imaginary road." Fixed — east is now a straight 25' REAR yard off the east
-property line, and no setback anywhere is measured from the road easement.
+property line, and no setback anywhere is measured from any road.
+
+**Fourth round, same day:** the renamed road still wasn't right — "There's
+still some stupid road through the right side. That doesn't exist. The
+driveway runs between AG9 and AG12 as you can see. Then it continues where
+the driveway lines are." The N-S road linework (centreline + both edge lines)
+was deleted entirely; the traced curve never was a road. The driveway polyline
+was extended instead: from its old east end it now threads the gap between
+AG-9 and AG-12 and leaves the parcel near the SE corner, with a label noting
+the ±700' continuation to Handlebar Rd across the adjacent parcel. The old
+road centreline trace was deleted from `data/site_features.json` too, with a
+tombstone note so it never comes back.

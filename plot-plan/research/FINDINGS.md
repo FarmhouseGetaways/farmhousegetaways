@@ -69,12 +69,14 @@ point query at the parcel centroid, 19 Aug 2026). The zoning box returned:
 | Rear | **25'** from lot line |
 
 Footnote (d): a lot fronting a private street or easement **less than 40' wide**
-takes a front yard of **40' from the centerline** of that easement. The private
-access road easement crossing the east portion of the parcel is 30' where
-dimensioned on the assessor's map, so footnote (d) governs that frontage.
-(**Owner correction 8/21/2026: that road is NOT Handlebar Rd** — Handlebar is
-~700' away, reached across the adjacent parcel. Same easement, same footnote,
-different name.)
+takes a front yard of **40' from the centerline** of that easement.
+(**Owner corrections 8/21/2026: no road crosses the parcel at all** — the N-S
+curve once traced through the east portion, first called Handlebar Rd and then
+an "access road easement", does not exist. Access is the driveway, exiting
+between AG-9 and AG-12 and continuing ±700' to Handlebar Rd via an easement
+across the adjacent parcel. Whether footnote (d) applies to that off-parcel
+easement is a PDS counter question; the sheet draws all setbacks from the
+property lines.)
 
 The owner's "35' from the centerline of Whirlwind Lane" matches the Schedule C
 **exterior side** yard exactly — corroborated, not guessed.

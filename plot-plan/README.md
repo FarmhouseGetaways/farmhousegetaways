@@ -27,12 +27,12 @@ separately because PDS 090 item 12 requires it.
 
 Setbacks come from the parcel's own zoning box — **A70/L/2AC/C/G/C/C**, setback
 designator **C** — so §4810 Schedule C gives front 60' from ℄, interior side 15',
-exterior side 35' from ℄, rear 25'. **Handlebar Rd is not on the parcel** — the
-road crossing the east portion is the private access road easement (the
-driveway route, ±700' to Handlebar across the adjacent parcel). **Every
-setback is drawn from the property lines** (owner's direction): 15' north and
-south, 25' rear on the east, 35' on the west (Whirlwind ℄ at the west line) —
-no setback follows the road easement. The store clears every required yard.
+exterior side 35' from ℄, rear 25'. **Handlebar Rd is not on the parcel and no
+road crosses it** — the driveway alone serves it, exiting between AG-9 and
+AG-12 near the SE corner and continuing ±700' to Handlebar across the adjacent
+parcel. **Every setback is drawn from the property lines** (owner's direction):
+15' north and south, 25' rear on the east, 35' on the west (Whirlwind ℄ at the
+west line). The store clears every required yard.
 
 **The store is the new Mini Barn Market building under construction** at the
 NW — 12'×10' = 120 SF per the owner — against a 1,500 SF limit, so the old

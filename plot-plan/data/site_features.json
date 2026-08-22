@@ -21,7 +21,7 @@
     "net_acres": 3.61,
     "net_sf": 157251,
     "gis_gross_sf": 164443,
-    "gross_net_delta_explanation": "Private access road easement crossing E portion (NOT Handlebar Rd — owner 8/21/2026)",
+    "gross_net_delta_explanation": "Assessor net excludes road easements; the ~7,200 SF gross-net difference presumably reflects recorded easements — locations per PM 05062, TBD. No road crosses the parcel (owner 8/21/2026); the driveway exits between AG-9 and AG-12 to an access esmt. across the adjacent parcel.",
     "requirement_25pct_sf": 39313,
     "boundary_stateplane_2230_usft": [
       [
@@ -318,72 +318,47 @@
       2092,
       135
     ],
-    "leach_note": "Owner 8/21/2026: leach lines must NOT cross under the garage. Rect moved E of the garage (garage E edge ~478.8 ft) and kept W of the access road esmt. (~544 ft in this y-band) and inside the N property line. The wider px bbox is the aerial bed-patch trace, kept for reference.",
+    "leach_note": "Owner 8/21/2026: leach lines must NOT cross under the garage. Rect moved E of the garage (garage E edge ~478.8 ft), inside the N property line. The wider px bbox is the aerial bed-patch trace, kept for reference.",
     "electrical": "400A main panel adjacent NE of barn, ~(169.5, 173.6) ft, location approx."
   },
   "roads": {
-    "access_road_esmt": {
-      "side": "EAST \u2014 private ACCESS ROAD easement crossing E portion of parcel, N-S curve. This is NOT Handlebar Rd (owner 8/21/2026: Handlebar is far away and not on the layout); it is the driveway route, \u00b1700' to Handlebar Rd via an easement across the adjacent parcel.",
-      "centerline_px": [
-        [
-          2100,
-          10
-        ],
-        [
-          2040,
-          160
-        ],
-        [
-          1950,
-          300
-        ],
-        [
-          1860,
-          400
-        ],
-        [
-          1770,
-          470
-        ],
-        [
-          1690,
-          545
-        ],
-        [
-          1650,
-          630
-        ],
-        [
-          1660,
-          730
-        ],
-        [
-          1720,
-          830
-        ],
-        [
-          1810,
-          930
-        ],
-        [
-          1920,
-          1030
-        ],
-        [
-          2030,
-          1120
-        ],
-        [
-          2065,
-          1136
-        ]
-      ],
-      "easement_width": "UNKNOWN \u2014 pending readable PM 69370 from owner"
-    },
+    "_no_road_on_east": "OWNER 8/21/2026 (fourth round): there is NO N-S road crossing the east portion \u2014 the old 'handlebar_rd'/'access_road_esmt' centerline trace was WRONG and is deleted. The driveway is the only travelled way; it exits between AG-9 and AG-12 near the SE corner and continues \u00b1700' to Handlebar Rd via an access easement across the adjacent parcel. Never re-draw a road with edge lines on this parcel.",
     "whirlwind_ln": "off-parcel at NW corner",
     "garjan_ln": "~2,000 ft west (verified via county reverse geocode)",
     "driveway": {
       "centerline_px": [
+        [
+          2172,
+          1090
+        ],
+        [
+          2118,
+          1067
+        ],
+        [
+          2043,
+          1024
+        ],
+        [
+          1965,
+          966
+        ],
+        [
+          1905,
+          881
+        ],
+        [
+          1856,
+          788
+        ],
+        [
+          1792,
+          711
+        ],
+        [
+          1725,
+          626
+        ],
         [
           1655,
           600
@@ -417,7 +392,7 @@
           540
         ]
       ],
-      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. Total driveway ±700' to Handlebar Rd via access esmt. across adjacent parcel (owner 8/21/2026)."
+      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. Runs E from residence then SE between AG-9 and AG-12, exits near SE corner, continues ±700' to Handlebar Rd via access esmt. across adjacent parcel (owner 8/21/2026)."
     }
   },
   "pond": {

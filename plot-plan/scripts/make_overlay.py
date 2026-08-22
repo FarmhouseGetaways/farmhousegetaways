@@ -47,8 +47,7 @@ for k, c in [("septic_tank_ft_rect", "yellow"), ("leach_ft_rect", "orange")]:
 px, py, pw, phh = 169.5, 173.6, 5, 5
 ax.add_patch(Rectangle((px, py), pw, phh, fc="yellow", zorder=7))
 
-road = poly_px(F["roads"]["access_road_esmt"]["centerline_px"])
-ax.plot([p[0] for p in road], [p[1] for p in road], color="white", lw=2.5, ls=(0,(8,4)), zorder=6)
+# no road crosses the east portion (owner 8/21) — driveway only
 drv = poly_px(F["roads"]["driveway"]["centerline_px"])
 ax.plot([p[0] for p in drv], [p[1] for p in drv], color="lime", lw=2, ls=(0,(5,3)), zorder=6)
 pc = F["pond"]["ellipse_ft_center_wh"]
