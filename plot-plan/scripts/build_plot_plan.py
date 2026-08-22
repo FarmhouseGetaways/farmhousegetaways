@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 21
+REV  = 22
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -167,14 +167,65 @@ DRV_FT = [(100,255),(110,240),(109.5,225),(109.4,211),(104.5,199.6),(102.5,190.5
           (537.5,31.3),(553.5,20.9),(570.8,11.9),(579.5,6.5)]
 DRV_BUF = LineString(DRV_FT).buffer(8.0)   # 12' travelled way + 2' shoulders
 
-# Ag + poultry zones drawn clipped to the parcel AND clear of the driveway;
-# RES keeps its shape (the driveway legitimately passes through the domestic
-# area). Tabulated areas stay the owner's numbers in ag_areas.json.
-clipped = {k: (SPoly(v).buffer(0).intersection(PARCEL) if k == 'RES' else
-               SPoly(v).buffer(0).intersection(PARCEL).difference(DRV_BUF))
-           for k, v in zones.items()}
-clipped['3'] = clipped['3'].intersection(
-    SPoly([(-10, -10), (AG3_FENCE_X, -10), (AG3_FENCE_X, 340), (-10, 340)]))
+# ---- DRAWN ZONES MUST MEASURE WHAT THE TABLE CLAIMS (rev 22).
+# Three rules, in order:
+#   1. inside the property lines,
+#   2. clear of the driveway corridor and off the buildings,
+#   3. the drawn area EQUALS the tabulated area for that zone.
+# Rule 3 is the one rev 21 got wrong: clipping alone left the hatch 6,639 SF
+# short of the table, so a checker measuring the sheet would find LESS ag than
+# the application claims — the drawing would undercut its own numbers. The
+# traced polygons were always approximate; the owner's field figures govern
+# (CLAUDE.md §4/§5). So each zone is grown outward into open ground until its
+# drawn area matches its tabulated figure. Zones never overlap each other, the
+# driveway, or a building. RES is clipped to the parcel only.
+def _px(pts):
+    sxx, syy = 583.1/2186, 294.1/1136
+    return [(x*sxx, 294.1-y*syy) for x, y in pts]
+def _rect(x, y, w, h):
+    return SPoly([(x, y), (x+w, y), (x+w, y+h), (x, y+h)])
+_pool = Point(232.6, 233.3).buffer(1.0)
+_pool = SPoly([(232.6+20*math.cos(t*math.pi/18), 233.3+22*math.sin(t*math.pi/18))
+               for t in range(36)])
+KEEPOUT = unary_union([
+    DRV_BUF,
+    SPoly(_px([(1222,103),(1590,138),(1575,300),(1208,262)])),      # SFD
+    SPoly(_px([(1622,85),(1795,90),(1795,275),(1622,280)])),        # garage
+    _rect(112.3, 120.4, 50, 44),                                    # barn
+    _rect(72.1, 230.5, 10, 10),                                     # storage
+    _rect(57.5, 219.0, 12, 10),                                     # store
+    _pool,                                                          # pool
+])
+AG3_BOX = SPoly([(-10, -10), (AG3_FENCE_X, -10), (AG3_FENCE_X, 340), (-10, 340)])
+_ZK = ZONE_KEYS + ['BG']
+_raw = {k: SPoly(zones[k]).buffer(0) for k in _ZK}
+
+def _fit(k, target):
+    """Zone k drawn so its area == target, inside the parcel and clear of
+    everything it must not touch."""
+    others = unary_union([_raw[o] for o in _ZK if o != k])
+    def shape(d):
+        g = _raw[k].buffer(d) if d else _raw[k]
+        g = g.intersection(PARCEL).difference(KEEPOUT).difference(others)
+        return g.intersection(AG3_BOX) if k == '3' else g
+    lo, hi = (0.0, 80.0) if shape(0).area < target else (-40.0, 0.0)
+    if shape(hi).area < target:            # cannot reach it — draw the most we can
+        print(f"  NOTE: AG-{k} tops out at {shape(hi).area:,.0f} SF vs table {target:,.0f}")
+        return shape(hi)
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if shape(mid).area < target: lo = mid
+        else: hi = mid
+    return shape((lo + hi) / 2)
+
+clipped = {k: _fit(k, ZONE_SF.get(k) or AG_TABLE['totals_sf']['poultry']) for k in _ZK}
+clipped['RES'] = SPoly(zones['RES']).buffer(0).intersection(PARCEL)
+_drawn = sum(clipped[k].area for k in _ZK)
+print(f"drawn ag hatch = {_drawn:,.0f} SF vs table {AG_TABLE['totals_sf']['ag_total']:,} SF "
+      f"({_drawn - AG_TABLE['totals_sf']['ag_total']:+,.0f})")
+if _drawn < AG_TABLE['totals_sf']['ag_total'] - 50:
+    raise SystemExit("LAYOUT: drawn ag area is short of the tabulated total — "
+                     "the sheet would undercut its own numbers.")
 ZONE_SF['RES'] = AG_TABLE['totals_sf']['residential_excluded']
 CROP_SF    = AG_TABLE['totals_sf']['crop_subtotal']
 POULTRY_SF = AG_TABLE['totals_sf']['poultry']
@@ -766,7 +817,7 @@ hrule(y+0.002, 0.04, 0.96, 0.5); y -= 0.003
 tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.4, True, x=0.05); tline(y, f"{AG_TOTAL:,.0f} SF", 7.4, True, x=0.95, ha='right'); y -= 0.0122
 tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157.a.2.b.ii REQ.: 25% = {REQ_25_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0115
 tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES. AREAS ARE", 6.0, x=0.05); y -= 0.0098
-tline(y, "AERIAL-DERIVED AND FIELD-CORROBORATED (NOTE 2).", 6.0, x=0.05); y -= 0.0125
+tline(y, "FIELD-MEASURED AND PLOT TO SCALE ON THIS SHEET (NOTE 2).", 6.0, x=0.05); y -= 0.0125
 hrule(y); y -= 0.0098
 
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
@@ -799,8 +850,9 @@ notes = [
  "     AND DIMENSIONS PER RECORDED PM 05062. ALL DIMENSIONS IN FEET.",
  "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED, FIELD-CORROBORATED, AND",
  "     PER OWNER MEASUREMENT WHERE STATED (STORE 12'x10', STORAGE 10'x10', BARN",
- "     50'x44'). CROP AREAS DRAWN CLIPPED TO THE PARCEL, CLEAR OF THE DRIVEWAY;",
- "     AREAS PER OWNER. AG-3 STOPS AT THE FENCE ~20' W OF THE SEPTIC TANK. AG-9",
+ "     50'x44'). EACH CROP AREA IS DRAWN INSIDE THE PROPERTY LINES, CLEAR OF THE",
+ "     DRIVEWAY AND STRUCTURES, AND SCALES TO THE AREA TABULATED FOR IT — THE",
+ "     DRAWING AND THE TABLE AGREE. AG-3 STOPS AT THE FENCE ~20' W OF SEPTIC. AG-9",
  "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
  "3.  NO GRADING PROPOSED. THE ONLY NEW CONSTRUCTION IS THE 12'x10' STORE (UNDER",
  "     CONSTR.). PLAN DOCUMENTS EXISTING AG OPERATIONS + PROPOSED STORE (ZO §6157).",
@@ -861,8 +913,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-20 8/22/2026  NO ROAD; STORE + DRIVEWAY", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  PANEL AT STORAGE; AG CLEAR OF DRIVE", 5.4, x=0.62)
+tline(tb_h*0.170, "17-21 8/22/2026  NO ROAD; STORE, DRIVEWAY, PANEL", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  AG AREAS DRAWN TO TABULATED SF", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

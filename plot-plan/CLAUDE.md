@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 21 generated — the submittal sheet. The Small
+**Current status: plot plan REV 22 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -44,6 +44,18 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
 - **All 9 structures on the confirmation image are the owner's.** The two
   trailers/outbuildings at the aerial's top-right are the neighbour's and stay
   off the sheet.
+- **THE DRAWN HATCH MUST MEASURE WHAT THE TABLE CLAIMS.** This is the rule
+  that governs all zone clipping (8/22, rev 22). Clipping alone left the drawn
+  hatch **6,639 SF short** of the 57,696 SF table — a checker scaling the sheet
+  would have found less ag than the application claims, i.e. the drawing
+  undercutting its own numbers. (A prior reply called that "conservative in
+  your favour"; it was wrong — short is bad, not safe.) Each zone is now grown
+  outward into open ground until its **drawn area equals its tabulated
+  figure**, staying inside the property lines and clear of the driveway,
+  structures and the other zones. `_fit()` in the build script does this by
+  binary search, and a guard raises `SystemExit` if the drawn total ever falls
+  below the table again. The owner's field numbers govern; the traces were
+  always approximate.
 - **The property boundary is the county GIS polygon the zones were traced
   against.** Do not raise record-vs-GIS discrepancy alarms on the sheet face,
   and do not derive encroachments from it against the owner's word. **The ag

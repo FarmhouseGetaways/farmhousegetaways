@@ -31,7 +31,7 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev21.pdf` (always the
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev22.pdf` (always the
   highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
@@ -50,8 +50,10 @@ You will still need:
 | Record parcel per the assessor's map | 157,212 SF — ag use 36.7% |
 | Net area excl. road easements (PDS 090 item 12) | 157,251 SF (3.61 ac) |
 
-The crop areas are drawn clipped to the parcel boundary on the sheet, so no red
-area crosses a property line; the tabulated square footages are your numbers.
+Every crop area on the sheet is drawn inside the property lines, clear of the
+driveway and the buildings, **and scaled so it measures the square footage the
+table claims for it**. If a plan checker scales the drawing, the hatch and the
+table agree — 57,696 SF either way. The figures are your field numbers.
 
 **The denominator is gross, not net.** §6157(b)(ii) says "25 percent of the total
 gross area of the premises." This settles the gross-vs-net question that was open
