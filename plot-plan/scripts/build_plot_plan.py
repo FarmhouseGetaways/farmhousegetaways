@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 22
+REV  = 23
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -190,7 +190,7 @@ _pool = SPoly([(232.6+20*math.cos(t*math.pi/18), 233.3+22*math.sin(t*math.pi/18)
 KEEPOUT = unary_union([
     DRV_BUF,
     SPoly(_px([(1222,103),(1590,138),(1575,300),(1208,262)])),      # SFD
-    SPoly(_px([(1622,85),(1795,90),(1795,275),(1622,280)])),        # garage
+    SPoly(_px([(1622,152),(1795,157),(1795,342),(1622,347)])),        # garage (30' off N P.L., owner 8/22)
     _rect(112.3, 120.4, 50, 44),                                    # barn
     _rect(72.1, 230.5, 10, 10),                                     # storage
     _rect(57.5, 219.0, 12, 10),                                     # store
@@ -355,7 +355,7 @@ BARN = [(_bc[0]-25, _bc[1]-22), (_bc[0]+25, _bc[1]-22),
 assert abs(SPoly(BARN).area - 2200.0) < 1e-6
 structures = [
  ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
- ("EXIST.\nGARAGE/ACC.", poly_px([(1622,85),(1795,90),(1795,275),(1622,280)]), None),
+ ("EXIST.\nGARAGE/ACC.", poly_px([(1622,152),(1795,157),(1795,342),(1622,347)]), None),
 ]
 for name, poly, lab_at in structures:
     ax.add_patch(MPoly(poly, closed=True, fc='0.82', ec='black', lw=1.1, zorder=4))
@@ -913,8 +913,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-21 8/22/2026  NO ROAD; STORE, DRIVEWAY, PANEL", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  AG AREAS DRAWN TO TABULATED SF", 5.4, x=0.62)
+tline(tb_h*0.170, "17-22 8/22/2026  ROAD, STORE, DRIVEWAY, AG SF", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  GARAGE 30' OFF NORTH P.L.", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
