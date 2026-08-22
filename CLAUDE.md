@@ -204,28 +204,36 @@ Prefer v2 — v1 is legacy and no longer actively maintained.
 Existing subscribers live in **Wix** and need exporting separately. That is a
 known future task, not part of wiring up the forms.
 
-### `brand-kits/` is a holding pen, not part of this site
+### The other two brands are their own repos — verified 22 Aug 2026
 
-The Mini Barn Market and Farmstand.TV sites are parked in `brand-kits/` because
-the Claude GitHub App cannot create repositories — it returns `403 Resource not
-accessible by integration`, so `minibarnmarket` and `farmstandtv` do not exist
-on GitHub yet. Committing them here keeps the work from being lost with the
-container.
+`minibarnmarket` and `farmstandtv` already exist on GitHub, already have full
+sites in them, and already deploy to **minibarnmarket.com** and
+**farmstand.tv**. They are not parked anywhere and never needed creating.
 
-They are 404'd by `netlify.toml` and are not served. Once the two repos exist,
-move each folder out, delete `brand-kits/`, and drop the `/brand-kits/*`
-redirect. `brand-kits/README.md` has the exact commands.
+An earlier session copied thinner versions of those two sites into a
+`brand-kits/` folder here, on the belief that the repos did not exist. They
+did. The folder has been deleted: it was an older, poorer duplicate of two live
+repos, and leaving it would have had somebody split it out into repos that
+already existed.
 
-`farmhouse-app-patches/` is the same situation for a different reason. The
-GitHub App can read `farmhouse-app` but not write to it — both `git push` and
-creating a branch through the API return 403 — so two finished commits had
-nowhere to go. They are parked as a `git am` patch series, verified to apply
-cleanly to `main`. Grant the app write access to that repo and the folder can
-be applied and deleted.
+Each of those repos carries the same EmailOctopus code as this one —
+`_lib/emailoctopus.mjs`, `_lib/signup.mjs`, `emailoctopus-status.mjs` — and
+each has its own `submission-created.mjs` that also pushes phone alerts to
+ntfy. EmailOctopus runs there as a third channel alongside the alerts, not
+instead of them. **If you change anything under `_lib/`, change it in all
+three repos**; they are deliberately identical, and the only difference is the
+`EMAILOCTOPUS_BRAND` default, which is what tags a contact.
 
-**Check both folders are still needed before doing anything else in them.** If
-the repos and permissions now exist, moving the work out is the job, not adding
-to it.
+Environment variables do not carry between Netlify projects. All three sites
+need their own `EMAILOCTOPUS_API_KEY` and `EMAILOCTOPUS_LIST_ID` — the same
+values, the same list. The tag is what keeps the brands apart.
+
+`farmhouse-app-patches/` is a different situation. The GitHub App can read
+`farmhouse-app` but not write to it — both `git push` and creating a branch
+through the API return 403 — so two finished commits had nowhere to go. They
+are parked as a `git am` patch series, verified to apply cleanly to `main`.
+Grant the app write access to that repo and the folder can be applied and
+deleted.
 
 ## Known broken
 

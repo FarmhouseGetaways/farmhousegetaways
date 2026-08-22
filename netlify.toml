@@ -69,16 +69,6 @@
   status = 404
   force = true
 
-# The Mini Barn Market and Farmstand.TV sites are parked in brand-kits/ until
-# they have GitHub repos of their own. They are not part of this site and must
-# not be reachable on it. See brand-kits/README.md — the folder is meant to be
-# deleted, and this rule with it.
-[[redirects]]
-  from = "/brand-kits/*"
-  to = "/404.html"
-  status = 404
-  force = true
-
 # Two farmhouse-app commits parked here because that repo is read-only to the
 # GitHub App. Not part of this site. See farmhouse-app-patches/README.md.
 [[redirects]]
