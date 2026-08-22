@@ -86,20 +86,30 @@
 
          Five pieces per hand, in this order so each paints over the last:
          the wrap showing past the cuff, the mitt, the thumb, the lace panel
-         along the knuckles, and the cuff banding the wrist. The thumb is a
+         along the knuckles, and the cuff banding the wrist. The cuff and the
+         wrap are measured in glove radii, so when the mitt was made
+         head-sized they grew with it and the wrap came out as a cream banana
+         reaching past his elbow. They are short now: the cuff is a band, and
+         the wrap is the two pixels of it you would actually see. The thumb is a
          separate lobe rather than a bump in the ring — folded into the ring
          it smoothed away to a nub, and the thumb is half of what says
-         boxing glove and not mitten.                                   */
-      var ring = [[-0.66, 0.58], [-0.24, 1.00], [0.46, 1.04], [1.02, 0.80],
+         boxing glove and not mitten.
+
+         The mitt straddles the wrist rather than sitting in front of it.
+         Drawn forward of the joint — which is where a glove actually is —
+         the fur fist rig.js draws at `handF` poked out round the back of it
+         as a tan lump on his chest in every guard pose. The back of the ring
+         and the cuff between them now bury that fist completely.        */
+      var ring = [[-1.02, 0.56], [-0.24, 1.00], [0.46, 1.04], [1.02, 0.80],
                   [1.28, 0.14], [1.16, -0.56], [0.66, -1.02],
-                  [0.04, -1.12], [-0.46, -0.94], [-0.74, -0.30]];
+                  [0.04, -1.12], [-0.62, -0.92], [-1.06, -0.26]];
 
       function glove(layer, hand, elb, r, simple) {
         var o = frame(elb, hand);
 
         if (!simple) A.add(layer, function (cx) {
-          A.smooth(cx, [P(o, hand, -1.72 * r, 0.50 * r), P(o, hand, -1.10 * r, 0.60 * r),
-                        P(o, hand, -1.08 * r, -0.58 * r), P(o, hand, -1.68 * r, -0.48 * r)]);
+          A.smooth(cx, [P(o, hand, -1.62 * r, 0.42 * r), P(o, hand, -1.26 * r, 0.50 * r),
+                        P(o, hand, -1.24 * r, -0.48 * r), P(o, hand, -1.58 * r, -0.40 * r)]);
         }, WRAP, { edge: true });
 
         A.add(layer, function (cx) {
@@ -120,8 +130,8 @@
         }, LACE, { edge: true });
 
         A.add(layer, function (cx) {
-          A.smooth(cx, [P(o, hand, -1.22 * r, 0.74 * r), P(o, hand, -0.54 * r, 0.88 * r),
-                        P(o, hand, -0.48 * r, -0.86 * r), P(o, hand, -1.20 * r, -0.72 * r)]);
+          A.smooth(cx, [P(o, hand, -1.34 * r, 0.62 * r), P(o, hand, -0.66 * r, 0.90 * r),
+                        P(o, hand, -0.60 * r, -0.88 * r), P(o, hand, -1.32 * r, -0.60 * r)]);
         }, CUFF, { band: true, edge: true });
       }
 
@@ -137,13 +147,18 @@
          overlapped by the near one, which is all the depth cue this needs at
          ninety pixels tall, and the result is what the guard is for: TWO red
          masses stacked by his cheek rather than one and a rumour. */
-      var gr = f.headR * 0.88;
+      /* Sized off the skull on purpose: at 1.08 the mitt is fractionally
+         WIDER than his head, which is the whole brief and is also true of a
+         real 16oz glove next to a face. At 0.88 — the first go — the two
+         lobes merged into the skull in the silhouette test and he came out
+         a blob with boots on. */
+      var gr = f.headR * 1.08;
       /* The far mitt is drawn `simple` — no wrap showing, no lace panel.
          Both are cream, and stacked against the cream belly, the cream
          towel and the near mitt's own wrap they turned his whole chest into
          one pale smear. What the far hand needs to be is a red mass with a
          dark cuff, and nothing else. */
-      glove('front', j.handB, j.elbB, gr * 0.86, true);
+      glove('front', j.handB, j.elbB, gr * 0.84, true);
       glove('front', j.handF, j.elbF, gr);
 
       /* ================= THE BOOTS ==================================
@@ -272,8 +287,8 @@
       var tw = { x: nk.x - cw * 0.98, y: nk.y + cw * 0.26 };   /* clear of the back */
       A.add('back', function (cx) {
         slab(cx, tw.x, tw.y,
-             tw.x - cw * 0.40 + f.sway * 1.2, tw.y - cw * 1.85,
-             cw * 0.38, cw * 0.34, cw * 0.14);
+             tw.x - cw * 0.44 + f.sway * 1.3, tw.y - cw * 2.55,
+             cw * 0.36, cw * 0.31, cw * 0.13);
       }, TOWEL, { band: true, edge: true });
       /* the roll sitting on top of the shoulder, which is what makes the
          slab read as draped over him rather than hung on a hook behind */
