@@ -894,14 +894,54 @@ test('all six cats are the real ones, with the moves they were given', () => {
 });
 
 test('the twins look alike but are told apart at a glance', () => {
+  /* They share a coat on purpose, so everything else has to do the work.
+     This used to assert the mechanism — both long-haired, one with a white
+     sleeve — which is an implementation detail a redesign is allowed to
+     throw away. What must not change is the INTENT: same coat, opposite
+     builds, and two shapes you can tell apart with the colour turned off. */
   const m = CF.byId('mario'), l = CF.byId('luigi');
   assert.equal(m.palette.pattern, 'tuxedo');
   assert.equal(l.palette.pattern, 'tuxedo');
-  assert.ok(m.palette.longhair && l.palette.longhair, 'both twins are long-haired');
-  assert.ok(l.palette.sock, 'Luigi is the one with the white sleeve');
-  assert.ok(!m.palette.sock, 'Mario has no sleeve');
   assert.ok(m.build.girth > l.build.girth * 1.3, 'Mario should be visibly the bigger cat');
   assert.notEqual(m.weightClass, l.weightClass, 'and they should not play the same');
+  assert.notEqual(m.build.headShape, l.build.headShape, 'give them different skulls');
+  assert.notEqual(m.build.ear, l.build.ear, 'and different ears — it is the top of the outline');
+});
+
+test('no two cats are the same cat in a different colour', () => {
+  /* The complaint that started the art pass, as an assertion. A roster works
+     when you can name every fighter from the black shape alone, and a shape
+     is made of the skull, the ears, the bulk, the limb weight and whatever
+     the costume sticks out past the body. Two cats that agree on nearly all
+     of it are one cat twice however different their palettes are.
+
+     A costume drawn INSIDE the outline does not count, which is why `look`
+     is only worth a point here and the silhouette-bearing build fields carry
+     the rest. Look at `node tools/shot.mjs silhouette` before arguing with
+     a failure. */
+  const bucket = (v, step) => Math.round(v / step);
+  const marks = (c) => ({
+    skull: c.build.headShape,
+    ear: c.build.ear,
+    weight: c.weightClass,
+    girth: bucket(c.build.girth, 0.18),
+    limb: bucket(c.build.limb, 0.10),
+    limbW: bucket(c.build.limbW === undefined ? 1 : c.build.limbW, 0.14),
+    head: bucket(c.build.head === undefined ? 1 : c.build.head, 0.07),
+    dressed: !!c.look
+  });
+  const thin = [];
+  for (let i = 0; i < CF.ROSTER.length; i++) {
+    for (let k = i + 1; k < CF.ROSTER.length; k++) {
+      const a = marks(CF.ROSTER[i]), b = marks(CF.ROSTER[k]);
+      const differ = Object.keys(a).filter(f => a[f] !== b[f]);
+      if (differ.length < 3) {
+        thin.push(`${CF.ROSTER[i].id} vs ${CF.ROSTER[k].id}: only ${differ.length} of ` +
+                  `${Object.keys(a).length} silhouette marks differ (${differ.join(', ') || 'none'})`);
+      }
+    }
+  }
+  assert.equal(thin.length, 0, 'these read as the same cat:\n  ' + thin.join('\n  '));
 });
 
 test('Lilly is drawn as a seal point', () => {

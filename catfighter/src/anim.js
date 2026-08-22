@@ -30,14 +30,19 @@
      chin. Standing upright on straight legs is most of what made these read
      as dolls rather than fighters.                                        */
 
-  L.stand  = P({ py: 38.4, torso: 11, head: [4, 14.6, 2],
-                 legF: [31, -37], legB: [-27, 33],
+  /* The feet were 21 units apart on a figure ninety tall — a person standing
+     politely, not a fighter braced for a hit. They are 26 apart now and the
+     hips come down to match, because widening the legs without lowering the
+     pelvis lifts the feet clean off the floor (the pelvis height is authored;
+     the feet land wherever the leg angles put them). */
+  L.stand  = P({ py: 35.8, torso: 11, head: [4, 14.6, 2],
+                 legF: [40, -46], legB: [-36, 42],
                  armF: [62, 86], armB: [30, 118] });
-  L.standB = P({ py: 39.8, torso: 9, head: [4, 15.2, 0],
-                 legF: [28, -34], legB: [-24, 30],
+  L.standB = P({ py: 37.2, torso: 9, head: [4, 15.2, 0],
+                 legF: [37, -43], legB: [-33, 39],
                  armF: [54, 94], armB: [24, 112], tail: [244, -39.2, -41.6] });
-  L.standC = P({ py: 37.4, torso: 13, head: [4, 14.2, 4],
-                 legF: [34, -40], legB: [-30, 36],
+  L.standC = P({ py: 34.8, torso: 13, head: [4, 14.2, 4],
+                 legF: [43, -49], legB: [-39, 45],
                  armF: [70, 80], armB: [36, 122], tail: [236, -30.8, -22.4] });
 
   L.walkF1 = P({ py: 39, torso: 12, legF: [40, -40], legB: [-30, 32], armF: [40, 94], armB: [38, 104], tail: [246, -42, -28.8] });
@@ -71,9 +76,9 @@
                armF: [64, 70], armB: [44, 80], tail: [220, -11.2, 0] });
 
   /* ---- guard ------------------------------------------------------------ */
-  L.guardHigh = P({ py: 38, torso: -2, head: [1, 14.6, -4],
+  L.guardHigh = P({ py: 35.6, torso: -2, head: [1, 14.6, -4],
                     armF: [14, 134], armB: [6, 138],
-                    legF: [24, -28], legB: [-26, 30], tail: [218, -8.4, -6.4] });
+                    legF: [33, -37], legB: [-35, 39], tail: [218, -8.4, -6.4] });
   L.guardLow = P({ py: 24.2, torso: 10, head: [2, 13, -2],
                    armF: [24, 122], armB: [16, 126],
                    legF: [62, -118], legB: [-46, 104], tail: [212, -5.6, 3.2] });
