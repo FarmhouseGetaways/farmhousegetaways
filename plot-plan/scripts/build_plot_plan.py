@@ -2,7 +2,7 @@
 """Agricultural Operations & Small Agricultural Store Plot Plan
 17054 Handlebar Rd, Ramona, CA 92065 — APN 278-361-08-00.
 
-REV 7. 24"x18" sheet, engineer scale 1"=40'. Coordinates in feet, origin at the
+24"x18" sheet, engineer scale 1"=40'. Coordinates in feet, origin at the
 SW corner of the parcel bounding box, north up. Zone polygons were extracted with
 origin at NW (y measured down from the north PL) and are already flipped in the
 JSON, so y is measured north-up from the south bbox edge. Do not flip again.
@@ -71,7 +71,13 @@ from matplotlib.patches import Polygon as MPoly, Rectangle, Circle, Ellipse
 
 SCALE = 40.0            # ft per inch
 SHEET_W, SHEET_H = 24.0, 18.0
-DATE = "8/21/2026"
+# REV RULE (owner, 8/22/2026): every PDF handed to the owner gets a NEW rev
+# number — bump REV (and DATE) here before delivering. The filename, the title
+# block, and the rev history row all follow this constant automatically, and
+# verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
+# the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
+REV  = 17
+DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
 # Areas are COMPUTED from the geometry below, not typed in, so the tables and
@@ -827,19 +833,18 @@ tline(tb_h*0.685, "17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, True, x=0.03)
 tline(tb_h*0.590, "APN 278-361-08-00  ·  ZONE A70", 6.6, x=0.03)
 tline(tb_h*0.395, "SCALE: 1\" = 40'", 7.2, True, x=0.03)
 tline(tb_h*0.295, f"DATE: {DATE}", 7.2, x=0.03)
-tline(tb_h*0.190, "SHEET 1 OF 1", 7.2, True, x=0.03)
+tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
-tline(tb_h*0.320, "4    8/06/2026  BASE SHEET", 5.4, x=0.62)
-tline(tb_h*0.245, "5    8/06/2026  SETBACK LINES ADDED", 5.4, x=0.62)
-tline(tb_h*0.185, "6    8/19/2026  FARM STORE ADDED", 5.4, x=0.62)
-tline(tb_h*0.115, "7    8/21/2026  OWNER CORRECTIONS; STORE =", 5.4, x=0.62)
-tline(tb_h*0.050, "                NEW 12'x10' MINI BARN MARKET", 5.4, x=0.62)
+tline(tb_h*0.320, "4-6  8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
+tline(tb_h*0.245, "7-16 8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
+tline(tb_h*0.170, f"{REV}   {DATE}  NO ROAD; DRIVEWAY EXITS", 5.4, x=0.62)
+tline(tb_h*0.095, "                SE BETWEEN AG-9 AND AG-12", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
 _out = os.path.join(_here, '..', 'output')
 os.makedirs(_out, exist_ok=True)
-out_pdf = os.path.join(_out, 'Ag_Plot_Plan_17054_Handlebar_rev7.pdf')
+out_pdf = os.path.join(_out, f'Ag_Plot_Plan_17054_Handlebar_rev{REV}.pdf')
 fig.savefig(out_pdf, format='pdf')
 fig.savefig(os.path.join(_out, 'preview.png'), dpi=72)
 print("saved", os.path.normpath(out_pdf))

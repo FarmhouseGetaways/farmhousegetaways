@@ -31,7 +31,8 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev7.pdf`
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev17.pdf` (always the
+  highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
   was scaled and the plans will not check out.
@@ -163,7 +164,7 @@ store building, with the SD-B/SD-G/SD-H baseline measures).
 
 ```bash
 cd plot-plan
-python3 scripts/build_plot_plan.py     # -> output/Ag_Plot_Plan_17054_Handlebar_rev7.pdf
+python3 scripts/build_plot_plan.py     # -> output/Ag_Plot_Plan_17054_Handlebar_rev<N>.pdf
 python3 scripts/make_overlay.py        # -> output/Verification_Overlay_v4.png
 python3 scripts/verify_sheet.py        # print-fidelity check — run before printing
 ```

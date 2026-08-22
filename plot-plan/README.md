@@ -43,7 +43,8 @@ sales), and the big barn is storage, 50'×44' = 2,200 SF.
 
 ```bash
 pip install matplotlib numpy shapely pymupdf pillow
-python3 scripts/build_plot_plan.py   # -> output/Ag_Plot_Plan_17054_Handlebar_rev7.pdf (24x18, 1"=40')
+python3 scripts/build_plot_plan.py   # -> output/Ag_Plot_Plan_17054_Handlebar_rev<N>.pdf (24x18, 1"=40')
+                                     #    bump REV in the script before every delivery
 python3 scripts/make_overlay.py      # -> output/Verification_Overlay_v4.png
 python3 scripts/verify_sheet.py      # print-fidelity check — run before printing
 ```

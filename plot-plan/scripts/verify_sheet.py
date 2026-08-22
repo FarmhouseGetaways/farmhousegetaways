@@ -7,7 +7,7 @@ any change to build_plot_plan.py, and before printing.
 
     python3 scripts/verify_sheet.py
 """
-import os, sys
+import os, re, sys, glob
 import pymupdf
 
 SCALE = 40.0                      # ft per inch
@@ -15,8 +15,15 @@ SHEET_W, SHEET_H = 24.0, 18.0     # in
 PARCEL_W, PARCEL_H = 583.1, 294.1 # ft, parcel bounding box
 BAR_FT = 120.0                    # graphic scale bar span
 
+# Check the HIGHEST-numbered rev in output/ — the rev increments on every
+# delivery (owner rule, 8/22/2026), so the filename moves with it.
 _here = os.path.dirname(os.path.abspath(__file__))
-PDF = os.path.join(_here, '..', 'output', 'Ag_Plot_Plan_17054_Handlebar_rev7.pdf')
+_revs = {int(re.search(r'_rev(\d+)\.pdf$', p).group(1)): p
+         for p in glob.glob(os.path.join(_here, '..', 'output',
+                                         'Ag_Plot_Plan_17054_Handlebar_rev*.pdf'))}
+if not _revs:
+    sys.exit("no Ag_Plot_Plan_17054_Handlebar_rev*.pdf in output/ — build first")
+PDF = _revs[max(_revs)]
 
 fails = []
 def check(label, ok, detail):

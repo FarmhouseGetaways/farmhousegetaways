@@ -16,7 +16,14 @@ Quality (DEHQ). **Both are now on one sheet** — rev 6 documents the agricultur
 operations and the proposed store together, which is what qualifies the parcel
 under ZO §6157. See §16.
 
-**Current status: plot plan REV 7 generated — the submittal sheet. The Small
+**REV RULE (owner, 8/22/2026): every PDF delivered to the owner gets a NEW rev
+number.** Bump `REV` (and `DATE`) at the top of `scripts/build_plot_plan.py`
+before rebuilding for delivery — the filename, title block, and rev-history row
+follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
+The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
+is why the numbering jumps 7 → 17.
+
+**Current status: plot plan REV 17 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just west of the 10'×10' storage building at the NW (owner,
 8/21/2026 second round). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -541,7 +548,7 @@ scripts/make_overlay.py       verification overlay on the aerial
 scripts/verify_sheet.py       print-fidelity check — run before printing
 reference/                    county forms and the assessor's map
 source/                       owner aerial + well/septic markup
-output/                       rev5-rev7 PDFs, overlays v2-v4
+output/                       plot plan PDFs (highest rev = current), overlays
 ```
 
 
