@@ -38,13 +38,15 @@ const SCENES = {
 cats: (a) => `
   const SC = ${Number(a[0]) || 1.9};
   const POSES = ['stand','walkF2','fierce','sweep','jumpKick','guardHigh'];
-  const CW = Math.round(112*SC/1.9), CH = Math.round(160*SC/1.9);
+  /* Tall enough for the whole cat. The first version cropped every head off
+     at the top, which is a bad way to judge a silhouette. */
+  const CW = Math.round(120*SC/1.9), CH = Math.round(215*SC/1.9);
   size(CW*POSES.length, CH*CF.ROSTER.length);
   bg('#7c7c86');
   CF.ROSTER.forEach((chr,row)=>POSES.forEach((pn,col)=>{
     const j = CF.Rig.solve(CF.Pose[pn]||CF.Pose.stand, SC, chr.build);
     clipCell(col*CW,row*CH,CW,CH, ()=>{
-      ctx.translate(col*CW+CW/2, row*CH+CH-Math.round(18*SC/1.9));
+      ctx.translate(col*CW+CW/2, row*CH+CH-Math.round(26*SC/1.9));
       ctx.scale(1,-1);
       CF.Rig.drawCat(ctx,j,chr.palette,{eyes:'angry'});
     });
@@ -54,13 +56,13 @@ cats: (a) => `
 
 cat: (a) => `
   const ID='${a[0]||'gracie'}', POSES=${JSON.stringify((a[1]||'stand,fierce,sweep,jumpKick').split(','))}, SC=${Number(a[2])||3.0};
-  const CW=Math.round(96*SC), CH=Math.round(140*SC);
+  const CW=Math.round(105*SC), CH=Math.round(165*SC);
   size(CW*POSES.length, CH); bg('#7c7c86');
   const chr=CF.byId(ID);
   POSES.forEach((pn,col)=>{
     const j=CF.Rig.solve(CF.Pose[pn]||CF.Pose.stand, SC, chr.build);
     clipCell(col*CW,0,CW,CH, ()=>{
-      ctx.translate(col*CW+CW/2, CH-Math.round(14*SC));
+      ctx.translate(col*CW+CW/2, CH-Math.round(20*SC));
       ctx.scale(1,-1);
       CF.Rig.drawCat(ctx,j,chr.palette,{eyes:'angry'});
     });
@@ -90,12 +92,12 @@ strip: (a) => `
   if(!m) throw new Error('no move '+MV+' on '+ID+' — have: '+Object.keys(chr.moves).join(' '));
   const total=m.startup+m.active+m.recovery;
   const cels=[]; for(let f=0;f<total;f++){const c=CF.Anim.celFrame(m.anim,f); if(!cels.length||cels[cels.length-1]!==c) cels.push(c);}
-  const SC=2.4, CW=Math.round(92*SC), CH=Math.round(126*SC);
+  const SC=2.4, CW=Math.round(100*SC), CH=Math.round(160*SC);
   size(CW*cels.length, CH); bg('#7c7c86');
   cels.forEach((f,i)=>{
     const j=CF.Rig.solve(CF.Anim.sample(m.anim,f,m), SC, chr.build);
     clipCell(i*CW,0,CW,CH, ()=>{
-      ctx.translate(i*CW+CW/2, CH-Math.round(14*SC)); ctx.scale(1,-1);
+      ctx.translate(i*CW+CW/2, CH-Math.round(20*SC)); ctx.scale(1,-1);
       CF.Rig.drawCat(ctx,j,chr.palette,{eyes:'angry'});
     });
     const active = f>=m.startup && f<m.startup+m.active;
