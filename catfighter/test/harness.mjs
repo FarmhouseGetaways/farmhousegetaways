@@ -8,12 +8,12 @@ import { dirname, join } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 
-/* Everything except main.js, which needs a real document. */
-export const FILES = [
-  'util.js', 'input.js', 'rig.js', 'anim.js', 'moves.js',
-  'characters.js', 'audio.js', 'stagekit.js', 'stages.js', 'fighter.js', 'ai.js',
-  'hud.js', 'card.js', 'game.js'
-];
+/* Everything except main.js, which needs a real document. The list comes from
+   index.html itself, so a new cat or stage file cannot be forgotten here. */
+export const FILES = [...readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'index.html'), 'utf8')
+  .matchAll(/<script src="src\/([^"]+)"><\/script>/g)]
+  .map(m => m[1])
+  .filter(f => f !== 'main.js');
 
 export function loadGame() {
   const listeners = {};

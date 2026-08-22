@@ -65,7 +65,7 @@ cat turns around.
 Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.  
 Let them come to you.
 
-**Health** 1050 · **Stun** 116 · **Walk** 1.3 forward, 1.22 back · **Jump** 9.2 · **Weight** 1.1
+**Health** 700 · **Stun** 116 · **Walk** 1.3 forward, 1.22 back · **Jump** 9.2 · **Weight** 1.1
 
 ### Specials
 
@@ -116,7 +116,7 @@ Let them come to you.
 
 Enormous, and entirely aware of it. Getting to you takes a while. Being under him does not take long at all.
 
-**Health** 1200 · **Stun** 138 · **Walk** 1.02 forward, 0.86 back · **Jump** 8.8 · **Weight** 1.48
+**Health** 800 · **Stun** 138 · **Walk** 1.02 forward, 0.86 back · **Jump** 8.8 · **Weight** 1.48
 
 ### Specials
 
@@ -167,7 +167,7 @@ Enormous, and entirely aware of it. Getting to you takes a while. Being under hi
 
 Same coat, half the cat. Comes in over the top or takes your legs — and you have to guess which.
 
-**Health** 900 · **Stun** 92 · **Walk** 1.86 forward, 1.62 back · **Jump** 10.2 · **Weight** 0.88 · has a dash
+**Health** 600 · **Stun** 92 · **Walk** 1.86 forward, 1.62 back · **Jump** 10.2 · **Weight** 0.88 · has a dash
 
 ### Specials
 
@@ -218,7 +218,7 @@ Same coat, half the cat. Comes in over the top or takes your legs — and you ha
 
 Seal point, blue eyes, and never on the floor for long. Hits like a rumour, but she is already behind you.
 
-**Health** 850 · **Stun** 86 · **Walk** 2.02 forward, 1.78 back · **Jump** 10.6 · **Weight** 0.78 · has a dash · has an air dash
+**Health** 570 · **Stun** 86 · **Walk** 2.02 forward, 1.78 back · **Jump** 10.6 · **Weight** 0.78 · has a dash · has an air dash
 
 ### Specials
 
@@ -269,7 +269,7 @@ Seal point, blue eyes, and never on the floor for long. Hits like a rumour, but 
 
 Stands up on his back legs and throws hands until you stop enjoying it, then he is somewhere else entirely.
 
-**Health** 1000 · **Stun** 106 · **Walk** 1.64 forward, 1.44 back · **Jump** 9.6 · **Weight** 1.02 · has a dash
+**Health** 670 · **Stun** 106 · **Walk** 1.64 forward, 1.44 back · **Jump** 9.6 · **Weight** 1.02 · has a dash
 
 ### Specials
 
@@ -320,7 +320,7 @@ Stands up on his back legs and throws hands until you stop enjoying it, then he 
 
 Rubidoux when she is in trouble. Hold down and wait, and anything that jumps at her gets flipped out of the sky.
 
-**Health** 1120 · **Stun** 128 · **Walk** 1.22 forward, 1.04 back · **Jump** 9 · **Weight** 1.3
+**Health** 750 · **Stun** 128 · **Walk** 1.22 forward, 1.04 back · **Jump** 9 · **Weight** 1.3
 
 ### Specials
 
