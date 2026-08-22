@@ -45,7 +45,13 @@ row.
 single set, so a locked phone, a dropped call, a closed tab or a flat battery
 costs nothing: reopening the app offers to carry on where she left off.
 
-**Editing.** Signed in, the pencil in the top bar turns the page into the
+**Reminders.** A push notification on the morning of a day that has a workout
+in it — never on a rest day, never once it is already done, and once a day
+rather than once an hour. If now is not the moment, the *Later today* button
+opens a scrolling hour picker: choose five, and at five it comes back and says
+it is time. See below.
+
+**Editing, in admin mode.** The pencil in the top bar turns the page into the
 editor — click a title, a name, the notes, and type. Pictures and clips go on
 by pressing the square beside an exercise. See below.
 
@@ -66,10 +72,25 @@ the app says so on screen.
 
 ## Editing the week — click the thing and type
 
-Sign in (**Settings → Sign in**, `WORKOUT_PASSWORD`) and a pencil appears in
-the top bar. Press it and the page you are already looking at becomes the
-editor. Nothing moves; the things you can change simply grow a dotted
-underline.
+**Signing in is not enough, on purpose.** Signing in is Carissa's — it is what
+syncs her record between the phone and the iPad. Editing the week is not hers,
+and it should not be one mis-tap away while she is halfway through a set.
+
+So the editor is behind a second, deliberate gesture, the same one the
+farmhouse app uses for its own admin screen: **press and hold the title at the
+top of any screen for three quarters of a second.** There is no button,
+because a button is something you press by accident. On a laptop, `/#/admin`
+does the same. Either way it asks for `WORKOUT_PASSWORD` if you are not already
+signed in.
+
+It is held for the session only: closing the app locks the editor again, and
+**Settings → Lock the editor** does it on the spot. Nobody wants to hand over
+their phone with the week one tap from being rewritten.
+
+Once unlocked, a pencil appears in the top bar. Press it and the page you are
+already looking at becomes the editor. Nothing moves; the things you can change
+simply grow a dotted underline. It works the same with a mouse as with a
+finger, so the week can be written at a desk or on a phone.
 
 - **On the week board** — the seven day names are typeable where they sit.
 - **Inside a day** — the title, the description, the estimated time, and for
@@ -88,32 +109,92 @@ The arrow beside it throws the draft away.
 Saving writes to the store and is live on every device on their next load. No
 committing, no deploy.
 
-## Pictures and videos
+## Pictures and videos — two different things
 
-Press the square beside an exercise. Two ways to fill it:
+Press the square beside an exercise and the sheet has two halves, because they
+do two different jobs.
+
+**The picture** is what it looks like: the thumbnail in the day list, and what
+the stage shows before anything plays. It is there the moment the screen
+paints.
+
+**The video** is what plays when she starts that exercise.
+
+They are independent. An exercise can have a picture and no video, which is
+often all a familiar movement needs. It can have a video and no picture. Or it
+can have both, which is the best of it — the picture is the video's poster, so
+the stage shows the movement rather than a black rectangle while it loads.
+
+**A day has a picture too**, and no video: a workout is not a movement. Press
+the square beside the title in the editor. It shows on the week board, at the
+top of the day, and on today's card.
+
+Two ways to fill any of these:
 
 **Paste a link.** YouTube, Vimeo or a Google Drive share link. The hint under
 the box says what it recognised before you commit to it, and an unrecognised
 link is offered as a plain link rather than pretending to be a player.
 
-**Take one from the phone.** *Choose a picture or clip* opens the camera roll.
-A picture is shrunk in the browser first — a five-megabyte phone photo lands
-at two or three hundred kilobytes and looks identical at the size this shows
-it — then uploaded and attached. A clip is sent as it is.
-
-Videos cannot be shrunk in a browser, so a clip has to be **under 4 MB**: that
-is as much as a single request can carry. Anything longer belongs on YouTube
-as an unlisted video, with the link pasted in — the app plays it just the
-same, and the message says so rather than just refusing.
-
-An exercise can have both. The picture is then the poster behind the video, so
-the stage shows the movement instead of a black rectangle while it loads. With
-only a picture, that is what the player shows — which is often all a familiar
-movement needs.
+**Take one from the phone.** A picture is shrunk in the browser first — a
+five-megabyte phone photo lands at two or three hundred kilobytes and looks
+identical at the size this shows it — then uploaded and attached. A clip is
+sent as it is, so it has to be **under 4 MB**: that is as much as a single
+request can carry. Anything longer belongs on YouTube as an unlisted video,
+with the link pasted in — the app plays it just the same, and the message says
+so rather than just refusing. Whatever the file turns out to be, it lands in
+the right slot: a phone hands back a `.mov` from the photo picker either way,
+and a video quietly filed as a picture would be baffling.
 
 Uploads are content-addressed: the file's name is a hash of its own bytes, so
 the same picture twice costs nothing extra and a URL can never mean something
 different tomorrow. They are served from `/media/<hash>` and cached for a year.
+
+## Reminders
+
+A push notification, which means it arrives whether or not the app is open —
+on a phone face down on a kitchen counter.
+
+**When.** Choose an hour by scrolling a column; whatever is in the middle is
+the answer. Nobody types "17" when they mean five in the afternoon.
+
+**Whether.** The decision is made fresh every hour, per device, and it is
+mostly *no*:
+
+| | |
+|---|---|
+| Nothing scheduled today | Say nothing. A rest day is part of the plan. |
+| Already done today | Say nothing. She knows. |
+| Already said today | Say nothing more — unless a snooze is due. |
+
+That restraint is the whole design. A reminder that arrives on a rest day, or
+an hour after the workout was finished, teaches somebody to ignore reminders —
+and once they are ignored they are worse than nothing, because they are still
+interrupting.
+
+**Later today.** The notification carries two buttons: *Start it*, which opens
+the workout, and *Later today*, which opens the hour picker. Choose five and it
+comes back once, at five, saying it is time. A snooze only counts on the day it
+was set — one slept through is not a reason to be woken tomorrow.
+
+**Time zones.** The hour is a *local* hour and the zone is stored beside it as
+an IANA name. Storing an offset instead would be a bug twice a year: an eight
+o'clock reminder would become seven, or nine, the morning the clocks moved. A
+fixed offset is refused even though `Intl` accepts it, for exactly that reason.
+
+**Setting it up.** Two more environment variables, from
+`npx web-push generate-vapid-keys`:
+
+    VAPID_PUBLIC   = the public key
+    VAPID_PRIVATE  = the private key
+
+Then redeploy. Without them everything else works exactly as before and the
+reminders screen says it is not switched on. `reminder-tick` then runs hourly
+on Netlify's own schedule; **Send a test nudge** on the reminders screen (admin
+only) runs the same sweep on the spot and prints what it did, so the chain can
+be proved in a minute rather than in an hour.
+
+On an iPhone, push only works once the app is on the home screen. The app says
+so rather than failing silently.
 
 ## Where things are stored, and who can read what
 
@@ -165,6 +246,11 @@ repository root:
    signing key is derived from the password, which means changing the password
    signs every device out — usually what you want anyway.
 
+   For push reminders, two more from `npx web-push generate-vapid-keys`:
+
+       VAPID_PUBLIC   = the public key
+       VAPID_PRIVATE  = the private key
+
 6. Deploy. Then *Domain management* if it should have a name of its own.
 
 Netlify installs `package.json` so the functions can import `@netlify/blobs`;
@@ -191,6 +277,7 @@ again.
     js/catalog.js             effort levels, the calorie maths, video links, formatting
     js/store.js               the week and the record: load, save, sync, the numbers
     js/media.js               shrinking a picture and sending it
+    js/push.js                asking to be reminded, and what to do if it cannot
     js/app.js                 the screens, the editor, and the one click handler
     data/plan.json            the committed week — the floor under the live one
     icons/                    app icons, generated from icons/favicon.svg
@@ -203,6 +290,11 @@ again.
     netlify/functions/plan.mjs       the week: public to read, password to write
     netlify/functions/history.mjs    the record: password to read and to write
     netlify/functions/media.mjs      pictures and clips: public to read, password to add
+    netlify/functions/reminders.mjs  which device wants nudging, and when
+    netlify/functions/reminder-tick.mjs  the hourly sweep, run by Netlify itself
+    netlify/functions/_lib/remind.mjs    whether a nudge is owed — pure, and tested
+    netlify/functions/_lib/push.mjs      sending one, and pruning dead devices
+    netlify/functions/_lib/tick.mjs      the sweep itself, so it can also be run on demand
     netlify/functions/_lib/auth.mjs  the password, the cookie, the stores
     netlify/functions/_lib/data.mjs  the shape of the data and every clamp
 

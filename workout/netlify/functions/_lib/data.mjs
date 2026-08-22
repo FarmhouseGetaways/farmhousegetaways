@@ -125,6 +125,10 @@ function normaliseDay(raw, key) {
     day: key,
     title: text(src.title, MAX.title),
     description: block(src.description, MAX.description),
+    // A picture for the workout itself — what it looks like, or simply
+    // something to recognise it by on the week board. Nothing to do with the
+    // videos inside it.
+    image: safeUrl(src.image),
     // Nought means "no estimate given", which the app shows as the sum of the
     // exercises instead of an empty space.
     minutes: clampNum(src.minutes, 0, MAX.minutes, 0),
@@ -236,6 +240,52 @@ export function normaliseSettings(raw) {
     // default: she is standing in a gym for that minute, not sitting down.
     countRest: src.countRest !== false,
   };
+}
+
+/* --------------------------------------------------------------------------
+   Reminders
+
+   Stored per device rather than per person, because that is what a push
+   subscription is: this phone, this browser. Two phones can want different
+   times and neither is wrong.
+
+   The hour is a LOCAL hour and the zone is stored beside it. Storing an
+   offset instead would be a bug twice a year — an eight o'clock reminder
+   would become seven, or nine, the morning the clocks moved.
+   -------------------------------------------------------------------------- */
+export function normaliseReminder(raw) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  return {
+    enabled: src.enabled !== false,
+    hour: clampNum(src.hour, 0, 23, 8),
+    tz: timezone(src.tz),
+    // A one-off "not now, later today". An epoch in milliseconds, or nought.
+    // It is cleared the moment it fires, and ignored once the day has turned.
+    snoozeUntil: clampNum(src.snoozeUntil, 0, 4102444800000, 0),
+    // The last local date a daily reminder went out, so a phone is nudged once
+    // a day and not once an hour.
+    lastSentDate: /^\d{4}-\d{2}-\d{2}$/.test(String(src.lastSentDate || "")) ? src.lastSentDate : "",
+  };
+}
+
+/**
+ * An IANA zone name, or nothing.
+ *
+ * Asking Intl whether it accepts the string is NOT enough on its own: it also
+ * accepts fixed offsets like "-08:00", and a fixed offset is precisely the
+ * thing this is here to keep out. Store one and an eight o'clock reminder
+ * becomes seven or nine the morning the clocks move. So the shape is checked
+ * first — a region and a place, or plain UTC — and only then handed to Intl to
+ * confirm it is a zone it actually knows.
+ */
+export function timezone(value) {
+  const name = text(value, 64);
+  if (!name) return "";
+  if (name !== "UTC" && !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$/.test(name)) return "";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: name });
+    return name;
+  } catch { return ""; }
 }
 
 export function normaliseHistory(raw) {

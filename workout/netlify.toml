@@ -15,6 +15,15 @@
 #                         the record. Without it nobody can write and the
 #                         record cannot be read — it fails closed.
 #
+#   For push reminders, two more (npx web-push generate-vapid-keys):
+#     VAPID_PUBLIC      = the public key
+#     VAPID_PRIVATE     = the private key
+#
+#   Without those the app works exactly as before and simply says reminders
+#   are not switched on. reminder-tick runs hourly on Netlify's own schedule
+#   and decides, per device and in that device's own time zone, whether a
+#   reminder is owed.
+#
 # A deploy must happen AFTER setting the password: environment variables are
 # read when the functions are built, so a site deployed before the variable
 # existed stays read-only until it is redeployed.
@@ -50,6 +59,11 @@
 [[redirects]]
   from = "/api/history"
   to = "/.netlify/functions/history"
+  status = 200
+
+[[redirects]]
+  from = "/api/reminders"
+  to = "/.netlify/functions/reminders"
   status = 200
 
 [[redirects]]

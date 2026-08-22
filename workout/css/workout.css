@@ -524,3 +524,78 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .media-now__note { padding: 2rem 1rem; font-size: .9rem; }
 
 .stage__still { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+/* ==========================================================================
+   The hour picker
+
+   Scrolled, not typed. Nobody types "17" when they mean five in the
+   afternoon, and a numeric keyboard for a number between 0 and 23 is a bad
+   joke on a phone. Whatever is in the middle of the window is the answer, and
+   the middle is marked so there is no guessing which one that is.
+   ========================================================================== */
+
+.hours {
+  height: 156px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--card);
+  position: relative;
+  /* Half the window above and below, so the first and last hour can still
+     reach the middle. */
+  padding: 54px 0;
+  scrollbar-width: none;
+}
+.hours::-webkit-scrollbar { display: none; }
+.hours:focus-visible { border-color: var(--blush); }
+
+.hour {
+  display: block; width: 100%;
+  scroll-snap-align: center;
+  background: none; border: 0; cursor: pointer;
+  padding: .35rem 0; height: 48px;
+  font-family: var(--display); font-size: 1.5rem; line-height: 1.2;
+  color: var(--dimmer);
+  transition: color .15s ease, transform .15s ease;
+}
+.hour__ampm { font-family: var(--sans); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; margin-left: .25rem; }
+.hour.is-on { color: var(--blush); transform: scale(1.12); }
+
+/* The band across the middle that says "this one". Drawn over the column, so
+   it does not move with the scroll. */
+.hours-wrap { position: relative; }
+.hours::before, .hours::after {
+  content: ""; position: sticky; left: 0; right: 0; display: block;
+  height: 1px; background: var(--line-2); z-index: 1;
+}
+.hours::before { top: 53px; }
+.hours::after { bottom: 53px; }
+
+.report {
+  margin-top: .9rem; padding: .8rem;
+  background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-s);
+  font-family: var(--mono); font-size: .72rem; line-height: 1.5;
+  color: var(--dim); white-space: pre-wrap; overflow-x: auto;
+}
+
+/* ---------- pictures of the workout itself ---------- */
+
+.day-hero {
+  width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  margin-bottom: 1.25rem;
+}
+.day-hero-edit { display: grid; grid-template-columns: auto 1fr; gap: .9rem; align-items: start; }
+.day__shot {
+  width: 100%; height: 74px; object-fit: cover;
+  border-radius: 8px; margin: .45rem 0 .1rem;
+}
+.today__shot {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius-s); margin: .9rem 0 .25rem;
+}
+
+.media-now--small { min-height: 90px; }
+.media-now--small img, .media-now--small video { max-height: 30vh; }

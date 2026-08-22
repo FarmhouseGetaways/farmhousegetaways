@@ -2,8 +2,9 @@
   "name": "carissa-workouts",
   "private": true,
   "type": "module",
-  "description": "Carissa's workout tracker — a static app with three functions behind it.",
+  "description": "Carissa's workout tracker \u2014 a static app with three functions behind it.",
   "dependencies": {
-    "@netlify/blobs": "^8.1.0"
+    "@netlify/blobs": "^8.1.0",
+    "web-push": "^3.6.7"
   }
 }

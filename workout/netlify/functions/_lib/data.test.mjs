@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import {
   DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
+  normaliseReminder, timezone,
 } from "./data.mjs";
 
 /* ---------- the week ---------- */
@@ -111,6 +112,47 @@ test("a hostile image URL is dropped like a hostile video one", () => {
 test("an uploaded media path survives", () => {
   assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.jpg"), "/media/0123456789abcdef0123456789abcdef.jpg");
   assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.mp4"), "/media/0123456789abcdef0123456789abcdef.mp4");
+});
+
+test("a day carries a picture of its own, separate from any exercise", () => {
+  const d = normalisePlan({
+    days: [{ day: "mon", title: "Push", image: "/media/abc.jpg",
+             exercises: [{ name: "Push-ups", image: "/media/def.jpg", video: "https://youtu.be/x" }] }],
+  }).days[0];
+  assert.equal(d.image, "/media/abc.jpg");
+  assert.equal(d.exercises[0].image, "/media/def.jpg");
+  assert.equal(d.exercises[0].video, "https://youtu.be/x");
+});
+
+/* ---------- reminders ---------- */
+
+test("a reminder hour is clamped to a real hour", () => {
+  assert.equal(normaliseReminder({ hour: -3 }).hour, 0);
+  assert.equal(normaliseReminder({ hour: 24 }).hour, 23);
+  assert.equal(normaliseReminder({ hour: 17 }).hour, 17);
+  assert.equal(normaliseReminder({}).hour, 8);
+  assert.equal(normaliseReminder({ hour: "nine" }).hour, 8);
+});
+
+test("a reminder is on unless it says otherwise", () => {
+  assert.equal(normaliseReminder({}).enabled, true);
+  assert.equal(normaliseReminder({ enabled: false }).enabled, false);
+});
+
+test("only a real time zone is kept — an offset would break twice a year", () => {
+  assert.equal(timezone("America/Los_Angeles"), "America/Los_Angeles");
+  assert.equal(timezone("Not/AZone"), "");
+  assert.equal(timezone("-08:00"), "");      // Intl accepts this; we must not
+  assert.equal(timezone("+05:30"), "");
+  assert.equal(timezone("UTC"), "UTC");
+  assert.equal(timezone("Europe/London"), "Europe/London");
+  assert.equal(timezone(""), "");
+  assert.equal(normaliseReminder({ tz: "America/Los_Angeles" }).tz, "America/Los_Angeles");
+});
+
+test("a malformed last-sent date is dropped rather than trusted", () => {
+  assert.equal(normaliseReminder({ lastSentDate: "2026-08-21" }).lastSentDate, "2026-08-21");
+  assert.equal(normaliseReminder({ lastSentDate: "yesterday" }).lastSentDate, "");
 });
 
 /* ---------- history ---------- */

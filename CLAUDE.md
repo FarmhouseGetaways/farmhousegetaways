@@ -619,8 +619,30 @@ makes Netlify read `workout/netlify.toml` instead of the root one — exactly ho
 forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
 farmhouse domain by accident. **Do not "fix" that 404.**
 
-**Editing is in place, not a form.** Signed in, the pencil in the top bar turns
-the page into the editor — the same rule `/edit.html` follows on the website.
+**The editor is admin-only, behind a long press.** Signing in is Carissa's —
+it syncs her record. Editing the week is not, so the pencil does not appear
+just because somebody is signed in: **press and hold the title for 750ms**,
+the same gesture the farmhouse app uses for its own admin screen, or open
+`/#/admin` on a laptop. It is held in `sessionStorage`, so closing the app
+locks it again. Do not "fix" this by showing the pencil to anyone signed in.
+
+**Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
+runs hourly on Netlify's schedule and decides per device, in that device's own
+zone: nothing scheduled today, already done today, or already said today all
+mean silence. A snooze is the one thing allowed to speak twice, and only on the
+day it was set. The hour is a LOCAL hour with an IANA zone beside it — a fixed
+offset is refused even though `Intl` accepts it, because it would be wrong
+twice a year. All of that is pure and tested in `_lib/remind.test.mjs`; it
+needs `VAPID_PUBLIC` and `VAPID_PRIVATE`, and without them the app is exactly
+as it was and says reminders are off.
+
+**A picture and a video are different things.** An exercise has both fields and
+they are independent: the picture is the thumbnail and the video's poster, the
+video is what plays when she starts. A day has a picture and no video. Do not
+collapse them back into one field.
+
+**Editing is in place, not a form.** Once unlocked, the pencil turns the page
+into the editor — the same rule `/edit.html` follows on the website.
 Titles, exercise names, reps and notes are `contenteditable` written straight
 into one draft of the whole week; a picture or a clip goes on by pressing the
 square beside an exercise. There is no separate editor screen, and `#/edit/mon`

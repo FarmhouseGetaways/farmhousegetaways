@@ -31,6 +31,7 @@
 
 import * as store from "./store.js";
 import { upload, previewUrl } from "./media.js";
+import * as push from "./push.js";
 import {
   EFFORTS, effortLabel, sessionCalories, videoSource,
   clock, duration, plural, niceDate, todayKey, dayKeyOf,
@@ -72,6 +73,66 @@ function estimateMinutes(day) {
   const seconds = day.exercises.reduce(
     (n, ex) => n + ex.sets * (45 + (ex.rest || 0)), 0);
   return Math.round(seconds / 60);
+}
+
+/* ==========================================================================
+   Admin
+
+   Signing in is Carissa's — it is what syncs her record between the phone and
+   the iPad. Editing the week is not hers, and it should not be one mis-tap
+   away while she is halfway through a set.
+
+   So the editor is behind a second, deliberate gesture, the same one the
+   farmhouse app uses for its own admin screen: PRESS AND HOLD THE TITLE at
+   the top of any screen for three quarters of a second. There is no button,
+   because a button is something you press by accident. /#/admin does the same
+   thing for a laptop.
+
+   It is held in sessionStorage rather than localStorage on purpose: closing
+   the app locks the editor again. Nobody wants to hand over their phone with
+   the week one tap from being rewritten.
+   ========================================================================== */
+
+const ADMIN_KEY = "fg-workout-admin";
+
+const adminOn = () => {
+  try { return sessionStorage.getItem(ADMIN_KEY) === "1" && store.get().signedIn; }
+  catch { return false; }
+};
+const setAdmin = (on) => {
+  try { on ? sessionStorage.setItem(ADMIN_KEY, "1") : sessionStorage.removeItem(ADMIN_KEY); }
+  catch { /* a browser that refuses storage simply relocks on the next screen */ }
+};
+
+/** The long press. Works with a finger and with a mouse, so a laptop can too. */
+function armAdminGesture() {
+  const title = $("#title");
+  let timer = null;
+  const start = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(30);
+      unlockAdmin();
+    }, 750);
+  };
+  const cancel = () => clearTimeout(timer);
+
+  title.addEventListener("pointerdown", start);
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "pointermove"]) {
+    title.addEventListener(ev, cancel);
+  }
+  // A long press on a phone otherwise offers to select the text or share it.
+  title.addEventListener("contextmenu", (e) => e.preventDefault());
+  title.style.userSelect = "none";
+  title.style.webkitUserSelect = "none";
+}
+
+function unlockAdmin() {
+  if (adminOn()) { toast("The editor is already unlocked."); return; }
+  if (!store.get().signedIn) { askSignIn(null, true); return; }
+  setAdmin(true);
+  toast("Editor unlocked. The pencil is at the top.", "good");
+  render();
 }
 
 let toastTimer = null;
@@ -125,11 +186,12 @@ function renderWeek() {
          <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
          <h2 class="h-display">${day.title ? esc(day.title) : "Rest day"}</h2>
          <p class="muted">${day.description ? esc(day.description) : "Nothing scheduled. Rest is part of the plan."}</p>
-         ${s.signedIn ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-go="#/edit/${today}">Add a workout for today</button></div>` : ""}
+         ${adminOn() ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-action="edit-here">Add a workout for today</button></div>` : ""}
        </div>`
     : `<div class="today ${doneToday ? "is-done" : ""}">
          <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
          <h2 class="h-display">${esc(day.title || "Workout")}</h2>
+         ${day.image ? `<img class="today__shot" src="${esc(day.image)}" alt="">` : ""}
          ${day.description ? `<p class="muted">${esc(day.description)}</p>` : ""}
          <p class="today__meta">
            <span>${plural(day.exercises.length, "exercise")}</span>
@@ -163,6 +225,7 @@ function renderWeek() {
         return `<${editing ? "div" : "button"} class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}"
             ${editing ? "" : `data-go="#/day/${key}"`}>
           <span class="day__name">${DAY_SHORT[key]}${week[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
+          ${d.image ? `<img class="day__shot" src="${esc(d.image)}" alt="" loading="lazy">` : ""}
           ${title}
           <span class="day__meta">${rest && !editing ? "&mdash;" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
             ${editing ? `<button class="day__open" data-go="#/day/${key}">open &rarr;</button>` : ""}</span>
@@ -197,12 +260,13 @@ function renderDay(key) {
   const rest = isRest(day);
 
   screen.innerHTML = editing ? editableDay(key, day) : `
+    ${day.image ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
     <p class="eyebrow">${DAY_NAMES[key]}</p>
     <h2 class="h-display">${esc(day.title || (rest ? "Rest day" : "Workout"))}</h2>
     ${day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
 
     ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.
-        ${s.signedIn ? "Press the pencil at the top to add some exercises." : ""}</p>`
+        ${adminOn() ? "Press the pencil at the top to add some exercises." : ""}</p>`
       : `<p class="today__meta">
            <span>${plural(day.exercises.length, "exercise")}</span>
            <span>${plural(plannedSets(day), "set")}</span>
@@ -221,7 +285,7 @@ function renderDay(key) {
 
     <div class="btn-row" style="margin-top:1.5rem">
       ${rest ? "" : `<button class="btn btn--go btn--big" data-go="#/go/${key}">Start the workout</button>`}
-      ${s.signedIn ? `<button class="btn" data-action="edit-here">Edit this day</button>` : ""}
+      ${adminOn() ? `<button class="btn" data-action="edit-here">Edit this day</button>` : ""}
     </div>
     ${footer()}`;
 
@@ -300,9 +364,12 @@ function editableDay(key, day) {
   return `
     <p class="eyebrow">Editing &middot; ${DAY_NAMES[key]}</p>
 
-    <h2 class="h-display edit-text" contenteditable="plaintext-only" spellcheck="true"
-        data-edit="title" data-day="${key}"
-        data-placeholder="Name this workout">${esc(day.title)}</h2>
+    <div class="day-hero-edit">
+      ${thumb({ image: day.image, video: "", name: day.title }, true, key, "")}
+      <h2 class="h-display edit-text" contenteditable="plaintext-only" spellcheck="true"
+          data-edit="title" data-day="${key}"
+          data-placeholder="Name this workout">${esc(day.title)}</h2>
+    </div>
 
     <p class="lede-edit edit-text" contenteditable="plaintext-only" spellcheck="true"
        data-edit="description" data-day="${key}" data-multiline="1"
@@ -462,63 +529,100 @@ async function saveWeek() {
 
 /* ---------- adding a picture or a video ---------- */
 
+/**
+ * The picture and the video are two different things and the sheet says so.
+ *
+ * The picture is what it looks like — the thumbnail on the day list, the
+ * poster on the stage. It is there the moment the screen paints.
+ *
+ * The video is what plays when she starts the exercise.
+ *
+ * They are independent. An exercise can have a picture and no video, which is
+ * often all a familiar movement needs; it can have a video and no picture, and
+ * the stage is simply black until it loads; or it can have both, which is the
+ * best of it — the picture stands in until the video is ready.
+ *
+ * `i` of null means the sheet is for the DAY rather than an exercise, and a
+ * day has a picture but no video: it is a workout, not a movement.
+ */
 function mediaSheet(key, i) {
-  const ex = draftDay(key).exercises[Number(i)];
-  if (!ex) return;
-  const v = videoSource(ex.video);
+  const day = draftDay(key);
+  const forDay = i === null || i === undefined || i === "";
+  const target = forDay ? day : day.exercises[Number(i)];
+  if (!target) return;
+  const idx = forDay ? "" : String(i);
+  const v = videoSource(target.video || "");
 
-  openSheet(ex.name || "This exercise", `
-    <div class="media-now">
-      ${ex.image ? `<img src="${esc(ex.image)}" alt="">`
-        : v.kind === "file" ? `<video src="${esc(ex.video)}" muted playsinline controls preload="metadata"></video>`
-        : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
-        : `<div class="media-now__note dimmer">Nothing yet</div>`}
+  openSheet(forDay ? (day.title || DAY_NAMES[key]) : (target.name || "This exercise"), `
+    <p class="eyebrow">Picture</p>
+    <p class="small muted" style="margin-bottom:.75rem">${forDay
+      ? "Shown on the week board and at the top of the day."
+      : "The thumbnail in the list, and what the stage shows before the video plays."}</p>
+    <div class="media-now media-now--small">
+      ${target.image ? `<img src="${esc(target.image)}" alt="">` : `<div class="media-now__note dimmer">No picture</div>`}
     </div>
-
-    <label class="field field--hint"><span>Paste a link</span>
-      <input type="url" id="m-url" value="${esc(ex.video)}" placeholder="https://youtu.be/…" maxlength="2000">
-      <small id="m-hint">${videoHint(ex.video)}</small></label>
-
-    <div class="btn-row" style="margin-bottom:1.25rem">
-      <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${i}">Use this link</button>
-    </div>
-
-    <p class="eyebrow">Or take one from this phone</p>
-    <input type="file" id="m-file" accept="image/*,video/*" hidden>
+    <input type="file" id="m-image" accept="image/*" hidden>
     <div class="btn-row">
-      <button class="btn" data-action="media-choose">Choose a picture or clip</button>
+      <button class="btn" data-action="media-choose" data-target="m-image">${target.image ? "Change the picture" : "Add a picture"}</button>
+      ${target.image ? `<button class="btn btn--ghost" data-action="media-drop" data-what="image" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
     </div>
-    <p class="small dimmer" style="margin-top:.6rem">Pictures are shrunk before they are sent. A clip has to be under
-      4&nbsp;MB — anything longer belongs on YouTube as an unlisted video, pasted in above.</p>
 
-    ${(ex.video || ex.image) ? `<div class="btn-row" style="margin-top:1.25rem">
-      <button class="btn btn--danger" data-action="media-clear" data-day="${key}" data-i="${i}">Remove what is there</button>
-    </div>` : ""}
+    ${forDay ? "" : `
+      <hr style="border:0;border-top:1px solid var(--line);margin:1.5rem 0">
+
+      <p class="eyebrow">Video</p>
+      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise.</p>
+      <div class="media-now media-now--small">
+        ${v.kind === "file" ? `<video src="${esc(v.src)}" muted playsinline controls preload="metadata"></video>`
+          : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
+          : v.kind === "link" ? `<div class="media-now__note">A link &mdash; it will not play in the app</div>`
+          : `<div class="media-now__note dimmer">No video</div>`}
+      </div>
+
+      <label class="field field--hint"><span>Paste a link</span>
+        <input type="url" id="m-url" value="${esc(target.video)}" placeholder="https://youtu.be/…" maxlength="2000">
+        <small id="m-hint">${videoHint(target.video)}</small></label>
+      <div class="btn-row" style="margin-bottom:1rem">
+        <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${idx}">Use this link</button>
+      </div>
+
+      <input type="file" id="m-video" accept="video/*" hidden>
+      <div class="btn-row">
+        <button class="btn" data-action="media-choose" data-target="m-video">Or take a clip on this phone</button>
+        ${target.video ? `<button class="btn btn--ghost" data-action="media-drop" data-what="video" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
+      </div>
+      <p class="small dimmer" style="margin-top:.6rem">A clip has to be under 4&nbsp;MB &mdash; that is as much as one
+        upload can carry. Anything longer belongs on YouTube as an unlisted video, pasted in above.</p>
+    `}
   `, (root) => {
     const url = root.querySelector("#m-url");
-    url.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
+    url?.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
 
-    const file = root.querySelector("#m-file");
-    file.addEventListener("change", async () => {
-      const chosen = file.files?.[0];
-      if (!chosen) return;
-      const preview = root.querySelector(".media-now");
-      preview.innerHTML = /^video\//.test(chosen.type)
-        ? `<video src="${previewUrl(chosen)}" muted playsinline controls></video>`
-        : `<img src="${previewUrl(chosen)}" alt="">`;
-      toast("Sending…");
-      try {
-        const out = await upload(chosen);
-        const target = draftDay(key).exercises[Number(i)];
-        if (out.kind === "video") { target.video = out.url; }
-        else { target.image = out.url; }
-        closeSheet();
-        render();
-        toast(out.kind === "video" ? "Clip added." : "Picture added.", "good");
-      } catch (err) {
-        toast(err.message, "bad");
-      }
-    });
+    for (const [id, field] of [["m-image", "image"], ["m-video", "video"]]) {
+      const input = root.querySelector("#" + id);
+      if (!input) continue;
+      input.addEventListener("change", async () => {
+        const chosen = input.files?.[0];
+        if (!chosen) return;
+        toast("Sending…");
+        try {
+          const out = await upload(chosen);
+          // Trust what the server says it stored, not what the input was
+          // labelled: a phone hands back a .mov from the photo picker either
+          // way, and putting a video in the picture slot would be silent and
+          // baffling.
+          const slot = out.kind === "video" ? "video" : "image";
+          if (slot !== field) toast(`That is a ${slot}, so it went in the ${slot} slot.`);
+          const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
+          t[slot] = out.url;
+          closeSheet();
+          render();
+          toast(slot === "video" ? "Video added." : "Picture added.", "good");
+        } catch (err) {
+          toast(err.message, "bad");
+        }
+      });
+    }
   });
 }
 
@@ -1031,6 +1135,140 @@ function exportHistory() {
 }
 
 /* ==========================================================================
+   Reminders
+
+   One screen, because there are only two questions: what time every day, and
+   — when today's has already been and gone — what time instead.
+
+   The hour is chosen by scrolling a column rather than typing into a field.
+   Nobody types "17" when they mean five in the afternoon, and a phone keyboard
+   for a number between 0 and 23 is a bad joke.
+   ========================================================================== */
+
+let reminderState = null;
+
+function hourLabel(h) {
+  const suffix = h < 12 ? "am" : "pm";
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve}<span class="hour__ampm">${suffix}</span>`;
+}
+
+/** The scrolling column. Tapping picks; scrolling picks; both agree. */
+function hourPicker(id, selected) {
+  return `<div class="hours" id="${id}" role="listbox" aria-label="Hour" tabindex="0" data-hour="${selected}">
+    ${Array.from({ length: 24 }, (_, h) => `<button type="button" class="hour ${h === selected ? "is-on" : ""}"
+      role="option" aria-selected="${h === selected}" data-pick-hour="${h}" data-for="${id}">${hourLabel(h)}</button>`).join("")}
+  </div>`;
+}
+
+/* Scrolling the column selects whatever ends up in the middle of it. The
+   listener is throttled by a timer rather than firing on every pixel: on a
+   phone a flick produces a hundred scroll events and only the last matters. */
+function wireHourPicker(root, id, onPick) {
+  const el = root.querySelector("#" + id);
+  if (!el) return;
+  const centreOn = (h, smooth) => {
+    const btn = el.querySelector(`[data-pick-hour="${h}"]`);
+    if (btn) el.scrollTo({ top: btn.offsetTop - (el.clientHeight - btn.offsetHeight) / 2, behavior: smooth ? "smooth" : "auto" });
+  };
+  centreOn(Number(el.dataset.hour), false);
+
+  let settle = null;
+  el.addEventListener("scroll", () => {
+    clearTimeout(settle);
+    settle = setTimeout(() => {
+      const middle = el.scrollTop + el.clientHeight / 2;
+      let best = 0, bestGap = Infinity;
+      for (const btn of el.querySelectorAll("[data-pick-hour]")) {
+        const gap = Math.abs(btn.offsetTop + btn.offsetHeight / 2 - middle);
+        if (gap < bestGap) { bestGap = gap; best = Number(btn.dataset.pickHour); }
+      }
+      if (best !== Number(el.dataset.hour)) {
+        el.dataset.hour = best;
+        for (const btn of el.querySelectorAll("[data-pick-hour]")) {
+          const on = Number(btn.dataset.pickHour) === best;
+          btn.classList.toggle("is-on", on);
+          btn.setAttribute("aria-selected", on);
+        }
+        onPick?.(best);
+      }
+    }, 120);
+  });
+
+  el.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-pick-hour]");
+    if (!btn) return;
+    centreOn(Number(btn.dataset.pickHour), true);
+  });
+}
+
+const pickedHour = (id) => Number(document.getElementById(id)?.dataset.hour ?? 8);
+
+async function renderRemind() {
+  screen.innerHTML = `<p class="muted">Checking…</p>`;
+  setTitle("Reminders", "when to nudge");
+  bar.hidden = true;
+
+  reminderState = await push.status().catch((err) => ({ ok: false, supported: true, why: err.message }));
+  const st = reminderState;
+  if (!store.get().signedIn) {
+    st.why = "Sign in first — a reminder is attached to this device on the server, and that needs the password.";
+  }
+  const on = st.subscribed && st.reminder?.enabled;
+  const hour = st.reminder?.hour ?? 8;
+  const snoozed = st.reminder?.snoozeUntil > Date.now();
+
+  screen.innerHTML = `
+    <p class="eyebrow">Reminders</p>
+    <h2 class="h-display">${on ? "On for this device" : "Off for this device"}</h2>
+
+    ${!st.supported || !st.ready || st.permission === "denied"
+      ? `<p class="note note--warn">${esc(
+          st.permission === "denied"
+            ? "Notifications are blocked for this app in the browser's settings. Allow them there, then come back."
+            : st.why || "Reminders are not available here.")}</p>
+         ${!store.get().signedIn ? `<div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>` : ""}`
+      : ""}
+
+    <p class="muted">A nudge on the morning of a day that has a workout in it &mdash; never on a rest day, and never
+      once it is already done.</p>
+
+    <h2 class="h-section">Every day at</h2>
+    ${hourPicker("daily-hour", hour)}
+    <div class="btn-row" style="margin-top:1rem">
+      ${on
+        ? `<button class="btn btn--go" data-action="remind-save">Save this time</button>
+           <button class="btn btn--ghost" data-action="remind-off">Turn off</button>`
+        : `<button class="btn btn--go btn--big" data-action="remind-on" ${st.supported && st.ready ? "" : "disabled"}>Remind me</button>`}
+    </div>
+
+    ${on ? `
+      <h2 class="h-section">Not now &mdash; remind me at</h2>
+      <p class="muted small">For a day it has already asked about. It will come back once, at the hour you pick,
+        and say it is time.</p>
+      ${hourPicker("snooze-hour", Math.min(23, Math.max(hour + 4, 12)))}
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn" data-action="remind-snooze">Remind me then</button>
+        ${snoozed ? `<button class="btn btn--ghost" data-action="remind-unsnooze">Cancel the one waiting</button>` : ""}
+      </div>
+      ${snoozed ? `<p class="note note--good" style="margin-top:1rem">One is waiting for
+        ${esc(new Date(st.reminder.snoozeUntil).toLocaleString(undefined, { weekday: "long", hour: "numeric" }))}.</p>` : ""}
+    ` : ""}
+
+    ${adminOn() ? `<h2 class="h-section">Check it works</h2>
+      <p class="muted small">Sends a test to every device set up for reminders, right now, whatever the time is.</p>
+      <div class="btn-row" style="margin-top:.75rem">
+        <button class="btn btn--ghost" data-action="remind-test">Send a test nudge</button>
+      </div>
+      <pre class="report" id="remind-report" hidden></pre>` : ""}
+
+    ${footer()}`;
+
+  wireHourPicker(screen, "daily-hour");
+  wireHourPicker(screen, "snooze-hour");
+}
+
+/* ==========================================================================
    Settings, signing in, and the notices
    ========================================================================== */
 
@@ -1072,12 +1310,20 @@ function settingsSheet() {
            : `<p class="small muted">The week can still be edited on this device with the password.</p>
               <div class="btn-row"><button class="btn" data-action="sign-in">Sign in to edit</button></div>`}`}
 
-    ${s.signedIn ? `<p class="eyebrow" style="margin-top:1.5rem">Edit the week</p>
+    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Edit the week</p>
       <div class="week">
         ${DAY_KEYS.map((k) => `<button class="day" data-action="edit-day" data-day="${k}">
           <span class="day__name">${DAY_SHORT[k]}</span>
           <span class="day__title">${esc(store.dayPlan(k).title || "Rest")}</span></button>`).join("")}
       </div>` : ""}
+
+    <p class="eyebrow" style="margin-top:1.5rem">Reminders</p>
+    <p class="small muted">A nudge on the morning of a day that has a workout in it.</p>
+    <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
+
+    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Editor</p>
+      <p class="small muted">Unlocked on this device until the app is closed.</p>
+      <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor</button></div>` : ""}
 
     <p class="eyebrow" style="margin-top:1.5rem">Put it on the home screen</p>
     <p class="small muted">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu, then
@@ -1095,7 +1341,7 @@ function settingsSheet() {
   });
 }
 
-function askSignIn(returnTo) {
+function askSignIn(returnTo, thenUnlockAdmin = false) {
   openSheet("Sign in", `
     <p class="small muted" style="margin-bottom:1rem">The app's own password &mdash; <code>WORKOUT_PASSWORD</code> in
       Netlify. It unlocks editing the week, and it is what keeps the record private: nobody can read it without this.</p>
@@ -1110,7 +1356,8 @@ function askSignIn(returnTo) {
       const res = await store.signIn(input.value);
       if (!res.ok) { toast(res.error, "bad"); return; }
       closeSheet();
-      toast("Signed in.", "good");
+      if (thenUnlockAdmin) { setAdmin(true); toast("Editor unlocked. The pencil is at the top.", "good"); }
+      else toast("Signed in.", "good");
       if (returnTo) go(returnTo); else render();
     };
     root.querySelector('[data-action="do-sign-in"]').addEventListener("click", submit);
@@ -1150,8 +1397,7 @@ function setTitle(main, sub) {
   /* The pencil shows only where it means something: signed in, and not in the
      middle of a workout. */
   const pencil = $("#edit-btn");
-  const canEdit = store.get().signedIn && !location.hash.startsWith("#/go/")
-    && !location.hash.startsWith("#/history") && !location.hash.startsWith("#/done/");
+  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind"].some((h) => location.hash.startsWith(h));
   pencil.hidden = !canEdit;
   pencil.classList.toggle("is-on", editing);
   pencil.setAttribute("aria-pressed", editing ? "true" : "false");
@@ -1182,6 +1428,8 @@ function render() {
   if (route === "go" && DAY_KEYS.includes(arg)) return renderPlayer(arg);
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
+  if (route === "remind") return renderRemind();
+  if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   return renderWeek();
 }
 
@@ -1191,7 +1439,7 @@ $("#back").addEventListener("click", () => {
   if (history.length > 1) history.back(); else go("#/");
 });
 $("#edit-btn").addEventListener("click", () => {
-  if (!store.get().signedIn) { askSignIn(null); return; }
+  if (!adminOn()) { unlockAdmin(); return; }
   if (!editing) { startEditing(); return; }
   if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing();
 });
@@ -1273,8 +1521,8 @@ document.addEventListener("click", (e) => {
       break;
 
     /* ---- a picture or a video ---- */
-    case "pick-media": mediaSheet(day, i); break;
-    case "media-choose": document.getElementById("m-file")?.click(); break;
+    case "pick-media": mediaSheet(day, i === "" ? null : i); break;
+    case "media-choose": document.getElementById(el.dataset.target)?.click(); break;
     case "media-link": {
       const value = document.getElementById("m-url")?.value || "";
       draftDay(day).exercises[Number(i)].video = value.trim();
@@ -1283,9 +1531,10 @@ document.addEventListener("click", (e) => {
       toast(value.trim() ? "Link added." : "Link removed.");
       break;
     }
-    case "media-clear": {
-      const ex = draftDay(day).exercises[Number(i)];
-      ex.video = ""; ex.image = "";
+    case "media-drop": {
+      const d = draftDay(day);
+      const t = i === "" ? d : d.exercises[Number(i)];
+      if (t) t[el.dataset.what] = "";
       closeSheet();
       render();
       toast("Removed.");
@@ -1298,11 +1547,54 @@ document.addEventListener("click", (e) => {
       go(`#/day/${day}`);
       render();
       break;
+    /* ---- reminders ---- */
+    case "remind-on":
+      push.enable({ hour: pickedHour("daily-hour") })
+        .then(() => { toast("Reminders on.", "good"); renderRemind(); })
+        .catch((err) => toast(err.message, "bad"));
+      break;
+    case "remind-save":
+      push.update({ reminder: { enabled: true, hour: pickedHour("daily-hour") } })
+        .then(() => { toast("Saved.", "good"); renderRemind(); })
+        .catch((err) => toast(err.message, "bad"));
+      break;
+    case "remind-off":
+      push.disable().then(() => { toast("Reminders off."); renderRemind(); })
+        .catch((err) => toast(err.message, "bad"));
+      break;
+    case "remind-snooze":
+      push.snoozeTo(pickedHour("snooze-hour"))
+        .then(() => { toast("It will come back then.", "good"); renderRemind(); })
+        .catch((err) => toast(err.message, "bad"));
+      break;
+    case "remind-unsnooze":
+      push.update({ clearSnooze: true }).then(() => { toast("Cancelled."); renderRemind(); })
+        .catch((err) => toast(err.message, "bad"));
+      break;
+    case "remind-test": {
+      const out = document.getElementById("remind-report");
+      if (out) { out.hidden = false; out.textContent = "Sending…"; }
+      push.selftest(true)
+        .then((r) => { if (out) out.textContent = JSON.stringify(r, null, 2); toast(r.sent ? `Sent to ${plural(r.sent, "device")}.` : "Nothing was sent — see below.", r.sent ? "good" : "bad"); })
+        .catch((err) => { if (out) out.textContent = err.message; toast(err.message, "bad"); });
+      break;
+    }
+
     case "open-settings": e.preventDefault(); settingsSheet(); break;
+    case "go-remind": closeSheet(); go("#/remind"); break;
     case "sign-in": closeSheet(); askSignIn(null); break;
     case "sign-out":
       closeSheet();
+      setAdmin(false);
+      editing = false; draft = null;
       store.signOut().then(() => { toast("Signed out."); render(); });
+      break;
+    case "lock-admin":
+      closeSheet();
+      setAdmin(false);
+      editing = false; draft = null;
+      toast("Editor locked.");
+      render();
       break;
     default: break;
   }
@@ -1318,6 +1610,19 @@ function swap(arr, a, b) {
 window.addEventListener("pagehide", () => { releaseWake(); });
 
 /* ---------- start ---------- */
+
+/* Pressing a notification focuses the window that is already open rather than
+   opening a second copy, and the service worker then says where to go. */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (e) => {
+    if (e.data?.type !== "navigate") return;
+    const to = String(e.data.to || "/");
+    const hash = to.includes("#") ? to.slice(to.indexOf("#")) : "#/";
+    if (location.hash === hash) render(); else go(hash);
+  });
+}
+
+armAdminGesture();
 
 store.subscribe(() => {
   // A repaint mid-workout would restart the video, so a player already on

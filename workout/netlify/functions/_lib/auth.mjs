@@ -30,6 +30,8 @@ export const LOCKOUT = () => getStore("workout-lockout");
 /* Pictures and short clips added from the editor, keyed by a hash of their
    own bytes — see media.mjs. */
 export const MEDIA = () => getStore("workout-media");
+/* One entry per device that asked to be reminded — see reminders.mjs. */
+export const SUBS = () => getStore("workout-subs");
 
 export const PLAN_KEY = "plan";
 export const HISTORY_KEY = "history";
