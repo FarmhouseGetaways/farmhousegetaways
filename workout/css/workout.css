@@ -195,9 +195,18 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 /* ---------- stat strip ---------- */
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: .5rem; }
-.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-s); padding: .75rem .6rem; text-align: center; min-width: 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-s); padding: .75rem .35rem; text-align: center; min-width: 0; }
 .stat__n { font-family: var(--display); font-size: clamp(1.35rem, 6vw, 1.7rem); line-height: 1; display: block; }
-.stat__l { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--dimmer); margin-top: .35rem; display: block; overflow-wrap: anywhere; }
+/* Never break a label mid-word. Four stats across a 390px phone leaves about
+   sixty pixels each, and `overflow-wrap: anywhere` spent them spelling
+   "WORKOU TS" and "CALORIE S". Smaller and tighter fits; hyphenating a
+   six-letter word does not. */
+.stat__l {
+  display: block; margin-top: .35rem;
+  font-size: .63rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--dimmer);
+  overflow-wrap: normal; word-break: keep-all;
+}
 .stat--streak .stat__n { color: var(--brass); }
 .stat--cal .stat__n { color: var(--blush); }
 
@@ -599,3 +608,32 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 
 .media-now--small { min-height: 90px; }
 .media-now--small img, .media-now--small video { max-height: 30vh; }
+
+/* ==========================================================================
+   The footer pills
+
+   The way in, in the place people look for it. The long press and /#/admin
+   still work and always will, but a hidden gesture is a puzzle for the person
+   who owns the thing — and it was being solved four times an evening.
+
+   They are small and quiet on purpose: reachable when wanted, not competing
+   with the button that starts the workout.
+   ========================================================================== */
+
+.pills { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .85rem; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .4rem .85rem; min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--card); color: var(--dim);
+  font-size: .8rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.pill:hover { background: var(--card-2); color: var(--text); border-color: var(--line-2); }
+.pill--go { border-color: rgba(231, 154, 166, .5); color: var(--blush); }
+.pill--go:hover { background: rgba(231, 154, 166, .12); color: var(--blush); }
+.pill.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+.pill.is-on:hover { background: #F0AAB5; color: #2A1216; }

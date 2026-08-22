@@ -87,11 +87,24 @@ export function sessionCalories(session, settings = {}) {
   }
 
   const activeSec = (session.exercises || []).reduce((sum, ex) => sum + (ex.activeSec || 0), 0);
-  const restSec = Math.max(0, (session.elapsedSec || 0) - activeSec);
+
+  /* The rest credited is capped, and this is not fussiness.
+     A phone left running on a bench overnight would otherwise charge eight
+     hours of "standing about" against the workout: a forty-minute session that
+     really burned 181 calories would be logged as 1,253. Nothing poisons a
+     record meant to encourage somebody faster than numbers it did not earn.
+     Three minutes a set is generous for real training — long enough for heavy
+     compound work with proper rests — and nowhere near long enough to invent a
+     day's worth of calories out of a forgotten timer. */
+  const restCap = REST_PER_SET_CAP * Math.max(0, Number(session.setsDone) || 0);
+  const restSec = Math.min(Math.max(0, (session.elapsedSec || 0) - activeSec), restCap);
   const resting = countRest ? kcalFor({ met: REST_MET, seconds: restSec, weightLb }) : 0;
 
   return Math.round(working + resting);
 }
+
+/** The most rest, per completed set, the estimate will believe. */
+export const REST_PER_SET_CAP = 180;
 
 /* --------------------------------------------------------------------------
    Videos
@@ -107,9 +120,19 @@ export function videoSource(url) {
   const raw = String(url || "").trim();
   if (!raw) return { kind: "none" };
 
-  // A path, not a URL: a file dropped into workout/videos/. Same origin, so it
-  // plays inline and works with no signal once the browser has it.
   if (!/^https?:\/\//i.test(raw)) {
+    /* Anything carrying a scheme is refused outright. An unrecognised link is
+       offered to the page as <a href> and an embed as an iframe src, so a
+       `javascript:` or `data:` string reaching either is script running on this
+       origin. The server strips them on the way into storage, but the browser
+       must not be relying on that: the editor renders what was typed before it
+       has been anywhere near the server, and a plan can also be read straight
+       from a committed file with no server involved at all. */
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return { kind: "none" };
+
+    // What is left is a relative path — a file dropped into workout/videos/,
+    // or an upload at /media/<hash>. Same origin by definition, so it plays
+    // inline and works with no signal once the browser has it.
     return FILE.test(raw) ? { kind: "file", src: raw } : { kind: "link", src: raw };
   }
 

@@ -777,12 +777,12 @@ function renderPlayer(key) {
 
   let live = store.loadLive();
 
-  // A workout in progress for a different day is offered rather than silently
-  // thrown away — she may have started Tuesday's by mistake.
-  if (live && live.day !== key) {
-    const other = live;
-    return askCarryOn(other, key);
-  }
+  /* A workout in progress is offered rather than resumed silently when it is
+     not obviously the one she meant: a different day (she tapped Tuesday by
+     mistake), or one that has been running for hours (the phone went in a
+     pocket and the workout never ended). The second is the one that used to
+     quietly log a nine-hour session. */
+  if (live && (live.day !== key || isStale(live))) return askCarryOn(live, key);
   if (!live) {
     const day = store.dayPlan(key);
     if (isRest(day)) { go(`#/day/${key}`); return; }
@@ -795,18 +795,33 @@ function renderPlayer(key) {
   keepAwake();
 }
 
+/* Six hours. Nobody trains for six hours, so past that the timer was forgotten
+   rather than running. */
+const STALE_MS = 6 * 60 * 60 * 1000;
+const isStale = (live) => Date.now() - (live.startedMs || 0) > STALE_MS;
+
 function askCarryOn(live, wantedKey) {
+  const stale = isStale(live);
+  const sameDay = live.day === wantedKey;
+
   screen.innerHTML = `
-    <p class="eyebrow">Unfinished</p>
+    <p class="eyebrow">${stale ? "Still running" : "Unfinished"}</p>
     <h2 class="h-display">${esc(live.title)}</h2>
-    <p class="muted">There is a ${DAY_NAMES[live.day]} workout still going &mdash;
-      ${plural(liveSetsDone(live), "set")} done, ${duration(liveElapsed(live))} in.</p>
+    <p class="muted">${stale
+      ? `This ${DAY_NAMES[live.day]} workout has been going for ${duration(liveElapsed(live))}, which
+         usually means the timer was left running rather than the workout. ${plural(liveSetsDone(live), "set")}
+         were done. Carrying on keeps counting from then; starting again begins from nought.`
+      : `There is a ${DAY_NAMES[live.day]} workout still going &mdash;
+         ${plural(liveSetsDone(live), "set")} done, ${duration(liveElapsed(live))} in.`}</p>
     <div class="btn-row" style="margin-top:1.5rem">
-      <button class="btn btn--go btn--big" data-go="#/go/${live.day}">Carry on with ${DAY_NAMES[live.day]}</button>
-      <button class="btn" data-action="discard-live" data-day="${wantedKey}">Throw it away and start ${DAY_NAMES[wantedKey]}</button>
+      ${stale
+        ? `<button class="btn btn--go btn--big" data-action="discard-live" data-day="${wantedKey}">Start ${DAY_NAMES[wantedKey]} fresh</button>
+           <button class="btn" data-go="#/go/${live.day}">Carry on the old one anyway</button>`
+        : `<button class="btn btn--go btn--big" data-go="#/go/${live.day}">Carry on with ${DAY_NAMES[live.day]}</button>
+           <button class="btn" data-action="discard-live" data-day="${wantedKey}">Throw it away and start ${DAY_NAMES[wantedKey]}</button>`}
     </div>
     ${footer()}`;
-  setTitle("Unfinished", "Pick one");
+  setTitle(stale ? "Still running" : "Unfinished", sameDay ? "Pick one" : "Pick one");
   bar.hidden = true;
 }
 
@@ -1524,10 +1539,17 @@ function storageNotice() {
 function footer() {
   const s = store.get();
   return `<div class="foot">
+    <div class="pills">
+      ${s.signedIn
+        ? `<button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
+             ${adminOn() ? "&#9998; Admin" : "Admin"}</button>`
+        : `<button type="button" class="pill pill--go" data-action="sign-in">Sign in</button>
+           <button type="button" class="pill" data-action="admin-pill">Admin</button>`}
+      <button type="button" class="pill" data-action="open-settings">Settings</button>
+    </div>
     <p>${s.mode === "server"
         ? (s.signedIn ? "Signed in &middot; everything syncs" : "Reading the week from the server")
-        : "This browser only"}
-      &middot; <a href="#" data-action="open-settings">Settings</a></p>
+        : "This browser only"}</p>
     <p class="dimmer">Calories are an estimate from body weight, the effort of each exercise and how long it took. Treat them as a guide.</p>
   </div>`;
 }
@@ -1647,8 +1669,10 @@ document.addEventListener("click", (e) => {
     }
     case "discard-live":
       store.clearLive();
-      go(`#/go/${day}`);
-      render();
+      // Same day means the hash is already right and would not fire a change,
+      // so the render is done here rather than left to the router.
+      if (location.hash === `#/go/${day}`) render();
+      else go(`#/go/${day}`);
       break;
 
     case "toggle-log":
@@ -1769,6 +1793,12 @@ document.addEventListener("click", (e) => {
     case "confirm-no": pendingConfirm = null; closeSheet(); break;
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
+    case "admin-pill":
+      closeSheet();
+      if (!adminOn()) { unlockAdmin(); break; }
+      if (editing) { if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing(); }
+      else startEditing();
+      break;
     case "go-remind": closeSheet(); go("#/remind"); break;
     case "sign-in": closeSheet(); askSignIn(null); break;
     case "sign-out":
