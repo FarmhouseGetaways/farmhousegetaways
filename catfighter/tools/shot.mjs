@@ -6,6 +6,8 @@
  *   node tools/shot.mjs strip out.png <id> <move>       a move, cel by cel
  *   node tools/shot.mjs stage out.png <id> [camX]       one stage + two cats
  *   node tools/shot.mjs stages out.png                  all six stages
+ *   node tools/shot.mjs roster out.png [scale]           a presentation sheet
+ *   node tools/shot.mjs silhouette out.png [scale]       every cat, flat black
  *   node tools/shot.mjs fight out.png [stageIdx] [frames]   the real game
  *
  * Everything is drawn through the real shipping files — the list comes from
@@ -123,6 +125,73 @@ stage: (a) => `
   K.nearLip(x,13,0.40);
   ctx.imageSmoothingEnabled=false; ctx.drawImage(c,0,0,384,224,0,0,384*Z,224*Z);
   label(s.name, 8, 18);`,
+
+roster: (a) => `
+  /* A presentation sheet: every cat big, lit, named, on a dark ground — what
+     you hand somebody when they ask what the roster looks like. */
+  const SC = ${Number(a[0]) || 2.6};
+  const CW = Math.round(150*SC/2.6), CH = Math.round(250*SC/2.6), COLS = 3;
+  const ROWS = Math.ceil(CF.ROSTER.length/COLS);
+  size(CW*COLS, CH*ROWS);
+  const bgGrad = ctx.createLinearGradient(0,0,0,CH*ROWS);
+  bgGrad.addColorStop(0,'#241b2e'); bgGrad.addColorStop(1,'#120c18');
+  ctx.fillStyle=bgGrad; ctx.fillRect(0,0,CW*COLS,CH*ROWS);
+  CF.ROSTER.forEach((chr,i)=>{
+    const col=i%COLS, row=(i/COLS)|0, ox=col*CW, oy=row*CH;
+    const accent = chr.palette.accent || '#ffd166';
+    clipCell(ox,oy,CW,CH, ()=>{
+      /* rays behind, so each cat is lit from its own card */
+      ctx.save();
+      ctx.translate(ox+CW/2, oy+CH*0.46);
+      for (let q=0;q<14;q++){
+        ctx.rotate(Math.PI*2/14);
+        ctx.globalAlpha=0.055;
+        ctx.fillStyle=accent;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(340,-24); ctx.lineTo(340,24);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      const floorY = oy+CH-Math.round(40*SC/2.6);
+      ctx.save();
+      ctx.globalAlpha=0.5; ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.ellipse(ox+CW/2, floorY, 30*SC/2.6*1.4, 6*SC/2.6*1.4, 0,0,Math.PI*2);
+      ctx.fill(); ctx.restore();
+      const j=CF.Rig.solve(CF.Pose.stand, SC, chr.build);
+      ctx.save();
+      ctx.translate(ox+CW/2, floorY); ctx.scale(1,-1);
+      CF.Rig.drawCat(ctx,j,chr.palette,{eyes:'angry'});
+      ctx.restore();
+      /* name plate */
+      ctx.save();
+      ctx.font='800 '+Math.round(17*SC/2.6)+'px "Arial Narrow", Arial, sans-serif';
+      ctx.textAlign='center';
+      ctx.lineWidth=Math.round(4*SC/2.6); ctx.strokeStyle='#120c18'; ctx.lineJoin='round';
+      ctx.strokeText(chr.displayName, ox+CW/2, oy+CH-Math.round(16*SC/2.6));
+      ctx.fillStyle='#ffe07a';
+      ctx.fillText(chr.displayName, ox+CW/2, oy+CH-Math.round(16*SC/2.6));
+      ctx.font='700 '+Math.round(9*SC/2.6)+'px "Arial Narrow", Arial, sans-serif';
+      ctx.strokeText((chr.subtitle||'').toUpperCase(), ox+CW/2, oy+CH-Math.round(5*SC/2.6));
+      ctx.fillStyle='#ffb8a0';
+      ctx.fillText((chr.subtitle||'').toUpperCase(), ox+CW/2, oy+CH-Math.round(5*SC/2.6));
+      ctx.restore();
+    });
+    ctx.strokeStyle='rgba(255,224,122,.18)'; ctx.strokeRect(ox+.5,oy+.5,CW-1,CH-1);
+  });`,
+
+silhouette: (a) => `
+  /* Every cat as a flat black shape, costume and all. If two are confusable
+     here, the costume work is not finished — this is the test that matters. */
+  const SC = ${Number(a[0]) || 2.2};
+  const CW=Math.round(190*SC/2.2), CH=Math.round(265*SC/2.2);
+  size(CW*CF.ROSTER.length, CH); bg('#e6e2da');
+  CF.ROSTER.forEach((chr,i)=>{
+    const j=CF.Rig.solve(CF.Pose.stand, SC, chr.build);
+    clipCell(i*CW,0,CW,CH, ()=>{
+      ctx.translate(i*CW+CW/2, CH-Math.round(28*SC/2.2)); ctx.scale(1,-1);
+      CF.Rig.drawCat(ctx,j,chr.palette,{silhouette:'#12111a'});
+    });
+    label(chr.id, i*CW+6, 16); frame(i*CW,0,CW,CH);
+  });`,
 
 stages: () => `
   const K=CF.StageKit, Z=2, COLS=2, N=CF.Stages.length;

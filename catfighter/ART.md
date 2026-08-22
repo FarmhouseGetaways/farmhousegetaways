@@ -31,9 +31,22 @@ render, look, change one thing, render again. Three or four rounds minimum.
    gi, Chun-Li from the qipao and the buns, Zangief from the outline alone.
    Six cats in six colours are one cat. A costume is geometry — it changes
    the silhouette — not a decal painted on the fur.
-2. **The SILHOUETTE has to be unique.** Turn the drawing black. If two cats
-   are the same black shape, the work is not done. Bulk, stance, headgear,
-   things that hang and stream: those are what differ.
+2. **The SILHOUETTE has to be unique.** Turn the drawing black — there is a
+   tool for it:
+
+       node tools/shot.mjs silhouette out.png
+
+   If two cats are the same black shape, the work is not done.
+
+   **A costume drawn INSIDE the body outline does not change a silhouette.**
+   A gi painted across the chest and a belt round the waist look like a lot
+   of work in colour and vanish completely in black — that is what the first
+   pass produced and it is worth seeing before you start. What changes an
+   outline is what sticks OUT: a mane, a topknot, ears bound back, a long
+   scarf streaming, gloves the size of the head, a shoulder pad, an apron
+   hanging past the hip, a tail carried differently, a hunched back, feet
+   planted twice as wide. Build at least two of those into every cat, and
+   check the black shape before you spend any time on colour.
 3. **Hard-edged shading, three tones per material.** Shadow is the base colour
    pushed towards one cool dark, never just darker. A gradient reads as a
    plastic tube; a hard shadow edge reads as a form with a light on it.

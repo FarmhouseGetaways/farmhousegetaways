@@ -804,6 +804,15 @@
       for (var q = 0; q < bin.length; q++) shapes.push(bin[q]);
     }
 
+    /* SILHOUETTE MODE. Every fill forced to one colour, no shading, no face.
+
+       This is the test that decides whether a roster works: turn two
+       characters black and if you cannot tell them apart, the costume work is
+       not finished. It has to flatten the COSTUME too — pieces carry their
+       own colours, so a white gi and a red mawashi were still telling the two
+       apart in the first version of this and it proved nothing. */
+    var SIL = opts.silhouette;
+
     var back = c.points ? c.marks : furBack;
     var shinF = c.points ? c.marks : (c.sock ? (c.sockColor || belly) : fur);
     var footF = c.points ? c.marks : shinF;
@@ -1026,7 +1035,7 @@
       fur: fur, fur2: fur2, belly: belly, line: line, white: white,
       hipW: hipW, waistW: waistW, chestW: chestW, tailW: tailW, kit: c.kit || {},
       OUTLINE: OUTLINE, s: s, G: G, limbW: LIMBW,
-      costumeHead: costume.head, look: LOOK
+      costumeHead: costume.head, look: LOOK, silhouette: SIL
     };
   }
 
@@ -1059,6 +1068,17 @@
     ctx.restore();
 
     /* ---- pass two: the fills, each cel-shaded from the same light ---- */
+    if (fig.silhouette) {
+      ctx.save();
+      ctx.fillStyle = fig.silhouette;
+      for (i = 0; i < shapes.length; i++) {
+        sh = shapes[i];
+        if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = fig.silhouette; ctx.lineWidth = sh.w; ctx.stroke(); }
+        else { sh.p(ctx); ctx.fill(); }
+      }
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
