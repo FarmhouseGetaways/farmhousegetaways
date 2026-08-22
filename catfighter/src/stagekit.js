@@ -58,11 +58,19 @@
 
   /* ---- light ------------------------------------------------------------- */
 
+  /* A stage's sky never changes, and it is a gradient across most of the
+     screen — 0.64ms every frame to redraw a still picture. Cached like the
+     vignette. Everything below the horizon is drawn over it anyway, so
+     pinning it to the screen rather than the camera changes nothing. */
   function sky(ctx, stops, top, bottom) {
-    var g = ctx.createLinearGradient(0, top || 0, 0, bottom === undefined ? FLOOR_Y : bottom);
-    for (var i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, (bottom === undefined ? FLOOR_Y : bottom) + 2);
+    var t0 = top || 0, b0 = bottom === undefined ? FLOOR_Y : bottom;
+    var key = 'sky' + t0 + ',' + b0 + ',' + stops.join(';');
+    cachedFull(ctx, key, function (ox) {
+      var g = ox.createLinearGradient(0, t0, 0, b0);
+      for (var i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
+      ox.fillStyle = g;
+      ox.fillRect(0, 0, W, b0 + 2);
+    });
   }
 
   function glow(ctx, x, y, r, color, alpha) {
@@ -108,27 +116,40 @@
      right one: a vignette is a property of the lens, not of the room. It
      also means the cache never thrashes, which caching it any other way
      would have done for a solid second on every knockout. */
-  var vig = null;
-  function vignette(ctx, strength) {
-    var k = strength === undefined ? 0.34 : strength;
+  var full = {};
+  function cachedFull(ctx, key, paint) {
     var cw = ctx.canvas ? ctx.canvas.width : W;
     var ch = ctx.canvas ? ctx.canvas.height : H;
-    if (!vig || vig.k !== k || vig.w !== cw || vig.h !== ch) {
+    var k = key + '|' + cw + 'x' + ch;
+    var hit = full[k];
+    if (!hit) {
       var off = document.createElement('canvas');
       off.width = cw; off.height = ch;
       var ox = off.getContext('2d');
       ox.setTransform(cw / W, 0, 0, ch / H, 0, 0);
+      paint(ox);
+      /* One stage is on screen at a time and each of these has one key per
+         stage, so the map stays at a handful of entries for the life of the
+         process. Cleared wholesale if it ever grows, which would mean
+         somebody is generating keys per frame. */
+      if (Object.keys(full).length > 24) full = {};
+      full[k] = hit = off;
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(hit, 0, 0);
+    ctx.restore();
+  }
+
+  function vignette(ctx, strength) {
+    var k = strength === undefined ? 0.34 : strength;
+    cachedFull(ctx, 'vig' + k, function (ox) {
       var g = ox.createRadialGradient(W / 2, H * 0.45, H * 0.3, W / 2, H * 0.45, W * 0.72);
       g.addColorStop(0, 'rgba(0,0,0,0)');
       g.addColorStop(1, 'rgba(0,0,0,' + k + ')');
       ox.fillStyle = g;
       ox.fillRect(0, 0, W, H);
-      vig = { k: k, w: cw, h: ch, c: off };
-    }
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(vig.c, 0, 0);
-    ctx.restore();
+    });
   }
 
   /* ---- landscape --------------------------------------------------------- */
