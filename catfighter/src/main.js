@@ -97,6 +97,34 @@
   /* A frame-rate readout, on F3. "It is laggy" is hard to act on; "it says 9"
      is a bug report. */
   var fps = { on: false, frames: 0, since: 0, value: 0 };
+
+  /* ---- keeping the frame rate ---------------------------------------------
+
+     The very first thing the owner said about this game was that it ran at
+     one frame a second. That was a pair of Chromium switches and it is long
+     fixed, but the art has grown a great deal since and a machine with the
+     graphics card asleep does not owe us sixty frames.
+
+     So the game watches its own rate and gives up detail rather than frames.
+     It drops a level after two slow half-seconds and only climbs back after
+     four comfortable ones, so it settles instead of oscillating — the worst
+     possible behaviour here is detail flickering on and off mid-fight.
+
+     Only in AUTO. If the player has chosen FULL or FAST in Options, that is
+     their choice and the game does not argue with it. */
+  var auto = { slow: 0, fast: 0 };
+  function autoDetail(v) {
+    if (!game || !game.settings || game.settings.detail !== 'auto') return;
+    if (!v) return;                         /* no reading yet */
+    var lvl = CF.Rig.getDetail();
+    if (v < 52) {
+      auto.fast = 0;
+      if (++auto.slow >= 2 && lvl > 1) { CF.Rig.setDetail(lvl - 1); auto.slow = 0; }
+    } else if (v > 58) {
+      auto.slow = 0;
+      if (++auto.fast >= 4 && lvl < 2) { CF.Rig.setDetail(lvl + 1); auto.fast = 0; }
+    } else { auto.slow = 0; auto.fast = 0; }
+  }
   function fpsTick(now) {
     fps.frames++;
     if (!fps.since) fps.since = now;
@@ -104,6 +132,7 @@
       fps.value = Math.round(fps.frames * 1000 / (now - fps.since));
       fps.frames = 0;
       fps.since = now;
+      autoDetail(fps.value);
     }
     game.fps = fps.on ? fps.value : 0;
   }

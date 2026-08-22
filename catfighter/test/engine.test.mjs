@@ -1893,3 +1893,31 @@ test('a fighting stance is wider than it is polite', () => {
       `${chr.id}: the idle stance is only ${spread.toFixed(1)} wide — plant the feet`);
   }
 });
+
+test('the detail dial gives things up in the right order', () => {
+  /* AUTO trades detail for frames on a machine that needs it. What it must
+     never do is change the SHAPE — a cat that loses its silhouette when the
+     frame rate dips is a different character, which is worse than a dropped
+     frame. Level 1 gives up the muscle shading and the cast shadow; level 0
+     the cel shading as well; neither touches a path. */
+  const poseOf = (lvl) => {
+    CF.Rig.setDetail(lvl);
+    const ctx = recordingCtx();
+    const chr = CF.ROSTER[0];
+    const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
+    CF.Rig.drawCat(ctx, j, chr.palette, { eyes: 'angry' });
+    return ctx.ops;
+  };
+  const full = poseOf(2), mid = poseOf(1), flat = poseOf(0);
+  CF.Rig.setDetail(2);
+
+  const fills = (ops) => ops.filter(o => o.op === 'fill').length;
+  assert.ok(fills(mid) < fills(full), 'level 1 should cost less than level 2');
+  assert.ok(fills(flat) < fills(mid), 'level 0 should cost less than level 1');
+
+  /* the contour is the silhouette, and it is identical at every level */
+  const strokes = (ops) => ops.filter(o => o.op === 'stroke').length;
+  assert.ok(strokes(flat) >= strokes(full) - 8,
+    `the outline all but vanished at level 0 (${strokes(flat)} vs ${strokes(full)}) — ` +
+    `detail may be given up, shape may not`);
+});

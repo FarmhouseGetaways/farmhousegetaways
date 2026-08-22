@@ -34,7 +34,9 @@
       difficulty: 3,
       rounds: 2,                // rounds to win
       roundTime: 99,
-      showBoxes: false
+      showBoxes: false,
+      /* auto | full | fast — see autoDetail() in main.js */
+      detail: 'auto'
     };
 
     this.menuIndex = 0;
@@ -236,8 +238,11 @@
 
   /* Rows are packed tighter than they were, to leave a strip at the bottom for
      the description of whichever one is highlighted. */
+  /* Ten rows now, and they have to clear the description strip at the bottom
+     — a test asserts it, because a settings screen that runs off the edge is
+     a settings screen with an option nobody can reach. */
   Game.prototype.optionRects = function (n) {
-    var top = 38, step = 15, out = [];
+    var top = 34, step = 13.4, out = [];
     for (var i = 0; i < n; i++) out.push({ x: 50, y: top + i * step, w: W - 100, h: step - 1, i: i });
     return out;
   };
@@ -363,6 +368,18 @@
       { label: 'SOUND FX', value: CF.Audio.isSfxOn() ? 'ON' : 'OFF',
         desc: 'Hits, blocks, meows and the announcer. Also synthesised rather than recorded.',
         inc: function () { CF.Audio.toggleSfx(); }, dec: function () { CF.Audio.toggleSfx(); } },
+      { label: 'DETAIL', value: s.detail === 'auto'
+          ? 'AUTO (' + (CF.Rig.getDetail() >= 2 ? 'FULL' : 'FAST') + ')'
+          : s.detail.toUpperCase(),
+        desc: 'How much of each cat gets drawn. AUTO watches the frame rate and gives up detail rather than frames — it drops the muscle shading on a machine that needs it and puts it back when there is room. FULL and FAST decide for yourself.',
+        inc: function () {
+          s.detail = s.detail === 'auto' ? 'full' : (s.detail === 'full' ? 'fast' : 'auto');
+          CF.Rig.setDetail(s.detail === 'fast' ? 1 : 2);
+        },
+        dec: function () {
+          s.detail = s.detail === 'auto' ? 'fast' : (s.detail === 'fast' ? 'full' : 'auto');
+          CF.Rig.setDetail(s.detail === 'fast' ? 1 : 2);
+        } },
       { label: 'SHOW HITBOXES', value: s.showBoxes ? 'ON' : 'OFF',
         desc: 'Draws the boxes the game actually fights with: blue is where you can be hit, red is what your attack reaches, white is where you stand. For working out why something missed.',
         inc: function () { s.showBoxes = !s.showBoxes; }, dec: function () { s.showBoxes = !s.showBoxes; } },
