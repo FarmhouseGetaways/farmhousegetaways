@@ -831,6 +831,45 @@ Three things a later session needs to know:
   The tail also lags a few frames behind the body, applied to the drawn pose
   only — `Fighter.drawPose()`, never `currentPose()`, which `hurtboxes()`
   calls and which must not have a spring in it.
+- **One file per cat and one per stage.** `src/cats/<id>.js` registers on
+  `CF.CatDefs`, `src/stages/<id>.js` on `CF.StageDefs`; `characters.js` and
+  `stages.js` are assembly only. The shared move builders are in
+  `src/catkit.js`. The test harness reads its file list from `index.html`'s
+  script tags rather than keeping a copy, so a new file cannot be forgotten.
+  This exists so several artists can work at once without collisions.
+- **`catfighter/ART.md` is the brief.** Read it before changing anything
+  anybody looks at. It carries the bar, the checklist, and the `look` API.
+- **`node tools/shot.mjs`** renders any of it to a PNG — `cats`, `cat`,
+  `head`, `strip` (a move cel by cel), `stage`, `stages`, `fight`. **Look at
+  the picture.** Every art mistake in this project was made by someone
+  reasoning about the code instead of opening the render.
+- **A COSTUME is what makes a character recognisable, not a face and not a
+  palette.** Six cats built from one skeleton with six palettes are six of
+  the same cat, which is what the owner kept rejecting. Each cat file may
+  carry a `look` block that adds real geometry at four points in the draw
+  order — `back`, `body`, `front`, `head` — and everything it adds goes
+  through the same contour pass and the same cel shading as the fur. The
+  test is the silhouette: turn two cats black, and if they are confusable the
+  work is not done.
+- **Street Fighter II does not tween.** A punch is four DRAWINGS held for
+  several frames and the pop between them IS the punch. `Fighter.basePose`
+  takes a `drawing` flag that quantizes onto held cels — keyframe-stepped
+  through a move via `Anim.celFrame`, on a four-frame grid everywhere else.
+  The SIMULATION keeps the smooth clock, so frame data, hurtboxes and every
+  test are untouched. Never let the stepped clock reach `hurtboxes()`.
+- **An attack is a PAIR OF EXTREMES**, and the further apart they are the
+  harder it lands. A heavy moves the whole body: rear leg straight and
+  driving, pelvis travelling forward (`px` on the contact frame), shoulder
+  past the chest, far arm counter-swinging behind. Two specific errors, both
+  found with `shot.mjs strip`: the head was thrown forward with the torso so
+  it ended up IN FRONT of the punching arm and hid it; and the sweep threw
+  its leg down at 116 degrees from a pelvis already on the floor, so it drove
+  into the ground and read as a cat sitting down.
+- **A hit knocks the DRAWING out of place.** `Fighter.jolt` moves the sprite
+  several pixels away from the blow on the contact frame and slides it back.
+  It is what makes hitstop read as an impact rather than the game stuttering.
+  A test asserts it never reaches a hurtbox — if it did, whether a trade came
+  out would depend on how hard the last hit landed.
 - **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**
