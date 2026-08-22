@@ -894,28 +894,41 @@
 
   /* ---- what to draw ------------------------------------------------------ */
 
-  Fighter.prototype.currentPose = function () {
-    var p = this.basePose();
+  /* `drawing` asks for the stepped-cel version — the pose quantized to held
+     drawings, the way a sprite sheet would hold them. Gameplay never passes
+     it: hurtboxes and pushboxes always come from the smooth clock. */
+  Fighter.prototype.currentPose = function (drawing) {
+    var p = this.basePose(drawing);
     /* The character's own posture, on everything except an authored attack —
        those are drawn frame by frame and already say who is throwing them. */
     if (this.state === 'move') return p;
     return A.restyle(p, this.chr.stance);
   };
 
-  Fighter.prototype.basePose = function () {
+  /* Drawn frames advance on a 4-frame grid — 15 drawings a second, the
+     sprite cadence. The pop between held drawings is what makes an attack
+     read as a punch instead of a glide; see Anim.celFrame. */
+  var CEL = 4;
+
+  Fighter.prototype.basePose = function (drawing) {
     var s = this.state, f = this.stateFrame;
+    if (drawing) f = f - (f % CEL);
 
     if (s === 'move' && this.move) {
-      return A.sample(this.move.anim, this.moveFrame, this.move);
+      var mf = drawing ? A.celFrame(this.move.anim, this.moveFrame) : this.moveFrame;
+      return A.sample(this.move.anim, mf, this.move);
     }
     switch (s) {
       case 'idle':
         if (this.blockHeld) return Ps.guardHigh;
-        return A.cycle([Ps.stand, Ps.standB, Ps.stand, Ps.standC], 12, this.idleTimer);
+        return A.cycle([Ps.stand, Ps.standB, Ps.stand, Ps.standC], 12,
+                       drawing ? this.idleTimer - (this.idleTimer % CEL) : this.idleTimer);
       case 'walkF':
-        return A.cycle([Ps.walkF1, Ps.walkF2, Ps.walkF3, Ps.walkF4], 7, this.walkTimer);
+        return A.cycle([Ps.walkF1, Ps.walkF2, Ps.walkF3, Ps.walkF4], 7,
+                       drawing ? this.walkTimer - (this.walkTimer % CEL) : this.walkTimer);
       case 'walkB':
-        return A.cycle([Ps.walkB1, Ps.walkB2, Ps.walkB3, Ps.walkB4], 8, this.walkTimer);
+        return A.cycle([Ps.walkB1, Ps.walkB2, Ps.walkB3, Ps.walkB4], 8,
+                       drawing ? this.walkTimer - (this.walkTimer % CEL) : this.walkTimer);
       case 'crouch':
         return this.blockHeld ? Ps.guardLow : Ps.crouch;
       case 'jump':
@@ -962,7 +975,7 @@
      time it was asked would run at whatever rate the game happened to look. */
   Fighter.prototype.advanceLag = function () {
     if (!this._lag) this._lag = {};
-    this._drawPose = A.settle(this._lag, this.currentPose());
+    this._drawPose = A.settle(this._lag, this.currentPose(true));
   };
 
   Fighter.prototype.drawPose = function () {

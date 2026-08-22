@@ -443,6 +443,36 @@
     return out;
   }
 
+  /* ---- stepped cels -------------------------------------------------------
+
+     Street Fighter II does not tween. A punch is four DRAWINGS — wind-up,
+     extension, follow-through, recovery — each held for several frames, and
+     the pop between them is the punch. Smooth interpolation between key
+     poses is precisely what made these cats read as vector puppets however
+     well they were drawn.
+
+     `celFrame` maps a live animation clock onto the drawing that should be
+     on screen: the last keyframe passed, plus a single midpoint cel wherever
+     two keyframes are far apart (a 26-frame recovery is two drawings in the
+     reference, not one freeze and not a glide). The SIMULATION keeps the
+     smooth clock — hurtboxes, frame data and tests never see this. */
+  function celFrame(keys, frame, maxGap) {
+    var gap = maxGap || 14;
+    var best = keys[0].at;
+    for (var i = 0; i < keys.length; i++) {
+      var a = keys[i].at;
+      if (a <= frame) best = a;
+      if (i + 1 < keys.length) {
+        var b = keys[i + 1].at;
+        if (b - a > gap) {
+          var mid = Math.round((a + b) / 2);
+          if (mid <= frame && mid > best) best = mid;
+        }
+      }
+    }
+    return best;
+  }
+
   /* loop through an array of poses at n frames each */
   function cycle(poses, framesEach, frame) {
     var total = poses.length * framesEach;
@@ -453,6 +483,6 @@
   }
 
   CF.Pose = L;
-  CF.Anim = { blend: blend, sample: sample, cycle: cycle, settle: settle, restyle: restyle,
+  CF.Anim = { blend: blend, sample: sample, cycle: cycle, settle: settle, restyle: restyle, celFrame: celFrame,
               easeIn: easeIn, easeOut: easeOut, BASE: BASE, make: P };
 })();

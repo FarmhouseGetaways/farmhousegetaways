@@ -17,6 +17,10 @@
 
   /* Build the full move table for each character once, at load. */
   ROSTER.forEach(function (c) {
+    /* The rig is handed a palette, not a character, so a cat's `look` block —
+       which reads far better at the top level of its own file — is carried
+       across onto the palette here. */
+    if (c.look) c.palette.look = c.look;
     var normals = M.baseNormals(c.mod);
     var throws = M.throwMoves(c.mod);
     var sys = M.systemMoves();

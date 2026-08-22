@@ -23,6 +23,86 @@
   stance: { torso: -3, py: 1.5, armF: [-10, -20], armB: [-8, 2], head: [0, 0, -2] },
   build: { s: 1.02, girth: 1.06, limb: 0.99, head: 1.00, muscle: 0.9,
            headShape: 'round', ear: 'small', shoulder: 1.02, waist: 0.98, limbW: 1.02 },
+
+  /* ---- HER LOOK ---------------------------------------------------------
+
+     The costume, not the colour, is what makes a fighting-game character
+     recognisable — you know Ryu from the gi and Zangief from the outline
+     with the screen upside down. Gracie wears a sleeveless training top
+     gone soft with washing, a belt tied off at the hip, and wraps.
+
+     `pieces` adds real geometry into the figure at four points in the draw
+     order — 'back', 'body', 'front', 'head' — and everything it adds gets
+     the same contour pass and the same cel shading as the fur underneath
+     it. `f` carries the measurements: chestW, waistW, hipW, headR, the limb
+     radii, and the tones. See the COSTUME block in rig.js.               */
+  look: {
+    pieces: function (A, j, f) {
+      var GI = '#e6ddc9', TRIM = '#c4b79c', BELT = '#8f2f2c';
+
+      /* --- the top: a vest over the chest, cut away at the shoulders so
+             the deltoids stay in the silhouette, and hanging loose at the
+             hem where a worn one would --- */
+      var p = j.pelvis, n = j.neck;
+      var dx = n.x - p.x, dy = n.y - p.y;
+      var L = Math.hypot(dx, dy) || 1;
+      var fx = dy / L, fy = -dx / L;          /* forward, across the spine */
+      function T(t, w) { return { x: p.x + dx * t + fx * w, y: p.y + dy * t + fy * w }; }
+
+      A.add('body', function (cx) {
+        A.smooth(cx, [
+          T(0.02, f.hipW * 1.10), T(0.30, f.waistW * 1.24),
+          T(0.58, f.chestW * 1.10), T(0.80, f.chestW * 1.20),
+          T(0.96, f.chestW * 0.86), T(1.00, f.chestW * 0.08),
+          T(0.94, -f.chestW * 0.78), T(0.74, -f.chestW * 1.14),
+          T(0.46, -f.chestW * 1.06), T(0.22, -f.waistW * 1.26),
+          T(-0.02, -f.hipW * 1.14), T(-0.06, 0)
+        ]);
+      }, GI, { band: true, edge: true });
+
+      /* the lapel crossing the chest, which is the shape that says gi */
+      A.add('body', function (cx) {
+        A.smooth(cx, [
+          T(0.96, f.chestW * 0.12), T(0.90, f.chestW * 0.78),
+          T(0.52, f.chestW * 0.44), T(0.46, f.chestW * 0.02),
+          T(0.62, -f.chestW * 0.22), T(0.88, -f.chestW * 0.30)
+        ]);
+      }, TRIM, { band: true, edge: true });
+
+      /* --- the belt, tied off with two short ends --- */
+      A.add('body', function (cx) {
+        A.smooth(cx, [
+          T(0.13, f.waistW * 1.30), T(0.24, f.waistW * 1.26),
+          T(0.25, -f.waistW * 1.26), T(0.14, -f.waistW * 1.30)
+        ]);
+      }, BELT, { band: true, edge: true });
+      A.add('body', function (cx) {
+        A.smooth(cx, [
+          T(0.20, f.waistW * 1.02), T(0.21, f.waistW * 1.34),
+          T(-0.10, f.waistW * 1.20), T(-0.08, f.waistW * 0.80)
+        ]);
+      }, A.shade(BELT, 0.20), { edge: true });
+
+      /* --- the headband's tails, streaming behind her. The band itself is
+             already drawn on the skull; these are what you see move. --- */
+      var r = f.headR, sway = 0;
+      A.add('head', function (cx) {
+        cx.beginPath();
+        cx.moveTo(-r * 0.86, r * 0.44);
+        cx.quadraticCurveTo(-r * 1.54, r * 0.74 + sway, -r * 2.16, r * 0.30 + sway);
+        cx.quadraticCurveTo(-r * 1.56, r * 0.22 + sway, -r * 0.90, -r * 0.06);
+        cx.closePath();
+      }, BELT, { edge: true });
+      A.add('head', function (cx) {
+        cx.beginPath();
+        cx.moveTo(-r * 0.84, r * 0.06);
+        cx.quadraticCurveTo(-r * 1.44, -r * 0.30 - sway, -r * 2.02, -r * 0.60 - sway);
+        cx.quadraticCurveTo(-r * 1.36, -r * 0.10 - sway, -r * 0.80, -r * 0.34);
+        cx.closePath();
+      }, A.shade(BELT, 0.22), { edge: true });
+    }
+  },
+
   displayName: 'GRACIE',
   subtitle: 'The Elder',
   blurb: 'Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.\nLet them come to you.',

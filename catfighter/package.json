@@ -75,5 +75,8 @@
       "category": "Game",
       "icon": "assets/icon.png"
     }
+  },
+  "dependencies": {
+    "playwright-core": "^1.62.1"
   }
 }

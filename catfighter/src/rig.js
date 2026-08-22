@@ -726,6 +726,71 @@
     }
     function strokeShape(path, colour, w) { shapes.push({ k: 's', p: path, c: colour, w: w }); }
 
+    /* ---- COSTUME ---------------------------------------------------------
+
+       Six cats built from one skeleton with six palettes are six of the same
+       cat. What makes a Street Fighter II character recognisable at a glance
+       is never the face — it is the COSTUME and the SILHOUETTE: a gi, a
+       qipao, a mohawk, boxing gloves, a topknot. You know Zangief from his
+       outline with the screen turned upside down.
+
+       So each cat file may carry a `look` block, and it gets to add real
+       geometry at four points in the draw order. Everything it adds goes
+       through the same contour pass and the same cel shading as the body, so
+       a scarf is lit by the same lamp as the shoulder it sits on.
+
+           look.pieces(A, j, fig)     A.add(layer, pathFn, colour, opts)
+           look.overlay(ctx, j, fig)  free drawing, over the finished figure
+
+       Layers, in draw order:
+         'back'  behind everything — a cape, a banner, a long braid
+         'body'  on the torso, over the far limbs — a gi, a vest, a belt
+         'front' over the near arm and leg — a glove, a wrap, a pauldron
+         'head'  on the skull, under the face — a headband, a topknot, horns
+
+       `opts` is the same as any other shape: {band, edge, flat}. Use
+       `edge: true` for anything that is a different material from the fur,
+       which is nearly everything a costume is made of.                   */
+    var costume = { back: [], body: [], front: [], head: [] };
+    var LOOK = c.look;
+    if (LOOK && LOOK.pieces) {
+      var api = {
+        add: function (layer, path, colour, opt) {
+          var bin = costume[layer];
+          if (!bin) throw new Error('unknown costume layer: ' + layer);
+          bin.push({ k: 'f', p: path, c: colour,
+                     band: !!(opt && opt.band), edge: !!(opt && opt.edge),
+                     flat: !!(opt && opt.flat) });
+        },
+        stroke: function (layer, path, colour, w) {
+          var bin = costume[layer];
+          if (!bin) throw new Error('unknown costume layer: ' + layer);
+          bin.push({ k: 's', p: path, c: colour, w: w });
+        },
+        /* the tones a costume should be built from, so a piece of kit is lit
+           by the same lamp as the cat wearing it */
+        shade: function (col, amt) { return mix(col, SHADE_TO, amt === undefined ? 0.34 : amt); },
+        lit: function (col, amt) { return mix(col, LIGHT_TO, amt === undefined ? 0.24 : amt); },
+        smooth: smoothClosed,
+        capsule: capsulePath,
+        ellipse: ellipsePath,
+        limb: limbPath
+      };
+      /* Measurements a costume needs, in the same units the body uses. */
+      LOOK.pieces(api, j, {
+        s: s, G: G, GW: GW, white: white,
+        hipW: hipW, waistW: waistW, chestW: chestW,
+        R_TOP: R_TOP, R_MID: R_MID, R_END: R_END,
+        HAND: HAND, FOOT_X: FOOT_X, FOOT_Y: FOOT_Y,
+        headR: j.headR, line: line,
+        fur: fur, fur2: fur2, belly: belly, furFront: furFront, furBack: furBack
+      });
+    }
+    function pour(layer) {
+      var bin = costume[layer];
+      for (var q = 0; q < bin.length; q++) shapes.push(bin[q]);
+    }
+
     var back = c.points ? c.marks : furBack;
     var shinF = c.points ? c.marks : (c.sock ? (c.sockColor || belly) : fur);
     var footF = c.points ? c.marks : shinF;
@@ -741,6 +806,7 @@
         }, white ? '#fff' : c.tailTip);
       }
     }
+    pour('back');
     if (!tailUp) addTail();
 
     /* back leg and arm, in the shade */
@@ -794,6 +860,8 @@
       capsulePath(cx, j.neck, j.head, chestW * 0.30, j.headR * 0.52);
     }, shade(fur, dark ? -0.10 : -0.14));
 
+    pour('body');
+
     /* front leg and arm */
     var frontParts = [
       function (cx) { ellipsePath(cx, j.shF.x, j.shF.y, R_TOP * 1.16, R_TOP * 1.06); },
@@ -812,6 +880,8 @@
     fillShape(frontParts[4], furFront, { band: true });
     fillShape(frontParts[5], furFront);
     fillShape(frontParts[6], c.gloves || furFront, { flat: true });
+
+    pour('front');
 
     /* ---- the kit -------------------------------------------------------
 
@@ -942,7 +1012,8 @@
       frontStart: frontStart,
       fur: fur, fur2: fur2, belly: belly, line: line, white: white,
       hipW: hipW, waistW: waistW, chestW: chestW, tailW: tailW, kit: c.kit || {},
-      OUTLINE: OUTLINE, s: s, G: G, limbW: LIMBW
+      OUTLINE: OUTLINE, s: s, G: G, limbW: LIMBW,
+      costumeHead: costume.head, look: LOOK
     };
   }
 
@@ -1082,7 +1153,15 @@
 
     if (!white) drawForm(ctx, fig, j);
     if (!white) drawKit(ctx, fig, j, c);
-    drawHead(ctx, j, c, fig.fur, fig.fur2, fig.belly, fig.line, opts);
+    drawHead(ctx, j, c, fig.fur, fig.fur2, fig.belly, fig.line, opts, fig);
+
+    /* Anything the costume wants drawn over the finished cat — stripes, a
+       scar, an insignia on a belt. After the face, so it can cross it. */
+    if (fig.look && fig.look.overlay && !fig.white) {
+      ctx.save();
+      fig.look.overlay(ctx, j, fig);
+      ctx.restore();
+    }
   }
 
   /* Anatomy lines: the creases a body actually has.
@@ -1333,7 +1412,7 @@
 
   /* ---- the face, drawn on top of the finished silhouette ------------------ */
 
-  function drawHead(ctx, j, c, fur, fur2, belly, line, opts) {
+  function drawHead(ctx, j, c, fur, fur2, belly, line, opts, fig) {
     var r = j.headR, s = j.s;
     var es = s;
     var white = opts.flash === 'white';
@@ -1422,6 +1501,28 @@
       ctx.restore();
     }
 
+    /* The costume's head layer — a headband, a topknot, horns. Drawn in the
+       head's own frame, after the skull is shaded and before the face, so a
+       band goes under the eyes rather than over them. Contour first, then
+       fills, the same two passes the body gets. */
+    if (fig && fig.costumeHead && fig.costumeHead.length && !white) {
+      var hp = fig.costumeHead, q3;
+      ctx.save();
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = line;
+      for (q3 = 0; q3 < hp.length; q3++) {
+        ctx.lineWidth = (hp[q3].k === 's' ? hp[q3].w : 0) + (fig.OUTLINE || 1.8) * 2;
+        hp[q3].p(ctx); ctx.stroke();
+      }
+      for (q3 = 0; q3 < hp.length; q3++) {
+        var hs = hp[q3];
+        if (hs.k === 's') { hs.p(ctx); ctx.strokeStyle = hs.c; ctx.lineWidth = hs.w; ctx.stroke(); }
+        else { celFill(ctx, hs.p, hs.c, hs.band, hs.flat ? 0 : 2.3 * s); }
+        if (hs.edge) { hs.p(ctx); ctx.strokeStyle = line; ctx.lineWidth = 1.15 * s; ctx.stroke(); }
+      }
+      ctx.restore();
+    }
+
     /* head markings */
     if (c.pattern === 'tabby') {
       ctx.strokeStyle = c.marks; ctx.lineWidth = 1.7 * es; ctx.globalAlpha = 0.9;
@@ -1462,6 +1563,181 @@
     }
 
     /* an elder cat goes pale round the muzzle */
+    if (c.elder) {
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.36, -r * 0.28, r * 0.66, r * 0.50, 0, 0, Math.PI * 2);
+      ctx.fillStyle = c.silver || '#d8d3c8'; ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+
+    /* an open mouth, for a cat that is making a noise */
+    if (opts.mouth === 'open') {
+      ctx.beginPath();
+      ctx.ellipse(r * 0.56, -r * 0.46, r * 0.23, r * 0.18, -0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#4a2026'; ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(r * 0.56, -r * 0.41, r * 0.14, r * 0.095, -0.12, 0, Math.PI * 2);
+      ctx.fillStyle = '#c9707e'; ctx.fill();
+      ctx.fillStyle = '#fdfbf5';
+      ctx.beginPath();
+      ctx.moveTo(r * 0.40, -r * 0.36); ctx.lineTo(r * 0.47, -r * 0.36);
+      ctx.lineTo(r * 0.435, -r * 0.47); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(r * 0.66, -r * 0.36); ctx.lineTo(r * 0.73, -r * 0.36);
+      ctx.lineTo(r * 0.695, -r * 0.47); ctx.closePath(); ctx.fill();
+    }
+
+    /* nose */
+    ctx.beginPath();
+    ctx.moveTo(r * 0.66, -r * 0.12);
+    ctx.lineTo(r * 0.90, -r * 0.06);
+    ctx.lineTo(r * 0.78, -r * 0.30);
+    ctx.closePath();
+    ctx.fillStyle = c.nose || '#d98a94'; ctx.fill();
+
+    /* ---- the eyes -----------------------------------------------------
+
+       A fighting-game face is not a cute face. What was here was a big round
+       eye with a white bubble of sclera and a cartoon catchlight, which reads
+       as a plush toy from any distance — and it is the first thing anybody
+       looks at, so it decided the whole character.
+
+       A Street Fighter II eye is a NARROW almond under a heavy brow, tilted
+       down towards the nose, with the iris filling nearly all of it and only
+       a sliver of white at the outside corner. At twelve pixels across that
+       reads as determination; a circle reads as surprise.                */
+    var eyeState = opts.eyes || 'normal';
+    var skullKind = (j.build && j.build.headShape) || 'round';
+    /* how far the brow comes down over the eye — heavy on a blocky skull */
+    var browK = 0.30 + 0.70 * ((SKULLS[skullKind] && SKULLS[skullKind].brow) || 0.5)
+              + (eyeState === 'angry' ? 0.55 : 0);
+
+    function eye(ex, ey, sc, near) {
+      if (eyeState === 'closed' || eyeState === 'ko') {
+        ctx.strokeStyle = line; ctx.lineWidth = 1.9 * sc; ctx.lineCap = 'round';
+        ctx.beginPath();
+        if (eyeState === 'ko') {
+          ctx.moveTo(ex - 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex + 2.8 * sc, ey + 2.8 * sc);
+          ctx.moveTo(ex + 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex - 2.8 * sc, ey + 2.8 * sc);
+        } else {
+          ctx.moveTo(ex - 3.4 * sc, ey + 0.6 * sc);
+          ctx.quadraticCurveTo(ex, ey - 1.8 * sc, ex + 3.4 * sc, ey + 0.2 * sc);
+        }
+        ctx.stroke();
+        return;
+      }
+
+      /* Even at rest the eye is a slit, not a circle — and it is SMALL. The
+         old one was a quarter of the skull's radius across, which is manga
+         proportion; a Street Fighter II eye is about an eighth of the head
+         and mostly iris. */
+      var lid = eyeState === 'angry' ? 0.40 : 0.56;
+      var w = 2.35 * sc, h = 2.9 * sc * lid;
+
+      ctx.save();
+      ctx.translate(ex, ey);
+      ctx.rotate(near ? -0.30 : -0.22);        /* down towards the nose */
+
+      function almond(cx2) {
+        cx2.beginPath();
+        cx2.moveTo(-w, h * 0.16);
+        cx2.quadraticCurveTo(-w * 0.30, h * 1.10, w * 0.86, h * 0.30);
+        cx2.quadraticCurveTo(w * 1.08, -h * 0.16, w * 0.70, -h * 0.66);
+        cx2.quadraticCurveTo(-w * 0.20, -h * 1.14, -w, h * 0.16);
+        cx2.closePath();
+      }
+
+      almond(ctx);
+      ctx.fillStyle = '#efe8d8'; ctx.fill();
+
+      /* the iris fills nearly all of it — a sliver of white at the outside
+         corner is the only sclera a sprite this size can afford */
+      ctx.save();
+      almond(ctx); ctx.clip();
+      ctx.beginPath();
+      ctx.ellipse(w * 0.22, 0, w * 0.84, h * 1.40, 0, 0, Math.PI * 2);
+      ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
+      /* the slit pupil, which is the one thing that says cat */
+      ctx.beginPath();
+      ctx.ellipse(w * 0.28, 0, w * 0.20, h * 1.40, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#140f12'; ctx.fill();
+      /* the lid's shadow across the top of it */
+      ctx.fillStyle = 'rgba(24,14,26,.44)';
+      ctx.beginPath();
+      ctx.moveTo(-w * 1.3, -h * 1.5);
+      ctx.lineTo(w * 1.3, -h * 1.5);
+      ctx.lineTo(w * 1.3, -h * 0.34);
+      ctx.quadraticCurveTo(0, -h * 0.66, -w * 1.3, -h * 0.10);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+
+      /* the lash line: heavy on top, nothing underneath. A line all the way
+         round is a cartoon eye however narrow you make it. */
+      ctx.strokeStyle = line;
+      ctx.lineWidth = Math.max(1, 0.85 * sc);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-w * 1.02, h * 0.10);
+      ctx.quadraticCurveTo(-w * 0.20, -h * 1.18, w * 0.76, -h * 0.60);
+      ctx.stroke();
+
+      /* The brow ridge, drawn HERE rather than over the skull, because a brow
+         is a thing that sits on an eye and moves with it. It is a shape with
+         mass in the shadow tone: a drawn line reads as a pencilled-on
+         eyebrow, and a bar laid across the whole skull reads as a monobrow
+         sticker. Both were tried, on 22 Aug 2026. */
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.46);
+      ctx.beginPath();
+      ctx.moveTo(-w * 1.10, h * 0.24 + browK * h * 0.34);
+      ctx.quadraticCurveTo(-w * 0.10, -h * 1.05 + browK * h * 0.42,
+                           w * 1.02, -h * 0.72 + browK * h * 0.16);
+      ctx.lineTo(w * 0.94, -h * 1.34);
+      ctx.quadraticCurveTo(-w * 0.16, -h * 1.86, -w * 1.18, -h * 0.40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    eye(r * 0.52, r * 0.22, es, true);
+    eye(-r * 0.16, r * 0.26, 0.88 * es, false);
+
+    /* ---- the mouth ----------------------------------------------------
+
+       There was no mouth at all, so every expression had to be carried by
+       the eyes alone. A short hard line under the muzzle, set grim by
+       default and opening into a shout when the move says to. */
+    ctx.save();
+    ctx.strokeStyle = line;
+    ctx.lineCap = 'round';
+    if (opts.mouth === 'open') {
+      ctx.beginPath();
+      ctx.moveTo(r * 0.50, -r * 0.30);
+      ctx.quadraticCurveTo(r * 0.72, -r * 0.84, r * 0.96, -r * 0.32);
+      ctx.quadraticCurveTo(r * 0.74, -r * 0.20, r * 0.50, -r * 0.30);
+      ctx.closePath();
+      ctx.fillStyle = '#4a1c26'; ctx.fill();
+      ctx.lineWidth = 1.1 * es; ctx.stroke();
+      ctx.fillStyle = '#f6f1e4';                /* one fang is all that fits */
+      ctx.beginPath();
+      ctx.moveTo(r * 0.60, -r * 0.32);
+      ctx.lineTo(r * 0.70, -r * 0.32);
+      ctx.lineTo(r * 0.65, -r * 0.52);
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.lineWidth = Math.max(1, 1.5 * es);
+      ctx.beginPath();
+      ctx.moveTo(r * 0.46, -r * 0.42);
+      ctx.quadraticCurveTo(r * 0.68, -r * 0.56, r * 0.90, -r * 0.36);
+      ctx.stroke();
+      ctx.lineWidth = 1.0 * es;                 /* the philtrum */
+      ctx.beginPath();
+      ctx.moveTo(r * 0.72, -r * 0.14);
+      ctx.lineTo(r * 0.70, -r * 0.34);
+      ctx.stroke();
+    }
+    ctx.restore();
+
     if (c.elder) {
       ctx.globalAlpha = 0.5;
       ctx.beginPath();
