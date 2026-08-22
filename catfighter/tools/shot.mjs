@@ -9,7 +9,9 @@
  *   node tools/shot.mjs roster out.png [scale]           a presentation sheet
  *   node tools/shot.mjs kit    out.png                  the silhouette primitives
  *   node tools/shot.mjs silhouette out.png [scale]       every cat, flat black
- *   node tools/shot.mjs fight out.png [stageIdx] [frames]   the real game
+ *   node tools/shot.mjs fight  out.png [stageIdx] [frames]  the real game
+ *   node tools/shot.mjs screen out.png [names]            menus: title, select,
+ *                                  stage, card, roster, options, result
  *
  * Everything is drawn through the real shipping files — the list comes from
  * index.html, so a new cat or stage file is picked up without editing this.
@@ -243,7 +245,7 @@ stages: () => `
 };
 
 const scene = SCENES[mode];
-const live = mode === 'fight';
+const live = mode === 'fight' || mode === 'screen';
 if (!scene && !live) { console.error('unknown mode: ' + mode + ' — try ' + Object.keys(SCENES).concat('fight').join(', ')); process.exit(1); }
 
 const body = live ? '' : scene(rest);
@@ -270,18 +272,64 @@ const browser = await chromium.launch({ executablePath: EXE, args: ['--no-sandbo
 const errs = [];
 try {
   if (live) {
-    const idx = Number(rest[0]) || 0, frames = Number(rest[1]) || 240;
     const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
     page.on('pageerror', e => errs.push(e.message));
     await page.goto('file://' + join(ROOT, 'index.html'), { waitUntil: 'load' });
     await page.waitForTimeout(600);
-    const url = await page.evaluate(({ idx, frames }) => {
-      const g = window.CF.game;
-      g.startMatch(CF.ROSTER[idx % 6], CF.ROSTER[(idx + 2) % 6], idx, 'arcade');
-      for (let k = 0; k < frames; k++) g.step();
-      g.render();
-      return document.getElementById('screen').toDataURL('image/png');
-    }, { idx, frames });
+    let url;
+    if (mode === 'fight') {
+      const idx = Number(rest[0]) || 0, frames = Number(rest[1]) || 240;
+      url = await page.evaluate(({ idx, frames }) => {
+        const g = window.CF.game;
+        g.startMatch(CF.ROSTER[idx % 6], CF.ROSTER[(idx + 2) % 6], idx, 'arcade');
+        for (let k = 0; k < frames; k++) g.step();
+        g.render();
+        return document.getElementById('screen').toDataURL('image/png');
+      }, { idx, frames });
+    } else {
+      /* A menu screen, stacked if several are asked for:
+           node tools/shot.mjs screen out.png title,select,card,stage,options,result */
+      const which = (rest[0] || 'title,select,card,options').split(',');
+      url = await page.evaluate((which) => {
+        const g = window.CF.game, W = 384, H = 224;
+        const src = document.getElementById('screen');
+        const Z = 2;
+        const out = document.createElement('canvas');
+        out.width = W * Z; out.height = H * Z * which.length;
+        const o = out.getContext('2d');
+        o.imageSmoothingEnabled = false;
+        which.forEach((name, i) => {
+          g.settings.mode = 'arcade';
+          if (name === 'title') { g.scene = 'title'; g.menuIndex = 0; }
+          else if (name === 'select') {
+            g.scene = 'select';
+            g.select = { cursor: [0, 3], locked: [false, false], stage: 0, phase: 'chars' };
+          } else if (name === 'stage') {
+            g.scene = 'select';
+            g.select = { cursor: [0, 3], locked: [true, false], stage: 0, phase: 'stage' };
+          } else if (name === 'card') {
+            g.scene = 'reveal'; g.reveal = { chr: CF.ROSTER[4], t: 40 };
+          } else if (name === 'roster') {
+            g.scene = 'roster'; g.roster = { cat: 2, pick: 0 };
+          } else if (name === 'options') { g.scene = 'options'; g.optIndex = 0; }
+          else if (name === 'result') {
+            g.startMatch(CF.ROSTER[1], CF.ROSTER[3], 0, 'arcade');
+            for (let k = 0; k < 160; k++) g.step();
+            g.matchWinner = g.p1; g.scene = 'result';
+            g.resultKind = 'win'; g.resultStart = undefined; g.resultTimer = 300;
+            /* The result screen opens on a white flash and slides its
+               lettering in, so one render lands on a blank page. Run it far
+               enough in that the picture has arrived. */
+            for (let k = 0; k < 50; k++) { g.t++; g.render(); }
+          }
+          g.render();
+          o.drawImage(src, 0, 0, src.width, src.height, 0, i * H * Z, W * Z, H * Z);
+          o.strokeStyle = 'rgba(255,255,255,.25)';
+          o.strokeRect(0.5, i * H * Z + 0.5, W * Z - 1, H * Z - 1);
+        });
+        return out.toDataURL('image/png');
+      }, which);
+    }
     writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
   } else {
     const page = await browser.newPage({ viewport: { width: 400, height: 300 } });
