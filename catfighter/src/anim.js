@@ -50,10 +50,10 @@
   L.walkB3 = P({ py: 39, torso: 8, legF: [34, -34], legB: [-26, 28], armF: [50, 104], armB: [30, 112], tail: [226, -14, -12.8] });
   L.walkB4 = P({ py: 41, torso: 9, legF: [18, -22], legB: [-12, 16], armF: [46, 98], armB: [32, 116] });
 
-  L.crouch = P({ py: 22, torso: 20, head: [4, 13, 4],
+  L.crouch = P({ py: 24.2, torso: 20, head: [4, 13, 4],
                  legF: [62, -118], legB: [-46, 104],
                  armF: [52, 84], armB: [34, 92], tail: [216, -8.4, 6.4] });
-  L.crouchDeep = P({ py: 19, torso: 24, head: [5, 12.5, 6],
+  L.crouchDeep = P({ py: 21.2, torso: 24, head: [5, 12.5, 6],
                  legF: [66, -124], legB: [-50, 110],
                  armF: [56, 82], armB: [36, 90], tail: [212, -5.6, 9.6] });
 
@@ -74,7 +74,7 @@
   L.guardHigh = P({ py: 38, torso: -2, head: [1, 14.6, -4],
                     armF: [14, 134], armB: [6, 138],
                     legF: [24, -28], legB: [-26, 30], tail: [218, -8.4, -6.4] });
-  L.guardLow = P({ py: 22, torso: 10, head: [2, 13, -2],
+  L.guardLow = P({ py: 24.2, torso: 10, head: [2, 13, -2],
                    armF: [24, 122], armB: [16, 126],
                    legF: [62, -118], legB: [-46, 104], tail: [212, -5.6, 3.2] });
   L.guardAir = P({ py: 40, torso: 0, head: [1, 15, -3],
@@ -88,7 +88,7 @@
   L.hitBody = P({ py: 39, torso: -10, head: [0, 14, -12],
                   armF: [10, 60], armB: [0, 56],
                   legF: [16, -18], legB: [-24, 20], tail: [214, 0, 12.8] });
-  L.hitLow = P({ py: 21, torso: -6, head: [0, 13, -14],
+  L.hitLow = P({ py: 23.2, torso: -6, head: [0, 13, -14],
                  armF: [4, 62], armB: [-6, 58],
                  legF: [60, -114], legB: [-44, 100], tail: [210, 2.8, 12.8] });
   L.hitHeavy = P({ py: 42, torso: -30, head: [-6, 15, -34],

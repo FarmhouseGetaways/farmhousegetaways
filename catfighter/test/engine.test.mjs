@@ -1813,3 +1813,43 @@ test('a hit jolts the drawing without moving the hurtbox', () => {
   assert.ok(Math.abs(g.p2.joltX) < start * 0.2,
     `the jolt should slide back, not stick at ${g.p2.joltX}`);
 });
+
+
+test('every cat stands on the floor', () => {
+  /* The pelvis height is authored, and the feet land wherever the leg angles
+     put them — so a stance that bends the legs a little more, or a build with
+     shorter limbs, quietly leaves a cat hovering or shin-deep in the boards.
+     It is the loudest possible bug and completely invisible in a contact
+     sheet on flat grey, which is how it survived.
+
+     Tolerance is generous: a walk cycle SHOULD lift a foot, and a step down
+     is a real thing. What this catches is a whole cat parked off the floor. */
+  const POSES = ['stand', 'standB', 'standC', 'guardHigh', 'crouch', 'guardLow',
+                 'walkF1', 'walkF2', 'walkF3', 'walkF4',
+                 'walkB1', 'walkB2', 'walkB3', 'walkB4'];
+  const bad = [];
+  for (const chr of CF.ROSTER) {
+    for (const name of POSES) {
+      const pose = CF.Anim.restyle(CF.Pose[name], chr.stance);
+      const j = CF.Rig.solve(pose, 1, chr.build);
+      const lowest = Math.min(j.footF.y, j.footB.y);
+      const highest = Math.max(j.footF.y, j.footB.y);
+      if (lowest < -4.5) bad.push(`src/cats/${chr.id}.js: ${name} sinks ${(-lowest).toFixed(1)} into the floor`);
+      else if (lowest > 5.0) bad.push(`src/cats/${chr.id}.js: ${name} floats ${lowest.toFixed(1)} above the floor`);
+      if (highest > 14) bad.push(`src/cats/${chr.id}.js: ${name} lifts a foot ${highest.toFixed(1)} — that is a jump, not a step`);
+    }
+  }
+  assert.equal(bad.length, 0, 'feet are not on the floor:\n  ' + bad.join('\n  '));
+});
+
+test('a fighting stance is wider than it is polite', () => {
+  /* A Street Fighter II fighter plants: feet apart, both knees bent, weight
+     down. Standing with the feet together is what makes a figure read as a
+     person standing up rather than a fighter braced for a hit. */
+  for (const chr of CF.ROSTER) {
+    const j = CF.Rig.solve(CF.Anim.restyle(CF.Pose.stand, chr.stance), 1, chr.build);
+    const spread = Math.abs(j.footF.x - j.footB.x);
+    assert.ok(spread > 14,
+      `${chr.id}: the idle stance is only ${spread.toFixed(1)} wide — plant the feet`);
+  }
+});
