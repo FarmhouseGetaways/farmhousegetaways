@@ -1479,6 +1479,60 @@ test('every part of the body is shaded by the same light', () => {
   }
 });
 
+test('a costume layer lands where its name says it does', () => {
+  /* Four layers, four points in the draw order, and none of them leaves a
+     trace you could check in the finished picture — a piece in the wrong bin
+     just looks like a piece somewhere else. So: a sentinel colour per layer,
+     replayed against the recorder, and the order of the fills is the test.
+
+     The 'far' layer is the one worth having a test for. It was added on
+     22 Aug 2026 because there was nowhere to put kit belonging to the FAR
+     arm: 'back' puts the arm on top of it and 'body' puts it on top of the
+     belly, which is how Mario's far wrist wrap turned into a crimson blob
+     and had to be dropped. */
+  const chr = CF.ROSTER[0];
+  const SENTINEL = { back: '#010101', far: '#020202', body: '#030303', front: '#040404' };
+  const pal = Object.assign({}, chr.palette, {
+    look: {
+      pieces: function (A, j) {
+        Object.keys(SENTINEL).forEach(function (layer) {
+          A.add(layer, function (cx) {
+            cx.beginPath(); cx.arc(j.pelvis.x, j.pelvis.y, 3, 0, Math.PI * 2);
+          }, SENTINEL[layer], { flat: true });
+        });
+      }
+    }
+  });
+  const ctx = recordingCtx();
+  const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
+  CF.Rig.drawCat(ctx, j, pal, {});
+  const fills = ctx.ops.filter(o => o.op === 'fill' && typeof o.style === 'string');
+  const at = (col) => fills.findIndex(o => o.style === col);
+
+  Object.keys(SENTINEL).forEach(function (layer) {
+    assert.ok(at(SENTINEL[layer]) >= 0, `the '${layer}' layer never reached the canvas`);
+  });
+  assert.ok(at(SENTINEL.back) < at(SENTINEL.far),
+    "'back' must be painted before 'far' — a cape goes behind the arm, not on it");
+  assert.ok(at(SENTINEL.far) < at(SENTINEL.body),
+    "'far' must be painted before 'body' — kit on the far arm goes UNDER the torso");
+  assert.ok(at(SENTINEL.body) < at(SENTINEL.front),
+    "'body' must be painted before 'front' — a glove goes over the gi");
+
+  /* And the point of 'far': it lands after the far limbs are painted. The far
+     arm and leg are filled in the palette's back-fur tone, so the last fill in
+     that tone before the 'far' sentinel is the far limb it belongs to. */
+  const farFur = fills.slice(0, at(SENTINEL.far));
+  assert.ok(farFur.length >= 8,
+    'the far arm and leg should already be down by the time the far layer pours');
+
+  assert.throws(() => {
+    CF.Rig.drawCat(recordingCtx(), j, Object.assign({}, chr.palette, {
+      look: { pieces: (A) => A.add('sleeve', (cx) => cx.beginPath(), '#fff') }
+    }), {});
+  }, /unknown costume layer/, 'a typo in a layer name should fail loudly, not vanish');
+});
+
 test('a flashing cat is drawn flat, with no shading at all', () => {
   const ctx = recordingCtx();
   const j = CF.Rig.solve(CF.Pose.stand, 1, CF.ROSTER[0].build);

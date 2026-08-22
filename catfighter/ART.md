@@ -71,7 +71,7 @@ render, look, change one thing, render again. Three or four rounds minimum.
 ```js
 look: {
   pieces: function (A, j, f) {
-    // A.add(layer, pathFn, colour, opts)   layer: back | body | front | head
+    // A.add(layer, pathFn, colour, opts)   layer: back|far|body|front|head
     // A.stroke(layer, pathFn, colour, width)
     // A.shade(col, amt) / A.lit(col, amt)  — the same lamp as the fur
     // A.smooth(ctx, pts) A.capsule A.ellipse A.limb
@@ -123,9 +123,17 @@ by a cat.
         A crest of spikes — a mohawk, a topknot, a torn crop of fur.
 
 Layers, in draw order: `back` (behind everything — a cape, a braid),
-`body` (on the torso, over the far limbs — a gi, a vest, a belt),
-`front` (over the near arm and leg — a glove, a wrap, a pauldron),
-`head` (on the skull, under the face — a band, a topknot, horns).
+`far` (on the far arm and leg, under the torso — the *other* glove, the other
+wrap, the other anklet), `body` (on the torso, over the far limbs — a gi, a
+vest, a belt), `front` (over the near arm and leg — a glove, a wrap, a
+pauldron), `head` (on the skull, under the face — a band, a topknot, horns).
+
+`far` exists because a symmetrical piece of kit had nowhere to go. Put the far
+wrist wrap in `back` and the arm is painted over it; put it in `body` and it
+lands on the belly instead of the wrist. Mario's was dropped for exactly that
+reason before the layer existed. A test asserts the order, because a piece in
+the wrong bin does not look like a bug — it just looks like a piece somewhere
+else.
 
 Coordinates are the figure's own space: **+y is up**, +x is forward. Anything
 you add is contoured and cel-shaded with the body automatically.

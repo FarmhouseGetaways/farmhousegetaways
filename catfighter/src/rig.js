@@ -835,6 +835,11 @@
 
        Layers, in draw order:
          'back'  behind everything — a cape, a banner, a long braid
+         'far'   on the FAR arm and leg, under the torso — the other glove,
+                 the other wrap, the other anklet. Without this layer a piece
+                 belonging to the far arm has nowhere to go: in 'back' the arm
+                 is painted over it, in 'body' it lands on top of the belly.
+                 Mario's far wrist wrap was dropped for exactly that reason.
          'body'  on the torso, over the far limbs — a gi, a vest, a belt
          'front' over the near arm and leg — a glove, a wrap, a pauldron
          'head'  on the skull, under the face — a headband, a topknot, horns
@@ -842,7 +847,7 @@
        `opts` is the same as any other shape: {band, edge, flat}. Use
        `edge: true` for anything that is a different material from the fur,
        which is nearly everything a costume is made of.                   */
-    var costume = { back: [], body: [], front: [], head: [] };
+    var costume = { back: [], far: [], body: [], front: [], head: [] };
     var LOOK = c.look;
     if (LOOK && LOOK.pieces) {
       var api = {
@@ -1042,6 +1047,10 @@
     fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.98, R_MID * 0.80, MUS * 1.0, 'upperArm'); }, armBack, { band: true });
     fillShape(function (cx) { limbPath(cx, j.elbB, j.handB, R_MID * 0.80, R_END * 0.76, MUS * 0.9, 'foreArm'); }, armBack);
     fillShape(function (cx) { fistPath(cx, j.handB, j.elbB, HAND * 0.86, false); }, c.gloves || armBack, { flat: true });
+
+    /* Kit that belongs to the FAR limbs. It has to land here: after the far
+       arm and leg are painted, and before the torso goes down over them. */
+    pour('far');
 
     /* the long-haired underlayer, wider than the body it sits behind */
     var bodyPts = bodyPoints(j, hipW, waistW, chestW);

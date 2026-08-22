@@ -67,6 +67,9 @@ window.__run = () => {
   time('  vignette', () => K.vignette(x, 0.3));
   time('  nearLip', () => K.nearLip(x, 13, 0.4));
   time('  grain floor', () => K.grain(x, -60, 56, ['#6d4a2c', '#bd854e'], 0.1));
+  time('  glow x12', () => { for (let q=0;q<12;q++) K.glow(x, 40+q*28, 90, 30, 'rgba(255,200,120,.8)', 0.3); });
+  time('  spectator x11', () => { for (let q=0;q<11;q++) K.spectator(x, 20+q*32, 150, 0.9, q, 300, 0.8); });
+  time('  litter', () => K.litter(x, -60, 1, 48, ['rgba(200,160,90,.6)','rgba(120,90,50,.5)'], 0.8, 2.2));
   for (const s of CF.Stages) {
     if (s.init) s.init();
     time('stage ' + s.id, () => { s.drawBack(x,-80,400,0.8); CF.StageKit.deepen(x, s.air||null);

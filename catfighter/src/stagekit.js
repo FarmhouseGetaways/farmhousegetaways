@@ -73,15 +73,29 @@
     });
   }
 
+  /* A soft light. There are a lot of these — a barn full of string lights,
+     a hillside of fireflies — and the gradient object is rebuilt for every
+     one every frame purely because it is anchored at the light's position.
+     Built once at the origin per (radius, colour) and moved into place
+     instead; the rasterising still costs what it costs, but the allocation
+     and the colour parsing do not happen forty times a frame. */
+  var glows = {};
   function glow(ctx, x, y, r, color, alpha) {
-    var g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, color);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
+    var key = r + '|' + color;
+    var g = glows[key];
+    if (!g) {
+      g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      if (Object.keys(glows).length > 200) glows = {};
+      glows[key] = g;
+    }
     ctx.save();
     ctx.globalAlpha = alpha === undefined ? 0.5 : alpha;
     ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(x, y);
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
