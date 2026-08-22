@@ -150,6 +150,18 @@ on anything under about six pixels (it skips the clip, which is the
 expensive call); one tone instead of two on a small part; and never a
 gradient where a flat fill will do.
 
+**Do not measure while other agents are working.** Twelve artists rendering
+screenshots will move a 4.8ms cat to 8.5ms and back again between two runs.
+Get a quiet machine, or the numbers are noise.
+
+If reducing detail is not enough, the next move is a **sprite cache**: the
+drawn pose is stepped onto held cels, so consecutive frames are very often
+the same drawing, and a one-entry cache per fighter would skip three draws
+in four. It is deliberately NOT built yet — blitting a cached canvas at the
+game's device scale is exactly where half-pixel offsets and blurring creep
+in, and this game's art direction dies on a fractional scale. Cut detail
+first; reach for the cache only with a measurement that says you must.
+
 ## Rules that were learned the hard way — do not undo them
 
 - Never raise the backing store above 384×224 logical, never turn on
