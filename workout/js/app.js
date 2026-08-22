@@ -104,21 +104,42 @@ const setAdmin = (on) => {
   catch { /* a browser that refuses storage simply relocks on the next screen */ }
 };
 
-/** The long press. Works with a finger and with a mouse, so a laptop can too. */
+/**
+ * The long press. Works with a finger and with a mouse, so a laptop can too.
+ *
+ * The movement tolerance is the whole trick, and leaving it out made the
+ * gesture impossible with a mouse: holding a button still emits pointermove
+ * from a pixel of hand tremor, so cancelling on any movement at all cancelled
+ * every single press. A finger drifts further than a mouse does, so the same
+ * tolerance is what makes it reliable on a phone too. Only a real drag — more
+ * than about a thumb's width — means "I did not mean to hold this".
+ */
 function armAdminGesture() {
   const title = $("#title");
+  const SLOP = 14;                      // pixels of drift that are still a press
   let timer = null;
-  const start = () => {
-    clearTimeout(timer);
+  let from = null;
+
+  const cancel = () => { clearTimeout(timer); timer = null; from = null; };
+
+  const start = (e) => {
+    cancel();
+    from = { x: e.clientX, y: e.clientY };
     timer = setTimeout(() => {
+      timer = null;
       if (navigator.vibrate) navigator.vibrate(30);
       unlockAdmin();
     }, 750);
   };
-  const cancel = () => clearTimeout(timer);
+
+  const drifted = (e) => {
+    if (!timer || !from) return;
+    if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > SLOP) cancel();
+  };
 
   title.addEventListener("pointerdown", start);
-  for (const ev of ["pointerup", "pointercancel", "pointerleave", "pointermove"]) {
+  title.addEventListener("pointermove", drifted);
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
     title.addEventListener(ev, cancel);
   }
   // A long press on a phone otherwise offers to select the text or share it.
