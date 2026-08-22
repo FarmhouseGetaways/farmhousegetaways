@@ -326,13 +326,46 @@ Three things to know before touching it:
   embed, no `fetch()` in the page. Submissions still land in the Netlify inbox
   that the app's admin screen reads, and the pages still work with JavaScript
   off. Replacing a form with EmailOctopus's hosted one breaks both.
-- **The inquiry forms need the tick.** `wedding-groups.html` and
-  `book-both.html` carry an unticked `email-opt-in` checkbox, and an inquiry
-  only reaches the list if it was ticked. This is a promise on the page, not a
-  preference.
+- **Every form stores its contact; the tick decides whether they can be
+  mailed.** Changed 22 Aug 2026 — see below. `wedding-groups.html` and
+  `book-both.html` carry an unticked `email-opt-in` checkbox, and that is a
+  promise printed on the page, not a preference.
 - **Tags go to the API as an object map, not an array.** `PUT` takes
   `{"tag": true}`; an array is accepted, silently ignored, and every contact
   arrives untagged. `_lib/emailoctopus.test.mjs` guards it.
+
+### Stored is not the same as mailable
+
+Until 22 Aug 2026 an unticked inquiry produced no contact at all, so the
+address lived only in the Netlify inbox. The owner asked for one place holding
+everyone who has ever written in, filterable by which form they came through.
+So consent now decides the **status**, not whether the contact is kept:
+
+| | status | effect |
+|---|---|---|
+| newsletter, or the box ticked | `subscribed` | on the list, will be mailed |
+| anything else | `unsubscribed` | on the list, **never** mailed |
+
+EmailOctopus excludes an unsubscribed contact from every campaign, and
+`submission-created.mjs` skips the welcome automation for them outright, so
+"we kept your details" cannot quietly become "we emailed you". Two tests hold
+that line; do not relax them.
+
+Tags on each contact: the brand, **`form-<name>`** — the thing to filter on —
+the hidden `source` field, the property where one was chosen, and `lead` for a
+booking inquiry only. A farm stand listing itself is not a booking lead.
+
+**⚠ `PUT` is an upsert, so it can unsubscribe somebody.** Writing
+`unsubscribed` over an address already on the list would silently and
+permanently unsubscribe them — someone who asked for the map in March and used
+the contact form in August is exactly that person. So `upsertContact` looks the
+contact up first and an `unsubscribed` write never overrides an existing
+status. Consent can raise a status; nothing lowers one. The bare retry after a
+rejected tag carries the guarded status too, which is the same bug one layer
+down. Six tests cover it.
+
+`upsertContact` returns `statusWritten` — what actually went to the API, which
+is not always what was asked for. Log that, not the request.
 
     node --test netlify/functions/_lib/*.test.mjs
 
@@ -410,31 +443,40 @@ What is actually wired into the code, verified 7 Aug 2026:
 | **Netlify Forms** | 11 forms, `data-netlify="true"`, honeypot field `bot-field` | Working |
 | **Lodgify** | `renderBookNowBox.js` embed on both property pages | Working |
 | **Google Maps** | Embedded map on the farmstand map page | Working |
-| **EmailOctopus** | `netlify/functions/submission-created.mjs` — see `EMAIL.md` | Code shipped, **setup unfinished** |
+| **EmailOctopus** | `netlify/functions/submission-created.mjs` — see `EMAIL.md` | **Storing here.** Not yet on the other two sites |
 
 The two form types are `group-inquiry` (lands on `/thanks.html`) and `newsletter`
 (lands on `/thanks-list.html`). Submissions appear under **Forms** in the Netlify
 dashboard. Email notifications are configured there, not in the code.
 
-### EmailOctopus — code shipped, setup not finished
+### EmailOctopus — storing here, not yet on the other two
 
-Corrected 8 Aug 2026. An earlier version of this file said EmailOctopus was not
-connected. The code now exists — see `EMAIL.md` and the section above — but the
-integration is **not live yet**, and the owner is picking up the remaining setup
-by hand later.
+Checked live 22 Aug 2026 against each site's `/.netlify/functions/alerts-status`,
+which now reports this so it never has to be guessed again:
 
-Still outstanding, as of 8 Aug 2026:
+| Site | `EMAILOCTOPUS_API_KEY` | `EMAILOCTOPUS_LIST_ID` | Storing |
+|---|---|---|---|
+| Farmhouse Getaways | set | set | **yes** |
+| Mini Barn Market | not set | not set | no |
+| Farmstand.TV | not set | not set | no |
 
-- The Netlify environment variables are not all set: `EMAILOCTOPUS_API_KEY`,
-  `EMAILOCTOPUS_LIST_ID`, `EMAILOCTOPUS_BRAND`, `EMAILOCTOPUS_AUTOMATION_ID`.
-  Without them the function has nothing to talk to.
-- The three welcome emails in `emails/` still have to be built by hand as
-  EmailOctopus automations. The API can start an automation but cannot create
-  one.
+The code is identical on all three, so the two outstanding sites need nothing
+but those two variables — the same values as here, since it is one shared list
+— and a redeploy, because Netlify only hands environment variables to the code
+on the next build.
 
-**Do not assume signups are reaching the list**, and do not tell the owner they
-are, until those are done and a real submission has been seen arriving. Until
-then a newsletter signup lands in Netlify Forms and stops there.
+`EMAILOCTOPUS_BRAND` is optional: unset, the brand tag falls back to
+`SITE_LABEL`, which is already set on all three for the form alerts.
+`EMAILOCTOPUS_AUTOMATION_ID` is optional too — unset, EmailOctopus's own
+"joined the list" trigger owns the welcome email.
+
+Still outstanding: the three welcome emails in `emails/` have to be built by
+hand as EmailOctopus automations. The API can start an automation but cannot
+create one.
+
+**Check `alerts-status` before telling the owner anything is or is not
+reaching the list.** Two sessions have now got this wrong in opposite
+directions by reasoning from the repository instead of asking the site.
 
 **Do not rebuild any of this.** It belongs to a separate effort. Your job is
 **maintenance once it is live**: if it breaks, if signups stop arriving, if a key
@@ -748,12 +790,17 @@ The summary carries who submitted, which form, and every field they filled in
 — including fields added to a form later, which is why it does not work from a
 fixed list.
 
-**The alert runs BEFORE the EmailOctopus work in `submission-created.mjs`, and
-must stay there.** Three ordinary paths return early below it: an inquiry with
-the mailing-list box unticked, a form that never feeds the list, and
-EmailOctopus not being configured — which is the state the site is in today.
-Those are exactly the submissions worth hearing about. Written the other way
-round first, it never fired once.
+**The alert must never sit behind the EmailOctopus work in
+`submission-created.mjs`.** Written that way round first, it never fired once:
+several perfectly ordinary paths return early in the list code — an unticked
+inquiry, a form that feeds nothing, EmailOctopus not being configured — and
+those are exactly the submissions worth hearing about.
+
+On this site the alert runs first and the list work follows. On Mini Barn
+Market and Farmstand.TV all three channels run together in one `Promise.all`,
+which satisfies the same rule better: neither can return early past the other,
+and a signup does not wait on a push notification. Either shape is fine. A
+list call the alert has to queue behind is not.
 
 Environment variables, on each of the three sites:
 
