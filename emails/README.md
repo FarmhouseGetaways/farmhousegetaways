@@ -43,11 +43,11 @@ Do this three times, once per brand.
 8. Send yourself a test. Check it in Gmail on a phone and, if you can, Outlook.
 9. Turn it on.
 
-### Do not retype the `{{ }}` tags
+### Do not retype the merge tags
 
-EmailOctopus treats `{{ }}` and `{% %}` as merge syntax. A typo does not
-degrade into plain text — it fails to render and the reader sees the raw tag.
-The four used here are all standard:
+EmailOctopus treats double-curly-brace and brace-percent pairs as merge syntax.
+A typo does not degrade into plain text — it fails to render and the reader
+sees the raw tag. The four used here are all standard:
 
     {{FirstName|default("there")}}   first name, or a fallback if we never got one
     {{UnsubscribeURL}}               required, and EmailOctopus will not send without it
@@ -109,3 +109,20 @@ attribute as well as a CSS background, because Outlook ignores the CSS one.
 Editing here does **not** change what EmailOctopus sends. These files are the
 source of truth for the wording; EmailOctopus holds its own copy. Change one,
 paste it in again.
+
+### An empty merge pair anywhere kills the whole email
+
+EmailOctopus parses merge syntax across the entire document, **HTML comments
+included**. An empty pair — two braces with nothing between them — is invalid,
+and the server refuses the whole email with:
+
+    This email has a syntax error, so we can't show a preview.
+
+The editor preview still renders perfectly, which is what makes this hard to
+spot: it only fails server-side, on the Preview & test screen, and "Send as
+test" greys out.
+
+All three files used to carry a comment explaining the merge-tag rule *by
+quoting the delimiters*, which is precisely the thing that breaks it. Fixed
+22 Aug 2026. **Describe merge syntax in words. Never by example, not even in a
+comment.**

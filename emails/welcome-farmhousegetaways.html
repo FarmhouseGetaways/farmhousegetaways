@@ -9,14 +9,19 @@
   EmailOctopus → Automation → the email step → choose the **HTML** editor (not
   the drag-and-drop one) → paste this whole file.
 
-  Do not retype the {{ }} tags. EmailOctopus treats {{ }} and {% %} as merge
-  syntax, so a typo in one does not fall back to plain text — it fails to
-  render and the contact sees the raw tag.
+  Do not retype the merge tags in the body below — the ones wrapped in double
+  curly braces. EmailOctopus treats those as merge syntax, so a typo does not
+  fall back to plain text: it fails to render and the contact sees raw code.
 
-    {{FirstName|default("there")}}   first name, or "there" if we never got one
-    {{UnsubscribeURL}}               required by law and by EmailOctopus
-    {{SenderInfo}}                   your physical address, also required
-    {{WebVersionURL}}                view-in-browser
+  Four are used here: FirstName with a default, UnsubscribeURL, SenderInfo and
+  WebVersionURL. emails/README.md spells each one out in full.
+
+  NOTHING IN THIS COMMENT MAY CONTAIN A MERGE DELIMITER.
+  EmailOctopus parses merge syntax across the whole document, HTML comments
+  included, and an empty pair is invalid. This comment used to demonstrate the
+  delimiters literally, and that alone made every one of these emails fail to
+  render server-side with "This email has a syntax error" — while the editor
+  preview looked perfectly fine. Describe them in words, never by example.
 
   WHY IT LOOKS LIKE 2005 IN HERE
   Tables, inline styles, no flexbox and no <style> block. Outlook renders with
