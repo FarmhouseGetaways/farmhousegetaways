@@ -167,8 +167,22 @@ function armAdminGesture() {
   title.style.webkitUserSelect = "none";
 }
 
+/* Set at startup to the promise of the first load. */
+let ready = null;
+
 function unlockAdmin() {
   if (adminOn()) { toast("The editor is already unlocked."); return; }
+
+  /* Opened cold on /#/admin — a typed URL, a bookmark, a hard refresh. The
+     store has not answered yet, so "are you signed in?" is still false by
+     default rather than by fact, and asking for a password here would demand
+     one from somebody who is already signed in. Wait for the real answer. */
+  if (!store.get().loaded && ready) {
+    toast("One moment…");
+    ready.then(() => unlockAdmin());
+    return;
+  }
+
   if (!store.get().signedIn) { askSignIn(null, true); return; }
   setAdmin(true);
   toast("Editor unlocked. The pencil is at the top.", "good");
@@ -1680,7 +1694,11 @@ store.subscribe(() => {
   render();
 });
 
-store.load().then(() => {
+/* Held so anything that needs to know "is this person signed in?" can wait for
+   a real answer instead of acting on the not-yet-loaded default of no. */
+ready = store.load();
+
+ready.then(() => {
   render();
   const live = store.loadLive();
   if (live && !location.hash.startsWith("#/go/")) {
