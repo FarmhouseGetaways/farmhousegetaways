@@ -131,3 +131,105 @@ test("a contact already in the automation is not an error", async () => {
   assert.equal(res.ok, true, "a second signup must not resend the welcome, nor log a failure");
   assert.equal(res.alreadyQueued, true);
 });
+
+/* ------------------------------------------------------------------ *
+ * The downgrade guard.
+ *
+ * Since every form's contact is stored, a non-consenting submission asks for
+ * status "unsubscribed". PUT is an upsert, so writing that over somebody who
+ * already subscribed would unsubscribe them — silently, permanently, and with
+ * nothing about it looking broken until a send went out short.
+ *
+ * These are the tests that make that impossible.
+ * ------------------------------------------------------------------ */
+
+/**
+ * A stub that can answer a GET as well as a PUT. The one above parses
+ * opts.body unconditionally, which a GET does not have.
+ */
+function stubRoutes(existing) {
+  globalThis.fetch = async (url, opts = {}) => {
+    const method = opts.method || "GET";
+    calls.push({ url, method, body: opts.body ? JSON.parse(opts.body) : null });
+    if (method === "GET") {
+      if (!existing) return new Response(JSON.stringify({ title: "Not Found" }), { status: 404 });
+      return new Response(JSON.stringify(existing), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ id: "abc" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    });
+  };
+}
+
+const put = () => calls.filter((c) => c.method === "PUT").at(-1);
+
+test("storing a NEW address as unsubscribed writes unsubscribed", async () => {
+  stubRoutes(null);   // never seen before
+  await upsertContact({ email: "new@example.com", tags: ["form-contact"], status: "unsubscribed" });
+  assert.equal(put().body.status, "unsubscribed");
+  assert.deepEqual(put().body.tags, { "form-contact": true }, "still tagged with its form");
+});
+
+test("storing an EXISTING SUBSCRIBER never unsubscribes them", async () => {
+  stubRoutes({ email_address: "loyal@example.com", status: "subscribed" });
+  await upsertContact({ email: "loyal@example.com", tags: ["form-contact"], status: "unsubscribed" });
+  assert.equal(
+    put().body.status, "subscribed",
+    "⚠ they asked for the map in March; using the contact form in August must not unsubscribe them"
+  );
+});
+
+test("a pending contact is left pending, not knocked down", async () => {
+  stubRoutes({ email_address: "waiting@example.com", status: "pending" });
+  await upsertContact({ email: "waiting@example.com", status: "unsubscribed" });
+  assert.equal(put().body.status, "pending");
+});
+
+test("someone who genuinely unsubscribed stays unsubscribed", async () => {
+  stubRoutes({ email_address: "gone@example.com", status: "unsubscribed" });
+  await upsertContact({ email: "gone@example.com", status: "unsubscribed" });
+  assert.equal(put().body.status, "unsubscribed");
+});
+
+test("EmailOctopus reports status in capitals, and that still counts", async () => {
+  stubRoutes({ email_address: "loud@example.com", status: "SUBSCRIBED" });
+  await upsertContact({ email: "loud@example.com", status: "unsubscribed" });
+  assert.equal(put().body.status, "subscribed", "a capitalised status must not read as absent");
+});
+
+test("consent still raises a status — the guard only ever blocks lowering one", async () => {
+  stubRoutes({ email_address: "asked@example.com", status: "unsubscribed" });
+  await upsertContact({ email: "asked@example.com", status: "subscribed" });
+  assert.equal(put().body.status, "subscribed", "they have now ticked the box");
+  assert.equal(
+    calls.filter((c) => c.method === "GET").length, 0,
+    "a subscribe needs no lookup — nothing can be harmed by raising a status"
+  );
+});
+
+test("a degraded retry does not smuggle the downgrade back in", async () => {
+  // The rich PUT is rejected for its tags; the bare retry must still carry the
+  // guarded status, not the raw one it was asked for.
+  globalThis.fetch = async (url, opts = {}) => {
+    const method = opts.method || "GET";
+    const body = opts.body ? JSON.parse(opts.body) : null;
+    calls.push({ url, method, body });
+    if (method === "GET") {
+      return new Response(JSON.stringify({ status: "subscribed" }), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+    if (body.tags) return new Response(JSON.stringify({ title: "Bad tag" }), { status: 422 });
+    return new Response(JSON.stringify({ id: "abc" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    });
+  };
+  const res = await upsertContact({
+    email: "loyal@example.com", tags: ["form-contact"], status: "unsubscribed",
+  });
+  assert.ok(res.ok && res.degraded, "the bare retry succeeded");
+  assert.equal(put().body.status, "subscribed", "⚠ the retry must not unsubscribe them either");
+  assert.equal(put().body.tags, undefined, "the bare retry is bare");
+});

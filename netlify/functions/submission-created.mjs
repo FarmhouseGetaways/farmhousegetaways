@@ -56,9 +56,9 @@ export default async (req) => {
 
   const contact = contactFrom(formName, data);
   if (!contact) {
-    // The common, correct, boring case: an inquiry with the box left unticked,
-    // or a form that was never meant to feed the list.
-    console.log(`[emailoctopus] no sync for form "${formName}"`);
+    // Only one thing gets here now: a submission with no email address in it.
+    // Every form that carries one is stored.
+    console.log(`[emailoctopus] no address in "${formName}" submission — nothing to store`);
     return new Response("ignored", { status: 200 });
   }
 
@@ -82,7 +82,20 @@ export default async (req) => {
     }
 
     const note = res.degraded ? ` (tags dropped: ${res.degraded})` : "";
-    console.log(`[emailoctopus] subscribed ${contact.email} [${contact.tags.join(", ")}]${note}`);
+    // What was WRITTEN, not what was asked for. Someone who subscribed months
+    // ago and has now used a form without ticking stays subscribed, and the log
+    // must say so rather than claiming they will never be mailed.
+    const wrote = res.statusWritten || contact.status;
+    const how = wrote === "subscribed"
+      ? (contact.consent ? "subscribed" : "stored — already subscribed, left as is")
+      : "stored (not opted in, will not be mailed)";
+    console.log(`[emailoctopus] ${how} ${contact.email} [${contact.tags.join(", ")}]${note}`);
+
+    // ⚠ A stored-only contact must never enter the welcome automation. They
+    // did not ask to hear from us; storing them is a filing decision, and
+    // starting an automation would turn it into a marketing one. This is the
+    // line that keeps "we kept your details" from becoming "we emailed you".
+    if (!contact.consent) return new Response("ok", { status: 200 });
 
     // The auto-responder that carries the map. Only if this site names an
     // automation; otherwise EmailOctopus's own "joined the list" trigger owns
