@@ -150,9 +150,20 @@ on anything under about six pixels (it skips the clip, which is the
 expensive call); one tone instead of two on a small part; and never a
 gradient where a flat fill will do.
 
-**Do not measure while other agents are working.** Twelve artists rendering
-screenshots will move a 4.8ms cat to 8.5ms and back again between two runs.
-Get a quiet machine, or the numbers are noise.
+Two things about measuring canvas, both of which produced wrong numbers
+here before they were understood:
+
+- **Canvas 2D in Chromium is deferred.** `fill()` records into a display
+  list and rasterises later, so timing the calls alone measures the
+  recording and reports about a tenth of the truth. `perf.mjs` reads one
+  pixel back after each batch to force the flush.
+- **Other work on the machine doubles a mean.** Twelve artists rendering
+  screenshots moved a 4.8ms cat to 8.5ms between two runs. `perf.mjs` takes
+  the MINIMUM over several batches: the fastest batch is the one that got a
+  clean run at the CPU, and that is the honest cost of the drawing.
+
+The number that finally decides it is the end-to-end frame rate, not this —
+this only tells you which cat or which stage to look at.
 
 If reducing detail is not enough, the next move is a **sprite cache**: the
 drawn pose is stepped onto held cels, so consecutive frames are very often

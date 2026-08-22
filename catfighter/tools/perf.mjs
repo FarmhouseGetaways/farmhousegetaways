@@ -18,20 +18,30 @@ window.__run = () => {
   const x = document.getElementById('c').getContext('2d');
   x.setTransform(2,0,0,2,0,0);
   const out = [];
-  const time = (label, fn) => { fn(); fn();
-    const t0 = performance.now(); for (let k=0;k<80;k++) fn();
-    out.push([label, +((performance.now()-t0)/80).toFixed(2)]); };
+  /* The MINIMUM over several batches, not the mean. Anything else on the
+     machine — another agent rendering a screenshot, a build — inflates a
+     mean by a factor of two and makes the number useless. The fastest batch
+     is the one that got a clean run at the CPU, and that is the honest
+     cost of the drawing. */
+  const time = (label, fn) => {
+    fn(); fn();
+    let best = Infinity;
+    for (let batch = 0; batch < 6; batch++) {
+      const t0 = performance.now();
+      for (let k = 0; k < 25; k++) fn();
+      /* Canvas 2D in Chromium is DEFERRED: fill() records into a display
+         list and rasterises later, so timing the calls alone measures the
+         recording and reports a tenth of the truth. Reading one pixel back
+         forces the flush, which is what actually costs the frame. */
+      x.getImageData(0, 0, 1, 1);
+      best = Math.min(best, (performance.now() - t0) / 25);
+    }
+    out.push([label, +best.toFixed(2)]);
+  };
   for (const chr of CF.ROSTER) {
     const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
     time('cat ' + chr.id, () => { x.save(); x.translate(190,172); x.scale(1,-1);
       CF.Rig.drawCat(x, j, chr.palette, {eyes:'angry', t:0, vx:0}); x.restore(); });
-  }
-  /* Where does it go? Silhouette mode skips the fills and the face entirely,
-     so the difference is the cost of the contour pass plus the shape paths. */
-  for (const chr of CF.ROSTER) {
-    const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
-    time('  paths ' + chr.id, () => { x.save(); x.translate(190,172); x.scale(1,-1);
-      CF.Rig.drawCat(x, j, chr.palette, {silhouette:'#000'}); x.restore(); });
   }
   for (const s of CF.Stages) {
     if (s.init) s.init();
