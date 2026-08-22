@@ -1,0 +1,142 @@
+# Carissa's workout tracker — ITS OWN NETLIFY SITE.
+#
+# This folder is a complete site. Point a *separate* Netlify site at this repo
+# with the base directory set to `workout`, and Netlify reads this file instead
+# of the one in the repository root, which belongs to the Farmhouse Getaways
+# website and knows nothing about this.
+#
+#   Add new site → Import an existing project → FarmhouseGetaways/farmhousegetaways
+#   Base directory:     workout
+#   Build command:      (leave empty — there is no build step)
+#   Publish directory:  workout
+#
+#   Environment variables:
+#     WORKOUT_PASSWORD  = whatever you want to type to edit the week and see
+#                         the record. Without it nobody can write and the
+#                         record cannot be read — it fails closed.
+#
+#   For push reminders, two more (npx web-push generate-vapid-keys):
+#     VAPID_PUBLIC      = the public key
+#     VAPID_PRIVATE     = the private key
+#
+#   Without those the app works exactly as before and simply says reminders
+#   are not switched on. reminder-tick runs hourly on Netlify's own schedule
+#   and decides, per device and in that device's own time zone, whether a
+#   reminder is owed.
+#
+# A deploy must happen AFTER setting the password: environment variables are
+# read when the functions are built, so a site deployed before the variable
+# existed stays read-only until it is redeployed.
+#
+# Blobs storage needs nothing turned on. Netlify installs package.json so the
+# functions can import @netlify/blobs; the site itself still has no build step.
+#
+# The root netlify.toml deliberately 404s /workout/* on the Farmhouse Getaways
+# site, so this app appears at its own address and nowhere else.
+
+[build]
+  publish = "."
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# The functions declare these paths themselves (`export const config`), and
+# these declare them a second time. Belt and braces: if a build ever lands on a
+# runtime that ignores the in-function config, the endpoints still resolve and
+# the app does not quietly fall back to storing everything in one browser.
+[[redirects]]
+  from = "/api/auth"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+[[redirects]]
+  from = "/api/plan"
+  to = "/.netlify/functions/plan"
+  status = 200
+
+[[redirects]]
+  from = "/api/history"
+  to = "/.netlify/functions/history"
+  status = 200
+
+[[redirects]]
+  from = "/api/reminders"
+  to = "/.netlify/functions/reminders"
+  status = 200
+
+[[redirects]]
+  from = "/api/media"
+  to = "/.netlify/functions/media"
+  status = 200
+
+[[redirects]]
+  from = "/media/*"
+  to = "/.netlify/functions/media/:splat"
+  status = 200
+
+# It is a private training app, not a page anybody should find.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# The endpoints. Never cached: one is a login, one is the week, one is the
+# record, and a stale answer from any of them is worse than a slow one.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+# No version string in these URLs — it is a folder of plain files that get
+# edited — so they are revalidated rather than pinned.
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/json; charset=utf-8"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# The name of an uploaded file IS the hash of its bytes, so a URL can never
+# mean a different picture tomorrow than it does today.
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/videos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# The service worker must never be cached, or a deploy cannot reach a phone
+# that has already installed the app — it would keep serving the old copy for
+# ever, with no way to reach it. Same for the manifest.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/manifest+json"

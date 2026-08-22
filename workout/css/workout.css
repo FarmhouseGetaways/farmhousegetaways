@@ -1,0 +1,639 @@
+/* ==========================================================================
+   Carissa's workout tracker.
+
+   Dark, because it is used in a garage gym with a phone propped against a
+   dumbbell, and a white screen at six in the morning is a punishment. The
+   palette is the farmhouse one after dark: the same blush and sage, lifted
+   until they hold their own against black.
+
+   Phone first, and one-handed: the button she presses forty times a session
+   is the biggest thing on the screen and sits at the bottom, under her thumb.
+   ========================================================================== */
+
+:root {
+  --ink:      #131013;   /* warm near-black, not blue-black */
+  --ink-2:    #1B171B;
+  --card:     rgba(255, 255, 255, 0.045);
+  --card-2:   rgba(255, 255, 255, 0.075);
+  --line:     rgba(255, 255, 255, 0.10);
+  --line-2:   rgba(255, 255, 255, 0.20);
+
+  --text:     #F5EDE9;
+  --dim:      #B0A2A6;
+  --dimmer:   #7C7076;
+
+  --blush:    #E79AA6;   /* the accent — start, go, now */
+  --blush-2:  #C4707F;
+  --sage:     #9DC2A8;   /* done, complete, kept */
+  --sage-2:   #6E9A7C;
+  --brass:    #D6A85F;   /* the streak, the numbers worth showing off */
+  --rest:     #8FB4D9;   /* resting, waiting, queued */
+
+  --radius:   16px;
+  --radius-s: 10px;
+  --wrap:     720px;
+  --shadow:   0 20px 50px rgba(0, 0, 0, 0.5);
+
+  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* The player's bottom bar. Everything scrollable is padded past it. */
+  --bar: 108px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 16px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  /* The lesson from the main site: anything that can push a track wider than
+     the screen must not be able to scroll the page sideways. */
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
+img, video, iframe { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--blush); }
+
+:focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 clamp(1rem, 4vw, 1.5rem); }
+.only-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- app chrome ---------- */
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top);
+}
+.topbar__in {
+  max-width: var(--wrap); margin: 0 auto;
+  padding: .7rem clamp(1rem, 4vw, 1.5rem);
+  display: flex; align-items: center; gap: .75rem;
+}
+.topbar__title {
+  font-family: var(--display); font-weight: 400;
+  font-size: 1.5rem; line-height: 1.1; margin: 0;
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar__sub { display: block; font-family: var(--sans); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--dimmer); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.icon-btn {
+  flex: 0 0 auto;
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; cursor: pointer;
+  font-size: 1.05rem; line-height: 1;
+  transition: background .15s ease, border-color .15s ease;
+}
+.icon-btn:hover { background: var(--card-2); border-color: var(--line-2); }
+.icon-btn--back { font-size: 1.3rem; }
+
+main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bottom)); }
+
+/* ---------- type ---------- */
+
+.h-display { font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 8vw, 2.8rem); line-height: 1.05; margin: 0 0 .35rem; }
+.h-section { font-family: var(--display); font-weight: 400; font-size: 1.45rem; margin: 2rem 0 .85rem; }
+.eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--dimmer); margin: 0 0 .5rem; }
+.muted { color: var(--dim); }
+.dimmer { color: var(--dimmer); }
+.small { font-size: .85rem; }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .8rem 1.25rem; min-height: 48px;
+  border-radius: 12px; border: 1px solid var(--line-2);
+  background: var(--card); color: var(--text);
+  font-weight: 600; font-size: .95rem;
+  cursor: pointer; text-decoration: none;
+  transition: transform .1s ease, background .15s ease, border-color .15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:hover { background: var(--card-2); }
+.btn--go { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+.btn--go:hover { background: #F0AAB5; }
+.btn--done { background: var(--sage); border-color: var(--sage); color: #10251A; }
+.btn--done:hover { background: #AFD2B9; }
+.btn--ghost { background: transparent; }
+.btn--danger { border-color: rgba(231, 154, 166, .45); color: var(--blush); background: transparent; }
+.btn--wide { width: 100%; }
+.btn--big { min-height: 60px; font-size: 1.05rem; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: .6rem; }
+.btn-row > .btn { flex: 1 1 auto; }
+
+/* ---------- cards ---------- */
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.1rem;
+}
+.card + .card { margin-top: .75rem; }
+
+/* The day it is now. Bigger, warmer, and the only thing on the screen with a
+   coloured edge — she should not have to read to know where to press. */
+.today {
+  border: 1px solid rgba(231, 154, 166, .35);
+  background: linear-gradient(160deg, rgba(231, 154, 166, .13), rgba(231, 154, 166, .02) 55%), var(--card);
+  border-radius: var(--radius);
+  padding: 1.35rem;
+}
+.today__meta { display: flex; flex-wrap: wrap; gap: .4rem .9rem; margin: .75rem 0 1.1rem; font-size: .9rem; color: var(--dim); }
+.today.is-done { border-color: rgba(157, 194, 168, .4); background: linear-gradient(160deg, rgba(157, 194, 168, .13), rgba(157, 194, 168, .02) 55%), var(--card); }
+
+/* ---------- the week ---------- */
+
+.week { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; }
+
+.day {
+  display: block; width: 100%; text-align: left;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius-s); padding: .85rem .9rem;
+  cursor: pointer; min-width: 0;
+  transition: background .15s ease, border-color .15s ease;
+}
+.day:hover { background: var(--card-2); border-color: var(--line-2); }
+.day__name { display: flex; justify-content: space-between; align-items: center; gap: .4rem; font-size: .7rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--dimmer); }
+.day__title { display: block; font-family: var(--display); font-size: 1.15rem; line-height: 1.2; margin: .35rem 0 .3rem; overflow-wrap: anywhere; }
+.day__meta { display: block; font-size: .8rem; color: var(--dim); }
+.day.is-today { border-color: rgba(231, 154, 166, .45); }
+.day.is-today .day__name { color: var(--blush); }
+.day.is-rest .day__title { color: var(--dimmer); font-style: italic; }
+.day__tick { color: var(--sage); font-size: .95rem; }
+
+/* ---------- stat strip ---------- */
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: .5rem; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-s); padding: .75rem .35rem; text-align: center; min-width: 0; }
+.stat__n { font-family: var(--display); font-size: clamp(1.35rem, 6vw, 1.7rem); line-height: 1; display: block; }
+/* Never break a label mid-word. Four stats across a 390px phone leaves about
+   sixty pixels each, and `overflow-wrap: anywhere` spent them spelling
+   "WORKOU TS" and "CALORIE S". Smaller and tighter fits; hyphenating a
+   six-letter word does not. */
+.stat__l {
+  display: block; margin-top: .35rem;
+  font-size: .63rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--dimmer);
+  overflow-wrap: normal; word-break: keep-all;
+}
+.stat--streak .stat__n { color: var(--brass); }
+.stat--cal .stat__n { color: var(--blush); }
+
+/* ---------- exercise list ---------- */
+
+.ex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.ex {
+  display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: .8rem;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius-s); padding: .8rem .9rem; min-width: 0;
+}
+.ex__n { font-family: var(--mono); font-size: .8rem; color: var(--dimmer); text-align: center; }
+.ex__body { min-width: 0; }
+.ex__name { font-weight: 600; overflow-wrap: anywhere; }
+.ex__meta { font-size: .82rem; color: var(--dim); margin-top: .1rem; overflow-wrap: anywhere; }
+.ex__badge { font-size: .72rem; color: var(--dimmer); text-align: right; white-space: nowrap; }
+.ex__badge .has-video { color: var(--sage); }
+
+/* ---------- the player ---------- */
+
+.player { display: flex; flex-direction: column; gap: 1rem; padding-bottom: var(--bar); }
+
+.stage {
+  position: relative;
+  background: #000; border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+/* No video: a short strip that says so, rather than a 16:9 hole pushing the
+   set queue and the button off the bottom of a phone. */
+.stage.is-empty { aspect-ratio: auto; min-height: 92px; background: var(--card); }
+.stage.is-empty .stage__empty { position: static; padding: 1.1rem; }
+
+.stage > video, .stage > iframe { width: 100%; height: 100%; border: 0; object-fit: contain; background: #000; }
+.stage__empty {
+  position: absolute; inset: 0; display: grid; place-content: center; gap: .5rem;
+  text-align: center; color: var(--dimmer); padding: 1.5rem;
+}
+.stage__empty strong { font-family: var(--display); font-size: 1.4rem; color: var(--dim); font-weight: 400; }
+
+.now__name { font-family: var(--display); font-size: clamp(1.6rem, 6.5vw, 2.2rem); line-height: 1.1; margin: 0; overflow-wrap: anywhere; }
+.now__meta { color: var(--dim); margin: .35rem 0 0; font-size: .95rem; overflow-wrap: anywhere; }
+.now__notes { margin: .75rem 0 0; padding: .75rem .9rem; background: var(--card); border-left: 2px solid var(--line-2); border-radius: 0 var(--radius-s) var(--radius-s) 0; font-size: .92rem; color: var(--dim); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The set queue. Done, doing, waiting — legible at a glance from six feet
+   away, which is where the phone is. */
+.sets { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.set {
+  flex: 0 0 auto;
+  min-width: 60px; padding: .55rem .7rem;
+  border-radius: 10px; text-align: center;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--dimmer);
+}
+.set b { display: block; font-family: var(--display); font-size: 1.25rem; letter-spacing: 0; text-transform: none; color: var(--dim); }
+.set.is-done { border-color: rgba(157, 194, 168, .5); background: rgba(157, 194, 168, .14); color: var(--sage); }
+.set.is-done b { color: var(--sage); }
+.set.is-now { border-color: var(--blush); background: rgba(231, 154, 166, .18); color: var(--blush); box-shadow: 0 0 0 1px rgba(231, 154, 166, .35); }
+.set.is-now b { color: var(--blush); }
+
+.progress { height: 5px; border-radius: 3px; background: var(--card-2); overflow: hidden; }
+.progress__bar { height: 100%; background: linear-gradient(90deg, var(--blush-2), var(--blush)); transition: width .35s ease; }
+
+.queue { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.queue li {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .55rem .75rem; border-radius: var(--radius-s);
+  border: 1px solid transparent; font-size: .9rem; color: var(--dimmer); min-width: 0;
+}
+.queue li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue li.is-now { color: var(--text); background: var(--card); border-color: var(--line); }
+.queue li.is-done { color: var(--sage-2); }
+.queue__mark { flex: 0 0 auto; width: 20px; text-align: center; }
+
+/* The rest countdown takes the whole stage: it is the only thing happening. */
+.rest {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; place-content: center; gap: .3rem; text-align: center;
+  background: rgba(10, 8, 10, .93); backdrop-filter: blur(3px);
+}
+.rest__n { font-family: var(--display); font-size: clamp(3.5rem, 18vw, 6rem); line-height: 1; color: var(--rest); }
+.rest__l { font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--dimmer); }
+
+/* The bottom bar — the one button she presses over and over. */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+  padding: .7rem clamp(1rem, 4vw, 1.5rem) calc(.7rem + env(safe-area-inset-bottom));
+}
+.bar__in { max-width: var(--wrap); margin: 0 auto; display: flex; gap: .6rem; align-items: stretch; }
+.bar__in > .btn { flex: 1 1 auto; }
+.bar__in > .icon-btn { height: auto; min-height: 60px; width: 56px; }
+
+/* ---------- summary ---------- */
+
+.summary__big { font-family: var(--display); font-size: clamp(2.6rem, 12vw, 4rem); line-height: 1; color: var(--sage); }
+.tally { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .4rem; }
+.tally li { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--line); font-size: .92rem; min-width: 0; }
+.tally li span:first-child { overflow-wrap: anywhere; }
+.tally li b { font-weight: 600; white-space: nowrap; color: var(--dim); }
+
+/* ---------- history ---------- */
+
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.log__row {
+  width: 100%; text-align: left; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-s);
+  padding: .85rem .95rem; display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem; align-items: center; min-width: 0;
+}
+.log__row:hover { background: var(--card-2); }
+.log__title { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.log__when { display: block; font-size: .8rem; color: var(--dimmer); margin-top: .1rem; }
+.log__num { text-align: right; font-size: .82rem; color: var(--dim); white-space: nowrap; }
+.log__num b { display: block; font-family: var(--display); font-size: 1.3rem; color: var(--blush); font-weight: 400; }
+.log__detail { padding: 0 .95rem .9rem; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius-s) var(--radius-s); background: var(--card); margin-top: -.55rem; }
+
+.weekstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
+.weekstrip div { text-align: center; padding: .55rem .2rem; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--dimmer); min-width: 0; }
+.weekstrip div.is-done { border-color: rgba(157, 194, 168, .45); background: rgba(157, 194, 168, .15); color: var(--sage); }
+.weekstrip div.is-today { border-color: rgba(231, 154, 166, .5); color: var(--blush); }
+.weekstrip div.is-done.is-today { color: var(--sage); border-color: rgba(231, 154, 166, .6); background: rgba(157, 194, 168, .15); }
+.weekstrip b { display: block; font-size: 1rem; margin-top: .2rem; }
+
+/* ---------- forms and the editor ---------- */
+
+.field { display: block; margin: 0 0 .9rem; min-width: 0; }
+.field > span { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dimmer); margin-bottom: .35rem; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: .7rem .8rem; min-height: 46px;
+  background: var(--ink-2); border: 1px solid var(--line-2);
+  border-radius: 10px; color: var(--text);
+}
+.field textarea { min-height: 90px; resize: vertical; line-height: 1.5; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blush); outline: none; }
+.field--hint > small { display: block; margin-top: .3rem; color: var(--dimmer); font-size: .78rem; }
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0 .7rem; }
+
+.mini {
+  width: 36px; height: 36px; flex: 0 0 auto;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 9px;
+  font-size: .9rem; line-height: 1;
+}
+.mini:hover { border-color: var(--line-2); }
+.mini[disabled] { opacity: .3; cursor: not-allowed; }
+
+/* ---------- notices ---------- */
+
+.note {
+  border-radius: var(--radius-s); padding: .8rem .95rem;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: .88rem; color: var(--dim); margin: 0 0 1rem;
+  overflow-wrap: anywhere;
+}
+.note--warn { border-color: rgba(214, 168, 95, .4); background: rgba(214, 168, 95, .1); color: #EBD1A6; }
+.note--good { border-color: rgba(157, 194, 168, .4); background: rgba(157, 194, 168, .1); color: var(--sage); }
+.note strong { color: inherit; }
+
+/* A short-lived message after a save. Bottom of the screen, out of the way. */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(1rem + env(safe-area-inset-bottom)); z-index: 60;
+  max-width: min(92vw, 30rem);
+  padding: .75rem 1.1rem; border-radius: 12px;
+  background: #2A2429; border: 1px solid var(--line-2);
+  box-shadow: var(--shadow); font-size: .9rem;
+  animation: rise .2s ease;
+}
+.toast--bad { border-color: rgba(231, 154, 166, .6); }
+.toast--good { border-color: rgba(157, 194, 168, .55); }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* ---------- sheet ---------- */
+
+.sheet {
+  position: fixed; inset: 0; z-index: 50;
+  display: grid; align-items: end; justify-items: center;
+  background: rgba(0, 0, 0, .6);
+  padding: 1rem;
+}
+.sheet__panel {
+  width: min(34rem, 100%);
+  max-height: min(85dvh, 46rem); overflow-y: auto;
+  background: var(--ink-2); border: 1px solid var(--line-2);
+  border-radius: var(--radius); padding: 1.25rem;
+  box-shadow: var(--shadow);
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+.sheet__head { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.sheet__head h2 { flex: 1 1 auto; font-family: var(--display); font-weight: 400; font-size: 1.4rem; margin: 0; }
+
+@media (min-width: 640px) {
+  .sheet { align-items: center; }
+}
+
+.foot { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: .82rem; color: var(--dimmer); }
+.foot a { color: var(--dim); }
+
+/* Everything in a grid track gets this: without it a long word or a nowrap
+   value grows the track and takes the whole layout off the side of a phone.
+   That exact bug shipped on the main site once; it is not shipping here. */
+.week > *, .stats > *, .ex, .log__row, .field-row > * { min-width: 0; }
+
+/* ==========================================================================
+   Editing in place
+
+   The rule: what she reads and what he edits are the same page. Nothing
+   changes position when the pencil is pressed, so a title stays exactly where
+   it was and simply becomes typeable. The only visible difference is a dotted
+   underline saying "this one is yours".
+   ========================================================================== */
+
+.edit-text {
+  outline: none;
+  border-radius: 4px;
+  /* The underline sits under the text rather than around it, so a heading
+     does not turn into a box and jump about. */
+  border-bottom: 1px dashed var(--line-2);
+  padding: 0 .15rem 1px;
+  cursor: text;
+  transition: background .15s ease, border-color .15s ease;
+  overflow-wrap: anywhere;
+}
+.edit-text:hover { background: var(--card); border-bottom-color: var(--blush-2); }
+.edit-text:focus {
+  background: var(--card-2);
+  border-bottom: 1px solid var(--blush);
+  box-shadow: 0 0 0 3px rgba(231, 154, 166, .12);
+}
+
+/* An empty field has to say what belongs in it, or it is an invisible target. */
+.edit-text:empty::before,
+.edit-text.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--dimmer);
+  font-style: italic;
+  pointer-events: none;
+}
+.edit-text:empty:focus::before { opacity: .5; }
+
+.lede-edit {
+  display: block;
+  font-size: 1.05rem; line-height: 1.6;
+  color: var(--dim); margin: .75rem 0 0;
+  white-space: pre-wrap; min-height: 1.6em;
+}
+.edit-text--name { font-weight: 600; display: inline-block; min-width: 6rem; }
+.edit-text--reps { display: inline-block; min-width: 3.5rem; text-align: center; }
+.edit-text--notes {
+  display: block; margin: .75rem 0 0;
+  font-size: .9rem; color: var(--dim);
+  white-space: pre-wrap; min-height: 1.5em;
+}
+
+/* A line of prose with controls sitting in it — "3 sets of 12 · 60s rest" —
+   rather than a stack of labelled fields. It reads as a sentence. */
+.edit-inline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+  margin: .75rem 0 0; font-size: .92rem; color: var(--dim);
+}
+.edit-num, .edit-sel {
+  background: var(--ink-2); color: var(--text);
+  border: 1px solid var(--line-2); border-radius: 8px;
+  padding: .3rem .4rem; min-height: 38px;
+  font-size: .92rem;
+}
+.edit-num { width: 4.5rem; text-align: center; }
+.edit-sel { max-width: 100%; }
+.edit-sel--wide { width: 100%; }
+.edit-num:focus, .edit-sel:focus { border-color: var(--blush); outline: none; }
+
+.edit-list { display: grid; gap: .7rem; }
+
+.edit-ex {
+  border: 1px solid var(--line); border-radius: var(--radius-s);
+  padding: .9rem; background: var(--card); min-width: 0;
+}
+.edit-ex__top { display: grid; grid-template-columns: auto 1fr auto; gap: .75rem; align-items: start; }
+.edit-ex__head { min-width: 0; }
+.edit-ex__media { display: block; margin-top: .3rem; overflow-wrap: anywhere; }
+/* Across, not down. Stacked, three buttons are taller than the name beside
+   them and the card grows a column of dead space to hold them. */
+.edit-ex__moves { display: flex; gap: .25rem; }
+.edit-ex__moves .mini { width: 32px; height: 32px; font-size: .8rem; }
+
+/* The square beside an exercise: a thumbnail when reading, the button that
+   changes the media when editing. Same size and place in both, so nothing
+   shifts when the pencil goes on. */
+.thumb {
+  flex: 0 0 auto;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  border-radius: 10px; overflow: hidden;
+  background: var(--ink-2); border: 1px solid var(--line);
+  color: var(--dimmer); font-size: 1.1rem; padding: 0;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb__play { color: var(--sage); }
+.thumb--edit { cursor: pointer; }
+.thumb--edit:hover { border-color: var(--blush); color: var(--blush); }
+.thumb--edit.is-empty { border-style: dashed; border-color: var(--line-2); }
+
+/* The exercise list in reading mode leads with the thumbnail now. */
+.ex { grid-template-columns: 56px 1fr auto; }
+
+.day__open {
+  display: inline-block; margin-left: .4rem;
+  background: none; border: 0; padding: 0;
+  color: var(--blush); font-size: .78rem; cursor: pointer;
+}
+
+#edit-btn.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+
+/* What is there now, at the top of the media sheet. */
+.media-now {
+  border-radius: var(--radius-s); overflow: hidden;
+  background: #000; border: 1px solid var(--line);
+  margin-bottom: 1rem; min-height: 120px;
+  display: grid; place-items: center;
+}
+.media-now img, .media-now video { width: 100%; max-height: 46vh; object-fit: contain; }
+.media-now__note { padding: 2rem 1rem; font-size: .9rem; }
+
+.stage__still { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+/* ==========================================================================
+   The hour picker
+
+   Scrolled, not typed. Nobody types "17" when they mean five in the
+   afternoon, and a numeric keyboard for a number between 0 and 23 is a bad
+   joke on a phone. Whatever is in the middle of the window is the answer, and
+   the middle is marked so there is no guessing which one that is.
+   ========================================================================== */
+
+.hours {
+  height: 156px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--card);
+  position: relative;
+  /* Half the window above and below, so the first and last hour can still
+     reach the middle. */
+  padding: 54px 0;
+  scrollbar-width: none;
+}
+.hours::-webkit-scrollbar { display: none; }
+.hours:focus-visible { border-color: var(--blush); }
+
+.hour {
+  display: block; width: 100%;
+  scroll-snap-align: center;
+  background: none; border: 0; cursor: pointer;
+  padding: .35rem 0; height: 48px;
+  font-family: var(--display); font-size: 1.5rem; line-height: 1.2;
+  color: var(--dimmer);
+  transition: color .15s ease, transform .15s ease;
+}
+.hour__ampm { font-family: var(--sans); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; margin-left: .25rem; }
+.hour.is-on { color: var(--blush); transform: scale(1.12); }
+
+/* The band across the middle that says "this one". Drawn over the column, so
+   it does not move with the scroll. */
+.hours-wrap { position: relative; }
+.hours::before, .hours::after {
+  content: ""; position: sticky; left: 0; right: 0; display: block;
+  height: 1px; background: var(--line-2); z-index: 1;
+}
+.hours::before { top: 53px; }
+.hours::after { bottom: 53px; }
+
+.report {
+  margin-top: .9rem; padding: .8rem;
+  background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-s);
+  font-family: var(--mono); font-size: .72rem; line-height: 1.5;
+  color: var(--dim); white-space: pre-wrap; overflow-x: auto;
+}
+
+/* ---------- pictures of the workout itself ---------- */
+
+.day-hero {
+  width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  margin-bottom: 1.25rem;
+}
+.day-hero-edit { display: grid; grid-template-columns: auto 1fr; gap: .9rem; align-items: start; }
+.day__shot {
+  width: 100%; height: 74px; object-fit: cover;
+  border-radius: 8px; margin: .45rem 0 .1rem;
+}
+.today__shot {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: var(--radius-s); margin: .9rem 0 .25rem;
+}
+
+.media-now--small { min-height: 90px; }
+.media-now--small img, .media-now--small video { max-height: 30vh; }
+
+/* ==========================================================================
+   The footer pills
+
+   The way in, in the place people look for it. The long press and /#/admin
+   still work and always will, but a hidden gesture is a puzzle for the person
+   who owns the thing — and it was being solved four times an evening.
+
+   They are small and quiet on purpose: reachable when wanted, not competing
+   with the button that starts the workout.
+   ========================================================================== */
+
+.pills { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .85rem; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .4rem .85rem; min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--card); color: var(--dim);
+  font-size: .8rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.pill:hover { background: var(--card-2); color: var(--text); border-color: var(--line-2); }
+.pill--go { border-color: rgba(231, 154, 166, .5); color: var(--blush); }
+.pill--go:hover { background: rgba(231, 154, 166, .12); color: var(--blush); }
+.pill.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+.pill.is-on:hover { background: #F0AAB5; color: #2A1216; }

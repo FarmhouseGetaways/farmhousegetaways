@@ -22,7 +22,43 @@ to what was asked.
 **When the owner does not name a site, work out which one they mean** from what
 they are describing, and say which one you changed. "The farmstand list" is
 Farmstand.TV. "The barn" is Red Barn Ranch on Farmhouse Getaways. "The app" is
-the installable one.
+the installable one. **"MBM" always means Mini Barn Market** — said 22 Aug 2026,
+and it is never anything else.
+
+### `ADMIN_PASSWORD` is load-bearing across the estate. Never overwrite it.
+
+One value, reused deliberately across the estate, and Netlify masks it, so it
+cannot be read back once replaced.
+
+**It was replaced on the Farmhouse Getaways site on 22 Aug 2026** by a browser
+agent following instructions from this session that were wrong. The old value is
+gone. Ask Cory for the current one; it is not written down in this repository
+and must not be — `publish = "."` serves every file here, this one included.
+
+The blast radius turned out to be narrower than this section used to claim, and
+it is worth knowing exactly what it is. On **this website** `ADMIN_PASSWORD` is
+read by two functions and nothing else: `publish.mjs`, behind `/edit.html`'s
+Publish button, and `emailoctopus-status.mjs`, behind `/api/emailoctopus`. Both
+still work — they simply want the new value.
+
+What it does **not** touch, contrary to what this section said before:
+
+- **The alert chain.** That authenticates with `ALERT_WEBHOOK_KEY`, a separate
+  variable, added by farmhouse-app's "Give the websites their own alert key
+  instead of the admin password". Changing one does not affect the other.
+- **The app's admin screen and `sendToAdmins`.** Those read the app's own copy
+  on the app's own Netlify site, which is a different variable instance.
+
+So the honest rule is narrower and still worth keeping: **do not overwrite it
+casually**, because it cannot be recovered and the Publish button stops
+accepting the key the owner has memorised. But an overwrite is not the
+estate-wide breakage this section used to warn about.
+
+If some tool offers to overwrite `ADMIN_PASSWORD` to make a new thing work,
+the new thing is asking for the wrong variable. **Carissa's workout tracker
+does not use it** — it has its own `WORKOUT_PASSWORD` on its own site, and
+reads no other password. Checked 22 Aug 2026, after an assistant driving the
+Netlify UI offered to overwrite it.
 
 ## The four properties
 
@@ -224,6 +260,7 @@ moved.
 | `ramona.html` | The region |
 | `thanks.html` / `thanks-list.html` | Form landing pages |
 | `edit.html` | Visual editor (see below) |
+| `workout/` | Carissa's workout tracker — a **separate site**, not a page here (see below) |
 | `404.html` | Not-found page |
 | `css/site.css` | All styling, one file |
 
@@ -601,6 +638,100 @@ without a trace.
 Renamed to `bot-field` everywhere, which no browser has ever offered to fill.
 **Never name a honeypot after anything a person or a browser might recognise**
 — company, organisation, address, phone, website.
+
+## Carissa's workout tracker — `workout/`, and its OWN Netlify site
+
+Added 21 Aug 2026. Seven days of the week, a workout on each, a video per
+exercise, a big **Set complete** button, and a record of everything done with a
+calorie estimate. Plain HTML, one stylesheet and three JavaScript modules, with
+three small Netlify functions behind them. **`workout/README.md` is the long
+form**; read it before touching any of it.
+
+**Live at https://carissa-workouts.netlify.app** — its own Netlify site,
+project id `67b7b2da-7f9e-4d64-b780-f447f709d7fb`, set up 22 Aug 2026 with
+`WORKOUT_PASSWORD` and a VAPID key pair. Production is public; the app's own
+password is the lock. Verified end to end that night: a wrong password
+refused, the right one returning an HttpOnly Secure cookie, the record opening
+only with it and shutting again on sign-out, and the reminder sweep running.
+
+**It is not part of this website.** The folder is in this repository because
+that is where the branch was, but it deploys as a *separate Netlify site*
+pointed at the same repository with the base directory set to `workout`, which
+makes Netlify read `workout/netlify.toml` instead of the root one — exactly how
+`legend/` works inside the app's repository. The root `netlify.toml` carries a
+forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
+farmhouse domain by accident. **Do not "fix" that 404.**
+
+**The editor is admin-only, behind a long press.** Signing in is Carissa's —
+it syncs her record. Editing the week is not, so the pencil does not appear
+just because somebody is signed in: **press and hold the title for 750ms**,
+the same gesture the farmhouse app uses for its own admin screen, or open
+`/#/admin` on a laptop. **The unlock lapses after twelve hours** and is stored
+in `localStorage` — it was `sessionStorage` for one evening, which relocked on
+every new browser tab and drove the owner mad within the hour. Twelve hours is
+long enough to write a week in one sitting and short enough that a phone left
+about tomorrow is locked. Do not "fix" this by showing the pencil to anyone
+signed in.
+
+**Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
+runs hourly on Netlify's schedule and decides per device, in that device's own
+zone: nothing scheduled today, already done today, or already said today all
+mean silence. A snooze is the one thing allowed to speak twice, and only on the
+day it was set. The hour is a LOCAL hour with an IANA zone beside it — a fixed
+offset is refused even though `Intl` accepts it, because it would be wrong
+twice a year. All of that is pure and tested in `_lib/remind.test.mjs`; it
+needs `VAPID_PUBLIC` and `VAPID_PRIVATE`, and without them the app is exactly
+as it was and says reminders are off.
+
+**A picture and a video are different things.** An exercise has both fields and
+they are independent: the picture is the thumbnail and the video's poster, the
+video is what plays when she starts. A day has a picture and no video. Do not
+collapse them back into one field.
+
+**Editing is in place, not a form.** Once unlocked, the pencil turns the page
+into the editor — the same rule `/edit.html` follows on the website.
+Titles, exercise names, reps and notes are `contenteditable` written straight
+into one draft of the whole week; a picture or a clip goes on by pressing the
+square beside an exercise. There is no separate editor screen, and `#/edit/mon`
+now just opens the day with the pencil already pressed. Two things to keep
+right if you touch it: **never repaint an element that has focus** (the caret
+goes back to the start), and **non-breaking spaces are flattened on the way
+in** — browsers scatter them through a `contenteditable` and one stops a line
+wrapping, which is the bug that took the website's own editor down once.
+
+Uploads go to `/api/media` and are content-addressed by a hash of their bytes.
+A picture is shrunk to 1600px in the browser first; a clip is not, so it has to
+be under 4 MB — that is what one request can carry, and the message points at
+YouTube rather than just refusing.
+
+Three more things a future session needs to know:
+
+**It has its own password and its own store.** `WORKOUT_PASSWORD` on its own
+site — not this site's `ADMIN_PASSWORD`, and nothing to do with `GITHUB_TOKEN`
+or the November token renewal. The week and the record live in Netlify Blobs
+belonging to that site, never in this repository, because this repository is
+public and a training log is not. `data/plan.json` stays committed as the floor
+under the live week and nothing else does.
+
+**Signing in is a cookie, not a stored password.** The password goes to
+`/api/auth` once; what the browser keeps is an HttpOnly, signed, expiring
+token. Reading the record needs it as much as writing does. With the variable
+unset nobody can write and the record cannot be read — it fails closed.
+
+**Everything works with no server at all.** If the functions cannot be reached
+the app falls back to the committed `workout/data/plan.json` and the browser,
+says so at the top of the week, and keeps working — including a whole workout
+done in a gym with no signal, which goes up on its own afterwards. That
+fallback is the normal state of a phone in a garage, so keep it working.
+
+The shape of the data and every clamp is in
+`workout/netlify/functions/_lib/data.mjs`, guarded by `data.test.mjs`:
+
+    node --test workout/netlify/functions/_lib/*.test.mjs
+
+`workout/sw.js` precaches the shell. **Bump `VERSION` in it whenever the file
+list changes**, or a phone that installed the app keeps serving the old copy
+for ever.
 
 ## Form alerts — three sites, one phone
 
