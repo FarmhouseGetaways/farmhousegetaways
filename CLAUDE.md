@@ -750,9 +750,52 @@ Three things a later session needs to know:
   outwards at this resolution is a scratch and reads as a rendering error. The
   impact is a fat star with a white core, gone in five frames, with chips
   thrown off it.
-- **A material boundary carries a line; fur on fur does not.** A piece of kit
-  is a different material from the fur under it and gets `edge: true`. Putting
-  a line round a limb instead is what turns it into a sticker.
+- **A material boundary carries a line; and so does a near limb crossing the
+  body.** A piece of kit is a different material from the fur under it and
+  gets `edge: true`. The old rule here said fur on fur never carries a line,
+  which was learned from a version that outlined every limb all the way round
+  — that does turn them into stickers. But with no line at all the near arm
+  and the chest are one continuous mass and you cannot see where the arm is.
+  Ryu's near arm is outlined against his gi; so is this. The line is drawn
+  **clipped to the torso**, so it can only appear inside the body outline and
+  never touches the silhouette the contour pass already drew.
+- **A fighter is anatomy, not a bean with limbs.** Rewritten 21 Aug 2026 after
+  the owner asked for the cats to look more realistic. What was wrong and what
+  fixed it, because each of these is a separate mistake:
+  - **The shoulders had no spread.** In a side view the "width" of an upper
+    body is its depth, and `shoulderX` was 3.6 forward and 1.5 back. It is now
+    5.6 and 4.5, which is where the V comes from.
+  - **The trunk had no waist.** `bodyPoints` went nearly straight from hip to
+    chest. It now pulls hard in at 0.36 and opens out again at the rib cage.
+  - **Girth widened the trunk linearly**, so a heavyweight came out 23 units
+    across against a 28-unit torso — as wide as it was long. It is `G^0.62`
+    now: obviously heavy, still a fighter.
+  - **Every limb shared one width profile**, which is what made them all read
+    as bent tubing. `PROFILE` in `rig.js` carries one row per segment — the
+    deltoid and bicep on an upper arm, the calf high on a shin — and the
+    radius at each joint is smaller than the one above it, so there is a
+    pinch at the elbow and the knee.
+  - **The hands were round mittens**, which is the loudest wrong shape on a
+    fighting-game figure. `fistPath` is a wedge with knuckles proud of the
+    leading edge and the thumb across the back.
+  - **The feet rotated with the calf**, so a bent knee pointed the foot at the
+    sky. `footPath` lays the foot along the direction the cat faces.
+  - **The head was a soft vertical gradient** while everything under it was
+    hard-shaded, which is more obvious than no shading at all. It now gets
+    four hard shapes: a lit crown, the brow's shadow over the eyes, the far
+    cheek, and under the jaw.
+  - **Muscle was painted in translucent black**, which greys the fur wherever
+    it lands and reads as dirt. It is now the same shadow tone the cel shading
+    uses — the base colour pushed towards `SHADE_TO` — laid down opaque, and
+    the shapes are rounded through `smoothClosed`. Drawn with straight edges
+    they read as plates of armour.
+  - **Four shapes on the trunk, not nine.** It is about twenty pixels across
+    in the finished picture; the pec, the shadow under it, the lat and the
+    line down the belly survive, and everything else turned to noise.
+- **`clip()` is the expensive call, not the fills.** All four near limb
+  segments are clipped ONCE against a single path holding all of them —
+  canvas clips to the union of a path's subpaths — because five clips a cat a
+  frame measured at twice the cost of the muscle shapes themselves.
 - **And every fill carries the same light.** Each part is filled with a
   gradient, and all of those gradients run between the same two points in
   space, so the light crosses the whole cat rather than being decided per

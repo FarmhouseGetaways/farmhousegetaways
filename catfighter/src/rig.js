@@ -27,7 +27,11 @@
     upperArm: 15.4, foreArm: 14.2,
     thigh: 19.5, shin: 18.5,
     tail: [14, 12, 10],
-    shoulderY: -3.4, shoulderX: 3.6,
+    /* The shoulders. In a side view the "width" of an upper body is its
+       depth — how far the deltoid stands proud of the neck front and back —
+       and these were 3.6 forward and 1.5 back, which is a bottle, not a
+       fighter. Spreading them is what gives the torso its V. */
+    shoulderY: -4.6, shoulderX: 5.6, shoulderBack: 0.80,
     /* Poses give the head's offset from the neck, and they were authored
        against the old skull. Holding the crown at the height it always had
        keeps every anti-air and jump-in landing where it used to. */
@@ -115,7 +119,7 @@
     var neck = pt(pelvis.x + tl * Math.sin(t), pelvis.y + tl * Math.cos(t));
 
     var shF = pt(neck.x + P.shoulderX * s, neck.y + P.shoulderY * s);
-    var shB = pt(neck.x - P.shoulderX * s * 0.42, neck.y + P.shoulderY * s);
+    var shB = pt(neck.x - P.shoulderX * s * P.shoulderBack, neck.y + P.shoulderY * s);
 
     var elbF = seg(shF, pose.armF[0], L(P.upperArm));
     var handF = seg(elbF, pose.armF[0] + pose.armF[1], L(P.foreArm));
@@ -215,6 +219,74 @@
     ctx.restore();
   }
 
+  /* A FIST, not a mitten.
+
+     A round blob on the end of an arm is the single loudest wrong shape on a
+     fighting-game figure: hands are what a punch is made of, and the eye goes
+     straight to them. This is a chunky wedge laid along the forearm with the
+     knuckles proud on the leading edge and the thumb ridge across the back —
+     four shapes, all of which survive down at the arcade resolution because
+     they are in the OUTLINE rather than painted on.                        */
+  function fistPath(ctx, wrist, from, r, open) {
+    var dx = wrist.x - from.x, dy = wrist.y - from.y;
+    var len = Math.hypot(dx, dy) || 0.001;
+    var ang = Math.atan2(dy, dx);
+    ctx.save();
+    ctx.translate(wrist.x + (dx / len) * r * 0.34, wrist.y + (dy / len) * r * 0.34);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    /* the mass of the hand: longer along the arm than it is across */
+    ctx.moveTo(-r * 0.85, -r * 0.72);
+    ctx.quadraticCurveTo(r * 0.55, -r * 0.95, r * 0.92, -r * 0.52);
+    ctx.quadraticCurveTo(r * 1.16, 0, r * 0.92, r * 0.56);
+    ctx.quadraticCurveTo(r * 0.40, r * 0.98, -r * 0.85, r * 0.76);
+    ctx.quadraticCurveTo(-r * 1.14, 0, -r * 0.85, -r * 0.72);
+    ctx.closePath();
+    if (!open) {
+      /* the knuckles, standing proud of the leading edge */
+      ctx.moveTo(r * 1.10, -r * 0.34);
+      ctx.arc(r * 0.80, -r * 0.34, r * 0.30, 0, Math.PI * 2);
+      ctx.moveTo(r * 1.14, r * 0.20);
+      ctx.arc(r * 0.84, r * 0.20, r * 0.30, 0, Math.PI * 2);
+      /* the thumb, folded across the back of it */
+      ctx.moveTo(r * 0.30, -r * 0.86);
+      ctx.arc(r * 0.02, -r * 0.86, r * 0.28, 0, Math.PI * 2);
+    } else {
+      /* an open paw: three toes off the leading edge */
+      for (var t2 = -1; t2 <= 1; t2++) {
+        ctx.moveTo(r * 1.22, t2 * r * 0.50);
+        ctx.arc(r * 0.94, t2 * r * 0.50, r * 0.28, 0, Math.PI * 2);
+      }
+    }
+    ctx.restore();
+  }
+
+  /* A FOOT, standing on the floor rather than balled up at the ankle.
+
+     Laid along the direction the cat is facing, not along the shin — a foot
+     that rotates with the calf points at the sky the moment a knee bends, and
+     that is what made every kick look like it was thrown with a stump. */
+  function footPath(ctx, ankle, knee, lx, ly, toes) {
+    var lean = (ankle.x - knee.x) * 0.16;      /* a little of the shin's angle */
+    ctx.save();
+    ctx.translate(ankle.x, ankle.y);
+    ctx.beginPath();
+    ctx.moveTo(-lx * 0.62 + lean, ly * 0.55);          /* the heel, up the back */
+    ctx.quadraticCurveTo(-lx * 0.80 + lean, -ly * 0.55, -lx * 0.44, -ly * 0.92);
+    ctx.lineTo(lx * 0.66, -ly * 0.98);                 /* along the sole */
+    ctx.quadraticCurveTo(lx * 1.22, -ly * 0.86, lx * 1.18, -ly * 0.20);
+    ctx.quadraticCurveTo(lx * 0.86, ly * 0.34, lx * 0.10, ly * 0.50);
+    ctx.quadraticCurveTo(-lx * 0.28, ly * 0.66, -lx * 0.62 + lean, ly * 0.55);
+    ctx.closePath();
+    if (toes) {
+      ctx.moveTo(lx * 1.34, -ly * 0.62);
+      ctx.arc(lx * 1.06, -ly * 0.62, ly * 0.36, 0, Math.PI * 2);
+      ctx.moveTo(lx * 1.24, -ly * 0.10);
+      ctx.arc(lx * 0.96, -ly * 0.10, ly * 0.34, 0, Math.PI * 2);
+    }
+    ctx.restore();
+  }
+
   /* A limb with muscle in it.
 
      A capsule is the same width the whole way down apart from an even taper,
@@ -224,16 +296,29 @@
      so an acrobat and a heavyweight are not made from the same part. */
   var LIMB_T = [0, 0.16, 0.34, 0.56, 0.78, 1];
   var LIMB_W = [1.00, 1.20, 1.13, 0.90, 0.83, 1.00];
-  function limbPath(ctx, a, b, rA, rB, bulge) {
+
+  /* One profile per segment, because an arm and a shin are not the same
+     shape. Each row is the width multiplier at LIMB_T, so the belly of the
+     muscle and the pinch at the joint are both explicit. Sharing one profile
+     across every limb is what made the whole figure read as bent tubing. */
+  var PROFILE = {
+    upperArm: [1.00, 1.30, 1.20, 0.94, 0.76, 1.00],   /* deltoid, bicep, elbow */
+    foreArm:  [1.00, 1.20, 1.08, 0.86, 0.70, 1.00],   /* brachioradialis, wrist */
+    thigh:    [1.00, 1.24, 1.28, 1.04, 0.76, 1.00],   /* quad, knee */
+    shin:     [1.00, 1.22, 1.04, 0.78, 0.70, 1.00]    /* calf high, thin ankle */
+  };
+
+  function limbPath(ctx, a, b, rA, rB, bulge, profile) {
     var dx = b.x - a.x, dy = b.y - a.y;
     var len = Math.hypot(dx, dy) || 0.001;
     var ux = dx / len, uy = dy / len;
     var nx = -uy, ny = ux;
     var k = bulge === undefined ? 1 : bulge;
+    var prof = (profile && PROFILE[profile]) || LIMB_W;
     var i, t, w, side = [], back = [];
     for (i = 0; i < LIMB_T.length; i++) {
       t = LIMB_T[i];
-      w = (rA + (rB - rA) * t) * (1 + (LIMB_W[i] - 1) * k);
+      w = (rA + (rB - rA) * t) * (1 + (prof[i] - 1) * k);
       var px = a.x + dx * t, py = a.y + dy * t;
       side.push({ x: px + nx * w, y: py + ny * w });
       back.push({ x: px - nx * w, y: py - ny * w });
@@ -380,18 +465,27 @@
     function at(t, w) {
       return { x: p.x + dx * t + fx * w, y: p.y + dy * t + fy * w };
     }
+    /* Broad across the chest and the shoulder blades, hard in at the waist,
+       out again at the hip. The old curve went almost straight from hip to
+       chest, so the whole trunk read as one bag — and no amount of lighting
+       rescues a bag. The pull-in at 0.34 is the single line that makes this
+       look like something that trains. */
     return [
-      at(0.00,  hipW * 0.94),                  /* belly, over the hip */
-      at(0.32,  waistW),                       /* the waist, pulled in */
-      at(0.68,  chestW * 0.99),                /* chest, thrown forward */
-      at(0.95,  chestW * 0.80),                /* front of the shoulder */
-      at(1.10,  chestW * 0.20),
-      at(1.10, -chestW * 0.24),
-      at(0.95, -chestW * 0.74),                /* back of the shoulder */
-      at(0.66, -chestW * 0.90),                /* the shoulder blades */
-      at(0.30, -waistW * 1.10),
-      at(-0.06, -hipW * 1.02),                 /* the rump */
-      at(-0.14, 0)
+      at(-0.02, hipW * 0.98),                  /* belly, over the hip */
+      at(0.20,  waistW * 0.98),
+      at(0.36,  waistW * 0.80),                /* the waist, pulled hard in */
+      at(0.56,  chestW * 0.88),                /* the rib cage opening out */
+      at(0.74,  chestW * 1.06),                /* the chest, thrown forward */
+      at(0.93,  chestW * 0.86),                /* front of the shoulder */
+      at(1.08,  chestW * 0.22),
+      at(1.08, -chestW * 0.30),
+      at(0.93, -chestW * 0.82),                /* back of the shoulder */
+      at(0.72, -chestW * 1.00),                /* the shoulder blades */
+      at(0.50, -chestW * 0.86),                /* the lat, running down */
+      at(0.32, -waistW * 0.94),
+      at(0.08, -hipW * 0.98),
+      at(-0.08, -hipW * 1.04),                 /* the rump */
+      at(-0.16, 0)
     ];
   }
 
@@ -602,15 +696,23 @@
 
     var R_TOP = 6.2 * s * G * LIMBW, R_MID = 4.6 * s * G * LIMBW, R_END = 3.4 * s * G * LIMBW;
     var HAND = 4.8 * s * G * LIMBW, FOOT_X = 7.4 * s * G, FOOT_Y = 4.2 * s * G;
-    var hipW = 8.8 * s * G, waistW = 7.4 * s * G * WA, chestW = 11.8 * s * G * SH;
+    /* Girth widens the trunk SUB-linearly. At full strength a heavyweight came
+       out 23 units across against a 28-unit torso — as wide as it was long,
+       which is a pear, not a fighter. The square-rootish curve keeps a heavy
+       cat obviously heavy without letting the trunk swallow the limbs. */
+    var GW = Math.pow(G, 0.62);
+    var hipW = 8.4 * s * GW, waistW = 6.6 * s * GW * WA, chestW = 11.4 * s * GW * SH;
     var OUTLINE = 1.8 * s;
 
     /* Three tones front to back: the shaded far side, the torso, and a
        slightly brighter near side. Depth without a single extra line. */
     var dark = lum(c.fur) < 0.34;
-    var furFront = white ? '#ffffff' : shade(c.fur, dark ? 0.24 : 0.12);
-    var furBack  = white ? '#eeeeee' : shade(c.fur2 || c.fur, dark ? -0.22 : -0.17);
-    var tailW = (c.longhair ? 6.4 : 4.7) * s * G;
+    var furFront = white ? '#ffffff' : shade(c.fur, dark ? 0.34 : 0.24);
+    var furBack  = white ? '#dddddd' : shade(c.fur2 || c.fur, dark ? -0.30 : -0.30);
+    /* The tail sits BEHIND the cat, so it takes the far-side tone and it is
+       thinner than it was — at full girth it came out as thick as a thigh and
+       read as a third limb arching over the shoulder. */
+    var tailW = (c.longhair ? 5.4 : 4.0) * s * GW;
 
     var shapes = [];
     /* `band` puts a highlight along the lit edge as well as a shadow along
@@ -631,7 +733,7 @@
     var tailUp = (j.pose && j.pose.tailFront > 0.5);
 
     function addTail() {
-      var tc = tailUp ? tailCol : (c.points ? c.marks : furBack);
+      var tc = c.points ? c.marks : (tailUp ? shade(tailCol, dark ? -0.18 : -0.20) : furBack);
       fillShape(function (cx) { tailPath(cx, j, tailW, tailW * 0.52); }, tc);
       if (c.tailTip) {
         fillShape(function (cx) {
@@ -643,14 +745,14 @@
 
     /* back leg and arm, in the shade */
     fillShape(function (cx) { ellipsePath(cx, j.hipB.x, j.hipB.y, R_TOP * 1.10, R_TOP * 1.02); }, back, { flat: true });
-    fillShape(function (cx) { limbPath(cx, j.hipB, j.kneeB, R_TOP * 1.16, R_MID * 0.86, MUS * 1.35); }, back, { band: true });
-    fillShape(function (cx) { limbPath(cx, j.kneeB, j.footB, R_MID * 0.86, R_END * 0.82, MUS * 0.7); }, back);
-    fillShape(function (cx) { pawPath(cx, j.footB, j.kneeB, FOOT_X * 0.80, FOOT_Y * 0.92, false); }, back, { flat: true });
+    fillShape(function (cx) { limbPath(cx, j.hipB, j.kneeB, R_TOP * 1.16, R_MID * 0.80, MUS * 1.25, 'thigh'); }, back, { band: true });
+    fillShape(function (cx) { limbPath(cx, j.kneeB, j.footB, R_MID * 0.80, R_END * 0.74, MUS * 1.0, 'shin'); }, back);
+    fillShape(function (cx) { footPath(cx, j.footB, j.kneeB, FOOT_X * 0.80, FOOT_Y * 0.92, false); }, back, { flat: true });
     var armBack = c.points ? c.marks : furBack;
     fillShape(function (cx) { ellipsePath(cx, j.shB.x, j.shB.y, R_TOP * 1.24, R_TOP * 1.16); }, armBack, { flat: true });
-    fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.94, R_MID * 0.90, MUS * 0.9); }, armBack, { band: true });
-    fillShape(function (cx) { limbPath(cx, j.elbB, j.handB, R_MID * 0.90, R_END * 0.88, MUS * 0.6); }, armBack);
-    fillShape(function (cx) { pawPath(cx, j.handB, j.elbB, HAND * 0.84, HAND * 0.72, false); }, c.gloves || armBack, { flat: true });
+    fillShape(function (cx) { limbPath(cx, j.shB, j.elbB, R_TOP * 0.98, R_MID * 0.80, MUS * 1.0, 'upperArm'); }, armBack, { band: true });
+    fillShape(function (cx) { limbPath(cx, j.elbB, j.handB, R_MID * 0.80, R_END * 0.76, MUS * 0.9, 'foreArm'); }, armBack);
+    fillShape(function (cx) { fistPath(cx, j.handB, j.elbB, HAND * 0.86, false); }, c.gloves || armBack, { flat: true });
 
     /* the long-haired underlayer, wider than the body it sits behind */
     var bodyPts = bodyPoints(j, hipW, waistW, chestW);
@@ -684,17 +786,23 @@
     }
     fillShape(function (cx) { ellipsePath(cx, j.hipF.x, j.hipF.y, R_TOP * 1.16, R_TOP * 1.06); }, fur, { flat: true });
     /* a neck, so the head is not balanced straight on the shoulders */
-    fillShape(function (cx) { capsulePath(cx, j.neck, j.head, chestW * 0.46, j.headR * 0.60); }, fur);
+    /* The neck. At chestW * 0.46 it was nearly as wide as the chest, which is
+       why the head looked stuck straight onto the shoulders — a fighter has a
+       throat, and you can see it. Narrow, and a shade darker than the chest
+       so it sits back in the shadow the jaw throws. */
+    fillShape(function (cx) {
+      capsulePath(cx, j.neck, j.head, chestW * 0.30, j.headR * 0.52);
+    }, shade(fur, dark ? -0.10 : -0.14));
 
     /* front leg and arm */
     var frontParts = [
       function (cx) { ellipsePath(cx, j.shF.x, j.shF.y, R_TOP * 1.16, R_TOP * 1.06); },
-      function (cx) { limbPath(cx, j.hipF, j.kneeF, R_TOP * 1.24, R_MID * 0.96, MUS * 1.35); },
-      function (cx) { limbPath(cx, j.kneeF, j.footF, R_MID * 0.96, R_END * 0.92, MUS * 0.75); },
-      function (cx) { pawPath(cx, j.footF, j.kneeF, FOOT_X * 0.92, FOOT_Y, true); },
-      function (cx) { limbPath(cx, j.shF, j.elbF, R_TOP * 0.90, R_MID * 0.90, MUS); },
-      function (cx) { limbPath(cx, j.elbF, j.handF, R_MID * 0.90, R_END * 0.90, MUS * 0.65); },
-      function (cx) { pawPath(cx, j.handF, j.elbF, HAND * 1.02, HAND * 0.82, true); }
+      function (cx) { limbPath(cx, j.hipF, j.kneeF, R_TOP * 1.24, R_MID * 0.86, MUS * 1.25, 'thigh'); },
+      function (cx) { limbPath(cx, j.kneeF, j.footF, R_MID * 0.86, R_END * 0.80, MUS * 1.0, 'shin'); },
+      function (cx) { footPath(cx, j.footF, j.kneeF, FOOT_X * 0.92, FOOT_Y, true); },
+      function (cx) { limbPath(cx, j.shF, j.elbF, R_TOP * 1.04, R_MID * 0.86, MUS * 1.05, 'upperArm'); },
+      function (cx) { limbPath(cx, j.elbF, j.handF, R_MID * 0.86, R_END * 0.80, MUS * 0.95, 'foreArm'); },
+      function (cx) { fistPath(cx, j.handF, j.elbF, HAND * 1.00, false); }
     ];
     var frontStart = shapes.length;
     fillShape(frontParts[0], furFront, { flat: true });
@@ -834,7 +942,7 @@
       frontStart: frontStart,
       fur: fur, fur2: fur2, belly: belly, line: line, white: white,
       hipW: hipW, waistW: waistW, chestW: chestW, tailW: tailW, kit: c.kit || {},
-      OUTLINE: OUTLINE, s: s, G: G
+      OUTLINE: OUTLINE, s: s, G: G, limbW: LIMBW
     };
   }
 
@@ -932,6 +1040,32 @@
     }
     ctx.restore();
 
+    /* The near limbs get a line WHERE THEY CROSS THE BODY, and nowhere else.
+
+       The old rule here — fur on fur never carries a line — was learned from
+       a version that outlined every limb all the way round, which does turn
+       them into stickers. But the opposite is worse: without any line at all
+       the near arm and the chest are one continuous grey mass and you cannot
+       see where the arm is, which is most of what "the cats look nothing like
+       Street Fighter characters" meant. Ryu's near arm is outlined against
+       his gi; so is this.
+
+       Clipping to the torso is what keeps both true. The line can only appear
+       inside the body outline, so it separates the arm from the chest and
+       never touches the silhouette the contour pass already drew. */
+    if (!white) {
+      ctx.save();
+      smoothClosed(ctx, fig.bodyPts);
+      ctx.clip();
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = fig.line;
+      ctx.globalAlpha = 0.95;
+      ctx.lineWidth = 1.9 * s;
+      for (i = 0; i < fig.frontParts.length; i++) { fig.frontParts[i](ctx); ctx.stroke(); }
+      ctx.restore();
+    }
+
     /* the ruff where the neck meets the chest */
     ctx.save();
     ctx.globalAlpha = 0.95;
@@ -1006,83 +1140,115 @@
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    /* ---- muscle, as hard-edged shapes rather than lines ------------------
+    /* ---- muscle, in the shadow tone, with hard edges ---------------------
 
        Creases say where a limb bends. They do not say what is under the fur,
        and a limb with no mass in it is the "geometric shapes moving unlike a
-       body" complaint in one sentence. Street Fighter II draws a deltoid, a
-       pectoral and a thigh as flat blocks of the shadow tone with a hard
-       boundary — no gradient, no outline, just a second tone in the shape of
-       the muscle. That is all this is.
+       body" complaint in one sentence.
 
-       Everything below is clipped to the torso or drawn inside a limb it is
-       already part of, so nothing can spill past the silhouette.          */
-    var msh = 'rgba(22,14,30,.34)';
+       Two things matter here and the first version got both wrong. The tone
+       has to be the SAME shadow the cel shading uses — the base colour pushed
+       towards the one cool dark — and not a wash of translucent black, which
+       greys the fur wherever it lands and reads as dirt. And the edge has to
+       be hard: a pectoral in Street Fighter II is a flat block of the shadow
+       tone with a definite boundary, not a soft blob.
 
-    /* the deltoid, capping the near shoulder where the arm leaves the body */
-    function cap(sh, elb, r) {
-      var dx = elb.x - sh.x, dy = elb.y - sh.y, dl = Math.hypot(dx, dy) || 1;
-      dx /= dl; dy /= dl;
-      var px = -dy, py = dx;
-      ctx.beginPath();
-      ctx.moveTo(sh.x - px * r * 0.95, sh.y - py * r * 0.95);
-      ctx.quadraticCurveTo(sh.x + dx * r * 1.5 - px * r * 0.2,
-                           sh.y + dy * r * 1.5 - py * r * 0.2,
-                           sh.x + dx * r * 1.15 + px * r * 0.72,
-                           sh.y + dy * r * 1.15 + py * r * 0.72);
-      ctx.quadraticCurveTo(sh.x + px * r * 0.6, sh.y + py * r * 0.6,
-                           sh.x - px * r * 0.95, sh.y - py * r * 0.95);
-      ctx.closePath();
+       Everything below is clipped to the part it belongs to, so nothing can
+       spill past the silhouette.                                          */
+    var sh1 = mix(fig.fur, SHADE_TO, 0.30);     /* the form shadow */
+    var sh2 = mix(fig.fur, SHADE_TO, 0.46);     /* the crease under it */
+    var lit1 = mix(fig.fur, LIGHT_TO, 0.20);    /* the top of a muscle */
+
+    /* A block of tone laid inside one limb segment, described in the limb's
+       own frame: `u` runs 0 at the top joint to 1 at the bottom one, `v` is
+       across it, +1 being the leading edge. */
+    function inLimb(a2, b2, r, pts, colour) {
+      var dx = b2.x - a2.x, dy = b2.y - a2.y, dl = Math.hypot(dx, dy) || 1;
+      var ux = dx / dl, uy = dy / dl, px = -uy, py = ux;
+      var ring = [];
+      for (var q = 0; q < pts.length; q++) {
+        ring.push({ x: a2.x + ux * dl * pts[q][0] + px * r * pts[q][1],
+                    y: a2.y + uy * dl * pts[q][0] + py * r * pts[q][1] });
+      }
+      /* rounded, not faceted — a muscle drawn with straight edges reads as
+         a plate of armour, which is what the first version of this looked
+         like */
+      smoothClosed(ctx, ring);
+      ctx.fillStyle = colour;
       ctx.fill();
     }
-    ctx.fillStyle = msh;
-    cap(j.shF, j.elbF, 5.4 * s * G);
 
-    /* the pectoral, under the collarbone and over the ribs */
+    /* ---- the near limbs ---------------------------------------------------
+
+       All four near segments are clipped ONCE, against a single path holding
+       all of them. Canvas clips to the union of a path's subpaths, so this is
+       the same picture as clipping each limb in turn — but `clip()` is the
+       expensive call in a software rasteriser, and five of them per cat per
+       frame measured at twice the cost of the muscle shapes themselves. Two
+       clips instead of five took two cats from 14ms a frame back under 10. */
+    var armR = 5.2 * s * G * (fig.limbW || 1);
+    var legR = 6.2 * s * G * (fig.limbW || 1);
+    ctx.save();
+    ctx.beginPath();
+    limbPath(ctx, j.shF, j.elbF, armR * 1.12, armR * 0.86, 1, 'upperArm');
+    limbPath(ctx, j.elbF, j.handF, armR * 0.86, armR * 0.80, 1, 'foreArm');
+    limbPath(ctx, j.hipF, j.kneeF, legR * 1.24, legR * 0.86, 1, 'thigh');
+    limbPath(ctx, j.kneeF, j.footF, legR * 0.86, legR * 0.80, 1, 'shin');
+    ctx.clip();
+
+    /* the deltoid cap, sitting on top of the arm where it leaves the body */
+    inLimb(j.shF, j.elbF, armR, [[-0.10, -1.3], [0.34, -1.3], [0.30, 0.3], [-0.10, 1.3]], sh1);
+    /* the bicep belly catching the light, and the tricep in shadow behind it */
+    inLimb(j.shF, j.elbF, armR, [[0.36, 0.20], [0.72, 0.30], [0.86, 1.3], [0.34, 1.3]], lit1);
+    inLimb(j.shF, j.elbF, armR, [[0.30, -1.3], [0.94, -1.3], [0.86, -0.30], [0.40, -0.40]], sh1);
+    /* the forearm */
+    inLimb(j.elbF, j.handF, armR * 0.86,
+           [[0.02, 0.10], [0.42, 0.30], [0.72, 1.3], [0.00, 1.3]], lit1);
+    inLimb(j.elbF, j.handF, armR * 0.86,
+           [[0.00, -1.3], [0.80, -1.3], [0.66, -0.34], [0.06, -0.44]], sh1);
+    /* the quad down the front of the thigh, the hamstring behind it */
+    inLimb(j.hipF, j.kneeF, legR, [[0.02, 0.10], [0.52, 0.34], [0.86, 1.3], [0.00, 1.3]], lit1);
+    inLimb(j.hipF, j.kneeF, legR, [[0.00, -1.3], [0.84, -1.3], [0.72, -0.28], [0.06, -0.44]], sh1);
+    /* the calf: high on the back of the leg, which is what makes it a calf */
+    inLimb(j.kneeF, j.footF, legR * 0.86,
+           [[0.02, -1.3], [0.52, -1.3], [0.62, -0.20], [0.08, -0.30]], lit1);
+    inLimb(j.kneeF, j.footF, legR * 0.86,
+           [[0.52, -1.3], [0.96, -1.3], [0.92, -0.40], [0.60, -0.24]], sh1);
+    ctx.restore();
+
+    /* ---- the trunk: pectoral, ribs, abdomen, lat ---- */
     ctx.save();
     smoothClosed(ctx, fig.bodyPts);
     ctx.clip();
-    ctx.fillStyle = msh;
-    ctx.beginPath();
-    ctx.moveTo(cx1 - fig.chestW * 0.42, cy1 - 0.2 * s);
-    ctx.quadraticCurveTo(cx1 + fig.chestW * 0.10, cy1 + 2.6 * s,
-                         cx1 + fig.chestW * 0.52, cy1 - 1.0 * s);
-    ctx.lineTo(cx1 + fig.chestW * 0.52, cy1 - 5.6 * s);
-    ctx.quadraticCurveTo(cx1, cy1 - 3.0 * s,
-                         cx1 - fig.chestW * 0.42, cy1 - 4.4 * s);
-    ctx.closePath();
-    ctx.fill();
-    /* and the shadow the ribcage throws down the away side of the belly */
-    var bx1 = U.lerp(j.pelvis.x, j.neck.x, 0.18), by1 = U.lerp(j.pelvis.y, j.neck.y, 0.18);
-    ctx.fillStyle = 'rgba(22,14,30,.26)';
-    ctx.beginPath();
-    ctx.moveTo(bx1 - fig.waistW * 1.10, by1 + 7 * s);
-    ctx.quadraticCurveTo(bx1 - fig.waistW * 0.34, by1 + 2 * s,
-                         bx1 - fig.waistW * 0.52, by1 - 7 * s);
-    ctx.lineTo(bx1 - fig.waistW * 1.30, by1 - 7 * s);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
 
-    /* the thigh, as a block on the back of the near leg */
-    function thigh(hip, knee, r) {
-      var dx = knee.x - hip.x, dy = knee.y - hip.y, dl = Math.hypot(dx, dy) || 1;
-      dx /= dl; dy /= dl;
-      var px = -dy, py = dx;
-      ctx.beginPath();
-      ctx.moveTo(hip.x - px * r * 0.85, hip.y - py * r * 0.85);
-      ctx.quadraticCurveTo(hip.x + dx * dl * 0.42 - px * r * 1.15,
-                           hip.y + dy * dl * 0.42 - py * r * 1.15,
-                           knee.x - px * r * 0.30, knee.y - py * r * 0.30);
-      ctx.lineTo(knee.x + px * r * 0.10, knee.y + py * r * 0.10);
-      ctx.quadraticCurveTo(hip.x + dx * dl * 0.42 - px * r * 0.30,
-                           hip.y + dy * dl * 0.42 - py * r * 0.30,
-                           hip.x - px * r * 0.85, hip.y - py * r * 0.85);
-      ctx.closePath();
+    /* the spine of the trunk, in its own frame: t up the body, w forward */
+    var tp = j.pelvis, tn = j.neck;
+    var tdx = tn.x - tp.x, tdy = tn.y - tp.y;
+    var tlen = Math.hypot(tdx, tdy) || 1;
+    var tfx = tdy / tlen, tfy = -tdx / tlen;
+    function T(t2, w) {
+      return { x: tp.x + tdx * t2 + tfx * w, y: tp.y + tdy * t2 + tfy * w };
+    }
+    function shape(pts, colour) {
+      var ring = [];
+      for (var q2 = 0; q2 < pts.length; q2++) {
+        ring.push(T(pts[q2][0], pts[q2][1] * fig.chestW));
+      }
+      smoothClosed(ctx, ring);
+      ctx.fillStyle = colour;
       ctx.fill();
     }
-    ctx.fillStyle = 'rgba(22,14,30,.24)';
-    thigh(j.hipF, j.kneeF, 5.8 * s * G);
+
+    /* Four shapes, not nine. The trunk is about twenty pixels across in the
+       finished picture and every extra block on it turns to noise; what has
+       to survive is the pec, the shadow under it, the lat, and the line down
+       the middle of the belly. */
+    shape([[0.62, 0.26], [0.90, 0.40], [0.94, 0.96], [0.64, 0.94]], lit1);
+    shape([[0.56, 0.26], [0.64, 0.94], [0.58, 1.00], [0.50, 0.42]], sh2);
+    shape([[0.84, -0.94], [0.88, -0.34], [0.42, -0.38], [0.38, -0.84]], sh1);
+    shape([[0.16, 0.10], [0.46, 0.16], [0.45, 0.30], [0.15, 0.24]], sh1);
+    ctx.restore();
+
     ctx.restore();
   }
 
@@ -1202,17 +1368,57 @@
     }
     innerEar(1); innerEar(-0.76);
 
-    /* a shadow across the top of the skull, so the head reads as a ball */
+    /* The skull, cel-shaded to match the body.
+
+       This was a soft vertical gradient, which is why the head read as a
+       shiny plastic ball while everything under it was hard-shaded — one
+       smooth form on an otherwise faceted figure is more obvious than no
+       shading at all. Four hard shapes instead: the crown catching the light,
+       the brow throwing a shadow down over the eyes, the far cheek turning
+       away, and the underside of the jaw. */
     if (!white) {
       ctx.save();
       skullPath(ctx, r, (j.build && j.build.headShape) || 'round');
       ctx.clip();
-      var hg = ctx.createLinearGradient(0, -r, 0, r);
-      hg.addColorStop(0, 'rgba(0,0,0,.22)');
-      hg.addColorStop(0.6, 'rgba(0,0,0,0)');
-      hg.addColorStop(1, 'rgba(255,255,255,.10)');
-      ctx.fillStyle = hg;
-      ctx.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
+
+      /* the crown, lit */
+      ctx.fillStyle = mix(fur, LIGHT_TO, 0.20);
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.2, r * 0.30);
+      ctx.quadraticCurveTo(0, r * 0.86, r * 1.2, r * 0.16);
+      ctx.lineTo(r * 1.2, r * 1.4);
+      ctx.lineTo(-r * 1.2, r * 1.4);
+      ctx.closePath();
+      ctx.fill();
+
+      /* the brow, and the shadow it throws over the eyes */
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.26);
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.2, r * 0.34);
+      ctx.quadraticCurveTo(0, r * 0.10, r * 1.2, r * 0.30);
+      ctx.lineTo(r * 1.2, r * 0.02);
+      ctx.quadraticCurveTo(0, -r * 0.16, -r * 1.2, r * 0.06);
+      ctx.closePath();
+      ctx.fill();
+
+      /* the far cheek, turning away from the light */
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.34);
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.2, r * 0.72);
+      ctx.quadraticCurveTo(-r * 0.50, r * 0.10, -r * 0.62, -r * 0.90);
+      ctx.lineTo(-r * 1.3, -r * 0.90);
+      ctx.closePath();
+      ctx.fill();
+
+      /* under the jaw */
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.40);
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.2, -r * 0.52);
+      ctx.quadraticCurveTo(0, -r * 0.86, r * 1.2, -r * 0.60);
+      ctx.lineTo(r * 1.2, -r * 1.4);
+      ctx.lineTo(-r * 1.2, -r * 1.4);
+      ctx.closePath();
+      ctx.fill();
       ctx.restore();
     }
 
