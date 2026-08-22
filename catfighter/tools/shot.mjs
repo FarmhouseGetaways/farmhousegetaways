@@ -43,7 +43,7 @@ cats: (a) => `
   const POSES = ['stand','walkF2','fierce','sweep','jumpKick','guardHigh'];
   /* Tall enough for the whole cat. The first version cropped every head off
      at the top, which is a bad way to judge a silhouette. */
-  const CW = Math.round(120*SC/1.9), CH = Math.round(245*SC/1.9);
+  const CW = Math.round(158*SC/1.9), CH = Math.round(290*SC/1.9);
   size(CW*POSES.length, CH*CF.ROSTER.length);
   bg('#7c7c86');
   CF.ROSTER.forEach((chr,row)=>POSES.forEach((pn,col)=>{
