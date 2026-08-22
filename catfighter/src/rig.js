@@ -1200,6 +1200,19 @@
         if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = fig.silhouette; ctx.lineWidth = sh.w; ctx.stroke(); }
         else { sh.p(ctx); ctx.fill(); }
       }
+      /* The costume's HEAD layer too — a topknot, a headband's tails, horns.
+         Those are exactly the pieces that change an outline, so leaving them
+         out made the test miss the thing it exists to measure. They live in
+         the head's own frame, which is why they need the transform. */
+      if (fig.costumeHead && fig.costumeHead.length) {
+        ctx.translate(j.head.x, j.head.y);
+        ctx.rotate(-(j.headRot || 0) * DEG);
+        for (i = 0; i < fig.costumeHead.length; i++) {
+          var hsq = fig.costumeHead[i];
+          if (hsq.k === 's') { hsq.p(ctx); ctx.strokeStyle = fig.silhouette; ctx.lineWidth = hsq.w; ctx.stroke(); }
+          else { hsq.p(ctx); ctx.fill(); }
+        }
+      }
       ctx.restore();
       return;
     }
