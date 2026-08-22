@@ -755,6 +755,7 @@ function newLive(key) {
     i: 0,
     setStart: now,
     restEnds: null,
+    staleOk: false,
     exercises: day.exercises.map((ex) => ({
       id: ex.id, name: ex.name, video: ex.video, image: ex.image || "", effort: ex.effort,
       reps: ex.reps, rest: ex.rest, notes: ex.notes,
@@ -814,9 +815,14 @@ function renderPlayer(key) {
 }
 
 /* Six hours. Nobody trains for six hours, so past that the timer was forgotten
-   rather than running. */
+   rather than running.
+
+   `staleOk` is set when somebody looks at that question and says carry on. It
+   has to exist: without it, choosing to carry on re-rendered the very screen
+   that was asking, over and over, because the workout is still just as old as
+   it was a second ago. */
 const STALE_MS = 6 * 60 * 60 * 1000;
-const isStale = (live) => Date.now() - (live.startedMs || 0) > STALE_MS;
+const isStale = (live) => !live.staleOk && Date.now() - (live.startedMs || 0) > STALE_MS;
 
 function askCarryOn(live, wantedKey) {
   const stale = isStale(live);
@@ -833,8 +839,11 @@ function askCarryOn(live, wantedKey) {
          ${plural(liveSetsDone(live), "set")} done, ${duration(liveElapsed(live))} in.`}</p>
     <div class="btn-row" style="margin-top:1.5rem">
       ${stale
+        /* Not a data-go. Getting here means the hash is ALREADY #/go/<day>, and
+           assigning a hash its current value fires no hashchange at all — which
+           is precisely why this button did nothing. */
         ? `<button class="btn btn--go btn--big" data-action="discard-live" data-day="${wantedKey}">Start ${DAY_NAMES[wantedKey]} fresh</button>
-           <button class="btn" data-go="#/go/${live.day}">Carry on the old one anyway</button>`
+           <button class="btn" data-action="resume-live">Carry on the old one anyway</button>`
         : `<button class="btn btn--go btn--big" data-go="#/go/${live.day}">Carry on with ${DAY_NAMES[live.day]}</button>
            <button class="btn" data-action="discard-live" data-day="${wantedKey}">Throw it away and start ${DAY_NAMES[wantedKey]}</button>`}
     </div>
@@ -1769,6 +1778,15 @@ document.addEventListener("click", (e) => {
         yes: done ? `Finish with ${plural(done, "set")}` : "End it, log nothing",
         onYes: () => { const l = store.loadLive(); if (l) finishWorkout(l); },
       });
+      break;
+    }
+    case "resume-live": {
+      const l = store.loadLive();
+      if (!l) { render(); break; }
+      l.staleOk = true;                 // asked and answered; do not ask again
+      store.saveLive(l);
+      if (location.hash === `#/go/${l.day}`) render();
+      else go(`#/go/${l.day}`);
       break;
     }
     case "discard-live":

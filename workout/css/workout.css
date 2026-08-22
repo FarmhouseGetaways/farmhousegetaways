@@ -402,9 +402,12 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 
 .set.is-done { border-color: rgba(157, 194, 168, .5); background: rgba(157, 194, 168, .14); color: var(--sage); }
 .set.is-done b { color: var(--sage); }
+/* The ring is inset. An outer one sits outside the border box and makes the
+   current box read as a pixel bigger than the ones beside it, which is the
+   whole thing this row was fixed to stop doing. */
 .set.is-now {
   border-color: var(--blush); background: rgba(231, 154, 166, .18); color: var(--blush);
-  box-shadow: 0 0 0 1px rgba(231, 154, 166, .35);
+  box-shadow: inset 0 0 0 1px rgba(231, 154, 166, .45);
 }
 .set.is-now b { color: var(--blush); }
 
@@ -837,3 +840,25 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 /* Save quietly lights up when there is actually something to save. */
 #s-save { opacity: .55; }
 #s-save.is-waiting { opacity: 1; box-shadow: 0 0 0 3px rgba(231, 154, 166, .18); }
+
+/* The "you are looking at old code" bar. Quiet, above the safe area, and it
+   asks rather than reloading — reloading underneath somebody mid-set would be
+   worse than the staleness it is fixing. */
+.update-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(1rem + env(safe-area-inset-bottom)); z-index: 70;
+  display: flex; align-items: center; gap: .75rem;
+  max-width: min(92vw, 26rem);
+  padding: .6rem .6rem .6rem 1rem;
+  border-radius: 999px;
+  background: #2A2429; border: 1px solid var(--line-2);
+  box-shadow: var(--shadow);
+  font-size: .85rem; color: var(--dim);
+  animation: rise .2s ease;
+}
+.update-bar button {
+  border: 0; cursor: pointer;
+  padding: .45rem .95rem; border-radius: 999px;
+  background: var(--blush); color: #2A1216;
+  font-size: .82rem; font-weight: 700;
+}

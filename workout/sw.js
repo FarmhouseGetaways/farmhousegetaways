@@ -20,7 +20,7 @@
  * that already installed the app keeps serving yesterday's copy for ever.
  */
 
-const VERSION = "workouts-v13";
+const VERSION = "workouts-v14";
 
 const SHELL = [
   "./",
@@ -79,7 +79,37 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: the cached copy now, a fresh one for next time.
+  /* The code itself — the page, the scripts, the stylesheet — is fetched fresh
+     when there is a network, and served from the cache when there is not.
+
+     It used to be the other way round: the cached copy was served immediately
+     and a fresh one quietly stored for next time. That is the right trade for
+     a finished app and the wrong one for an app being changed hourly, because
+     it means every phone is always exactly one version behind — a fix would be
+     deployed, verified live, and still not be what the person was looking at.
+     That cost an evening of chasing a bug that had already been fixed.
+
+     Offline is unaffected: no network simply means the cache answers, which is
+     what it was always going to do. */
+  const isCode = req.mode === "navigate" || /\.(js|css|webmanifest)$/.test(url.pathname);
+
+  if (isCode) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(VERSION).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("index.html"))),
+    );
+    return;
+  }
+
+  // Everything else — icons, uploaded pictures: the cached copy now, a fresh
+  // one for next time. These are content-addressed or never change.
   event.respondWith(
     caches.match(req).then((hit) => {
       const live = fetch(req)
