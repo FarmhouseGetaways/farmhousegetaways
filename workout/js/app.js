@@ -213,6 +213,7 @@ function openSheet(title, html, wire) {
   if (wire) wire($("#sheet-body"));
 }
 function closeSheet() {
+  pendingConfirm = null;
   $("#sheet").hidden = true;
   $("#sheet-body").innerHTML = "";
   document.body.style.overflow = "";
@@ -688,6 +689,29 @@ function videoHint(url) {
   return "Not a video this can play. It would show as a link instead.";
 }
 
+/**
+ * "Are you sure?", sized for somebody out of breath holding a phone.
+ *
+ * A browser confirm() is a small dialog with small buttons at the top of the
+ * screen — the worst possible shape mid-workout, and on some phones it is
+ * suppressed entirely. This is the app's own sheet with two full-width
+ * buttons, and the safe one is the easy one to hit.
+ */
+let pendingConfirm = null;
+
+function askFirst({ title, body, yes, danger = true, onYes }) {
+  pendingConfirm = onYes;
+  openSheet(title, `
+    <p class="muted" style="margin-bottom:1.5rem">${body}</p>
+    <div class="btn-row">
+      <button class="btn btn--big ${danger ? "btn--danger" : "btn--go"}" data-action="confirm-yes">${yes}</button>
+    </div>
+    <div class="btn-row" style="margin-top:.6rem">
+      <button class="btn btn--big btn--go" data-action="confirm-no">No, keep going</button>
+    </div>
+  `);
+}
+
 /* ==========================================================================
    The player
 
@@ -786,10 +810,25 @@ function askCarryOn(live, wantedKey) {
   bar.hidden = true;
 }
 
+/* Which exercise's media is currently in the DOM, and the node itself.
+   Repainting the player rebuilds the whole screen, and rebuilding a <video> or
+   an <iframe> restarts it from the beginning. That happened on every single
+   set — the demonstration jumped back to the start each time she finished one —
+   and it is also why Pause appeared to reload the video rather than pause it.
+   The media node is now lifted out and put back whenever the exercise has not
+   changed. */
+let mountedKey = null;
+let mountedMedia = null;
+
+const MEDIA_SEL = "video, iframe, .stage__still, .stage__empty";
+
 function paintPlayer(live) {
   playerPainted = true;
   const ex = live.exercises[live.i];
   if (!ex) { finishWorkout(live); return; }
+
+  const key = `${live.id}:${live.i}`;
+  const keep = key === mountedKey && mountedMedia ? mountedMedia : null;
 
   const setNo = ex.done.length + 1;
   const resting = live.restEnds && live.restEnds > Date.now();
@@ -856,6 +895,22 @@ function paintPlayer(live) {
       </div>
     </div>`;
 
+  const stage = document.getElementById("stage");
+  const fresh = stage?.querySelector(MEDIA_SEL);
+  if (keep && fresh) {
+    // Same exercise: put the element that is already playing back in place of
+    // the freshly built one, so it never restarts.
+    fresh.replaceWith(keep);
+  } else {
+    mountedMedia = fresh || null;
+  }
+  mountedKey = key;
+  /* Moving a media element through a repaint pauses it — the browser stops
+     anything detached from the document. So the true state is applied after
+     the move, never before it, or Carry on would play the video and the
+     repaint would immediately stop it again. */
+  setMediaPaused(!!live.pausedAt);
+
   barIn.innerHTML = resting
     /* The label is one element rather than three. `.btn` is a flex box with a
        gap, and a bare text node beside a <span> becomes its own flex item —
@@ -886,6 +941,37 @@ function stageHtml(ex, muteAutoplay) {
       <strong>No video for this one</strong>
       <span class="small">Add a picture or a clip from the pencil and it shows here.</span>
     </div>`;
+}
+
+/**
+ * Stop the demonstration, or start it again.
+ *
+ * A file plays through the browser and simply pauses. YouTube and Vimeo sit in
+ * an iframe on somebody else's origin, so the only way to reach them is the
+ * message channel their players listen on — which is why the embed URL now
+ * carries enablejsapi. Both message shapes are sent every time; the player
+ * that is not listening for one ignores it, which is cheaper than working out
+ * which provider is on screen.
+ */
+function setMediaPaused(paused) {
+  const stage = document.getElementById("stage");
+  if (!stage) return;
+
+  const video = stage.querySelector("video");
+  if (video) {
+    if (paused) video.pause();
+    else video.play().catch(() => { /* a browser that refuses is not an error */ });
+    return;
+  }
+
+  const frame = stage.querySelector("iframe");
+  if (!frame?.contentWindow) return;
+  try {
+    frame.contentWindow.postMessage(
+      JSON.stringify({ event: "command", func: paused ? "pauseVideo" : "playVideo", args: [] }), "*");
+    frame.contentWindow.postMessage(
+      JSON.stringify({ method: paused ? "pause" : "play" }), "*");
+  } catch { /* a cross-origin refusal is not worth a stack trace */ }
 }
 
 const restLeft = (live) =>
@@ -1015,7 +1101,7 @@ function togglePause() {
     live.pausedAt = Date.now();
   }
   store.saveLive(live);
-  paintPlayer(live);
+  paintPlayer(live);          // which applies the pause, after the repaint
 }
 
 /* ---------- finishing ---------- */
@@ -1469,7 +1555,12 @@ function render() {
   const hash = location.hash || "#/";
   const [, route, arg] = hash.split("/");
 
-  if (route !== "go") { stopTicking(); playerPainted = false; }
+  if (route !== "go") {
+    stopTicking();
+    playerPainted = false;
+    mountedKey = null;
+    mountedMedia = null;
+  }
 
   /* Editing is a mode, not a screen, so the draft survives moving between
      days. It is dropped only when a workout starts — she is not editing the
@@ -1519,11 +1610,39 @@ document.addEventListener("click", (e) => {
   switch (action) {
     case "set-done": setDone(); break;
     case "skip-rest": skipRest(); break;
-    case "skip-exercise": skipExercise(); break;
+    case "skip-exercise": {
+      const live = store.loadLive();
+      if (!live) break;
+      const ex = live.exercises[live.i];
+      const last = live.i >= live.exercises.length - 1;
+      askFirst({
+        title: `Skip ${ex?.name || "this exercise"}?`,
+        body: `${ex ? `${ex.done.length} of ${ex.setsPlanned} sets done. ` : ""}${last
+          ? "It is the last one, so skipping it finishes the workout."
+          : `Next is ${esc(live.exercises[live.i + 1]?.name || "the next exercise")}.`} The sets already done are kept.`,
+        yes: last ? "Skip it and finish" : "Skip it",
+        onYes: () => skipExercise(),
+      });
+      break;
+    }
     case "pause": togglePause(); break;
     case "finish": {
       const live = store.loadLive();
-      if (live) finishWorkout(live);
+      if (!live) break;
+      const done = liveSetsDone(live);
+      const left = livePlanned(live) - done;
+      // Finishing when everything is done is the normal end of a workout, so
+      // it just finishes. Finishing with sets outstanding is the fat-finger
+      // case, and that is the one worth stopping for.
+      if (left <= 0) { finishWorkout(live); break; }
+      askFirst({
+        title: "Finish here?",
+        body: done
+          ? `${plural(done, "set")} done, ${plural(left, "set")} still to go. It will be logged as it stands &mdash; part done &mdash; and the workout ends.`
+          : "No sets have been done yet, so nothing will be logged and the workout ends.",
+        yes: done ? `Finish with ${plural(done, "set")}` : "End it, log nothing",
+        onYes: () => { const l = store.loadLive(); if (l) finishWorkout(l); },
+      });
       break;
     }
     case "discard-live":
@@ -1639,6 +1758,15 @@ document.addEventListener("click", (e) => {
         .catch((err) => { if (out) out.textContent = err.message; toast(err.message, "bad"); });
       break;
     }
+
+    case "confirm-yes": {
+      const go = pendingConfirm;
+      pendingConfirm = null;
+      closeSheet();
+      go?.();
+      break;
+    }
+    case "confirm-no": pendingConfirm = null; closeSheet(); break;
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "go-remind": closeSheet(); go("#/remind"); break;

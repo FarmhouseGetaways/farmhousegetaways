@@ -26,7 +26,7 @@ export const EFFORTS = [
   { key: "light",     label: "Light weights",                 met: 3.5 },
   { key: "strength",  label: "Strength — moderate",           met: 5.0 },
   { key: "heavy",     label: "Strength — heavy or compound",  met: 6.0 },
-  { key: "bodyweight",label: "Bodyweight — push-ups, squats", met: 8.0 },
+  { key: "bodyweight",label: "Bodyweight",                    met: 8.0 },
   { key: "circuit",   label: "Circuit training",              met: 7.5 },
   { key: "hiit",      label: "HIIT or intervals",             met: 10.0 },
   { key: "jumprope",  label: "Jump rope",                     met: 11.0 },
@@ -159,7 +159,9 @@ function youtube(id, u) {
   if (!clean) return { kind: "link", src: u.href };
   // playlist= is what makes loop work on a single video — YouTube ignores
   // loop=1 on its own. muted=1 is what makes autoplay work at all on a phone.
-  const base = `https://www.youtube-nocookie.com/embed/${clean}?rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${clean}`;
+  // enablejsapi is what lets the page tell the player to pause. Without it a
+  // postMessage is ignored and the Pause button is a lie.
+  const base = `https://www.youtube-nocookie.com/embed/${clean}?rel=0&modestbranding=1&playsinline=1&loop=1&enablejsapi=1&playlist=${clean}`;
   return {
     kind: "embed",
     src: `${base}&autoplay=1&mute=1`,
