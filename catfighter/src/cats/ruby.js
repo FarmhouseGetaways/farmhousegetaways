@@ -23,8 +23,8 @@
        carried LOW and open — she is not guarding, she is waiting for you
        to come inside her arms. The hunch is the read: every other cat on
        the roster stands up straight. */
-  stance: { torso: 15, py: -2, head: [1, -2, 11], armF: [9, -25],
-            armB: [7, -17], legF: [9, -9], legB: [-7, 10] },
+  stance: { torso: 15, py: -2, head: [1, -2, 11], armF: [-15, -32],
+            armB: [-11, -22], legF: [9, -9], legB: [-7, 10] },
     /* Shoulder well past girth so the taper is a V and not a barrel — a
        heavyweight with a matching waist reads as fat rather than as the
        most dangerous thing in the line-up, which was the first pass. */
@@ -50,9 +50,17 @@
          into the ginger: at game size a costume on a warm cat has to be a
          VALUE break, not a hue one. The studs and the chain are the only
          light things on her, which is why the eye goes to the shoulder. */
-      var HIDE = '#2e1d18', HIDE2 = '#4a2e24', STUD = '#c8c0ae',
+      var HIDE = '#2e1d18', HIDE2 = '#4a2e24', STUD = '#cfcabc',
           CHAIN = '#9c968a', TROU = '#443f36', TROU2 = '#2c2924',
           HACKLE = '#7a3f26';
+      /* The pauldron is STEEL, not more leather. Drawn in the same near-
+         black hide as the cut it merged straight into it and the two
+         became one shapeless mass down her whole front — a lot of work
+         that read as a hole in the cat. Iron is a value nothing else on
+         her occupies: darker than the ginger, much lighter than the
+         leather, so the plate separates from both without a single extra
+         line. It also earns the studs, which were invisible on black. */
+      var PLATE = '#5d5c60', PLATE2 = '#8a8992';
 
       function frame(a, b) {
         var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
@@ -67,66 +75,106 @@
       var pv = j.pelvis, nk = j.neck;
       var sdx = nk.x - pv.x, sdy = nk.y - pv.y;
       var sL = Math.hypot(sdx, sdy) || 1;
-      var sfx = sdy / sL, sfy = -sdx / sL;
+      var sfx = sdy / sL, sfy = -sdx / sL;          /* forward, across it */
+      var UPX = sdx / sL, UPY = sdy / sL;           /* up it */
       function T(t, w) { return { x: pv.x + sdx * t + sfx * w, y: pv.y + sdy * t + sfy * w }; }
       function seg(cx, t, w) { var q = T(t, w); cx.lineTo(q.x, q.y); }
       function L2(cx, p) { cx.lineTo(p.x, p.y); }
+      /* the neck's own little frame: w forward of the neck joint, h above
+         it. The collar and the scruff both hang off this rather than off
+         the spine — T() at t>1 walks up towards the SKULL, which is where
+         the first collar ended up, laid diagonally across both shoulders
+         like a bandolier. */
+      var cw = f.chestW;
+      function N(w, h) {
+        return { x: nk.x + sfx * cw * w + UPX * cw * h,
+                 y: nk.y + sfy * cw * w + UPY * cw * h };
+      }
 
-      /* ================= THE HACKLE =================================
+      /* ================= THE SCRUFF =================================
 
-         A ridge of fur standing up along the back of her neck and
-         shoulders. On 'back', so all that survives is the part proud of
-         the body — which is the whole point of it. It is the cheapest
-         silhouette she has and it is the one that says ANGRY: a cat with
-         its hackles up is a cat that has already decided.
+         Hackles up on the nape, between the collar and the skull. On
+         'back', so the only part that survives is the part standing proud
+         of the neck — which is the part doing the silhouette work.
 
-         Pointing back and up rather than straight up, because straight up
-         on a hunched figure reads as a mohawk sitting on nothing.      */
+         It was first put at t 0.86 on the SPINE, half a chest back, which
+         is the middle of her shoulder blades: entirely inside the torso,
+         and under the leather at that. It shows nothing there. It also
+         wants to point back and up rather than straight up — straight up
+         on a hunched figure reads as a mohawk sitting on nothing.     */
       A.add('back', function (cx) {
-        A.tuft(cx, T(0.86, -f.chestW * 0.62), 6, f.chestW * 0.92, 74, 128, true);
+        A.tuft(cx, N(-0.72, 0.34), 5, cw * 0.74, 64, 146, true);
       }, HACKLE, { edge: true });
 
       /* ================= THE CUT ====================================
 
-         Open down the front, so there is a band of ginger showing between
-         the two edges — a waistcoat closed across the chest is a shirt at
-         this size. The BACK of it runs long, past the hip, and that tail
-         of leather is what her outline is doing from behind.           */
+         A biker's cut: over the shoulders, down the back, open at the
+         front, no sleeves.
+
+         It was one big waistcoat over the whole trunk first, and in every
+         pose all you could see of it was a sliver along her back. The
+         reason is her own STANCE: hands low and open means the leading arm
+         hangs across the chest, and the near arm is drawn after the 'body'
+         layer and then drawn AGAIN over its own cast shadow. Anything
+         painted on the middle of her torso is under two coats of forearm.
+
+         So the cut is built where it can actually be seen: a yoke over the
+         shoulders with the collar standing up behind her neck, and a back
+         panel running long past the tail root. That is what a cut looks
+         like from the side anyway — the front of an open one is two thin
+         edges and a lot of cat.                                        */
       A.add('body', function (cx) {
         cx.beginPath();
-        var a = T(0.20, f.hipW * 1.36); cx.moveTo(a.x, a.y);   /* front hem, flared */
-        seg(cx, 0.50, f.waistW * 0.96);
-        seg(cx, 0.80, f.chestW * 0.74);
-        seg(cx, 1.10, f.chestW * 0.66);                         /* collar, front edge */
-        seg(cx, 1.30, -f.chestW * 0.34);                        /* stands up behind the neck */
-        seg(cx, 1.14, -f.chestW * 1.32);
-        seg(cx, 0.66, -f.chestW * 1.40);
-        seg(cx, 0.22, -f.hipW * 1.52);
-        seg(cx, -0.24, -f.hipW * 1.44);                         /* the long back hem */
-        seg(cx, -0.30, -f.hipW * 0.62);
-        seg(cx, 0.02, -f.hipW * 0.30);
+        var a = T(0.62, f.chestW * 0.98); cx.moveTo(a.x, a.y);  /* front edge */
+        seg(cx, 0.92, f.chestW * 0.92);
+        seg(cx, 1.16, f.chestW * 0.70);
+        seg(cx, 1.38, f.chestW * 0.12);                         /* collar, standing */
+        seg(cx, 1.36, -f.chestW * 0.66);
+        seg(cx, 1.14, -f.chestW * 1.34);
+        seg(cx, 0.74, -f.chestW * 1.46);
+        seg(cx, 0.30, -f.hipW * 1.54);
+        seg(cx, -0.26, -f.hipW * 1.46);                         /* the long back hem */
+        seg(cx, -0.34, -f.hipW * 0.66);
+        seg(cx, 0.14, -f.hipW * 0.34);
+        seg(cx, 0.44, f.chestW * 0.34);
         cx.closePath();
       }, HIDE, { band: true, edge: true });
 
-      /* The lit face of the lapel — one material, two planes. Without it
-         the cut is a black hole with a cat behind it and the three-tone
-         rule has nothing to work with. */
+      /* The lit plane of the yoke, cut hard across the top of the shoulder.
+         One material, two planes — with a single flat fill the cut is a
+         black hole with a cat behind it. */
       A.add('body', function (cx) {
-        A.smooth(cx, [T(1.28, -f.chestW * 0.30), T(1.08, f.chestW * 0.62),
-                      T(0.78, f.chestW * 0.70), T(0.74, f.chestW * 0.28),
-                      T(1.04, f.chestW * 0.24), T(1.18, -f.chestW * 0.44)]);
+        A.smooth(cx, [T(1.34, -f.chestW * 0.58), T(1.14, f.chestW * 0.64),
+                      T(0.88, f.chestW * 0.86), T(0.84, f.chestW * 0.30),
+                      T(1.06, f.chestW * 0.16), T(1.20, -f.chestW * 0.72)]);
       }, HIDE2, { edge: true });
 
-      /* studs down the front edge of the cut. Flat — they are two pixels
-         across in the game and a clip on each is four calls for nothing. */
-      for (var q = 0; q < 4; q++) {
+      /* studs down the front edge of the yoke, where the eye is already
+         going because the collar and the chain are there. Flat — they are
+         two pixels across in the game and a clip each buys nothing. */
+      for (var q = 0; q < 3; q++) {
         (function (t) {
           A.add('body', function (cx) {
-            var p = T(t, f.chestW * (0.30 + (1 - t) * 0.34));
+            var p = T(t, f.chestW * 0.80);
             A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);
           }, STUD, { flat: true });
-        })(0.42 + q * 0.20);
+        })(0.74 + q * 0.19);
       }
+
+      /* The back hem swings. A slab of leather hanging off her that never
+         moves is a plank; f.sway already folds her speed and a slow idle
+         drift into one number, so the tail of the cut lifts when she walks
+         in and hangs when she stops. */
+      A.add('back', function (cx) {
+        cx.beginPath();
+        var d = f.sway * 0.55;
+        var a = T(0.16, -f.hipW * 1.30); cx.moveTo(a.x, a.y);
+        seg(cx, -0.30, -f.hipW * 1.52 - d);
+        seg(cx, -0.46, -f.hipW * 1.06 - d * 1.4);
+        seg(cx, -0.38, -f.hipW * 0.52 - d);
+        seg(cx, 0.04, -f.hipW * 0.40);
+        cx.closePath();
+      }, HIDE, { band: true, edge: true });
 
       /* ================= THE CHAIN ==================================
 
@@ -135,20 +183,30 @@
          are drawn as separate flat discs and the gaps between them are
          what says metal. The ring hanging off the front is the bright
          spot the eye lands on and the only round thing on her.        */
-      var cw = f.chestW;
+      /* The first go laid the links along the spine with T(), from t 1.14
+         to 1.24 and w swinging from +0.78 to -0.92 of the chest — which
+         is not the throat, it is a diagonal across both shoulders, and it
+         came out as a row of pale pebbles up her back. A collar is hung
+         off the NECK JOINT and follows the neck, so it is built here in a
+         little frame of its own: N(w, h) is w forward of the neck and h
+         above it. It slopes down towards the front, which is where a
+         collar sits on a cat carrying its head low. */
       for (var k = 0; k < 5; k++) {
         (function (u) {
           A.add('body', function (cx) {
-            var p = T(1.14 + u * 0.10, cw * (0.78 - u * 1.70));
-            A.ellipse(cx, p.x, p.y, cw * 0.20, cw * 0.17, 0);
+            var p = N(-0.52 + u * 1.14, 0.34 - u * 0.42);
+            A.ellipse(cx, p.x, p.y, cw * 0.18, cw * 0.15, 0);
           }, CHAIN, { flat: true });
         })(k / 4);
       }
+      /* the ring hanging off the front of it. The only round thing on her
+         and the brightest — a heavy cat with one bright ring at the
+         throat gives the eye somewhere to land on a very dark figure. */
       A.add('body', function (cx) {
-        var p = T(1.02, cw * 0.86);
+        var p = N(0.74, -0.44);
         cx.beginPath();
-        cx.ellipse(p.x, p.y, cw * 0.30, cw * 0.30, 0, 0, Math.PI * 2);
-        cx.ellipse(p.x, p.y, cw * 0.14, cw * 0.14, 0, Math.PI * 2, 0, true);
+        cx.ellipse(p.x, p.y, cw * 0.34, cw * 0.34, 0, 0, Math.PI * 2);
+        cx.ellipse(p.x, p.y, cw * 0.15, cw * 0.15, 0, Math.PI * 2, 0, true);
         cx.closePath();
       }, STUD, { edge: true });
 
@@ -226,43 +284,126 @@
       trouser('front', j.hipF, j.kneeF, j.footF,
               f.R_TOP * 1.12, f.R_MID * 1.44, f.R_MID * 1.30);
 
+      /* ================= THE BRACERS ================================
+
+         Studded leather cuffs on both forearms. This is the best piece of
+         real estate she has and it took three rounds to notice: she holds
+         her hands LOW and OPEN, so the forearms are out in the clear in
+         every pose, while the chest — where the first four goes at a
+         costume all went — is behind her own arm most of the time. A cuff
+         here is worth three shapes on her ribs.
+
+         Wider at the wrist than at the elbow, so the arm ends in a flare
+         rather than tapering away, and the studs sit on the outside edge
+         where the light is.                                            */
+      function bracer(layer, elb, hand, w0, w1) {
+        var o = frame(elb, hand);
+        function A2(u, v) { return P(o, elb, o.L * u, v); }
+        /* Stops at 0.84 along the forearm, not at the hand. Run all the way
+           down it came out as a boxing mitt and swallowed the open paw,
+           which is half of what "hands low and open" is for. */
+        var top = A2(0.28, 0), end = A2(0.84, 0);
+        A.add(layer, function (cx) {
+          A.limb(cx, top, end, w0, w1, 0.18, 'foreArm');
+        }, HIDE, { band: true, edge: true });
+        /* the lit edge along the top of the cuff — one material, two
+           planes, same as the cut and the plate */
+        A.add(layer, function (cx) {
+          A.smooth(cx, [A2(0.30, w0 * 0.28), A2(0.82, w1 * 0.32),
+                        A2(0.82, w1 * 0.92), A2(0.30, w0 * 0.90)]);
+        }, HIDE2, {});
+        /* two studs, along the cuff. Three sat in a row across it and read
+           as a domino tile rather than as rivets. */
+        [0.42, 0.68].forEach(function (u) {
+          A.add(layer, function (cx) {
+            var q2 = A2(u, (w0 + (w1 - w0) * u) * 0.58);
+            A.ellipse(cx, q2.x, q2.y, f.s * 1.4, f.s * 1.4, 0);
+          }, STUD, { flat: true });
+        });
+      }
+      bracer('body', j.elbB, j.handB, f.R_MID * 0.98, f.R_END * 1.16);
+      bracer('front', j.elbF, j.handF, f.R_MID * 1.06, f.R_END * 1.26);
+
       /* ================= THE PAULDRON ===============================
 
-         One. On the leading shoulder, wider than her skull, with three
-         spikes standing off the top of it. A matched pair reads as armour
-         and armour is not what she is — one scavenged plate strapped on
-         over a leather cut is. It is on 'front' so it caps the near arm
-         wherever that arm goes, and it is the single biggest thing she
-         does to a black shape.                                        */
-      var pr = f.chestW * 0.66;
-      A.add('front', function (cx) {
-        A.pad(cx, j.shF, j.elbF, pr, 1.30);
-      }, HIDE, { band: true, edge: true });
-      /* the spikes off the outer rim */
-      A.add('front', function (cx) {
-        var o = frame(j.shF, j.elbF);
-        A.tuft(cx, P(o, j.shF, -pr * 0.34, pr * 0.86), 3, pr * 0.62, 60,
-               Math.atan2(-o.uy, -o.ux) * 180 / Math.PI + 34, false);
-      }, STUD, { edge: true });
-      /* the lit top plane of the pad, cut across it — the hard shadow edge
-         is what makes it read as a curved plate rather than a black disc */
-      A.add('front', function (cx) {
-        var o = frame(j.shF, j.elbF);
-        A.smooth(cx, [P(o, j.shF, -pr * 0.50, pr * 0.10),
-                      P(o, j.shF, -pr * 0.30, pr * 0.96),
-                      P(o, j.shF, pr * 0.36, pr * 1.08),
-                      P(o, j.shF, pr * 0.30, pr * 0.44),
-                      P(o, j.shF, -pr * 0.20, pr * 0.20)]);
-      }, HIDE2, {});
-      for (var z = 0; z < 3; z++) {
-        (function (u) {
-          A.add('front', function (cx) {
-            var o = frame(j.shF, j.elbF);
-            var p = P(o, j.shF, pr * (-0.30 + u * 0.66), pr * (0.98 - u * 0.10));
-            A.ellipse(cx, p.x, p.y, f.s * 1.4, f.s * 1.4, 0);
-          }, STUD, { flat: true });
-        })(z / 2);
+         One. On the leading shoulder, taller than her skull, with three
+         spikes standing off the top. A matched pair reads as armour and
+         armour is not what she is — one scavenged plate strapped over a
+         leather cut is.
+
+         Three goes at this. A.pad(j.shF, j.elbF, ...) builds its fan along
+         the ARM, and in a side view the near shoulder sits over the middle
+         of the chest with the arm pointing forward — so the plate came out
+         as a disc painted across her ribs, entirely inside the outline.
+         Rebuilding it in the spine frame fixed the shape but not the
+         place: on the NEAR shoulder it spends every pose hiding behind her
+         own leading arm, which is the one thing that moves most.
+
+         It goes on the FAR shoulder, on 'body'. In a side view that is the
+         high back corner of the figure — nothing ever covers it, it rises
+         above her spine, and the near arm is left as clean ginger, which a
+         cat this dark badly needs somewhere. It is the bump on her back in
+         the silhouette test and it is worth more there than anywhere. */
+      var pr = f.chestW * 0.70;
+      var sh = { x: j.shB.x + UPX * pr * 0.74 - sfx * pr * 1.05,
+                 y: j.shB.y + UPY * pr * 0.74 - sfy * pr * 1.05 };
+      function Q(u, v) {   /* u up the spine, v forward, in chestW units */
+        return { x: sh.x + UPX * pr * u + sfx * pr * v,
+                 y: sh.y + UPY * pr * u + sfy * pr * v };
       }
+      A.add('body', function (cx) {
+        /* Cut with lineTo, not A.smooth. Smoothed, this came out as a grey
+           EGG the size of her head — a boulder strapped to her back. A
+           plate is beaten flat: straight facets, a hard corner at the
+           front and a straight bottom rim where it stops. */
+        cx.beginPath();
+        var a0 = Q(0.86, 0.34); cx.moveTo(a0.x, a0.y);
+        L2(cx, Q(0.94, -0.42));
+        L2(cx, Q(0.52, -1.06));
+        L2(cx, Q(-0.22, -1.34));
+        L2(cx, Q(-0.86, -1.10));
+        L2(cx, Q(-1.02, -0.34));
+        L2(cx, Q(-0.66, 0.34));
+        L2(cx, Q(0.10, 0.56));
+        cx.closePath();
+      }, PLATE, { band: true, edge: true });
+
+      /* the spikes, off the TOP of the plate and pointing up and back —
+         forward and they cross her own muzzle, which at this size reads
+         as a broken drawing rather than as studs */
+      A.add('body', function (cx) {
+        A.tuft(cx, Q(0.78, -0.34), 3, pr * 0.60, 54, 68, false);
+      }, STUD, { edge: true });
+
+      /* the lit top plane, cut hard across the plate. Three tones on one
+         material: HIDE in shadow, HIDE2 catching the light, and the
+         contour pass supplying the third. A single flat fill here and the
+         pad reads as a hole cut in the cat. */
+      A.add('body', function (cx) {
+        cx.beginPath();
+        var b0 = Q(0.84, 0.26); cx.moveTo(b0.x, b0.y);
+        L2(cx, Q(0.90, -0.40));
+        L2(cx, Q(0.50, -1.00));
+        L2(cx, Q(-0.12, -0.68));
+        L2(cx, Q(0.10, 0.10));
+        cx.closePath();
+      }, PLATE2, {});
+
+      /* three rivets round the rim, flat — they are two pixels across in
+         the game and a clip each buys nothing anybody can see */
+      [[0.30, -0.92], [-0.30, -1.12], [-0.80, -0.80]].forEach(function (r) {
+        A.add('body', function (cx) {
+          var p = Q(r[0], r[1]);
+          A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);
+        }, STUD, { flat: true });
+      });
+
+      /* the strap running from under the plate across to the far side of
+         her chest, so it is buckled ON and not floating over her */
+      A.add('body', function (cx) {
+        A.smooth(cx, [Q(-0.70, -0.46), Q(-0.98, -0.16),
+                      T(0.50, f.waistW * 0.30), T(0.44, f.waistW * 0.90)]);
+      }, HIDE2, { edge: true });
     },
 
     /* Old damage, in three pale lines. It goes on the bare upper arm and

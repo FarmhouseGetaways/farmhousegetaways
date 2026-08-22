@@ -30,7 +30,15 @@
        see the glove block below. */
   stance: { torso: 4, py: -1, armF: [-30, 52], armB: [-8, 30],
             head: [1, -1.5, 5] },
-  build: { s: 1.00, girth: 1.12, limb: 0.98, head: 1.00, muscle: 1.45,
+  /* Thicker through the body and a size smaller in the head than he was.
+     Two reasons, and they are the same reason. A boxer at this weight is
+     mostly chest, and a small head next to a head-sized mitt makes the mitt
+     look enormous — the glove is measured off the skull, so shrinking the
+     skull is free emphasis. It also got him out from under Gracie: the
+     roster test counts how many silhouette marks two cats share, and at
+     girth 1.12 with a 1.00 head the pair of them differed only in the skull
+     and the limb weight. */
+  build: { s: 1.00, girth: 1.24, limb: 0.98, head: 0.94, muscle: 1.45,
            headShape: 'blocky', ear: 'small', shoulder: 1.26, waist: 0.82, limbW: 1.14 },
 
   /* ---- HIS LOOK ---------------------------------------------------------
@@ -45,10 +53,23 @@
      of all of this.                                                       */
   look: {
     pieces: function (A, j, f) {
-      /* Red mitts, navy trunks, a sand-coloured waistband and an off-white
-         towel. Four values and no more — a fifth (gold trim was tried on the
-         waistband) turned the hip into confetti at game size. */
+      /* THREE materials: the red of the kit, the navy of the trunks, and
+         one off-white for the wraps and the towel. Everything else is a
+         shade of one of those.
+
+         The waistband was sand to begin with, on the theory that a boxer's
+         trunks carry a gold band. It disappeared: his belly is cream and
+         his fur is tan, and a sand band across the middle of that is three
+         near-identical values stacked on top of each other. Made the glove
+         red it survives the drop to 384x224, AND it ties the gloves, the
+         boots, the band and the towel stripe into one kit rather than four
+         separate ideas that happen to be on the same cat. */
       var GLOVE = '#c0392f', CUFF = '#8d2622', LACE = '#efe4cc';
+      /* The far mitt in its own darker red. Both gloves the same colour and
+         both up by the same cheek is one red mass with a seam in it — the
+         near one has to be the lit one and the far one the shadowed one, or
+         the guard has no depth and there is no point drawing it twice. */
+      var GLOVE_B = '#8e2a26', CUFF_B = '#6b1d1c';
       var TRUNK = '#232c4c', BAND = '#c0392f', TRIM = '#8d2622';
       var BOOT = '#c0392f', BOOTTOP = '#8d2622';
       var WRAP = '#e9e1cf', TOWEL = '#d8cdb2';
@@ -104,7 +125,7 @@
                   [1.28, 0.14], [1.16, -0.56], [0.66, -1.02],
                   [0.04, -1.12], [-0.62, -0.92], [-1.06, -0.26]];
 
-      function glove(layer, hand, elb, r, simple) {
+      function glove(layer, hand, elb, r, simple, mit, cuf) {
         var o = frame(elb, hand);
 
         if (!simple) A.add(layer, function (cx) {
@@ -116,12 +137,12 @@
           var pts = [], i;
           for (i = 0; i < ring.length; i++) pts.push(P(o, hand, ring[i][0] * r, ring[i][1] * r));
           A.smooth(cx, pts);
-        }, GLOVE, { band: true, edge: true });
+        }, mit, { band: true, edge: true });
 
         A.add(layer, function (cx) {
           A.capsule(cx, P(o, hand, -0.16 * r, -0.84 * r), P(o, hand, 0.66 * r, -0.74 * r),
                     r * 0.36, r * 0.28);
-        }, GLOVE, { edge: true });
+        }, mit, { edge: true });
 
         if (!simple) A.add(layer, function (cx) {
           A.smooth(cx, [P(o, hand, -0.30 * r, 0.90 * r), P(o, hand, 0.44 * r, 0.94 * r),
@@ -132,7 +153,7 @@
         A.add(layer, function (cx) {
           A.smooth(cx, [P(o, hand, -1.34 * r, 0.62 * r), P(o, hand, -0.66 * r, 0.90 * r),
                         P(o, hand, -0.60 * r, -0.88 * r), P(o, hand, -1.32 * r, -0.60 * r)]);
-        }, CUFF, { band: true, edge: true });
+        }, cuf, { band: true, edge: true });
       }
 
       /* BOTH gloves go on 'front', the far one first so the near one paints
@@ -147,19 +168,19 @@
          overlapped by the near one, which is all the depth cue this needs at
          ninety pixels tall, and the result is what the guard is for: TWO red
          masses stacked by his cheek rather than one and a rumour. */
-      /* Sized off the skull on purpose: at 1.08 the mitt is fractionally
-         WIDER than his head, which is the whole brief and is also true of a
-         real 16oz glove next to a face. At 0.88 — the first go — the two
-         lobes merged into the skull in the silhouette test and he came out
-         a blob with boots on. */
-      var gr = f.headR * 1.08;
+      /* Sized off the skull on purpose: the mitt comes out wider than his
+         head, which is the whole brief and is also true of a real 16oz
+         glove next to a face. At 0.88 — the first go — the two lobes merged
+         into the skull in the silhouette test and he came out a blob with
+         boots on. */
+      var gr = f.headR * 1.16;
       /* The far mitt is drawn `simple` — no wrap showing, no lace panel.
          Both are cream, and stacked against the cream belly, the cream
          towel and the near mitt's own wrap they turned his whole chest into
          one pale smear. What the far hand needs to be is a red mass with a
          dark cuff, and nothing else. */
-      glove('front', j.handB, j.elbB, gr * 0.84, true);
-      glove('front', j.handF, j.elbF, gr);
+      glove('front', j.handB, j.elbB, gr * 0.84, true, GLOVE_B, CUFF_B);
+      glove('front', j.handF, j.elbF, gr, false, GLOVE, CUFF);
 
       /* ================= THE BOOTS ==================================
 
@@ -230,11 +251,12 @@
          bottom rib, and at this resolution a narrow one is a pencil line
          that the contour pass eats.
 
-         It was sand-coloured first, and it vanished: his belly is cream and
-         his fur is tan, and a sand band across the middle of that is three
-         near-identical values stacked up. It is the glove red now, which
-         both survives the drop to 384x224 and ties the gloves, the boots
-         and the trunks into one kit instead of three separate ideas. */
+         It is drawn to the HIP width, not the waist width. Sized off
+         `waistW` — which is 0.82 on this build, because he has a taper — it
+         came out half the width of the trunks it was supposed to be
+         finishing, sat in the middle of the hip like a patch, and was
+         hidden behind the near forearm into the bargain. See the colour
+         note at the top for why it is red. */
       A.add('front', function (cx) {
         cx.beginPath();
         var b = T(0.52, f.hipW * 1.34); cx.moveTo(b.x, b.y);
@@ -284,18 +306,34 @@
       }
 
       var cw = f.chestW;
-      var tw = { x: nk.x - cw * 0.98, y: nk.y + cw * 0.26 };   /* clear of the back */
+      /* Anchored high: the towel has to break the SHOULDER LINE, not start
+         under it. In the silhouette test he was a smooth dome from ear to
+         hip — every other cat on the roster has something happening at the
+         top of the outline (Gracie's ties, Mario's topknot, the tall ears on
+         the twins) and he had nothing. Slung up level with the base of the
+         skull, the roll is that something, and it is the most boxer-ish
+         shape available. */
+      var tw = { x: nk.x - cw * 1.02, y: nk.y + cw * 0.62 };   /* clear of the back */
       A.add('back', function (cx) {
         slab(cx, tw.x, tw.y,
-             tw.x - cw * 0.44 + f.sway * 1.3, tw.y - cw * 2.55,
+             tw.x - cw * 0.44 + f.sway * 1.3, tw.y - cw * 2.85,
              cw * 0.36, cw * 0.31, cw * 0.13);
       }, TOWEL, { band: true, edge: true });
+      /* one red stripe above the hem. Every towel in every corner of every
+         gym has one, it is a solid shape rather than a line so it survives
+         the drop to 1:1, and it pulls the towel into the same kit as the
+         gloves instead of leaving it a loose white rag. */
+      A.add('back', function (cx) {
+        var ax = tw.x - cw * 0.32 + f.sway * 1.0, ay = tw.y - cw * 2.22;
+        slab(cx, ax, ay, ax - cw * 0.04 + f.sway * 0.15, ay - cw * 0.30,
+             cw * 0.33, cw * 0.32, 0);
+      }, '#c0392f', { edge: true });
       /* the roll sitting on top of the shoulder, which is what makes the
          slab read as draped over him rather than hung on a hook behind */
       A.add('back', function (cx) {
-        A.capsule(cx, { x: nk.x - cw * 0.10, y: nk.y + cw * 0.48 },
-                      { x: nk.x - cw * 1.00, y: nk.y + cw * 0.18 },
-                  cw * 0.26, cw * 0.30);
+        A.capsule(cx, { x: nk.x - cw * 0.06, y: nk.y + cw * 0.86 },
+                      { x: nk.x - cw * 1.04, y: nk.y + cw * 0.52 },
+                  cw * 0.28, cw * 0.32);
       }, TOWEL, { band: true, edge: true });
 
       /* A short end of the towel hanging over the FRONT of that shoulder
