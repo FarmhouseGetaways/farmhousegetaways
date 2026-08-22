@@ -880,14 +880,19 @@
            is the direction they point in degrees (90 = straight up). */
         tuft: function (cx, at, n, len, spread, ang, jag) {
           var base = (ang === undefined ? 90 : ang) * DEG;
+          /* The roots sit along a line ACROSS the direction the spikes point,
+             not along it — laid out the other way they all grow from the same
+             spot and come out as one blob. */
+          var rx2 = -Math.sin(base), ry2 = Math.cos(base);
           cx.beginPath();
           for (var q2 = 0; q2 < n; q2++) {
             var k2 = n === 1 ? 0.5 : q2 / (n - 1);
             var a6 = base + (k2 - 0.5) * spread * DEG;
-            var ln = len * (jag ? (0.55 + 0.45 * Math.sin(q2 * 2.3)) : (1 - Math.abs(k2 - 0.5) * 0.5));
-            var w2 = len * 0.20;
-            var ox2 = at.x + Math.cos(base) * (k2 - 0.5) * len * 0.9;
-            var oy2 = at.y + Math.sin(base) * 0 + (k2 - 0.5) * 0;
+            var ln = len * (jag ? (0.52 + 0.48 * Math.abs(Math.sin(q2 * 2.3)))
+                                : (1 - Math.abs(k2 - 0.5) * 0.55));
+            var w2 = len * 0.22;
+            var ox2 = at.x + rx2 * (k2 - 0.5) * len * 1.05;
+            var oy2 = at.y + ry2 * (k2 - 0.5) * len * 1.05;
             cx.moveTo(ox2 - Math.sin(a6) * w2, oy2 + Math.cos(a6) * w2);
             cx.lineTo(ox2 + Math.cos(a6) * ln, oy2 + Math.sin(a6) * ln);
             cx.lineTo(ox2 + Math.sin(a6) * w2, oy2 - Math.cos(a6) * w2);
