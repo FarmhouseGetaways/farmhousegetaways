@@ -22,7 +22,24 @@ to what was asked.
 **When the owner does not name a site, work out which one they mean** from what
 they are describing, and say which one you changed. "The farmstand list" is
 Farmstand.TV. "The barn" is Red Barn Ranch on Farmhouse Getaways. "The app" is
-the installable one.
+the installable one. **"MBM" always means Mini Barn Market** — said 22 Aug 2026,
+and it is never anything else.
+
+### `ADMIN_PASSWORD` is load-bearing across the estate. Never overwrite it.
+
+One value, reused deliberately, and changing it in one place breaks things in
+another. It guards `/edit.html`'s Publish button and `/api/emailoctopus` on
+Farmhouse Getaways; it is the app's own admin screen and the thing
+`sendToAdmins` checks before enrolling a phone for form alerts; and all three
+websites carry `ALERT_WEBHOOK_KEY` set to the app's copy of it, which is how
+the alert chain authenticates. Netlify masks it, so it cannot be read back
+once replaced.
+
+If some tool offers to overwrite `ADMIN_PASSWORD` to make a new thing work,
+the new thing is asking for the wrong variable. **Carissa's workout tracker
+does not use it** — it has its own `WORKOUT_PASSWORD` on its own site, and
+reads no other password. Checked 22 Aug 2026, after an assistant driving the
+Netlify UI offered to overwrite it.
 
 ## The four properties
 
