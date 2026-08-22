@@ -5,10 +5,11 @@
    moves are both about closing that distance and then being enormous.
 
    He is the E.Honda slot, so he is dressed as one: a mawashi wound
-   thick round the middle with a stiff apron hanging off the front, a
-   champion's plate, a topknot, and tape on every joint. The apron is
-   the important part — it is the only thing on the roster that hangs
-   BELOW the waist and it turns a round cat into a bell.
+   twice round the middle, a stiff apron hanging off the front of it, a
+   champion's plate, a topknot, and crimson wraps at the wrists and
+   ankles. The apron is the important part — it is the only thing on the
+   roster that hangs BELOW the waist, and it turns a round cat into a
+   bell. Turn all six black and he is the one you can still name.
    ===================================================================== */
 (function () {
   var Ps = CF.Pose, Kit = CF.CatKit;
@@ -23,8 +24,14 @@
        toes, head sunk into the shoulders so there is no neck to see.
        The head delta is what gives him the sloped shoulders — you
        cannot move P.shoulderY from a cat file, but dropping the skull
-       into the collar reads as the same thing and costs nothing. */
-  stance: { torso: 2, py: -5.4, armF: [34, -74], armB: [30, -80],
+       into the collar reads as the same thing and costs nothing.
+
+       The leg splay is the widest on the roster: at 25 degrees his feet
+       are 31 units apart against everybody else's twenty. Splaying legs
+       SHORTENS them, so the pelvis had to come back up to compensate —
+       py went to -5.4 first and he ended up shin-deep in the boards on
+       the back half of the walk cycle, which the floor test caught. */
+  stance: { torso: 2, py: -1.6, armF: [34, -74], armB: [30, -80],
             legF: [25, -25], legB: [-24, 22], head: [1.4, -3.0, 0] },
   build: { s: 1.12, girth: 1.62, limb: 0.88, head: 0.94, muscle: 0.45,
            headShape: 'broad', ear: 'wide', shoulder: 1.36, waist: 1.30, limbW: 1.22 },
@@ -55,7 +62,7 @@
       var dx = n.x - p.x, dy = n.y - p.y;
       var L = Math.hypot(dx, dy) || 1;
       var fx = dy / L, fy = -dx / L;
-      function T(t, w) { return { x: p.x + dx * t + fy * 0 + fx * w,
+      function T(t, w) { return { x: p.x + dx * t + fx * w,
                                   y: p.y + dy * t + fy * w }; }
 
       /* --- the sagari: the stiff apron off the front of the belt ------
@@ -73,12 +80,26 @@
          keeping both ends at nearly the same t is what makes it HANG:
          a top edge that climbed the spine made it stick out forwards
          like a shelf instead. */
-      var a1 = T(0.12, f.waistW * 1.62);     /* front edge of the belt       */
-      var a0 = T(0.04, -f.hipW * 0.10);      /* back edge, at the spine       */
-      var D = 32 * f.s;                      /* down past the knee           */
+      var a1 = T(0.09, f.waistW * 1.62);     /* front edge of the belt       */
+      var a0 = T(0.01, -f.hipW * 0.10);      /* back edge, at the spine       */
+      /* Length. At 32 it reached the floor and hid both legs, so he
+         walked without any legs visible — a character whose legs you
+         cannot see does not read as moving. Ending it above the knee
+         leaves the crimson ankle wraps swinging under the hem, which is
+         where the walk cycle now lives. */
+      var D = 23 * f.s;
       var flare = 4.2 * f.s;
       var bx1 = a1.x + flare, by1 = a1.y - D;
       var bx0 = a0.x - flare * 0.7, by0 = a0.y - D * 0.86;
+      /* The apron hangs from the belt, and the belt follows the pelvis —
+         so on a crouch or a sweep it would hang thirty units THROUGH the
+         floor, which is what the first long version did. y = 0 is the
+         sole plane, so the hem is clamped just above it: standing it
+         brushes the ground, crouching it bunches up short, which is what
+         a stiff apron does when it lands on something. */
+      var FLOOR = 1.6 * f.s;
+      if (by1 < FLOOR) by1 = FLOOR;
+      if (by0 < FLOOR) by0 = FLOOR;
       function hem(t, lift) {
         return { x: bx1 * t + bx0 * (1 - t),
                  y: by1 * t + by0 * (1 - t) + lift * f.s };
@@ -122,12 +143,16 @@
          is what the first attempt looked like. And it goes AFTER the
          apron, because the apron is tucked UNDER the belt — drawn
          before it, the apron swallowed the belt whole and the two read
-         as one red slab with no waist in it. */
+         as one red slab with no waist in it.
+
+         The back of the band is deliberately tighter than the front. Run
+         out to the same width both ways and the tail end pokes out past
+         his back as a crimson wedge, which reads as a second tail. */
       A.add('front', function (cx) {
         A.smooth(cx, [
-          T(0.04, f.hipW * 1.30), T(0.17, f.hipW * 1.44),
-          T(0.30, f.waistW * 1.52), T(0.31, -f.waistW * 1.46),
-          T(0.15, -f.hipW * 1.38), T(0.03, -f.hipW * 1.26)
+          T(0.00, f.hipW * 1.28), T(0.13, f.hipW * 1.44),
+          T(0.26, f.waistW * 1.54), T(0.27, -f.waistW * 1.14),
+          T(0.12, -f.hipW * 1.08), T(-0.01, -f.hipW * 1.00)
         ]);
       }, MAW, { band: true, edge: true });
 
@@ -135,8 +160,8 @@
          read as cloth lying over cloth rather than one thick slab */
       A.add('front', function (cx) {
         A.smooth(cx, [
-          T(0.31, f.waistW * 1.50), T(0.44, f.waistW * 1.38),
-          T(0.45, -f.waistW * 1.32), T(0.32, -f.waistW * 1.44)
+          T(0.27, f.waistW * 1.52), T(0.38, f.waistW * 1.40),
+          T(0.39, -f.waistW * 1.06), T(0.28, -f.waistW * 1.12)
         ]);
       }, MAW_D, { band: true, edge: true });
 
@@ -145,7 +170,7 @@
          Front and centre on the belt, where the light hits it. It is the
          one bright thing on a very dark cat and it is what your eye finds
          him by across the screen. */
-      var pc = T(0.16, f.hipW * 1.36);
+      var pc = T(0.12, f.hipW * 1.38);
       A.add('front', function (cx) {
         cx.beginPath();
         cx.moveTo(pc.x + 1.0 * f.s, pc.y + 5.4 * f.s);
@@ -208,8 +233,14 @@
     /* No `belt` in the kit any more. The rig's belt is a flat rectangle
        painted on after the fills, and a rectangle cannot be wound round
        anything — the mawashi in `look` is real geometry and goes into the
-       silhouette, which is the entire point of him. */
-    kit: {},
+       silhouette, which is the entire point of him.
+
+       The mane is doing a different job here than on a lion: it goes in
+       behind the near arm and fills the gap between skull and chest, so
+       he has no neck and his shoulders slope straight off his ears. You
+       cannot move P.shoulderY from a cat file; this is how a heavyweight
+       gets a trapezius. */
+    kit: { mane: '#3b3234' },
     fur: '#4b4243', fur2: '#332c2e', belly: '#f6f2e8', marks: '#211b1d',
     eye: '#d9c04a', nose: '#e8a2ac', inner: '#c98d95',
     accent: '#7a4a3c', accessory: 'none', pattern: 'tuxedo',

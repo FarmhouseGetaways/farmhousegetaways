@@ -18,9 +18,14 @@
   CF.CatDefs.gracie = {
   id: 'gracie',
   weightClass: 'medium',
-    /* Upright, weight back, lead paw open and low. She does not chase
-       anybody — she waits, and you come to her. */
-  stance: { torso: -3, py: 1.5, armF: [-10, -20], armB: [-8, 2], head: [0, 0, -2] },
+    /* Upright, weight back, lead paw open and low, and a wide base — the
+       legs are spread four degrees each way and she sits a shade lower than
+       the shared idle. She does not chase anybody: she waits, and you come
+       to her, and the stance has to say that before she moves. These are
+       deltas laid over EVERY pose, so they stay small — a big one here
+       bends her crouch and her jump out of shape too. */
+  stance: { torso: -3, py: 0.4, armF: [-10, -20], armB: [-8, 2], head: [0, 0, -2],
+            legF: [4, -4], legB: [-4, 4] },
   build: { s: 1.02, girth: 1.06, limb: 0.99, head: 1.00, muscle: 0.9,
            headShape: 'round', ear: 'small', shoulder: 1.02, waist: 0.98, limbW: 1.02 },
 
@@ -51,7 +56,7 @@
          reads — one material, two planes — rather than a stripe of a
          second colour sewn on. The belt is nearly black so it survives the
          drop to 384x224, where a mid-tone belt on a mid-tone cat vanishes. */
-      var GI = '#f1e9d5', FOLD = '#d8c9a8', BELT = '#2e2a29', KNOT = '#413b39';
+      var GI = '#f1e9d5', FOLD = '#cdbc99', BELT = '#2e2a29', KNOT = '#413b39';
 
       /* Everything is laid out along the spine: T(t, w) is t of the way from
          pelvis (0) to neck (1), pushed w sideways — +w forward, the way she
@@ -73,10 +78,10 @@
       A.add('body', function (cx) {
         A.smooth(cx, [
           T(0.20, f.hipW * 1.12), T(0.44, f.waistW * 1.30),
-          T(0.68, f.chestW * 1.04), T(0.88, f.chestW * 1.12),
-          T(1.01, f.chestW * 0.30), T(1.03, -f.chestW * 0.34),
-          T(0.90, -f.chestW * 1.10), T(0.58, -f.chestW * 1.16),
-          T(0.34, -f.waistW * 1.36), T(0.16, -f.hipW * 1.18)
+          T(0.68, f.chestW * 1.06), T(0.90, f.chestW * 1.14),
+          T(1.10, f.chestW * 0.46), T(1.14, -f.chestW * 0.44),
+          T(1.02, -f.chestW * 1.16), T(0.60, -f.chestW * 1.24),
+          T(0.34, -f.waistW * 1.40), T(0.16, -f.hipW * 1.20)
         ]);
       }, GI, { band: true, edge: true });
 
@@ -85,10 +90,10 @@
          wide band rather than a line because a line is gone at game size. */
       A.add('body', function (cx) {
         A.smooth(cx, [
-          T(1.02, f.chestW * 0.18), T(0.86, f.chestW * 1.14),
+          T(1.12, f.chestW * 0.42), T(0.90, f.chestW * 1.16),
           T(0.56, f.chestW * 1.10), T(0.26, f.chestW * 1.02),
-          T(0.28, f.chestW * 0.52), T(0.60, f.chestW * 0.56),
-          T(0.90, f.chestW * 0.52)
+          T(0.28, f.chestW * 0.50), T(0.62, f.chestW * 0.56),
+          T(1.00, f.chestW * 0.62)
         ]);
       }, FOLD, { edge: true });
 
@@ -96,9 +101,9 @@
          and the shoulder is not a bare cut-off line */
       A.add('body', function (cx) {
         A.smooth(cx, [
-          T(1.04, -f.chestW * 0.30), T(1.14, -f.chestW * 0.46),
-          T(1.10, -f.chestW * 0.92), T(0.90, -f.chestW * 1.12),
-          T(0.94, -f.chestW * 0.66)
+          T(1.14, -f.chestW * 0.40), T(1.26, -f.chestW * 0.56),
+          T(1.20, -f.chestW * 1.02), T(0.98, -f.chestW * 1.24),
+          T(1.02, -f.chestW * 0.72)
         ]);
       }, FOLD, { edge: true });
 
@@ -118,7 +123,7 @@
         var a = T(0.34, f.hipW * 1.02); cx.moveTo(a.x, a.y);
         line(cx, 0.10, f.hipW * 1.40);
         line(cx, -0.14, f.hipW * 1.52);
-        fray(cx, -0.33, f.hipW * 1.40, -0.29, -f.hipW * 1.50, 6, 0.085);
+        fray(cx, -0.34, f.hipW * 1.40, -0.28, -f.hipW * 1.50, 5, 0.115);
         line(cx, -0.06, -f.hipW * 1.62);
         line(cx, 0.16, -f.hipW * 1.42);
         line(cx, 0.34, -f.hipW * 1.06);
@@ -130,15 +135,15 @@
              a cat who is otherwise grey on cream. --- */
       A.add('front', function (cx) {
         A.smooth(cx, [
-          T(0.16, f.hipW * 1.22), T(0.33, f.hipW * 1.12),
-          T(0.34, -f.hipW * 1.20), T(0.15, -f.hipW * 1.30)
+          T(0.13, f.hipW * 1.26), T(0.35, f.hipW * 1.14),
+          T(0.36, -f.hipW * 1.22), T(0.12, -f.hipW * 1.34)
         ]);
       }, BELT, { band: true, edge: true });
 
       /* the knot, sat on the front of the belt where the eye lands */
       A.add('front', function (cx) {
-        var k = T(0.245, f.hipW * 0.86);
-        A.ellipse(cx, k.x, k.y, 3.2 * f.s, 2.6 * f.s, 0.3);
+        var k = T(0.24, f.hipW * 0.90);
+        A.ellipse(cx, k.x, k.y, 3.6 * f.s, 3.0 * f.s, 0.3);
       }, KNOT, { band: true, edge: true });
 
       /* the two ends hanging off it, over the hem. Different lengths — a
@@ -153,11 +158,11 @@
         cx.closePath();
       }
       A.add('front', function (cx) {
-        strap(cx, f.hipW * 0.88, -0.24, f.hipW * 1.06, f.hipW * 0.15);
+        strap(cx, f.hipW * 0.94, -0.26, f.hipW * 1.12, f.hipW * 0.17);
       }, BELT, { edge: true });
       A.add('front', function (cx) {
-        strap(cx, f.hipW * 0.26, -0.08, f.hipW * 0.22, f.hipW * 0.13);
-      }, A.shade(BELT, -0.18), { edge: true });
+        strap(cx, f.hipW * 0.12, -0.06, f.hipW * 0.02, f.hipW * 0.15);
+      }, '#3c3533', { edge: true });
 
       /* --- the headband's tails.
 
@@ -214,20 +219,22 @@
 
     /* A scar over the leading brow, in one pale line. She has been doing
        this a long time and it is the only thing on her that is damage
-       rather than kit. Drawn over the finished face so it crosses the eye;
-       one pixel wide, because two reads as a stripe of paint. */
+       rather than kit. It went over the leading eye first, which at this
+       size split the pupil in two and read as a fault in the drawing rather
+       than an old wound; it sits on the forehead between the eyes instead.
+       One pixel wide, because two reads as a stripe of paint. */
     overlay: function (ctx, j, fig) {
       var r = j.headR;
       ctx.save();
       ctx.translate(j.head.x, j.head.y);
       ctx.rotate(-(j.headRot || 0) * Math.PI / 180);
-      ctx.globalAlpha = 0.62;
-      ctx.strokeStyle = '#e9e3d6';
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = '#ded6c6';
       ctx.lineWidth = Math.max(1, 0.9 * fig.s);
       ctx.lineCap = 'butt';
       ctx.beginPath();
-      ctx.moveTo(r * 0.70, r * 0.60);
-      ctx.lineTo(r * 0.44, r * 0.02);
+      ctx.moveTo(r * 0.34, r * 0.62);
+      ctx.lineTo(r * 0.15, r * 0.04);
       ctx.stroke();
       ctx.restore();
     }
@@ -238,8 +245,9 @@
   blurb: 'Old, and she knows it. A growl that carries the length of the barn, and a tail that takes your legs out from under you.\nLet them come to you.',
   difficulty: 2,
   palette: {
-    /* The old master. A headband gone soft with age and the wrapped
-       forepaws of somebody who has been doing this a long time. */
+    /* The old master: the wrapped forearms of somebody who has been doing
+       this a long time. The headband is drawn by `look.pieces` rather than
+       by rig's `accessory`, so `band` here is only the colour of record. */
     kit: { wraps: '#e8e0cf', band: '#b8332f' },
     fur: '#8d887f', fur2: '#6f6b64', belly: '#b9b3a6', marks: '#5e5a54',
     silver: '#d6d1c4', eye: '#7fc24a', nose: '#7d6f6c', inner: '#b89a95',
