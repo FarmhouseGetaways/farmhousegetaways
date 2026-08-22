@@ -289,13 +289,18 @@ function renderWeek() {
         const title = editing
           ? `<span class="day__title edit-text ${d.title ? "" : "is-empty"}" contenteditable="plaintext-only"
                data-edit="title" data-day="${key}" data-placeholder="Name it">${esc(d.title)}</span>`
-          : `<span class="day__title">${rest ? (d.title ? esc(d.title) : "Rest") : esc(d.title || "Workout")}</span>`;
+          /* A day with no exercises is off, and it says "Off" — not whatever it
+             used to be called. Clearing a day left its old title on the board,
+             so a Wednesday turned into a rest day still read "Lower body
+             strength" with a dash under it. The stored title is left alone so
+             that putting exercises back restores the name. */
+          : `<span class="day__title">${rest ? "Off" : esc(d.title || "Workout")}</span>`;
         return `<${editing ? "div" : "button"} class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}"
             ${editing ? "" : `data-go="#/day/${key}"`}>
           <span class="day__name">${DAY_SHORT[key]}${week[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
           ${d.image ? `<img class="day__shot" src="${esc(d.image)}" alt="" loading="lazy">` : ""}
           ${title}
-          <span class="day__meta">${rest && !editing ? "&mdash;" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
+          <span class="day__meta">${rest && !editing ? "Rest day" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
             ${editing ? `<button class="day__open" data-go="#/day/${key}">open &rarr;</button>` : ""}</span>
         </${editing ? "div" : "button"}>`;
       }).join("")}
@@ -893,12 +898,16 @@ function paintPlayer(live) {
         ${v.kind === "link" ? `<p class="small" style="margin:.6rem 0 0"><a href="${esc(v.src)}" target="_blank" rel="noopener">Open the video &rarr;</a></p>` : ""}
       </div>
 
-      <ul class="sets" id="sets">
+      <!-- Every box the same size, whatever it says inside it. Seven or more
+           on one row stops trying to fit a time in and shows a tick instead,
+           because a squashed "0:45" is worse than a mark that means done. -->
+      <ul class="sets ${ex.setsPlanned >= 7 ? "sets--tight" : ""}" id="sets">
         ${Array.from({ length: ex.setsPlanned }, (_, n) => {
-          const state = n < ex.done.length ? "is-done" : n === ex.done.length ? "is-now" : "";
-          const label = n < ex.done.length ? clock(ex.done[n].sec)
-            : n === ex.done.length ? (resting ? "resting" : "now") : "queued";
-          return `<li class="set ${state}"><b>${n + 1}</b>${label}</li>`;
+          const done = n < ex.done.length;
+          const state = done ? "is-done" : n === ex.done.length ? "is-now" : "";
+          const label = done ? clock(ex.done[n].sec)
+            : n === ex.done.length ? (resting ? "Rest" : "Now") : "";
+          return `<li class="set ${state}"><b>${n + 1}</b><i>${label}</i><u aria-hidden="true">&#10003;</u></li>`;
         }).join("")}
       </ul>
 

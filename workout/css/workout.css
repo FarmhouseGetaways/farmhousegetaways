@@ -278,7 +278,27 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .day__meta { display: block; font-size: .8rem; color: var(--dim); }
 .day.is-today { border-color: rgba(231, 154, 166, .45); }
 .day.is-today .day__name { color: var(--blush); }
-.day.is-rest .day__title { color: var(--dimmer); font-style: italic; }
+
+/* A day with training in it and a day off should not look like the same card
+   with different words on it. Training is solid and lit; off is dashed,
+   unfilled and quiet — the shape of an empty slot rather than a thing to do. */
+.day:not(.is-rest) { background: var(--card-2); }
+.day:not(.is-rest) .day__title { color: var(--text); }
+.day:not(.is-rest) .day__meta { color: var(--dim); }
+
+.day.is-rest {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line);
+}
+.day.is-rest:hover { background: rgba(255, 255, 255, .02); }
+.day.is-rest .day__title {
+  font-family: var(--sans);
+  font-size: .95rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--dimmer); font-style: normal;
+}
+.day.is-rest .day__meta { color: var(--dimmer); }
 .day__tick { color: var(--sage); font-size: .95rem; }
 
 /* ---------- stat strip ---------- */
@@ -341,20 +361,60 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .now__notes { margin: .75rem 0 0; padding: .75rem .9rem; background: var(--card); border-left: 2px solid var(--line-2); border-radius: 0 var(--radius-s) var(--radius-s) 0; font-size: .92rem; color: var(--dim); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* The set queue. Done, doing, waiting — legible at a glance from six feet
-   away, which is where the phone is. */
-.sets { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
-.set {
-  flex: 0 0 auto;
-  min-width: 60px; padding: .55rem .7rem;
-  border-radius: 10px; text-align: center;
-  border: 1px solid var(--line); background: var(--card);
-  font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--dimmer);
+   away, which is where the phone is.
+
+   Every box is the same size as every other one. They used to be sized by
+   their own text, so the box saying "resting" was wider than the one saying
+   "now" and the row looked broken. They are squares while there is room for
+   squares; past that they all get narrower together, keeping their height, so
+   ten sets still fit one row without any of them being the odd one out. */
+.sets {
+  --set-size: 66px;
+  display: flex; flex-wrap: nowrap;
+  gap: .4rem; margin: 0; padding: 0; list-style: none;
 }
-.set b { display: block; font-family: var(--display); font-size: 1.25rem; letter-spacing: 0; text-transform: none; color: var(--dim); }
+
+.set {
+  flex: 1 1 0;                 /* share the row equally... */
+  min-width: 0;
+  max-width: var(--set-size);  /* ...but never grow past a square */
+  height: var(--set-size);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: .1rem;
+  padding: .2rem;
+  border-radius: 12px; text-align: center;
+  border: 1px solid var(--line); background: var(--card);
+  color: var(--dimmer);
+  overflow: hidden;
+}
+
+.set b {
+  font-family: var(--display); font-weight: 400;
+  font-size: 1.4rem; line-height: 1; color: var(--dim);
+}
+.set i {
+  font-style: normal;
+  font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
+  line-height: 1.1;
+  max-width: 100%; white-space: nowrap; overflow: hidden;
+}
+.set u { display: none; text-decoration: none; font-size: .8rem; line-height: 1; }
+
 .set.is-done { border-color: rgba(157, 194, 168, .5); background: rgba(157, 194, 168, .14); color: var(--sage); }
 .set.is-done b { color: var(--sage); }
-.set.is-now { border-color: var(--blush); background: rgba(231, 154, 166, .18); color: var(--blush); box-shadow: 0 0 0 1px rgba(231, 154, 166, .35); }
+.set.is-now {
+  border-color: var(--blush); background: rgba(231, 154, 166, .18); color: var(--blush);
+  box-shadow: 0 0 0 1px rgba(231, 154, 166, .35);
+}
 .set.is-now b { color: var(--blush); }
+
+/* Seven or more across a phone leaves about thirty pixels each. A time does
+   not fit in that and a squashed one reads as damage, so done sets show a
+   tick instead and the number carries the rest. */
+.sets--tight { --set-size: 52px; }
+.sets--tight .set b { font-size: 1.15rem; }
+.sets--tight .set i { display: none; }
+.sets--tight .set.is-done u { display: block; }
 
 .progress { height: 5px; border-radius: 3px; background: var(--card-2); overflow: hidden; }
 .progress__bar { height: 100%; background: linear-gradient(90deg, var(--blush-2), var(--blush)); transition: width .35s ease; }
