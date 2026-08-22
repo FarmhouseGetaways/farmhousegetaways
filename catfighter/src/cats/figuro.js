@@ -20,9 +20,15 @@
   CF.CatDefs.figuro = {
   id: 'figuro',
   weightClass: 'medium',
-    /* Peek-a-boo: both gloves up by the cheeks, elbows tucked in, chin
-       down behind them. He is a boxer before he is a cat. */
-  stance: { torso: 4, py: -1, armF: [-30, 52], armB: [-8, 32],
+    /* Peek-a-boo: lead glove up by the cheek, elbows tucked in, chin down
+       behind it. He is a boxer before he is a cat.
+
+       The back arm stays tucked. Swinging it forward was tried, to get the
+       far mitt clear of the skull, and it turned the guard into a man
+       reaching for a door handle in every pose the stance touches — which
+       is all of them. The mitt is got out of hiding by DRAW ORDER instead;
+       see the glove block below. */
+  stance: { torso: 4, py: -1, armF: [-30, 52], armB: [-8, 30],
             head: [1, -1.5, 5] },
   build: { s: 1.00, girth: 1.12, limb: 0.98, head: 1.00, muscle: 1.45,
            headShape: 'blocky', ear: 'small', shoulder: 1.26, waist: 0.82, limbW: 1.14 },
@@ -43,9 +49,9 @@
          towel. Four values and no more — a fifth (gold trim was tried on the
          waistband) turned the hip into confetti at game size. */
       var GLOVE = '#c0392f', CUFF = '#8d2622', LACE = '#efe4cc';
-      var TRUNK = '#232c4c', BAND = '#d7c48b', TRIM = '#a8925e';
+      var TRUNK = '#232c4c', BAND = '#c0392f', TRIM = '#8d2622';
       var BOOT = '#c0392f', BOOTTOP = '#8d2622';
-      var WRAP = '#e9e1cf', TOWEL = '#ece4d2', TOWEL2 = '#c5b99f';
+      var WRAP = '#e9e1cf', TOWEL = '#d8cdb2';
 
       /* --- two little frames, because every piece of this kit is aligned to
              a bone rather than to the screen. `frame(a,b)` gives the axis
@@ -88,10 +94,10 @@
                   [1.28, 0.14], [1.16, -0.56], [0.66, -1.02],
                   [0.04, -1.12], [-0.46, -0.94], [-0.74, -0.30]];
 
-      function glove(layer, hand, elb, r) {
+      function glove(layer, hand, elb, r, simple) {
         var o = frame(elb, hand);
 
-        A.add(layer, function (cx) {
+        if (!simple) A.add(layer, function (cx) {
           A.smooth(cx, [P(o, hand, -1.72 * r, 0.50 * r), P(o, hand, -1.10 * r, 0.60 * r),
                         P(o, hand, -1.08 * r, -0.58 * r), P(o, hand, -1.68 * r, -0.48 * r)]);
         }, WRAP, { edge: true });
@@ -107,7 +113,7 @@
                     r * 0.36, r * 0.28);
         }, GLOVE, { edge: true });
 
-        A.add(layer, function (cx) {
+        if (!simple) A.add(layer, function (cx) {
           A.smooth(cx, [P(o, hand, -0.30 * r, 0.90 * r), P(o, hand, 0.44 * r, 0.94 * r),
                         P(o, hand, 0.88 * r, 0.64 * r), P(o, hand, 0.72 * r, 0.38 * r),
                         P(o, hand, 0.32 * r, 0.60 * r), P(o, hand, -0.30 * r, 0.56 * r)]);
@@ -119,12 +125,25 @@
         }, CUFF, { band: true, edge: true });
       }
 
-      /* The far glove goes on 'body' and the near one on 'front'. 'body' is
-         poured after the torso and before the leading arm, which is exactly
-         where a hand held up on the far side of the chest belongs — on
-         'back' it disappeared behind him entirely. */
+      /* BOTH gloves go on 'front', the far one first so the near one paints
+         over it. The far one was on 'body' to begin with, which is the
+         honest depth — after the torso, under the leading arm — and it was
+         invisible: the near forearm crosses the chest in a peek-a-boo guard
+         and ate the whole mitt, and what was left of it was painted over
+         again by the tabby stripes, which are laid down after the body
+         layer and clipped inside it.
+
+         So the far mitt cheats forward one layer. It is smaller and it is
+         overlapped by the near one, which is all the depth cue this needs at
+         ninety pixels tall, and the result is what the guard is for: TWO red
+         masses stacked by his cheek rather than one and a rumour. */
       var gr = f.headR * 0.88;
-      glove('body', j.handB, j.elbB, gr * 0.90);
+      /* The far mitt is drawn `simple` — no wrap showing, no lace panel.
+         Both are cream, and stacked against the cream belly, the cream
+         towel and the near mitt's own wrap they turned his whole chest into
+         one pale smear. What the far hand needs to be is a red mass with a
+         dark cuff, and nothing else. */
+      glove('front', j.handB, j.elbB, gr * 0.86, true);
       glove('front', j.handF, j.elbF, gr);
 
       /* ================= THE BOOTS ==================================
@@ -180,30 +199,44 @@
          between trunks and a tutu. */
       A.add('front', function (cx) {
         cx.beginPath();
-        var a = T(0.50, f.waistW * 1.24); cx.moveTo(a.x, a.y);
-        seg(cx, 0.28, f.hipW * 1.48);
+        var a = T(0.46, f.hipW * 1.36); cx.moveTo(a.x, a.y);
+        seg(cx, 0.28, f.hipW * 1.50);
         seg(cx, 0.00, f.hipW * 1.78);
         seg(cx, -0.24, f.hipW * 1.62);
         seg(cx, -0.13, f.hipW * 0.26);        /* the notch between the legs */
         seg(cx, -0.27, -f.hipW * 1.48);
         seg(cx, -0.03, -f.hipW * 1.76);
-        seg(cx, 0.28, -f.hipW * 1.46);
-        seg(cx, 0.50, -f.waistW * 1.22);
+        seg(cx, 0.28, -f.hipW * 1.48);
+        seg(cx, 0.46, -f.hipW * 1.34);
         cx.closePath();
       }, TRUNK, { band: true, edge: true });
 
       /* the waistband. Deliberately enormous — a boxer's rides up over the
          bottom rib, and at this resolution a narrow one is a pencil line
-         that the contour pass eats. */
+         that the contour pass eats.
+
+         It was sand-coloured first, and it vanished: his belly is cream and
+         his fur is tan, and a sand band across the middle of that is three
+         near-identical values stacked up. It is the glove red now, which
+         both survives the drop to 384x224 and ties the gloves, the boots
+         and the trunks into one kit instead of three separate ideas. */
       A.add('front', function (cx) {
-        A.smooth(cx, [T(0.38, f.waistW * 1.46), T(0.64, f.waistW * 1.36),
-                      T(0.66, -f.waistW * 1.32), T(0.38, -f.waistW * 1.42)]);
+        cx.beginPath();
+        var b = T(0.52, f.hipW * 1.34); cx.moveTo(b.x, b.y);
+        seg(cx, 0.28, f.hipW * 1.50);
+        seg(cx, 0.28, -f.hipW * 1.48);
+        seg(cx, 0.52, -f.hipW * 1.32);
+        cx.closePath();
       }, BAND, { band: true, edge: true });
-      /* one darker line along the bottom of it, so the band has a thickness
+      /* one darker strip along the bottom of it, so the band has a thickness
          rather than being a flat plaque */
       A.add('front', function (cx) {
-        A.smooth(cx, [T(0.38, f.waistW * 1.46), T(0.44, f.waistW * 1.44),
-                      T(0.46, -f.waistW * 1.40), T(0.38, -f.waistW * 1.42)]);
+        cx.beginPath();
+        var b = T(0.34, f.hipW * 1.48); cx.moveTo(b.x, b.y);
+        seg(cx, 0.28, f.hipW * 1.50);
+        seg(cx, 0.28, -f.hipW * 1.48);
+        seg(cx, 0.34, -f.hipW * 1.46);
+        cx.closePath();
       }, TRIM, {});
 
       /* ================= THE TOWEL ==================================
@@ -236,28 +269,26 @@
       }
 
       var cw = f.chestW;
-      var tw = { x: nk.x - cw * 0.52, y: nk.y + cw * 0.22 };   /* on the back shoulder */
+      var tw = { x: nk.x - cw * 0.98, y: nk.y + cw * 0.26 };   /* clear of the back */
       A.add('back', function (cx) {
         slab(cx, tw.x, tw.y,
-             tw.x - cw * 0.42 + f.sway * 1.2, tw.y - cw * 2.30,
-             cw * 0.46, cw * 0.40, cw * 0.16);
+             tw.x - cw * 0.40 + f.sway * 1.2, tw.y - cw * 1.85,
+             cw * 0.38, cw * 0.34, cw * 0.14);
       }, TOWEL, { band: true, edge: true });
       /* the roll sitting on top of the shoulder, which is what makes the
          slab read as draped over him rather than hung on a hook behind */
       A.add('back', function (cx) {
-        A.capsule(cx, { x: nk.x - cw * 0.05, y: nk.y + cw * 0.44 },
-                      { x: nk.x - cw * 0.86, y: nk.y + cw * 0.10 },
-                  cw * 0.30, cw * 0.34);
+        A.capsule(cx, { x: nk.x - cw * 0.10, y: nk.y + cw * 0.48 },
+                      { x: nk.x - cw * 1.00, y: nk.y + cw * 0.18 },
+                  cw * 0.26, cw * 0.30);
       }, TOWEL, { band: true, edge: true });
 
-      /* the short end over the FRONT of that shoulder. On 'body', under the
-         leading arm, where it cannot fight the guard. Darker, because it is
-         the underside of the fold — one towel, two planes. */
-      A.add('body', function (cx) {
-        var a = T(1.02, -cw * 0.46);
-        slab(cx, a.x, a.y, a.x - cw * 0.10 + f.sway * 0.5, a.y - cw * 1.15,
-             cw * 0.34, cw * 0.30, cw * 0.13);
-      }, TOWEL2, { edge: true });
+      /* A short end of the towel hanging over the FRONT of that shoulder
+         was tried, to say draped rather than hung on a hook. It landed on
+         the chest, took the near arm's cast shadow across it, and read as a
+         satchel — a hard dark rectangle in the one place the eye goes. The
+         roll over the shoulder does the same job without putting anything
+         in front of him, so there is only the roll and the back end now. */
     },
 
     /* The laces. Three ticks across the pale panel on each mitt, one pixel
