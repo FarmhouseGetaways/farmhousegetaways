@@ -819,7 +819,7 @@
        full-screen. Both bands are positioned against the horizon and the
        floor line — screen coordinates — so pinning them to the screen rather
        than the camera is what they always meant. */
-    var key = 'deep' + [o.air, o.haze, o.floorDark, o.horizon].join(',');
+    var key = 'deep' + [o.air, o.haze, o.floorDark, o.horizon, o.back].join(',');
     cachedFull(ctx, key, function (ox) { paintDeepen(ox, o); });
   }
 
@@ -839,6 +839,68 @@
     g.addColorStop(1, 'rgba(' + rgb + ',0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, horizon - 74, W, FLOOR_Y + 6 - (horizon - 74));
+
+    /* Push the whole backdrop DOWN in value, so the fighters are the
+       lightest thing in the picture.
+
+       Measured, because it is not obvious by eye at 8x: the median luminance
+       of a cat's own pixels runs 53 (Mario, Luigi) to 83 (Figuro), and the
+       median of the backdrop in the band the fighters stand in ran 52
+       (retreat) to 150 (pool). On four of the six stages the difference was
+       under three levels out of 255 — the figure and the wall behind it were
+       the same value, which is why the cats read as stickers laid on a
+       picture rather than as things standing in a room. Street Fighter II
+       never does this: Ryu is lighter than everything within ten feet of him.
+
+       The haze above cannot fix it, and this is worth understanding before
+       anybody tries. Haze pulls the mid-ground towards `air`, and `air` on
+       barn (#6b4038), kitchen (#c08a52) and retreat (#3b4a74) is LIGHTER
+       than the wall it lands on — so the one knob that was meant to separate
+       the planes was closing the gap instead.
+
+       Black alpha, not a grey fill. A grey fill lifts the blacks and
+       flattens the whole range, which is the mud the first version of
+       `deepen` produced and got reverted for. Multiplying towards black
+       keeps the darks where they are and only brings the top end down, so
+       the stage loses brightness and keeps its contrast.
+
+       Weighted towards the fighters' band rather than flat, and the first
+       version was not. Flat took the moon on retreat and the sun on porch
+       down with everything else, and those are the LIGHT SOURCE — dimming
+       the lamp to make the room darker is backwards, and it cost the one
+       element on each of those stages that was already reading as far away.
+       The cats stand between roughly y=90 and the floor line, so full
+       strength starts at 0.52 of the way down and the sky above it keeps
+       most of its punch. Measured across all six, the fighter band did not
+       move when the top of the curve was lifted, which is what says the
+       weighting is aimed at the right place.
+
+       Cutting the backdrop's CHROMA as well was tried and is not here.
+       A `saturation` blend cannot go in this pass at all — `cachedFull`
+       paints a transparent overlay that is composited later, and a blend
+       mode inside it blends against the empty offscreen, not against the
+       stage. Done outside the cache instead it measured 1.15ms a frame for
+       one full-width fill, against 0.07ms for a plain one: the same price
+       the vignette was cached away for paying. Darkening scales r, g and b
+       together, so the colour comes down in absolute terms anyway, and
+       that turned out to be enough by eye. Free at run time — it is inside
+       `cachedFull` with everything else here. */
+    var back = o.back === undefined ? 0.26 : o.back;
+    if (back > 0) {
+      var b = ctx.createLinearGradient(0, 0, 0, FLOOR_Y);
+      b.addColorStop(0, 'rgba(0,0,0,' + (back * 0.20).toFixed(3) + ')');
+      b.addColorStop(0.30, 'rgba(0,0,0,' + (back * 0.45).toFixed(3) + ')');
+      b.addColorStop(0.52, 'rgba(0,0,0,' + back.toFixed(3) + ')');
+      b.addColorStop(1, 'rgba(0,0,0,' + back.toFixed(3) + ')');
+      ctx.fillStyle = b;
+      ctx.fillRect(0, 0, W, FLOOR_Y);
+      /* The floor out-valued the fighters on all six stages too, and it is a
+         third of the screen. Taken down less than the backdrop: it is the
+         plane facing the light, so pulling it as far as the wall behind
+         reads as a room with the lamp switched off. */
+      ctx.fillStyle = 'rgba(0,0,0,' + (back * 0.55).toFixed(3) + ')';
+      ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
+    }
 
     /* The shadow that collects where whatever is back there meets the floor.
        Kept SHORT and dark rather than tall and grey: a tall wash over the

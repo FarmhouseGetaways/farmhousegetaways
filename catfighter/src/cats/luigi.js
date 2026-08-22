@@ -138,8 +138,8 @@
           /* a quadratic from the knot out to the tip. The control point is
              ABOVE the line between them, so the cloth kicks up as it leaves
              the neck and falls away at the far end — an S, not a rod. The
-             first version put the control almost on the line and both tails
-             came out as two straight green wires stuck to his collar. */
+             first version put the control almost on the line and the tail
+             came out as a straight green wire stuck to his collar. */
           var mx = nk.x - len * 0.46 * f.s;
           var my = nk.y + (rise + SW * 1.2) * f.s;
           var px = u * u * nk.x + 2 * u * t * mx + t * t * ex;
@@ -147,26 +147,64 @@
           /* the ripple grows towards the tip — the end of a scarf moves,
              the bit knotted at the throat does not */
           py += Math.sin(t * 4.2 + f.t * 0.13 + phase) * ripple * t * t * f.s;
-          /* Width holds most of the way and only gives up near the tip. A
-             linear taper from the knot leaves the middle two pixels wide at
-             game size, which is where a scarf breaks into dashes. */
-          pts.push({ x: px, y: py, w: wid * f.s * (1 - 0.62 * t * t) });
+          /* Tapered the whole way, fat at the knot and about a third of that
+             at the tip. It used to hold full width until t=0.7 and then give
+             up, which at game size is a garden hose with a flick on the end.
+             The exponent is 1.35 rather than 1 because a straight linear
+             taper takes the middle down to two pixels, which is where a
+             scarf breaks into dashes — this keeps the middle broad enough to
+             read and still narrows continuously. */
+          pts.push({ x: px, y: py, w: wid * f.s * (1 - 0.66 * Math.pow(t, 1.35)) });
         }
-        return ribbon(pts, 4.4 * f.s);
+        return ribbon(pts, 6.4 * f.s);
       }
 
-      /* Two tails, deliberately mismatched: one long and nearly level, one
-         short and falling steeply away under it. A matched pair reads as a
-         bow tie. They were closer together to begin with and at game size
-         the pair collapsed into a single thick green bar with a dark line
-         down it — the fan has to be wide enough that you can see daylight
-         between them at 90 pixels tall. The far one takes the shadow tone
-         so there is depth in the shape as well as separation. */
-      A.add('back', scarfTail(34, -3.0, 26, 4.0, 1.7, 2.4), SCARF_D, { edge: true });
-      A.add('back', scarfTail(52, 7.0, 6, 5.2, 0.0, 3.2), SCARF, { band: true, edge: true });
+      /* ONE tail, and it took four rounds of the silhouette test to get
+         here. It has to stay clear of the cat's own tail, and that is the
+         whole reason these numbers look the way they do.
 
-      /* The collar the tails are tied to. Without it they grew straight out
-         of the fur, which reads as a mistake rather than as a garment. */
+         Measured off the solved rig, in the units these calls take and
+         relative to the knot: his tail leaves the rump at (-12, -32), swings
+         back to (-27, -24) and (-33, -10), and curls up to finish at
+         (-32, +2) — level with the knot and a third of his height behind
+         it. That is exactly where a scarf wants to be, so the two fight
+         unless the numbers are chosen against those four points.
+
+         The first pass ignored them. There were two long tails, one running
+         52 back across the tail tip and one dropping 26 straight through the
+         arc, and the black shape came out with a HOLE through it. A lasso,
+         and it was the loudest thing on the roster page. Nudging did not fix
+         it: turning the short tail up to clear the arc only moved the hole,
+         and the long one still landed on the tail tip and trapped a crescent
+         under it. The scarf has to pass OVER the tail with daylight, or the
+         wedge between them closes somewhere.
+
+         And it has to lift further than the arithmetic says. Five units of
+         clearance is not clearance: every shape here carries a contour
+         stroke a couple of pixels wide on each side, so two edges five units
+         apart weld shut and you get one fat boomerang behind him with no
+         telling cloth from cat. `rise 20, drop -24` puts about thirteen
+         units through the crossing, which survives the contour and survives
+         the drop to ninety pixels tall.
+
+         The second tail is gone rather than retuned. Every position that
+         made it visible put it in the gap between the banner and the tail,
+         where it bridged the two and brought the hole back in whichever pose
+         was not being looked at — jumpKick and guardHigh, mostly. The one
+         place it never bridged was tucked so far behind the trunk that
+         nothing of it showed. A shape that either breaks the silhouette or
+         cannot be seen is not worth a draw call, and the judges wanted fewer
+         bars trailing off him anyway: cloth and tail, a V, and nothing else.
+         The collar and the knot below it are what say the banner is tied on.
+
+         Anything that reaches past x=-30 and sits below +8 makes the ring
+         again, and it will not show up in colour — `node tools/shot.mjs
+         silhouette`, and check the other five poses too, because stand is
+         the one pose where the tail is furthest out of the way. */
+      A.add('back', scarfTail(44, 20.0, -24.0, 5.6, 0.0, 3.2), SCARF, { band: true, edge: true });
+
+      /* The collar the banner is tied to. Without it the cloth grew straight
+         out of the fur, which reads as a mistake rather than as a garment. */
       A.add('body', function (cx) {
         A.ellipse(cx, nk.x, nk.y, f.chestW * 0.56, f.chestW * 0.40, 0.22);
       }, SCARF, { band: true, edge: true });

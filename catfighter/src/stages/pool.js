@@ -8,13 +8,29 @@
      - the RIGHT THIRD is the landmark: a slide tower running off the top of
        the frame, with a cat down it every four seconds and a splash.
      - the LEFT EDGE is the frame: a parasol canopy too close to see the top
-       of, and under it a cooler and a lifeguard chair.
-     - the BOTTOM RIGHT is the discovery: an inflatable flamingo the size of
-       a car, propped on the deck to dry, looking down at the fight.
-     - between them, far off and small, the pool with the crowd round it.
+       of, and an inflatable flamingo the size of a car propped on the deck
+       to dry, looking down at the fight. The cooler and the towels are over
+       at the other corner so the bottom of the frame is weighted at both
+       ends rather than only one.
+     - between them, far off and small, the pool, a palm grove, a lifeguard
+       on a high chair, and the crowd along the far rail.
 
    Something enormous at each edge framing something small and far away is
    the whole trick; a repeating strip of parasols is not a place.
+
+   TWO LOOPS, on deliberately different clocks. The slide runs every four
+   seconds — you see it in the first round and it is the stage's pulse. The
+   banner plane runs every fifteen, which is long enough that you find it in
+   your third match rather than your first, and that is what "neat things to
+   discover" has to mean at this scale: not more detail, a longer period.
+
+   BUDGET. This stage costs about 8.8ms of the 16.7 (software rendering, no
+   GPU), which puts it level with the barn rather than above it, so it is not
+   the one that decides the worst case. It got there by flat-filling: the
+   palms, the plane and the flamingo's seams are all "small parts" under the
+   rule the cats' paws are flat by, and routing them through K.paint for a
+   one-pixel crescent nobody can see cost 1.5ms on its own. Paint the big
+   shapes. Everything under about six pixels is flat.
    ======================================================================= */
 (function () {
   var K = CF.StageKit;
@@ -102,6 +118,85 @@
     ctx.stroke();
   }
 
+  /* ---- a palm ----------------------------------------------------------
+
+     Not in the shared kit, and this is the stage that needed one. The far
+     side of the pool was two flat green bands with a row of small blobs on
+     it and nothing taller than a parasol anywhere, so the whole middle
+     distance read as a printed strip rather than as a place with a scale of
+     its own. A palm is the cheapest vertical there is and it names the
+     location before you have read anything else in the frame.
+
+     Nothing here goes through K.paint. A palm is a six-pixel trunk and seven
+     fourteen-pixel blades; every one of them is a "small part" by the rule
+     the cats' paws are flat under, and the first version — trunk painted,
+     fronds one path each — measured at 1.25ms for four palms. Flat fills
+     and two batched frond paths brought it to 0.4 and the picture at 1x is
+     the same drawing. */
+  function palm(ctx, x, base, s, t, ph) {
+    var h = 42 * s, lean = Math.sin(ph) * 8 * s;
+    var top = base - h;
+    var cx2 = x + lean + Math.sin(t * 0.013 + ph) * 1.8 * s;
+    /* The lit edge is one stroke up the light side. On a shape three pixels
+       wide that is all the form there is room for — a second tone lands on
+       top of the first and you get a trunk one pixel narrower. */
+    ctx.beginPath();
+    ctx.moveTo(x - 3.0 * s, base);
+    ctx.quadraticCurveTo(x + lean * 0.35 - 1.5 * s, base - h * 0.55, cx2 - 1.4 * s, top);
+    ctx.lineTo(cx2 + 1.4 * s, top);
+    ctx.quadraticCurveTo(x + lean * 0.35 + 1.8 * s, base - h * 0.55, x + 3.0 * s, base);
+    ctx.closePath();
+    ctx.fillStyle = '#7d5f3b';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(38,26,14,.6)';
+    ctx.lineWidth = Math.max(1, 0.9 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 2.2 * s, base);
+    ctx.quadraticCurveTo(x + lean * 0.35 - 1.0 * s, base - h * 0.55, cx2 - 0.9 * s, top);
+    ctx.strokeStyle = '#a98a5c';
+    ctx.lineWidth = Math.max(1, 1.1 * s);
+    ctx.stroke();
+
+    /* seven fronds fanned across the upper half-circle, each drooping
+       further the more horizontal it is — a fan of straight blades is a
+       shuttlecock, and the droop is the whole read of a palm.
+
+       Two passes, not seven: every frond of a tone goes into ONE path and
+       is filled and stroked once. Seven fills and seven strokes a palm over
+       four palms measured at half a millisecond on its own — canvas charges
+       per path, not per square pixel, and a frond is fourteen pixels long. */
+    for (var pass = 0; pass < 2; pass++) {
+      ctx.beginPath();
+      for (var f2 = pass; f2 < 7; f2 += 2) {
+        var a = -Math.PI + (f2 + 0.5 + Math.sin(ph * 3 + f2) * 0.16) / 7 * Math.PI;
+        var L = (14 + ((f2 * 3 + Math.floor(ph * 5)) % 3) * 4) * s
+              + Math.sin(t * 0.02 + ph + f2) * 0.8 * s;
+        var ca = Math.cos(a), sa = Math.sin(a);
+        ctx.moveTo(cx2, top + 1);
+        ctx.quadraticCurveTo(cx2 + ca * L * 0.55, top + sa * L * 0.52 - 2.6 * s,
+                             cx2 + ca * L, top + sa * L * 0.66 + Math.abs(ca) * L * 0.40);
+        ctx.quadraticCurveTo(cx2 + ca * L * 0.48, top + sa * L * 0.44 + 3.2 * s,
+                             cx2, top + 3 * s);
+        ctx.closePath();
+      }
+      /* the even fronds darker and underneath: without the split the crown
+         is one green blot and the palm loses its only bit of depth */
+      ctx.fillStyle = pass ? '#4d9a52' : '#2f6d3c';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(24,52,28,.55)';
+      ctx.lineWidth = Math.max(1, 0.9 * s);
+      ctx.stroke();
+    }
+    /* coconuts, on the bigger ones only — three dark pixels that make the
+       crown read as having a middle */
+    if (s > 1.05) {
+      ctx.fillStyle = '#5a4326';
+      ctx.beginPath(); ctx.arc(cx2 - 2 * s, top + 4 * s, 1.7 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx2 + 2.2 * s, top + 5 * s, 1.7 * s, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
   CF.StageDefs = CF.StageDefs || {};
   CF.StageDefs.pool = {
     id: 'pool', name: 'THE POOL DECK',
@@ -139,6 +234,95 @@
       ctx.fillStyle = '#fff8d0';
       ctx.beginPath(); ctx.arc(138, 26, 16, 0, Math.PI * 2); ctx.fill();
 
+      /* --- A BANNER PLANE, once every fifteen seconds ------------------
+             Two things wrong that this fixes at once. The top third of the
+             picture was sky and four clouds, which is a lot of nothing at
+             384 across; and the stage had exactly ONE thing happening on a
+             loop, the slide, on a four-second period you notice immediately
+             and then stop seeing. A second loop on a much longer period is
+             the thing you find in your third match and point at, which is
+             what "neat things to discover" actually means.
+
+             The banner is coloured panels, not lettering. A word at this
+             resolution is six grey pixels and reads as a rendering fault;
+             ripple and colour read as cloth on a rope from across a room. */
+      K.layer(ctx, camX, 0.04, function () {
+        var pl = (t % 900) / 900;
+        if (pl >= 0.84) return;
+        var px = -170 + (pl / 0.84) * (W + 340) - camX * 0.04;
+        /* y 54, not 34. At 34 it flew straight through the health bars and
+           the MATCH counter — invisible for the whole of an actual fight,
+           which was only obvious from a `shot.mjs fight` frame and not from
+           a stage render. Anything put in the top forty pixels of this game
+           is put behind the HUD. */
+        var py = 54 + Math.sin(t * 0.03) * 1.8;
+
+        ctx.strokeStyle = 'rgba(50,54,64,.5)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px - 2, py + 5); ctx.lineTo(px - 18, py + 6); ctx.stroke();
+        var cols = ['#e4574c', '#f0b429', '#f4f0e4', '#4aa8c9'];
+        var b, bx, w0, w1;
+        for (b = 0; b < 8; b++) {
+          bx = px - 18 - b * 7;
+          w0 = Math.sin(t * 0.09 - b * 0.7) * 1.7;
+          w1 = Math.sin(t * 0.09 - (b + 1) * 0.7) * 1.7;
+          ctx.fillStyle = cols[b % 4];
+          ctx.beginPath();
+          ctx.moveTo(bx, py + 1 + w0); ctx.lineTo(bx - 7, py + 1 + w1);
+          ctx.lineTo(bx - 7, py + 11 + w1); ctx.lineTo(bx, py + 11 + w0);
+          ctx.closePath(); ctx.fill();
+        }
+        /* The lit top hem. Without it the panels are flat swatches and the
+           banner sits in a different world from the rest of the stage — but
+           it is one colour over all eight panels, so it is one path and one
+           fill rather than eight of each. */
+        ctx.beginPath();
+        for (b = 0; b < 8; b++) {
+          bx = px - 18 - b * 7;
+          w0 = Math.sin(t * 0.09 - b * 0.7) * 1.7;
+          w1 = Math.sin(t * 0.09 - (b + 1) * 0.7) * 1.7;
+          ctx.moveTo(bx, py + 1 + w0); ctx.lineTo(bx - 7, py + 1 + w1);
+          ctx.lineTo(bx - 7, py + 2.4 + w1); ctx.lineTo(bx, py + 2.4 + w0);
+          ctx.closePath();
+        }
+        ctx.fillStyle = 'rgba(255,255,255,.4)';
+        ctx.fill();
+
+        /* Tail fin, then the fuselage over it, then the near wing hanging
+           below — three shapes, because a single silhouette of a plane at
+           twenty pixels is an arrowhead.
+
+           All three flat-filled. They went through K.paint first and cost
+           three clips for three one-pixel crescents on a shape twenty-five
+           pixels long, which is the same bad trade the palm trunks were
+           making. Three tones ACROSS the three parts does the work instead:
+           the fin dark, the fuselage light, the underwing darker still. */
+        ctx.strokeStyle = 'rgba(70,80,92,.75)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px - 2, py + 6); ctx.lineTo(px + 1, py - 4);
+        ctx.lineTo(px + 8, py + 5); ctx.closePath();
+        ctx.fillStyle = '#c2cad2'; ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(px + 15, py + 6); ctx.lineTo(px + 21, py + 13);
+        ctx.lineTo(px + 12, py + 13); ctx.lineTo(px + 9, py + 7); ctx.closePath();
+        ctx.fillStyle = '#9fa9b4'; ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(px + 25, py + 5);
+        ctx.quadraticCurveTo(px + 16, py + 1, px - 2, py + 3);
+        ctx.lineTo(px - 2, py + 8);
+        ctx.quadraticCurveTo(px + 14, py + 10, px + 25, py + 5);
+        ctx.closePath();
+        ctx.fillStyle = '#f4f2ea'; ctx.fill(); ctx.stroke();
+        /* the cabin window strip — two dark pixels, and they are what stop
+           the fuselage reading as a thrown bread roll */
+        ctx.fillStyle = 'rgba(60,72,86,.8)';
+        ctx.fillRect(px + 10, py + 4, 6, 1.6);
+        /* the propeller disc — a fan blur, not two blades. Blades at this
+           size strobe against the frame rate and read as a broken sprite. */
+        ctx.fillStyle = 'rgba(220,228,236,.45)';
+        ctx.beginPath(); ctx.ellipse(px + 26, py + 5, 1.6, 6, 0, 0, Math.PI * 2); ctx.fill();
+      });
+
       /* --- hills, then the vineyard rows climbing them --- */
       K.hills(ctx, camX, 0.10, '#6ea84e', 124, 20, 3);
       K.hills(ctx, camX, 0.17, '#5b9142', 133, 14, 9);
@@ -149,6 +333,19 @@
           ctx.moveTo(x, 126 + K.vary(i, 77, 2, 8));
           ctx.lineTo(x - 8, 140);
           ctx.stroke();
+        });
+      });
+
+      /* --- the palm row, standing on the far side of the pool.
+             Spaced wide and thinned out: four big ones read as a grove,
+             eight small ones read as a fence, and a fence across the band
+             the fighters' heads are in is exactly the clutter that makes a
+             stage hard to fight on. --- */
+      K.layer(ctx, camX, 0.24, function () {
+        K.repeatX(camX, 0, 84, function (x, i) {
+          if (K.chance(i, 133, 0.16)) return;
+          palm(ctx, x, K.vary(i, 134, 128, 137), K.vary(i, 135, 0.78, 1.5),
+               t, K.vary(i, 136, 0, 6.28));
         });
       });
 
@@ -277,13 +474,32 @@
           ctx.strokeStyle = '#b9a478'; ctx.lineWidth = 1.6;
           ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -22); ctx.stroke();
           var col = K.pick(i, 81, ['#e4574c', '#f0b429', '#4aa8c9', '#e07ab0', '#5bbd7a']);
-          K.paint(ctx, function (c) {
-            c.beginPath();
-            c.moveTo(-16, -21);
-            c.quadraticCurveTo(0, -31, 16, -21);
-            c.quadraticCurveTo(0, -17, -16, -21);
-            c.closePath();
-          }, col, { step: 1.6, edgeW: 1 });
+          /* Flat, with the underside painted in as a second shape.
+
+             A far parasol is thirty pixels across and K.paint was buying
+             each one a clip to produce a crescent a pixel and a half wide.
+             Six on screen at once measured at 0.5ms — a whole palm's worth
+             of budget for something you cannot see at 1x. Two flat paths
+             give the identical picture: the canopy, and the shadowed
+             underside that is the only thing stopping it reading as a
+             coloured lozenge. */
+          ctx.beginPath();
+          ctx.moveTo(-16, -21);
+          ctx.quadraticCurveTo(0, -31, 16, -21);
+          ctx.quadraticCurveTo(0, -17, -16, -21);
+          ctx.closePath();
+          ctx.fillStyle = col;
+          ctx.fill();
+          ctx.strokeStyle = K.darker(col, 0.58);
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-16, -21);
+          ctx.quadraticCurveTo(0, -17, 16, -21);
+          ctx.quadraticCurveTo(0, -19.4, -16, -21);
+          ctx.closePath();
+          ctx.fillStyle = K.darker(col, 0.36);
+          ctx.fill();
           ctx.restore();
           if (K.chance(i, 82, 0.5)) {
             ctx.fillStyle = K.pick(i, 83, ['#f2ede0', '#dfe8ef', '#f5dcc8']);
@@ -295,6 +511,48 @@
           }
         });
       });
+      /* THE LIFEGUARD CHAIR, on the far deck.
+
+         The header of this file promised one and nobody ever drew it. It
+         earns the place: the band from y100 to y135 sits directly behind the
+         fighters and was plain green hill with a row of small blobs on it,
+         and a stage that is empty exactly where the eye rests all match is
+         wallpaper. A tall white vertical is the cheapest possible fix — it
+         is the only thing on the far side taller than a parasol, so it reads
+         as the far side having a scale of its own rather than being a strip.
+
+         Small on purpose. It is one of the things the flamingo and the tower
+         are measured AGAINST; drawn any bigger it competes with them. */
+      K.layer(ctx, camX, 0.34, function () {
+        var lx = K.at(camX, 0.34, 40);
+        /* legs, splayed — a chair with parallel legs reads as a lamp post */
+        ctx.strokeStyle = '#e8e2d2'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(lx - 3, 134); ctx.lineTo(lx + 1, 106);
+        ctx.moveTo(lx + 13, 134); ctx.lineTo(lx + 9, 106);
+        ctx.moveTo(lx - 1, 122); ctx.lineTo(lx + 11, 122);   /* the cross-brace */
+        ctx.stroke();
+        /* seat and back, painted rather than stroked so they have a lit top */
+        K.mass(ctx, lx - 1, 106, 12, 4, '#f2ece0', { top: 2, side: 2, foot: false, edgeW: 1 });
+        K.mass(ctx, lx + 8, 96, 4, 12, '#f2ece0', { top: 2, side: 1, foot: false, edgeW: 1 });
+        /* the guard, and the red torpedo float across their knees — the
+           float is the one saturated pixel up here and it is what names
+           the whole prop from thirty pixels away */
+        K.spectator(ctx, lx + 5, 106, 0.52, 617, t * 0.3, mood);
+        ctx.fillStyle = '#d8322c';
+        ctx.beginPath(); ctx.ellipse(lx + 3, 104, 6, 2, -0.15, 0, Math.PI * 2); ctx.fill();
+        /* a parasol shading them, tilted off the vertical */
+        ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(lx + 6, 100); ctx.lineTo(lx + 10, 84); ctx.stroke();
+        K.paint(ctx, function (c) {
+          c.beginPath();
+          c.moveTo(lx - 6, 85);
+          c.quadraticCurveTo(lx + 10, 76, lx + 26, 87);
+          c.quadraticCurveTo(lx + 10, 90, lx - 6, 85);
+          c.closePath();
+        }, '#e4574c', { step: 1.6, edgeW: 1 });
+      });
+
       /* the crowd at the far rail, watching the fight rather than the pool */
       K.crowdRow(ctx, camX, 0.34, 27, 132, t, mood,
                  { seed: 140, gap: 0.34, min: 0.52, max: 0.74 });
@@ -345,19 +603,24 @@
         K.repeatX(camX, 0, 92, function (x, i) {
           var fy = 152 + Math.sin(t * 0.03 + i) * 1.6;
           var kind = Math.floor(K.hash(i, 87) * 3);
+          /* Both of these were K.paint too, for the same non-reason: a ring
+             ten pixels tall does not have room for a lit rim. Flat fill,
+             one dark line under the near edge for the waterline. */
           if (kind === 0) {                     /* a flamingo ring */
-            K.paint(ctx, function (c) {
-              c.beginPath(); c.ellipse(x, fy, 14, 5, 0, 0, Math.PI * 2);
-            }, '#ff8fb0', { step: 1.6, edgeW: 1 });
+            ctx.fillStyle = '#ff8fb0';
+            ctx.beginPath(); ctx.ellipse(x, fy, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#c25e80'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(x, fy, 14, 5, 0, 0, Math.PI); ctx.stroke();
             ctx.strokeStyle = '#ff8fb0'; ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(x - 10, fy - 2);
             ctx.quadraticCurveTo(x - 16, fy - 13, x - 8, fy - 15);
             ctx.stroke();
           } else if (kind === 1) {              /* a lilo with somebody asleep */
-            K.paint(ctx, function (c) {
-              c.beginPath(); c.ellipse(x, fy, 16, 4.4, 0, 0, Math.PI * 2);
-            }, '#4ad0c0', { step: 1.6, edgeW: 1 });
+            ctx.fillStyle = '#4ad0c0';
+            ctx.beginPath(); ctx.ellipse(x, fy, 16, 4.4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#2b8b82'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(x, fy, 16, 4.4, 0, 0, Math.PI); ctx.stroke();
             K.spectator(ctx, x, fy - 2, 0.58, Math.abs(i * 5), t * 0.2, null);
           } else {                              /* a beach ball */
             ctx.fillStyle = '#f5f0e4';
@@ -425,6 +688,59 @@
             ctx.beginPath(); ctx.ellipse(fx + 7, fy2 + 1.4, 4, 2.2, 0.1, 0, Math.PI * 2); ctx.fill();
           }
         });
+        /* A PUDDLE, big enough to see the sky in.
+
+           The deck below the tile course was still the emptiest plane in the
+           picture, and the instinct — scatter more small litter over it —
+           was tried and only made noise. What an empty plane needs is ONE
+           large shape. A puddle earns its keep twice: it is a hole in the
+           beige, and it is the only place in the stage where the sky turns
+           up BELOW the horizon, which is what makes the deck read as wet
+           rather than as sand.
+
+           Two flat tones with a hard edge between them, not a gradient. A
+           gradient here reads as an airbrushed blob; the hard line is the
+           water's own far edge catching sky and its near edge looking into
+           the deep, and it is the same rule the cats are shaded by. */
+        K.repeatX(camX, 1, 178, function (x0, i0) {
+          var pxr = x0 + K.vary(i0, 130, -34, 34);
+          var pyr = 196 + K.vary(i0, 131, -8, 8);
+          var sc = K.vary(i0, 132, 0.78, 1.28);
+          var path = function (c) {
+            c.beginPath();
+            c.moveTo(pxr - 52 * sc, pyr);
+            c.bezierCurveTo(pxr - 44 * sc, pyr - 13 * sc, pxr - 6 * sc, pyr - 13 * sc,
+                            pxr + 14 * sc, pyr - 7 * sc);
+            c.bezierCurveTo(pxr + 42 * sc, pyr - 1, pxr + 52 * sc, pyr + 7 * sc,
+                            pxr + 28 * sc, pyr + 12 * sc);
+            c.bezierCurveTo(pxr + 2 * sc, pyr + 17 * sc, pxr - 40 * sc, pyr + 12 * sc,
+                            pxr - 52 * sc, pyr);
+            c.closePath();
+          };
+          ctx.save();
+          path(ctx); ctx.clip();
+          ctx.globalAlpha = 0.72;
+          ctx.fillStyle = '#a8d2e8';
+          ctx.fillRect(pxr - 60 * sc, pyr - 20, 124 * sc, 44);
+          ctx.fillStyle = '#5d95b6';
+          ctx.fillRect(pxr - 60 * sc, pyr + 3 * sc, 124 * sc, 22);
+          /* two glints crawling across it — a still puddle is a sticker */
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = '#ffffff';
+          for (var gq = 0; gq < 3; gq++) {
+            ctx.fillRect(pxr - 30 * sc + gq * 22 * sc + Math.sin(t * 0.02 + gq) * 5,
+                         pyr - 4 + gq * 3, 11 * sc, 1.4);
+          }
+          ctx.restore();
+          /* the wet rim. Without it the puddle is a blue shape lying on the
+             deck rather than a wet patch OF it. */
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          ctx.strokeStyle = '#8d8266'; ctx.lineWidth = 1.6;
+          path(ctx); ctx.stroke();
+          ctx.restore();
+        });
+
         /* splashed water drying on the hot deck */
         K.repeatX(camX, 1, 74, function (x, i) {
           ctx.fillStyle = 'rgba(140,190,215,.3)';
@@ -468,6 +784,39 @@
         ctx.fillStyle = 'rgba(120,108,88,.28)';
         ctx.fillRect(0, y1 - 1, W, 1);
       }
+
+      /* A MOSAIC BORDER COURSE, two rows down.
+
+         Every paver on this deck is the same beige, and beige over a third
+         of the picture is a lot of nothing — the joints alone were too
+         quiet to read as perspective at 384 across. A real pool deck has a
+         tiled border round it, and it earns its place twice: it is the one
+         piece of saturated colour in the floor, and being a straight line
+         across the converging joints it is what tells the eye the deck is
+         lying down rather than standing up.
+
+         It sits at row 1 rather than right on the lip, so the fighters'
+         feet are on plain paving and the colour is behind them. */
+      var by0 = FLOOR_Y + Math.pow(1 / rows, 1.55) * (H - FLOOR_Y);
+      var by1 = FLOOR_Y + Math.pow(2 / rows, 1.55) * (H - FLOOR_Y);
+      /* One dark base course, then ONE coloured face per tile inset by a
+         pixel, so the base shows through as grout; the glazed top lip and
+         the shaded bottom run the whole width in one rect each. Drawn the
+         obvious way — three fillRects a tile over forty tiles — this cost a
+         quarter of a millisecond on the stage that is already the heaviest
+         of the six, for a highlight nobody could have pointed to. */
+      ctx.fillStyle = '#0f5c8c';
+      ctx.fillRect(0, by0, W, by1 - by0);
+      K.repeatX(camX, 1, 9, function (x, i) {
+        ctx.fillStyle = K.pick(i, 121, ['#2f7fb8', '#2f7fb8', '#59b6dc', '#0f5c8c', '#eae2cc']);
+        ctx.fillRect(x, by0 + 1, 8, by1 - by0 - 2);
+      });
+      /* the glazed top lip. One pixel of near-white is the whole reason a
+         tile reads as ceramic and not as a painted stripe. */
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.fillRect(0, by0, W, 1);
+      ctx.fillStyle = 'rgba(20,50,70,.4)';
+      ctx.fillRect(0, by1 - 1, W, 1);
     },
 
     drawFore: function (ctx, camX, t) {
@@ -561,6 +910,44 @@
         ctx.bezierCurveTo(fx - 26, 168, fx - 44, 186, fx - 40, H);
         ctx.lineTo(fx - 68, H);
         ctx.bezierCurveTo(fx - 66, 178, fx - 40, 156, fx - 22, 150);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+
+        /* THE WING. The body below the neck was four thousand pixels of one
+           pink with a single crescent on it — the largest flat area in the
+           stage, and it read as coloured paper laid down. A wing is the one
+           shape on a flamingo that carries a hard edge, and a hard edge is
+           the difference this whole game is built on. The trailing edge is
+           scalloped into four feather tips because a smooth oval is just a
+           second flat shape sitting on the first.
+
+           The tone is a long way off the body's, not a shade off it. The
+           first pass lightened the pink by 0.16 and at 1x the wing simply
+           was not there — on a shape this large the separation has to read
+           from across the room or the whole exercise is a decoration
+           nobody sees. */
+        K.paint(ctx, function (c) {
+          c.beginPath();
+          c.moveTo(fx + 44, 172);
+          c.bezierCurveTo(fx + 22, 154, fx - 20, 158, fx - 38, 180);
+          c.quadraticCurveTo(fx - 28, 190, fx - 18, 182);
+          c.quadraticCurveTo(fx - 6, 196, fx + 4, 186);
+          c.quadraticCurveTo(fx + 16, 200, fx + 26, 188);
+          c.quadraticCurveTo(fx + 38, 192, fx + 44, 172);
+          c.closePath();
+        }, K.lighter(PINK, 0.34), { step: 5, shade: 0.26, hi: 0.22, edgeW: 1.8,
+                                    edge: 'rgba(150,60,92,.85)' });
+        /* the shadow it throws on the body below the feather tips — the
+           wing has to sit ON something or it is a decal */
+        ctx.save();
+        ctx.fillStyle = 'rgba(190,88,124,.42)';
+        ctx.beginPath();
+        ctx.moveTo(fx - 38, 182);
+        ctx.quadraticCurveTo(fx - 26, 196, fx - 16, 188);
+        ctx.quadraticCurveTo(fx - 4, 202, fx + 6, 192);
+        ctx.quadraticCurveTo(fx + 18, 206, fx + 28, 194);
+        ctx.lineTo(fx + 30, 202);
+        ctx.quadraticCurveTo(fx - 6, 214, fx - 40, 192);
         ctx.closePath(); ctx.fill();
         ctx.restore();
 

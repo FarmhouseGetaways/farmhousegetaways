@@ -7,8 +7,10 @@
    THE LOOK. She is the one on the select screen you do not want to
    pick a fight with. That is a costume job, not a colour job — a ginger
    tabby with no kit on is a ginger tabby, which is exactly what she was
-   until 22 Aug 2026. Studded leather cut, one enormous shoulder pad,
-   a chain round her neck, trousers torn off below the knee, bare feet.
+   until 22 Aug 2026. Studded leather cut, one riveted steel plate over
+   the back shoulder, trousers torn off below the knee, bare feet. (The
+   chain round her neck is gone — see THE COLLAR below for why: on this
+   build she has no visible neck to hang one on.)
    ===================================================================== */
 (function () {
   var Ps = CF.Pose, Kit = CF.CatKit;
@@ -36,14 +38,20 @@
      Four things stand OUT of the body outline, because a costume drawn
      inside it is worth nothing in black:
 
-       1. the pauldron — one, on the leading shoulder, wider than her head
+       1. the pauldron — one, on the BACK shoulder, wide and low: a bump
+          on her back, not a second head above it
        2. the hackle — a ridge of raised fur down the back of her neck
        3. the long back hem of the cut, hanging past her tail root
        4. the torn trouser legs, cut off in teeth below the knee
 
-     Everything else — the chain, the studs, the buckle — is value work
+     Everything else — the studs, the rivets, the buckle — is value work
      that makes her read as leather rather than as fur, and none of it is
-     load-bearing at 384x224.                                            */
+     load-bearing at 384x224.
+
+     The one rule this cat exists to keep: THE PAULDRON MUST NEVER
+     OUT-VALUE OR OUT-SIZE THE FACE. It did both for a day and the eye
+     landed on her shoulder and read it as her head, which makes the whole
+     figure unreadable at game size however good it looks at 6x.         */
   look: {
     pieces: function (A, j, f) {
       /* Leather nearly black. It was a mid brown first and it disappeared
@@ -67,7 +75,17 @@
          her occupies: darker than the ginger, much lighter than the
          leather, so the plate separates from both without a single extra
          line. It also earns the studs, which were invisible on black. */
-      var PLATE = '#5d5c60', PLATE2 = '#8a8992';
+      /* Three tones and the contour, and the RANGE is the point. The first
+         version was PLATE '#5d5c60' with a lit facet at '#8a8992' and no
+         dark side at all: the lightest thing on the whole cat was a big
+         flat polygon on her shoulder, so at 1:1 the eye landed on the
+         pauldron and read it as her HEAD — the actual skull, being smaller
+         and darker, became a shoulder. Steel wants the biggest value spread
+         on the figure, not the smallest, and the light end of that spread
+         has to stay UNDER the muzzle. So the lit facet now sits just below
+         the ginger's mid tone and a hard dark facet does the work the pale
+         one used to. */
+      var PLATE = '#55545a', PLATE2 = '#74737d', PLATE3 = '#2f2e36';
 
       function frame(a, b) {
         var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
@@ -108,9 +126,16 @@
          is the middle of her shoulder blades: entirely inside the torso,
          and under the leather at that. It shows nothing there. It also
          wants to point back and up rather than straight up — straight up
-         on a hunched figure reads as a mohawk sitting on nothing.     */
+         on a hunched figure reads as a mohawk sitting on nothing.
+
+         The roots were then at N(-0.72, 0.34), which is far enough back
+         off the nape that a gap of background opened between the spikes
+         and the neck in some poses and the crest floated. Pulled in to
+         N(-0.54, 0.20) the roots are buried in the neck fur and only the
+         tips stand proud — which is the only part that was ever doing
+         silhouette work anyway.                                        */
       A.add('back', function (cx) {
-        A.tuft(cx, N(-0.72, 0.34), 5, cw * 0.74, 64, 146, true);
+        A.tuft(cx, N(-0.54, 0.20), 5, cw * 0.74, 64, 146, true);
       }, HACKLE, { edge: true, flat: true });
 
       /* ================= THE CUT ====================================
@@ -375,63 +400,132 @@
          above her spine, and the near arm is left as clean ginger, which a
          cat this dark badly needs somewhere. It is the bump on her back in
          the silhouette test and it is worth more there than anywhere. */
-      /* Sized against the SKULL, not against the shoulder. At 0.70 of a
-         chest it was legible at 3.6x and a grey lump at 1:1, which is the
-         only size that counts — the plate is the thing that tells her
-         apart from the other heavy across a lit room. */
-      var pr = f.chestW * 0.82;
-      /* A shade further back than looks right at 3.6x: at game size the
-         skull is only twenty-five pixels across and a plate any closer
-         reads as a HELMET rather than as a shoulder. */
-      var sh = { x: j.shB.x + UPX * pr * 0.70 - sfx * pr * 1.22,
-                 y: j.shB.y + UPY * pr * 0.70 - sfy * pr * 1.22 };
+      /* Sized against the SKULL, not against the shoulder — and a quarter
+         smaller than the first pass, which drew it at about 1.3 skulls and
+         made it the largest single shape on her.
+
+         The offsets are the other half of that correction. It used to sit
+         1.22 pauldron-radii BEHIND the far shoulder and 0.70 above it,
+         which is a plate hanging in mid-air: at 4x you could see the stage
+         through the gap under its lower-left corner, so it read as a shield
+         propped against her back rather than as a plate strapped on. Pulled
+         in to 0.72 back and 0.42 up, the bottom rim overlaps the shoulder
+         ball and the strap has something to sit on. Its top edge now lands
+         at about the base of her ears instead of over them — width is good
+         silhouette, competing HEIGHT is what gave her four spikes on top
+         and no way to tell which pair was the cat. */
+      var pr = f.chestW * 0.62;
+      var sh = { x: j.shB.x + UPX * pr * 0.58 - sfx * pr * 0.72,
+                 y: j.shB.y + UPY * pr * 0.58 - sfy * pr * 0.72 };
       function Q(u, v) {   /* u up the spine, v forward, in chestW units */
         return { x: sh.x + UPX * pr * u + sfx * pr * v,
                  y: sh.y + UPY * pr * u + sfy * pr * v };
       }
+      /* The CAST SHADOW, laid down before the plate so the plate sits on
+         top of it. Steel resting on a shoulder throws a shadow onto it;
+         without one the plate floated even after it had been moved into
+         place. It only shows where it crosses the far upper arm — under
+         the rest of the rim is the near-black hide of the cut, and a dark
+         shape on that is invisible, which is the correct answer rather
+         than a wasted fill. */
+      A.add('body', function (cx) {
+        cx.beginPath();
+        var d0 = Q(0.26, 0.48); cx.moveTo(d0.x, d0.y);
+        L2(cx, Q(-0.56, 0.28));
+        L2(cx, Q(-1.02, -0.38));
+        L2(cx, Q(-1.24, -0.52));
+        L2(cx, Q(-0.72, 0.14));
+        L2(cx, Q(0.16, 0.34));
+        cx.closePath();
+      }, A.shade(f.fur2, 0.52), { flat: true });
+
       A.add('body', function (cx) {
         /* Cut with lineTo, not A.smooth. Smoothed, this came out as a grey
            EGG the size of her head — a boulder strapped to her back. A
            plate is beaten flat: straight facets, a hard corner at the
            front and a straight bottom rim where it stops. */
+        /* Wide and LOW. Losing a quarter of the radius cost the plate its
+           whole contribution to the black shape — it went from a rival head
+           to a grey pebble — so the width came back out along the spine
+           instead of up it. A plate that reaches a long way behind her is a
+           bump on her back; a plate that reaches up is a second skull. Only
+           one of those is worth having. */
         cx.beginPath();
         var a0 = Q(0.86, 0.34); cx.moveTo(a0.x, a0.y);
-        L2(cx, Q(0.94, -0.42));
-        L2(cx, Q(0.52, -1.06));
-        L2(cx, Q(-0.22, -1.34));
-        L2(cx, Q(-0.86, -1.10));
-        L2(cx, Q(-1.02, -0.34));
-        L2(cx, Q(-0.66, 0.34));
+        L2(cx, Q(0.92, -0.44));
+        L2(cx, Q(0.58, -1.30));
+        L2(cx, Q(-0.24, -1.70));
+        L2(cx, Q(-0.96, -1.38));
+        L2(cx, Q(-1.14, -0.36));
+        L2(cx, Q(-0.68, 0.34));
         L2(cx, Q(0.10, 0.56));
         cx.closePath();
       }, PLATE, { band: true, edge: true });
 
-      /* the spikes, off the TOP of the plate and pointing up and back —
-         forward and they cross her own muzzle, which at this size reads
-         as a broken drawing rather than as studs */
-      A.add('body', function (cx) {
-        /* Fat and short. A.tuft makes each spike len*0.22 wide, so a long
-           thin one is a hair at 384x224 and the contour pass eats it. */
-        A.tuft(cx, Q(0.80, -0.30), 3, pr * 1.08, 58, 64, false);
-      }, STUD, { edge: true, flat: true });
+      /* NO SPIKES ON THE PLATE, and this one is arithmetic rather than
+         taste, so nobody should put them back on the strength of a 6x
+         render.
+
+         There were three, in STUD — the brightest value anywhere on a
+         near-black cat, standing at the top-left of the figure a long way
+         from her face. In a fight shot they read as a second animal's ears
+         looking over her shoulder, and their roots sat on the very edge of
+         the plate so background opened up between spike and plate and they
+         came apart into loose grey shards.
+
+         Two, seated deep, in the plate's own lit tone was better and still
+         wrong. Once the plate had been cut down to the size it should
+         always have been, pr is about five game pixels. A.tuft makes each
+         spike len*0.22 wide, so a spike short enough not to out-top her
+         ears is barely half a pixel across — the contour pass swallows it
+         whole and what survives is a lumpy black bulge on the rim, which
+         is worse than nothing. A spike wide enough to survive has to be
+         about nine pixels long, which is taller than the plate and puts
+         her back to four spikes on top of the silhouette with no way to
+         tell which pair is the cat.
+
+         So the rim is clean and the rivets do the work of saying steel.
+         They are two pixels of near-white on a dark plane, which is how a
+         specular hit on metal has always been drawn at this resolution.  */
 
       /* the lit top plane, cut hard across the plate. Three tones on one
-         material: HIDE in shadow, HIDE2 catching the light, and the
-         contour pass supplying the third. A single flat fill here and the
-         pad reads as a hole cut in the cat. */
+         material: PLATE in shadow, PLATE2 catching the light, and PLATE3
+         under it. A single flat fill here and the pad reads as a hole cut
+         in the cat. */
       A.add('body', function (cx) {
         cx.beginPath();
         var b0 = Q(0.84, 0.26); cx.moveTo(b0.x, b0.y);
-        L2(cx, Q(0.90, -0.40));
-        L2(cx, Q(0.50, -1.00));
-        L2(cx, Q(-0.12, -0.68));
+        L2(cx, Q(0.88, -0.42));
+        L2(cx, Q(0.54, -1.22));
+        L2(cx, Q(-0.20, -1.52));
+        L2(cx, Q(-0.34, -0.86));
         L2(cx, Q(0.10, 0.10));
         cx.closePath();
       }, PLATE2, { flat: true });
 
-      /* three rivets round the rim, flat — they are two pixels across in
-         the game and a clip each buys nothing anybody can see */
-      [[0.22, -1.02], [-0.56, -1.00]].forEach(function (r) {
+      /* the DARK facet, along the underside and the away side. Without it
+         the plate was a flat mid-grey polygon with a couple of barely
+         lighter slivers on it — grey paper pinned behind her head. A hard
+         edge between a light plane and a dark one is the whole difference
+         between beaten steel and a cut-out, and it costs one flat fill. */
+      A.add('body', function (cx) {
+        cx.beginPath();
+        var c0 = Q(-0.34, -1.62); cx.moveTo(c0.x, c0.y);
+        L2(cx, Q(-0.94, -1.34));
+        L2(cx, Q(-1.10, -0.36));
+        L2(cx, Q(-0.66, 0.30));
+        L2(cx, Q(-0.34, 0.12));
+        L2(cx, Q(-0.74, -0.42));
+        L2(cx, Q(-0.66, -1.16));
+        cx.closePath();
+      }, PLATE3, { flat: true });
+
+      /* Rivets round the rim, flat — they are two pixels across in the
+         game and a clip each buys nothing anybody can see. Three now the
+         spikes are gone: with a clean rim the plate wanted one incident
+         along the top as well as the pair on the face of it, and a rivet
+         is the one detail on this thing that survives being shrunk. */
+      [[0.22, -1.02], [-0.56, -1.00], [0.62, -0.30]].forEach(function (r) {
         A.add('body', function (cx) {
           var p = Q(r[0], r[1]);
           A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);

@@ -54,8 +54,8 @@
   look: {
     pieces: function (A, j, f) {
       /* THREE materials: the red of the kit, the navy of the trunks, and
-         one off-white for the wraps and the towel. Everything else is a
-         shade of one of those.
+         one oatmeal for the towel. Everything else is a shade of one of
+         those.
 
          The waistband was sand to begin with, on the theory that a boxer's
          trunks carry a gold band. It disappeared: his belly is cream and
@@ -64,7 +64,7 @@
          red it survives the drop to 384x224, AND it ties the gloves, the
          boots, the band and the towel stripe into one kit rather than four
          separate ideas that happen to be on the same cat. */
-      var GLOVE = '#c0392f', CUFF = '#8d2622', LACE = '#efe4cc';
+      var GLOVE = '#c0392f', CUFF = '#8d2622';
       /* The far mitt in its own darker red. Both gloves the same colour and
          both up by the same cheek is one red mass with a seam in it — the
          near one has to be the lit one and the far one the shadowed one, or
@@ -72,7 +72,15 @@
       var GLOVE_B = '#8e2a26', CUFF_B = '#6b1d1c';
       var TRUNK = '#232c4c', BAND = '#c0392f', TRIM = '#8d2622';
       var BOOT = '#c0392f', BOOTTOP = '#8d2622';
-      var WRAP = '#e9e1cf', TOWEL = '#d8cdb2';
+      /* The towel came down from near-white. Measured against the roster he
+         was the palest cat in the game — 83 median luminance against 53 for
+         the twins — and on the bright stages (the pool floor reads 175) a
+         cream towel the size of his back is the brightest thing in the frame
+         and the eye goes to it rather than to him. A gym towel is not white
+         anyway; it has been through a hot wash a hundred times. Taken all
+         the way down to #bdb08c it stopped being a towel and became part of
+         his coat, so this is the value that keeps both. */
+      var TOWEL = '#cfc3a2';
 
       /* --- two little frames, because every piece of this kit is aligned to
              a bone rather than to the screen. `frame(a,b)` gives the axis
@@ -105,55 +113,61 @@
          side of a 22-pixel face. Anything smaller and he is a cat holding
          his paws up, which is every other cat on the roster.
 
-         Five pieces per hand, in this order so each paints over the last:
-         the wrap showing past the cuff, the mitt, the thumb, the lace panel
-         along the knuckles, and the cuff banding the wrist. The cuff and the
-         wrap are measured in glove radii, so when the mitt was made
-         head-sized they grew with it and the wrap came out as a cream banana
-         reaching past his elbow. They are short now: the cuff is a band, and
-         the wrap is the two pixels of it you would actually see. The thumb is a
-         separate lobe rather than a bump in the ring — folded into the ring
-         it smoothed away to a nub, and the thumb is half of what says
-         boxing glove and not mitten.
+         THREE pieces per hand, and every one of them is in the outline:
+         the mass, a thumb lobe proud of the leading edge, and a cuff
+         narrower than the mitt so there is a wrist. That is the whole list
+         on purpose. It used to be five — a cream wrap showing past the cuff
+         and a pale lace panel along the knuckles as well — and both were
+         sub-pixel at 384x224: invisible in every 1x screenshot, a smear of
+         cream on his chest at 8x, and four clips and four fills a frame on
+         what was then the most expensive cat in the game.
 
          The mitt straddles the wrist rather than sitting in front of it.
          Drawn forward of the joint — which is where a glove actually is —
          the fur fist rig.js draws at `handF` poked out round the back of it
          as a tan lump on his chest in every guard pose. The back of the ring
          and the cuff between them now bury that fist completely.        */
-      var ring = [[-1.02, 0.56], [-0.24, 1.00], [0.46, 1.04], [1.02, 0.80],
-                  [1.28, 0.14], [1.16, -0.56], [0.66, -1.02],
-                  [0.04, -1.12], [-0.62, -0.92], [-1.06, -0.26]];
+      /* The mass. Fat and round at the knuckles, pinched in towards the
+         wrist — a glove is a ball on a stick, and the pinch is what stops it
+         reading as a cushion. The first version was near enough a circle at
+         both ends and, with a cuff the same width beside it, came out as an
+         armchair: three rounded rectangles of a size, stacked. */
+      var ring = [[-0.78, 0.44], [-0.26, 0.92], [0.42, 1.06], [1.00, 0.88],
+                  [1.30, 0.20], [1.22, -0.48], [0.76, -0.94],
+                  [0.06, -1.06], [-0.54, -0.78], [-0.82, -0.30]];
 
-      function glove(layer, hand, elb, r, simple, mit, cuf) {
+      function glove(layer, hand, elb, r, mit, cuf, far) {
         var o = frame(elb, hand);
-
-        if (!simple) A.add(layer, function (cx) {
-          A.smooth(cx, [P(o, hand, -1.62 * r, 0.42 * r), P(o, hand, -1.26 * r, 0.50 * r),
-                        P(o, hand, -1.24 * r, -0.48 * r), P(o, hand, -1.58 * r, -0.40 * r)]);
-        }, WRAP, { edge: true });
 
         A.add(layer, function (cx) {
           var pts = [], i;
           for (i = 0; i < ring.length; i++) pts.push(P(o, hand, ring[i][0] * r, ring[i][1] * r));
           A.smooth(cx, pts);
-        }, mit, { band: true, edge: true });
+        }, mit, far ? { flat: true, edge: true } : { band: true, edge: true });
 
+        /* THE THUMB. A round lobe standing proud of the leading edge with a
+           notch between it and the mass — the same trick fistPath uses, and
+           the one shape that separates a boxing glove from a mitten. It was a
+           capsule before, which is a stadium: at 1:1 it read as a second
+           smaller rounded rectangle parked beside the first. Flat because it
+           is about five pixels across in the finished picture and the clip a
+           cel-shaded fill costs buys nothing at that size. */
         A.add(layer, function (cx) {
-          A.capsule(cx, P(o, hand, -0.16 * r, -0.84 * r), P(o, hand, 0.66 * r, -0.74 * r),
-                    r * 0.36, r * 0.28);
-        }, mit, { edge: true });
+          A.ellipse(cx, P(o, hand, 0.30 * r, -0.94 * r).x,
+                        P(o, hand, 0.30 * r, -0.94 * r).y, r * 0.46, r * 0.42);
+        }, mit, { flat: true, edge: true });
 
-        if (!simple) A.add(layer, function (cx) {
-          A.smooth(cx, [P(o, hand, -0.30 * r, 0.90 * r), P(o, hand, 0.44 * r, 0.94 * r),
-                        P(o, hand, 0.88 * r, 0.64 * r), P(o, hand, 0.72 * r, 0.38 * r),
-                        P(o, hand, 0.32 * r, 0.60 * r), P(o, hand, -0.30 * r, 0.56 * r)]);
-        }, LACE, { edge: true });
-
+        /* THE CUFF. Half the width of the mitt, so the outline steps IN at
+           the wrist. Matching the mitt's width — which is what it did — the
+           glove has no wrist at all and the whole arm ends in one slab.
+           The lace panel that used to sit along the knuckles is gone: it was
+           sub-pixel at 384x224, invisible in every 1x screenshot, and cost
+           two clips and two fills per hand on a cat that was the most
+           expensive on the roster. The overlay ticks say `laces` for free. */
         A.add(layer, function (cx) {
-          A.smooth(cx, [P(o, hand, -1.34 * r, 0.62 * r), P(o, hand, -0.66 * r, 0.90 * r),
-                        P(o, hand, -0.60 * r, -0.88 * r), P(o, hand, -1.32 * r, -0.60 * r)]);
-        }, cuf, { band: true, edge: true });
+          A.smooth(cx, [P(o, hand, -1.30 * r, 0.44 * r), P(o, hand, -0.72 * r, 0.62 * r),
+                        P(o, hand, -0.66 * r, -0.62 * r), P(o, hand, -1.28 * r, -0.42 * r)]);
+        }, cuf, far ? { flat: true, edge: true } : { band: true, edge: true });
       }
 
       /* BOTH gloves go on 'front', the far one first so the near one paints
@@ -162,7 +176,9 @@
          invisible: the near forearm crosses the chest in a peek-a-boo guard
          and ate the whole mitt, and what was left of it was painted over
          again by the tabby stripes, which are laid down after the body
-         layer and clipped inside it.
+         layer and clipped inside it. Put back on 'body' a second time, in
+         August 2026, to check: the chest came out a flat cream-and-tan mush
+         with no red in it at all. It stays on 'front'.
 
          So the far mitt cheats forward one layer. It is smaller and it is
          overlapped by the near one, which is all the depth cue this needs at
@@ -174,13 +190,19 @@
          into the skull in the silhouette test and he came out a blob with
          boots on. */
       var gr = f.headR * 1.16;
-      /* The far mitt is drawn `simple` — no wrap showing, no lace panel.
-         Both are cream, and stacked against the cream belly, the cream
-         towel and the near mitt's own wrap they turned his whole chest into
-         one pale smear. What the far hand needs to be is a red mass with a
-         dark cuff, and nothing else. */
-      glove('front', j.handB, j.elbB, gr * 0.84, true, GLOVE_B, CUFF_B);
-      glove('front', j.handF, j.elbF, gr, false, GLOVE, CUFF);
+      /* Both mitts are the SAME object at two sizes — the far one at 0.84
+         because it is further from the camera — and `far` also fills it
+         flat. They used to be a head-sized red mass on the near hand and, on
+         the far one, a version with different pieces in it, which read as a
+         different object rather than the other half of a pair.
+
+         Going smaller than this was tried, at 0.72, on the reasoning that a
+         far-side glove should be modest. rig.js draws the belly patch AFTER
+         the costume's front layer, so at that size the far mitt was cut in
+         half by it and read as a stray dark chip rather than the other
+         glove. 0.84 clears the patch. */
+      glove('front', j.handB, j.elbB, gr * 0.84, GLOVE_B, CUFF_B, true);
+      glove('front', j.handF, j.elbF, gr, GLOVE, CUFF);
 
       /* ================= THE BOOTS ==================================
 
@@ -188,14 +210,15 @@
          what makes them boots rather than red socks: a hard band across the
          leg two thirds of the way up, wider than the leg it sits on, so the
          shin steps out of the silhouette instead of tapering into it. */
-      function boot(layer, knee, foot) {
+      function boot(layer, knee, foot, collar) {
         var o = frame(knee, foot);
         var top = { x: knee.x + (foot.x - knee.x) * 0.40,
                     y: knee.y + (foot.y - knee.y) * 0.40 };
 
+        var opt = collar ? { band: true, edge: true } : { flat: true, edge: true };
         A.add(layer, function (cx) {
           A.limb(cx, top, foot, f.R_MID * 1.22, f.R_END * 1.44, 0.35, 'shin');
-        }, BOOT, { band: true, edge: true });
+        }, BOOT, opt);
 
         /* the foot. footPath in rig.js is the shape of a cat's foot and this
            is the same shape a size larger with the toes taken off — a boot
@@ -214,17 +237,20 @@
           cx.quadraticCurveTo(-lx * 0.30, ly * 0.74, -lx * 0.70 + lean, ly * 0.62);
           cx.closePath();
           cx.restore();
-        }, BOOT, { band: true, edge: true });
+        }, BOOT, opt);
 
-        A.add(layer, function (cx) {
+        if (collar) A.add(layer, function (cx) {
           A.smooth(cx, [P(o, top, -0.42 * f.R_MID, 1.50 * f.R_MID),
                         P(o, top, 0.62 * f.R_MID, 1.36 * f.R_MID),
                         P(o, top, 0.66 * f.R_MID, -1.36 * f.R_MID),
                         P(o, top, -0.40 * f.R_MID, -1.50 * f.R_MID)]);
-        }, BOOTTOP, { band: true, edge: true });
+        }, BOOTTOP, { flat: true, edge: true });
       }
-      boot('body', j.kneeB, j.footB);
-      boot('front', j.kneeF, j.footF);
+      /* The far boot goes without a collar. It is four pixels of dark red on
+         a leg already behind the near one, and it cost a clip and two fills
+         on the cat that was the most expensive on the roster. */
+      boot('body', j.kneeB, j.footB, false);
+      boot('front', j.kneeF, j.footF, true);
 
       /* ================= THE TRUNKS =================================
 
@@ -274,7 +300,7 @@
         seg(cx, 0.28, -f.hipW * 1.48);
         seg(cx, 0.34, -f.hipW * 1.46);
         cx.closePath();
-      }, TRIM, {});
+      }, TRIM, { flat: true });
 
       /* ================= THE TOWEL ==================================
 
@@ -314,26 +340,41 @@
          skull, the roll is that something, and it is the most boxer-ish
          shape available. */
       var tw = { x: nk.x - cw * 1.02, y: nk.y + cw * 0.62 };   /* clear of the back */
+      /* The hanging end, and its direction is the whole silhouette argument.
+         It used to drop almost straight down the spine — honest gravity, and
+         invisible: the back of a cat this thick is wider than the towel, so
+         in black it was a flat wall from shoulder to hip with nothing
+         happening on it. Flung well back it clears the body and finishes in a
+         squared hem past the hip, which is the second thing on his outline
+         that is not cat-shaped. Swung out further still (1.9 chests) it left
+         the figure altogether and read as a diving board. */
+      var te = { x: tw.x - cw * 1.06 + f.sway * 1.3, y: tw.y - cw * 2.80 };
       A.add('back', function (cx) {
-        slab(cx, tw.x, tw.y,
-             tw.x - cw * 0.44 + f.sway * 1.3, tw.y - cw * 2.85,
-             cw * 0.36, cw * 0.31, cw * 0.13);
+        slab(cx, tw.x, tw.y, te.x, te.y, cw * 0.34, cw * 0.30, cw * 0.13);
       }, TOWEL, { band: true, edge: true });
       /* one red stripe above the hem. Every towel in every corner of every
          gym has one, it is a solid shape rather than a line so it survives
          the drop to 1:1, and it pulls the towel into the same kit as the
          gloves instead of leaving it a loose white rag. */
+      /* Laid ALONG the towel at 0.80 of its length rather than at fixed world
+         coordinates — pinned to the screen it stayed put when the towel was
+         flung back and ended up as a red chip floating beside his hip. */
       A.add('back', function (cx) {
-        var ax = tw.x - cw * 0.32 + f.sway * 1.0, ay = tw.y - cw * 2.22;
-        slab(cx, ax, ay, ax - cw * 0.04 + f.sway * 0.15, ay - cw * 0.30,
-             cw * 0.33, cw * 0.32, 0);
-      }, '#c0392f', { edge: true });
-      /* the roll sitting on top of the shoulder, which is what makes the
-         slab read as draped over him rather than hung on a hook behind */
+        var dx = te.x - tw.x, dy = te.y - tw.y;
+        var ax = tw.x + dx * 0.78, ay = tw.y + dy * 0.78;
+        slab(cx, ax, ay, ax + dx * 0.10, ay + dy * 0.10, cw * 0.32, cw * 0.31, 0);
+      }, '#c0392f', { flat: true, edge: true });
+      /* The roll over the shoulder — what makes the slab read as draped on
+         him rather than hung on a hook behind. Its BACK end is lifted well
+         above the front one on purpose: laid flat along the shoulder it was
+         inside the outline and, in black, he was one smooth dome from ear to
+         hip with nothing happening at the top of him. Tipped up it puts a
+         hump behind the skull with a notch between the two, which is the
+         cheapest silhouette feature available and the most boxer-ish. */
       A.add('back', function (cx) {
-        A.capsule(cx, { x: nk.x - cw * 0.06, y: nk.y + cw * 0.86 },
-                      { x: nk.x - cw * 1.04, y: nk.y + cw * 0.52 },
-                  cw * 0.28, cw * 0.32);
+        A.capsule(cx, { x: nk.x - cw * 0.02, y: nk.y + cw * 0.80 },
+                      { x: nk.x - cw * 1.10, y: nk.y + cw * 1.06 },
+                  cw * 0.26, cw * 0.34);
       }, TOWEL, { band: true, edge: true });
 
       /* A short end of the towel hanging over the FRONT of that shoulder
@@ -344,19 +385,28 @@
          in front of him, so there is only the roll and the back end now. */
     },
 
-    /* The laces. Three ticks across the pale panel on each mitt, one pixel
-       wide, drawn free-hand over the finished cat because a stroke added to
-       the shape list gets the contour pass too and comes out as three fat
-       black bars. They are the only thing on him that is detail rather than
-       shape, and they earn it: laces are what the eye checks a boxing glove
-       against. */
+    /* The laces. Three ticks across the near mitt, one pixel wide, drawn
+       free-hand over the finished cat because a stroke added to the shape
+       list gets the contour pass too and comes out as three fat black bars.
+       They are the only thing on him that is detail rather than shape, and
+       they earn it: laces are what the eye checks a boxing glove against —
+       which is also why the pale lace PANEL under them could go without
+       being missed, and these could not.
+
+       The radius follows `gr`, not the old 0.88 of a skull: measured off the
+       smaller number the ticks landed inside the mitt in a huddle rather
+       than across its knuckles. */
     overlay: function (ctx, j, fig) {
       var s = fig.s;
       ctx.save();
       ctx.strokeStyle = 'rgba(60,40,30,.65)';
       ctx.lineWidth = Math.max(1, 0.9 * s);
       ctx.lineCap = 'butt';
-      [[j.handF, j.elbF, 1.0], [j.handB, j.elbB, 0.9]].forEach(function (h) {
+      /* The near mitt only. The far hand's ticks landed on his chest as
+         often as on the glove — it is behind the near one — and three more
+         strokes a draw is three more on a cat that was already the most
+         expensive to draw on the roster. */
+      [[j.handF, j.elbF, 1.16]].forEach(function (h) {
         var hand = h[0], elb = h[1], k = h[2];
         var dx = hand.x - elb.x, dy = hand.y - elb.y, L = Math.hypot(dx, dy) || 1;
         var ux = dx / L, uy = dy / L, px = -dy / L, py = dx / L;
@@ -387,7 +437,7 @@
        at nearly the same value as the sand waistband, and a cat wearing kit
        he is the same brightness as is a cat wearing nothing. */
     kit: {},
-    fur: '#9c7c4e', fur2: '#7d6039', belly: '#eddfc2', marks: '#4c3520',
+    fur: '#9c7c4e', fur2: '#7d6039', belly: '#e4d5b2', marks: '#4c3520',
     eye: '#8fc24a', nose: '#d99aa0', inner: '#e2a8a0',
     accent: '#7a5c32', accessory: 'none', pattern: 'tabby',
     tailTip: '#4c3520', line: 'rgba(40,28,16,.55)'

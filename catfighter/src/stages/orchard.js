@@ -7,6 +7,20 @@
   var W = K.W, H = K.H, FLOOR_Y = K.FLOOR_Y;
   var P = K.Particles;
 
+  /* The floor is a PLANE, and it has to behave like one.
+
+     `u` is 0 at the fighters' feet and 1 at the bottom of the screen, and a
+     screen coordinate taken at the feet is pushed further from the vanishing
+     point the nearer it comes. Everything lying on the grass — mown stripes,
+     tufts, windfall, shadows — goes through this, so it all shares one
+     perspective.
+
+     The old mown stripes were parallelograms of the SAME width top and
+     bottom. At 384x224 that read as a white picket fence lying flat in the
+     grass, which is exactly what the first render showed. */
+  var VP = 150;                    /* vanishing point, sat under the sun */
+  function spread(x, u) { return VP + (x - VP) / (1 - 0.62 * u); }
+
   CF.StageDefs = CF.StageDefs || {};
   CF.StageDefs.orchard = {
     id: 'orchard', name: 'THE ORCHARD',
@@ -23,16 +37,25 @@
                            size: 1.5, color: 'rgba(255,232,180,.9)' });
     },
     drawBack: function (ctx, camX, t, mood) {
+      /* The sun sat at x=120 and the barn group grew across it, so golden
+         hour had no sun in it at all. It is out at 62 now, low, with the
+         silo standing across its right-hand edge — which is worth more than
+         a clear disc: something crossing the sun is what gives it size. */
       K.sky(ctx, [[0, '#f2a35a'], [0.4, '#f5c07a'], [1, '#f7dcb0']], 0, 150);
-      K.glow(ctx, 120, 130, 92, 'rgba(255,236,170,.95)', 0.55);
+      K.glow(ctx, 62, 114, 98, 'rgba(255,236,170,.95)', 0.6);
       ctx.fillStyle = '#fff2c8';
-      ctx.beginPath(); ctx.arc(120, 132, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(62, 116, 27, 0, Math.PI * 2); ctx.fill();
+      /* a hotter core. K.deepen hazes the whole picture towards #f4c684 on
+         the way past, and a disc of #fff2c8 on a #f5c07a sky did not survive
+         it — the sun was a slightly paler patch of sky. */
+      ctx.fillStyle = '#fffdf0';
+      ctx.beginPath(); ctx.arc(62, 116, 17, 0, Math.PI * 2); ctx.fill();
 
       /* sun rays, fanning out from where the sun actually is */
       K.layer(ctx, camX, 0.05, function () {
         for (var r = 0; r < 11; r++) {
-          K.lightShaft(ctx, 120 + (r - 5) * 34, 6, 44,
-                       'rgba(255,238,190,.5)', 0.10 + 0.05 * Math.sin(t * 0.01 + r), 132, 0);
+          K.lightShaft(ctx, 62 + (r - 3) * 36, 6, 46,
+                       'rgba(255,238,190,.5)', 0.10 + 0.05 * Math.sin(t * 0.01 + r), 118, 0);
         }
       });
 
@@ -48,111 +71,126 @@
            of 0 returns the coordinate unchanged, so a landmark placed this way
            stays put in the frame while the layers slide past behind it. Put it
            past 384 and it is simply never on screen. */
-        var bx = K.at(camX, 0, 196) - camX * 0.04;
-        /* the gambrel roof */
-        ctx.fillStyle = '#7e2b22';
+        var bx = K.at(camX, 0, 178) - camX * 0.04;
+        var BASE = 150, WALL = 96, RIDGE = 52;   /* the barn, top to bottom */
+
+        /* The gambrel roof, painted rather than filled. It was 46 units
+           across and a fighter is 90 tall — at that size it was a shed in a
+           field, not the second landmark, and the eye went straight past it.
+           It is now wider than a fighter is tall and its ridge is above
+           their heads, which is the whole point of scale contrast: the tree
+           dwarfs the barn, the barn dwarfs the cats. */
+        function roof(c) {
+          c.beginPath();
+          c.moveTo(bx - 74, WALL); c.lineTo(bx - 64, RIDGE + 22);
+          c.lineTo(bx - 26, RIDGE); c.lineTo(bx + 26, RIDGE);
+          c.lineTo(bx + 64, RIDGE + 22); c.lineTo(bx + 74, WALL);
+          c.closePath();
+        }
+        K.paint(ctx, roof, '#8f3b29', { step: 5, lx: -1, ly: 0.5, shade: 0.4, hi: 0.24 });
+
+        /* The walls. They were '#b2402c', which measured at luminance 96 —
+           the SAME value as Figuro's glove red, #c0392f, and this wall fills
+           the middle third of the frame at exactly his chest height. At 1x
+           his torso melted into it and only the navy trunks survived.
+           Oxblood at 66 puts thirty points of value between them while the
+           barn still reads as red, and the roof is now the LIGHTER half of
+           the shape, so the landmark is a dark mass with the low sun on the
+           gambrel rather than a mid-value red field standing behind the
+           fight. Do not take it back up. */
+        K.mass(ctx, bx - 66, WALL, 132, BASE - WALL, '#7a2c1f',
+               { top: 0, side: 13, light: 1, foot: false });
+        /* Board joints, so 132 pixels of red is not one flat panel. Dark
+           lines vanished once the wall went to oxblood; the joints are the
+           gaps between boards catching the low sun instead. */
+        ctx.strokeStyle = 'rgba(255,214,160,.13)'; ctx.lineWidth = 1;
+        for (var bd = 1; bd < 8; bd++) {
+          ctx.beginPath();
+          ctx.moveTo(bx - 66 + bd * 16.5, WALL); ctx.lineTo(bx - 66 + bd * 16.5, BASE);
+          ctx.stroke();
+        }
+
+        /* the great door, standing open — the warm light coming out of it is
+           the one dark-to-light contrast in the middle distance, and it is
+           what stops the barn reading as a flat red rectangle */
+        ctx.fillStyle = '#361009';
+        ctx.fillRect(bx - 22, 108, 44, BASE - 108);
+        K.spill(ctx, bx - 20, 110, 40, 44, 'rgba(255,214,132,.85)', 0.5);
+        ctx.fillStyle = '#efe0c0';                     /* the door, slid aside */
+        ctx.fillRect(bx + 22, 106, 22, BASE - 106);
+        ctx.strokeStyle = '#a8845a'; ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.moveTo(bx - 46, 118); ctx.lineTo(bx - 40, 96);
-        ctx.lineTo(bx - 16, 82); ctx.lineTo(bx + 16, 82);
-        ctx.lineTo(bx + 40, 96); ctx.lineTo(bx + 46, 118);
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = 'rgba(255,224,160,.16)';
-        ctx.beginPath();
-        ctx.moveTo(bx - 46, 118); ctx.lineTo(bx - 40, 96);
-        ctx.lineTo(bx - 16, 82); ctx.lineTo(bx - 12, 88);
-        ctx.lineTo(bx - 34, 100); ctx.lineTo(bx - 39, 118);
-        ctx.closePath(); ctx.fill();
-        /* the walls, lit down the sunward side */
-        K.mass(ctx, bx - 44, 118, 88, 42, '#a8382a', { top: 0, side: 9, light: -1, foot: false });
-        /* the big door, and the hay hood over it */
-        ctx.fillStyle = '#f0e2c4';
-        ctx.fillRect(bx - 15, 124, 30, 36);
-        ctx.fillStyle = '#8e3026';
-        ctx.fillRect(bx - 15, 124, 30, 4);
-        ctx.strokeStyle = '#f0e2c4'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(bx - 15, 128); ctx.lineTo(bx + 15, 158);
-        ctx.moveTo(bx + 15, 128); ctx.lineTo(bx - 15, 158);
+        ctx.moveTo(bx + 22, 108); ctx.lineTo(bx + 44, BASE - 2);
+        ctx.moveTo(bx + 44, 108); ctx.lineTo(bx + 22, BASE - 2);
         ctx.stroke();
-        ctx.fillStyle = '#4a1c16';
+        ctx.strokeStyle = '#3a1c16'; ctx.lineWidth = 1.6;   /* the door rail */
+        ctx.beginPath(); ctx.moveTo(bx - 26, 105); ctx.lineTo(bx + 48, 105); ctx.stroke();
+
+        /* the hay hood and the loft door, with a cat sat in it watching the
+           whole business from a safe height — one of the things to find */
+        ctx.fillStyle = '#3c150f';
         ctx.beginPath();
-        ctx.moveTo(bx - 8, 84); ctx.lineTo(bx + 8, 84);
-        ctx.lineTo(bx + 6, 94); ctx.lineTo(bx - 6, 94);
+        ctx.moveTo(bx - 13, RIDGE - 3); ctx.lineTo(bx + 13, RIDGE - 3);
+        ctx.lineTo(bx + 10, RIDGE + 9); ctx.lineTo(bx - 10, RIDGE + 9);
         ctx.closePath(); ctx.fill();
-        /* the silo beside it, catching the same light */
-        K.mass(ctx, bx + 50, 88, 24, 72, '#c3b49a', { top: 0, side: 7, light: -1, foot: false });
-        ctx.fillStyle = '#8d8272';
-        ctx.beginPath();
-        ctx.ellipse(bx + 62, 88, 12, 7, 0, Math.PI, 0);
-        ctx.fill();
-        /* a weather vane, turning slowly */
+        ctx.fillStyle = '#220d09';
+        ctx.fillRect(bx - 12, RIDGE + 12, 24, 22);
+        K.spectator(ctx, bx, RIDGE + 34, 0.5, 77, t, mood);
+        ctx.strokeStyle = '#3a1c16'; ctx.lineWidth = 1;   /* the block and tackle */
+        ctx.beginPath(); ctx.moveTo(bx + 8, RIDGE + 6); ctx.lineTo(bx + 8, RIDGE + 26); ctx.stroke();
+        ctx.fillStyle = '#6b4a2e';
+        ctx.fillRect(bx + 5, RIDGE + 26, 7, 5);
+
+        /* The silo, ringed — the rings are what tell it from a chimney and
+           they cost five strokes.
+
+           It stood on the RIGHT of the barn to begin with, which put it in
+           the same few pixels as the rope swing and the near trunk, and
+           three things at three depths in one place is a mess. Moved to the
+           sunward side, where it stands across the setting sun instead and
+           gives that half of the picture its vertical. */
+        K.mass(ctx, bx - 106, 58, 32, BASE - 58, '#cdbea3',
+               { top: 0, side: 10, light: 1, foot: false });
+        ctx.strokeStyle = 'rgba(70,58,44,.28)'; ctx.lineWidth = 1;
+        for (var rg = 1; rg < 6; rg++) {
+          ctx.beginPath();
+          ctx.moveTo(bx - 106, 58 + rg * 15); ctx.lineTo(bx - 74, 58 + rg * 15); ctx.stroke();
+        }
+        K.paint(ctx, function (c) {
+          c.beginPath();
+          c.ellipse(bx - 90, 58, 17, 11, 0, Math.PI, 0);
+          c.closePath();
+        }, '#9a8b74', { step: 3, lx: -1, ly: 0.6, shade: 0.34 });
+
+        /* a weather vane on the ridge, turning slowly */
         var vn = Math.sin(t * 0.004);
         ctx.strokeStyle = '#3a1c16'; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(bx, 76); ctx.lineTo(bx, 84); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bx, RIDGE - 14); ctx.lineTo(bx, RIDGE - 3); ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(bx - 5 * vn, 76); ctx.lineTo(bx + 5 * vn, 76);
+        ctx.moveTo(bx - 6 * vn, RIDGE - 14); ctx.lineTo(bx + 6 * vn, RIDGE - 14);
         ctx.stroke();
-      });
 
-      /* --- the landmark: one enormous old tree with a rope swing, and a
-             ladder leaning against it. Everything else is a row. --- */
-      K.layer(ctx, camX, 0.34, function () {
-        var tx = K.at(camX, 0, 300);
-        ctx.fillStyle = '#4a3524';
-        ctx.beginPath();
-        ctx.moveTo(tx - 9, FLOOR_Y);
-        ctx.lineTo(tx - 5, 96); ctx.lineTo(tx + 5, 96); ctx.lineTo(tx + 10, FLOOR_Y);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(tx, 108); ctx.lineTo(tx - 30, 90);
-        ctx.moveTo(tx, 116); ctx.lineTo(tx + 28, 100);
-        ctx.stroke();
-        var swayX = K.sway(t, 0.008, 3, 0);
-        ['#3f7a35', '#4d8f3d', '#356b2c'].forEach(function (col, ci) {
-          ctx.fillStyle = col;
-          for (var q = 0; q < 7; q++) {
-            ctx.beginPath();
-            ctx.arc(tx + swayX + Math.cos(q * 0.9 + ci) * (30 + ci * 8),
-                    72 + Math.sin(q * 1.3 + ci) * 16 + ci * 4,
-                    K.vary(q + ci * 7, 90, 15, 25), 0, Math.PI * 2);
-            ctx.fill();
-          }
-        });
-        /* the rope swing, moving */
-        var sw = Math.sin(t * 0.018) * 9;
-        ctx.strokeStyle = '#c4a878'; ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(tx + 20, 102); ctx.lineTo(tx + 20 + sw, 146); ctx.stroke();
-        ctx.fillStyle = '#6b4a2e';
-        ctx.fillRect(tx + 13 + sw, 146, 15, 3.5);
-        /* a ladder against the trunk */
-        ctx.strokeStyle = '#a8814e'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(tx - 26, FLOOR_Y); ctx.lineTo(tx - 12, 104);
-        ctx.moveTo(tx - 18, FLOOR_Y); ctx.lineTo(tx - 4, 104);
-        ctx.stroke();
-        ctx.lineWidth = 1.4;
-        for (var rr = 0; rr < 6; rr++) {
-          var ry = FLOOR_Y - rr * 12;
-          ctx.beginPath();
-          ctx.moveTo(tx - 26 + rr * 2.3, ry); ctx.lineTo(tx - 18 + rr * 2.3, ry); ctx.stroke();
-        }
-        /* an apple crate at the foot of it, half full */
-        ctx.fillStyle = '#8a6339';
-        ctx.fillRect(tx + 30, FLOOR_Y - 16, 26, 16);
-        ctx.fillStyle = 'rgba(0,0,0,.25)';
-        ctx.fillRect(tx + 30, FLOOR_Y - 16, 26, 3);
-        for (var ap = 0; ap < 5; ap++) {
-          ctx.fillStyle = K.pick(ap, 91, ['#c9382f', '#d94a34', '#a82c26']);
-          ctx.beginPath();
-          ctx.arc(tx + 35 + ap * 4.6, FLOOR_Y - 18, 3, 0, Math.PI * 2); ctx.fill();
+        /* rooks going round the silo — the slow loop out in the distance,
+           against the swing's fast one up close */
+        for (var bi = 0; bi < 4; bi++) {
+          var a2 = t * 0.006 + bi * 1.7;
+          K.bird(ctx, bx - 90 + Math.cos(a2) * 58, 42 + Math.sin(a2) * 13,
+                 0.7 + 0.3 * Math.sin(a2), t, bi * 2.1, 'rgba(58,34,26,.75)');
         }
       });
 
       /* --- three ranks of trees, every one a different size and shade --- */
-      [[0.22, 0.62, '#2f5c28', '#3d7534'], [0.32, 0.8, '#3a6f30', '#4a8a3e'],
-       [0.46, 1.0, '#457f38', '#57a049']].forEach(function (rank, ri) {
+      /* The three ranks used to run '#2f5c28'/'#3d7534' up to
+         '#457f38'/'#57a049'. The nearest rank stands directly behind the
+         fighters and its lit green measured at luminance 128 — ten points
+         off Luigi's jade scarf, #2f9e63, in the same hue family, so his one
+         piece of identity colour landed on the stage's own colour and
+         disappeared. They are olive now: same three-step recession, a
+         quarter less saturation, and the near rank a good twenty points
+         darker. Golden hour flatters an olive orchard anyway; a saturated
+         emerald was never what a late sun does to leaves. */
+      [[0.22, 0.62, '#33512c', '#405f34'], [0.32, 0.8, '#3a5c31', '#496e3a'],
+       [0.46, 1.0, '#41653a', '#527a41']].forEach(function (rank, ri) {
         K.layer(ctx, camX, rank[0], function () {
           K.repeatX(camX, 0, 58 - ri * 6, function (x, i) {
             if (K.chance(i, 92 + ri, 0.16)) return;
@@ -169,6 +207,77 @@
         });
       });
 
+      /* --- the crowd, up on the rise behind the orchard ----------------
+
+         This was a K.crowdRow of full-colour spectators at y=158, sat along
+         the fence rail. Two things were wrong with that and they compound:
+         158 is fourteen pixels above the floor — the fighters' shins — and
+         K.spectator draws a little cat in the same palette family as the
+         roster. At 1x they read as small copies of the fighters standing in
+         the ring, which is the one silhouette that must never appear at
+         that height.
+
+         They are now up the slope at 141, above the hill crest, and drawn as
+         backlit shapes rather than as cats: the sun is behind them at x=62,
+         so a warm rim on the sunward side and near-black everywhere else is
+         what a low sun actually does to a row of spectators. Two flat fills
+         each, no cel shading — a hard rim reads at ten pixels tall, and a
+         shaded one is mud. It is also cheaper than the row it replaces.
+
+         Drawn before the fence on purpose: the fence is nearer, so it wants
+         to be in front of them, and its top rail is well below their feet
+         anyway now that they are up the bank. --- */
+      K.layer(ctx, camX, 0.42, function () {
+        K.repeatX(camX, 0, 26, function (x, i) {
+          if (K.chance(i, 61, 0.3)) return;
+          var sc = K.vary(i, 62, 0.52, 0.78);
+          var ph = K.hash(i, 63) * 6.28;
+          /* the idle bob, and the hop when a round has just been won */
+          var y = 141 + K.vary(i, 64, -2.5, 2.5)
+                  - Math.sin(t * 0.06 + ph) * 1.0 * sc
+                  - (mood > 0.5 ? Math.max(0, Math.sin(t * 0.22 + ph)) * 5 * sc * mood : 0);
+          var lean = Math.sin(t * 0.03 + ph) * 0.05;
+
+          function shape(c, dx) {
+            var cx = x + K.vary(i, 65, -4, 4) + dx, hy = y - 11 * sc;
+            c.beginPath();
+            /* shoulders down to the grass — a wedge, not a capsule: a
+               rounded blob at this size is a pebble */
+            c.moveTo(cx - 3.4 * sc, y);
+            c.lineTo(cx - 2.6 * sc + lean * 8, hy + 2 * sc);
+            c.lineTo(cx + 2.6 * sc + lean * 8, hy + 2 * sc);
+            c.lineTo(cx + 3.4 * sc, y);
+            c.closePath();
+            c.moveTo(cx + 3.0 * sc + lean * 9, hy);
+            c.arc(cx + lean * 9, hy, 3.0 * sc, 0, Math.PI * 2);
+            /* ears — the whole reason the shape reads as a cat at all */
+            c.moveTo(cx - 2.9 * sc + lean * 9, hy - 1.4 * sc);
+            c.lineTo(cx - 2.2 * sc + lean * 9, hy - 5.2 * sc);
+            c.lineTo(cx - 0.5 * sc + lean * 9, hy - 2.4 * sc);
+            c.closePath();
+            c.moveTo(cx + 0.6 * sc + lean * 9, hy - 2.4 * sc);
+            c.lineTo(cx + 2.3 * sc + lean * 9, hy - 5.2 * sc);
+            c.lineTo(cx + 3.0 * sc + lean * 9, hy - 1.4 * sc);
+            c.closePath();
+            /* a tail up behind, so the row is not fourteen identical lumps */
+            if (K.chance(i, 66, 0.45)) {
+              c.moveTo(cx - 3.2 * sc, y);
+              c.lineTo(cx - 5.4 * sc, y - 7 * sc);
+              c.lineTo(cx - 4.0 * sc, y - 7.4 * sc);
+              c.lineTo(cx - 1.8 * sc, y - 1 * sc);
+              c.closePath();
+            }
+          }
+          /* the rim first, as the same silhouette shifted towards the sun,
+             then the body over it — what survives is a hard edge of low sun
+             one pixel wide down the sunward side */
+          ctx.fillStyle = 'rgba(255,226,164,.85)';
+          shape(ctx, -1.1); ctx.fill();
+          ctx.fillStyle = K.pick(i, 67, ['#3b2a26', '#46332b', '#322523']);
+          shape(ctx, 0); ctx.fill();
+        });
+      });
+
       /* --- the fence, with a gap or two and a cat sat on the rail --- */
       K.layer(ctx, camX, 0.6, function () {
         ctx.strokeStyle = '#b8935e'; ctx.lineWidth = 3;
@@ -177,18 +286,301 @@
         K.repeatX(camX, 0, 42, function (x, i) {
           ctx.fillStyle = K.pick(i, 100, ['#a8814e', '#b8935e', '#96703f']);
           ctx.fillRect(x, 150, 4.5, FLOOR_Y - 150);
-          if (K.chance(i, 101, 0.22)) {
-            K.spectator(ctx, x + 2, 150, K.vary(i, 102, 0.6, 0.8),
-                        Math.abs(i * 17), t + i * 33, mood);
-          }
         });
       });
 
-      /* --- the frame: two vast trunks at the edge of the picture, close
-             enough that you cannot see the top of them --- */
+      /* --- the floor: a mown orchard in perspective ---------------------
+         A third of the picture, and it used to be a gradient with stripes
+         painted on it. Every stripe, tuft and apple below runs through
+         spread(), so the whole plane converges on one vanishing point. */
+      var gr = ctx.createLinearGradient(0, FLOOR_Y, 0, H);
+      gr.addColorStop(0, '#54973d'); gr.addColorStop(0.55, '#5da344');
+      gr.addColorStop(1, '#4a8a35');
+      ctx.fillStyle = gr;
+      ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
+
+      /* mown stripes: the mower went up and back, so every other band took
+         the light the other way. Wedges, wide at the near edge. */
+      K.repeatX(camX, 1, 40, function (x, i) {
+        var lit = Math.abs(i) % 2 === 0;
+        ctx.fillStyle = lit ? 'rgba(255,250,190,.14)' : 'rgba(20,54,14,.13)';
+        ctx.beginPath();
+        ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x + 40, FLOOR_Y);
+        ctx.lineTo(spread(x + 40, 1), H); ctx.lineTo(spread(x, 1), H);
+        ctx.closePath(); ctx.fill();
+      });
+
+      /* The shadow of the near trunk at the left edge, thrown down and to the
+         right: the sun is low and away at x=120, so anything standing left of
+         it lays a long shadow across the mown grass. It has to go through
+         spread() like everything else or it crosses the stripes at the wrong
+         angle and the plane comes apart.
+
+         The great tree's own shadow is not drawn — it stands to the RIGHT of
+         the sun, so its shadow falls off the right-hand edge of the frame,
+         and inventing one going the other way would put two suns in the
+         picture. It gets a contact shadow at the base instead. */
+      var su = 0.66, sy2 = FLOOR_Y + su * (H - FLOOR_Y);
+      ctx.fillStyle = 'rgba(22,48,18,.26)';
+      ctx.beginPath();
+      ctx.moveTo(0, FLOOR_Y); ctx.lineTo(46, FLOOR_Y);
+      ctx.lineTo(spread(140, su), sy2); ctx.lineTo(spread(86, su), sy2);
+      ctx.closePath(); ctx.fill();
+
+      /* tufts, clover, windfall. Bigger and looser the nearer they are —
+         one size everywhere is what makes a floor read as wallpaper. */
+      K.layer(ctx, camX, 1, function () {
+        K.repeatX(camX, 0, 15, function (x, i) {
+          for (var q = 0; q < 3; q++) {
+            var u = K.vary(i * 3 + q, 110, 0.02, 1);
+            var px = spread(x + K.vary(i * 3 + q, 111, 0, 15), u);
+            var py = FLOOR_Y + u * (H - FLOOR_Y);
+            var sc = 0.6 + u * 1.05;
+            var r = K.hash(i * 3 + q, 112);
+            if (r < 0.13) {                       /* a windfall apple */
+              ctx.fillStyle = 'rgba(20,44,16,.35)';
+              ctx.beginPath();
+              ctx.ellipse(px, py + 1.4 * sc, 2.4 * sc, 1.1 * sc, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = K.pick(i * 3 + q, 113, ['#c9382f', '#d9532f', '#a82c26']);
+              ctx.beginPath();
+              ctx.arc(px, py, 1.9 * sc, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = 'rgba(255,236,170,.5)';
+              ctx.beginPath();
+              ctx.arc(px - 0.7 * sc, py - 0.7 * sc, 0.7 * sc, 0, Math.PI * 2); ctx.fill();
+            } else if (r < 0.3) {                 /* drifted blossom */
+              ctx.fillStyle = 'rgba(255,232,238,.42)';
+              ctx.beginPath();
+              ctx.ellipse(px, py, 3.4 * sc, 1.1 * sc, 0, 0, Math.PI * 2); ctx.fill();
+            } else {                              /* a tuft the mower missed */
+              ctx.strokeStyle = 'rgba(28,64,20,' + K.vary(i * 3 + q, 114, 0.16, 0.4).toFixed(2) + ')';
+              ctx.lineWidth = Math.max(1, sc * 0.9);
+              var gh = K.vary(i * 3 + q, 115, 2, 5) * sc;
+              ctx.beginPath();
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + K.sway(t, 0.02, 1.6, i + q), py - gh);
+              ctx.stroke();
+            }
+          }
+        });
+      });
+      K.floorPool(ctx, W * 0.42, 210, 'rgba(255,238,180,.6)', 0.32);
+
+      /* --- THE LANDMARK: the old orchard tree ---------------------------
+
+         The brief asks for one huge thing the eye returns to, and the
+         previous version of this was a bush the size of a fighter's head
+         sitting at 0.34. A landmark has to be BIG — this one runs off the
+         top of the frame, fills the right third, and doubles as the right
+         edge of the picture, which is why the second frame trunk that used
+         to stand there is gone. Two vast trunks AND a great tree was three
+         dark verticals fighting each other.
+
+         Everything of any size here goes through K.paint: a flat green blob
+         is coloured paper, and the canopy is a quarter of the screen. --- */
+      K.layer(ctx, camX, 0.82, function () {
+        var tx = K.at(camX, 0, 336) - camX * 0.03;
+        var bend = K.sway(t, 0.006, 2.4, 0);
+
+        /* the canopy, one path of overlapping lobes so K.paint shades the
+           union of them rather than each blob separately — separately, every
+           lobe gets its own crescent of shadow and the mass reads as a
+           bunch of grapes */
+        var LOBE = [[-146, 40, 26], [-118, 14, 32], [-92, 44, 32], [-84, -10, 36],
+                    [-40, 30, 40], [-32, -20, 40], [14, 40, 38], [16, -6, 42],
+                    [62, 22, 38], [72, -20, 36]];
+        function canopy(c) {
+          c.beginPath();
+          for (var q = 0; q < LOBE.length; q++) {
+            var b = LOBE[q];
+            c.moveTo(tx + b[0] + b[2] + bend, b[1]);
+            c.arc(tx + b[0] + bend, b[1], b[2], 0, Math.PI * 2);
+          }
+        }
+        /* edge:false matters. K.paint strokes the path it is given, and this
+           path is ten circles — stroked, every lobe got its own outline and
+           the canopy read as a bunch of grapes. The shadow crescent gives it
+           all the form it needs. */
+        K.paint(ctx, canopy, '#41803a',
+                { step: 4, lx: -1, ly: 0.7, shade: 0.42, hi: 0.16, edge: false });
+
+        /* sunlit crowns on the lobes facing the sun, and blossom in them.
+           Flat, deliberately: they sit inside a mass that is already
+           painted, and a second shading pass on top of the first is the
+           pale-blob mistake the rig notes warn about. */
+        ctx.save();
+        canopy(ctx); ctx.clip();
+        LOBE.forEach(function (b, q) {
+          var lx2 = tx + b[0] + bend, ly2 = b[1];
+          /* An opaque lit clump pushed up and towards the sun, clipped
+             inside the canopy so it is cut off hard at the outline. The
+             first version was a half-transparent circle sitting on top of
+             the green, which at this size reads as a bubble rather than as
+             a clump of leaves with the light on it. */
+          ctx.fillStyle = q % 2 ? '#5aa049' : '#67ac4f';
+          ctx.beginPath();
+          ctx.arc(lx2 - b[2] * 0.34, ly2 - b[2] * 0.38, b[2] * 0.62, 0, Math.PI * 2);
+          ctx.fill();
+          if (b[0] < 30) {
+            ctx.fillStyle = '#84c25c';
+            ctx.beginPath();
+            ctx.arc(lx2 - b[2] * 0.52, ly2 - b[2] * 0.54, b[2] * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          /* blossom, in threes. One fat dot per lobe read as a hole punched
+             in the leaves; three small ones read as flowers. */
+          ctx.fillStyle = 'rgba(255,236,242,.9)';
+          for (var bl = 0; bl < 3; bl++) {
+            ctx.beginPath();
+            ctx.arc(lx2 + K.vary(q * 3 + bl, 130, -0.7, 0.7) * b[2],
+                    ly2 + K.vary(q * 3 + bl, 131, -0.7, 0.7) * b[2], 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        ctx.restore();
+        for (var ah = 0; ah < 5; ah++) {          /* fruit still on the tree */
+          ctx.fillStyle = '#c9382f';
+          ctx.beginPath();
+          ctx.arc(tx + K.vary(ah, 120, -110, 90) + bend, K.vary(ah, 121, 30, 56),
+                  2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        /* the great limb reaching back over the field.
+
+           First attempt was a straight bar of even thickness and it read as
+           a scaffolding plank bolted to the tree. A branch has to TAPER and
+           it has to change direction — this one rises out of the fork, dips,
+           and thins to nothing, with one twig off the top of it. */
+        function limb(c) {
+          c.beginPath();
+          c.moveTo(tx - 14 + bend, 30);
+          c.bezierCurveTo(tx - 54 + bend, 34, tx - 78 + bend, 50, tx - 112 + bend, 52);
+          c.lineTo(tx - 112 + bend, 56);
+          c.bezierCurveTo(tx - 76 + bend, 58, tx - 50 + bend, 46, tx - 12 + bend, 48);
+          c.closePath();
+          c.moveTo(tx - 62 + bend, 44);
+          c.lineTo(tx - 78 + bend, 22); c.lineTo(tx - 74 + bend, 21);
+          c.lineTo(tx - 58 + bend, 43); c.closePath();
+        }
+        K.paint(ctx, limb, '#54381f', { step: 2, lx: -1, ly: 0.4, shade: 0.34 });
+
+        /* contact shadow at the foot of the tree — a trunk this size sitting
+           straight on the grass with nothing under it floats */
+        ctx.fillStyle = 'rgba(18,40,14,.34)';
+        ctx.beginPath();
+        ctx.ellipse(tx, 194, 74, 13, 0, 0, Math.PI * 2); ctx.fill();
+
+        /* Roots. Kept SHORT and tapered: the first pair reached sixty pixels
+           out across the grass at an even thickness and read as a plank
+           lying against the tree, not as something growing out of it. */
+        function roots(c) {
+          c.beginPath();
+          c.moveTo(tx - 34, 182); c.bezierCurveTo(tx - 52, 188, tx - 62, 196, tx - 70, 203);
+          c.lineTo(tx - 54, 209); c.bezierCurveTo(tx - 46, 200, tx - 34, 194, tx - 16, 192);
+          c.closePath();
+          c.moveTo(tx - 30, 196); c.bezierCurveTo(tx - 44, 204, tx - 50, 212, tx - 52, 222);
+          c.lineTo(tx - 22, 222); c.bezierCurveTo(tx - 20, 212, tx - 14, 204, tx - 4, 200);
+          c.closePath();
+        }
+        K.paint(ctx, roots, '#5b3f27', { step: 2, lx: -1, ly: 0.3, shade: 0.36 });
+
+        function trunk(c) {
+          c.beginPath();
+          c.moveTo(tx - 54, H + 10);
+          c.bezierCurveTo(tx - 34, 166, tx - 28, 112, tx - 24 + bend, 40);
+          c.lineTo(tx - 18 + bend, -12);
+          c.lineTo(tx + 30 + bend, -12);
+          c.bezierCurveTo(tx + 28 + bend, 56, tx + 36, 124, tx + 60, H + 10);
+          c.closePath();
+        }
+        /* The trunk is the biggest single shape in the stage and K.paint's
+           default step of two or three pixels is invisible across ninety of
+           them — the first version came out as one flat slab of brown. It
+           wants the SF2 recipe at trunk scale: a wide dark side away from
+           the sun, and a hard narrow lit strip down the sunward contour.
+           band:false because K.paint's highlight pass would otherwise take
+           over most of the width; the lit strip is drawn as its own ribbon
+           instead, clipped inside the trunk so it hugs the silhouette. */
+        K.paint(ctx, trunk, '#5b3f27',
+                { step: 26, lx: -1, ly: 0.12, shade: 0.46, band: false, edgeW: 1.4 });
+        ctx.save();
+        trunk(ctx); ctx.clip();
+        ctx.fillStyle = K.lighter('#5b3f27', 0.42);
+        ctx.beginPath();
+        ctx.moveTo(tx - 54, H + 10);
+        ctx.bezierCurveTo(tx - 34, 166, tx - 28, 112, tx - 24 + bend, 40);
+        ctx.lineTo(tx - 18 + bend, -12);
+        ctx.lineTo(tx - 8 + bend, -12);
+        ctx.bezierCurveTo(tx - 14 + bend, 40, tx - 18, 112, tx - 24, 166);
+        ctx.lineTo(tx - 44, H + 10);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+
+        /* bark: long curved grooves, clipped inside the trunk so they can
+           never spill over the silhouette the paint pass just drew */
+        ctx.save();
+        trunk(ctx); ctx.clip();
+        ctx.strokeStyle = 'rgba(30,18,8,.38)';
+        for (var g2 = 0; g2 < 6; g2++) {
+          ctx.lineWidth = Math.max(1, 1.8 - g2 * 0.18);
+          ctx.beginPath();
+          ctx.moveTo(tx - 44 + g2 * 19, H + 10);
+          ctx.bezierCurveTo(tx - 30 + g2 * 14, 140, tx - 26 + g2 * 13, 70, tx - 16 + g2 * 11, -12);
+          ctx.stroke();
+        }
+        /* Two burls and an old sawn-off branch. Ninety pixels of even brown
+           is a fence post; the eye needs one or two irregularities to call
+           it a tree, and they have to be big enough to survive the haze. */
+        ctx.fillStyle = 'rgba(38,22,10,.34)';
+        ctx.beginPath(); ctx.ellipse(tx - 6, 96, 15, 10, -0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(tx + 22, 150, 11, 8, 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = K.lighter('#5b3f27', 0.26);
+        ctx.beginPath(); ctx.ellipse(tx - 9, 94, 9, 6, -0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        /* There was a sawn-off stub here too, sticking out of the left
+           contour. It landed in the same few pixels as the limb, the ropes
+           and the swing seat, and a fourth brown stick in that corner read
+           as breakage rather than as a tree. The burls do the job. */
+
+        /* A crate of apples already picked, at the foot of it. There was a
+           ladder here too and it went: leaning across the limb it made a
+           triangle of struts that read as scaffolding, and the eye stopped
+           at the clutter instead of going to the tree. */
+        K.mass(ctx, tx - 104, FLOOR_Y - 15, 24, 13, '#8a6339', { top: 4, side: 5, light: 1 });
+        for (var ap = 0; ap < 5; ap++) {
+          ctx.fillStyle = K.pick(ap, 91, ['#c9382f', '#d94a34', '#a82c26']);
+          ctx.beginPath();
+          ctx.arc(tx - 100 + ap * 4.6, FLOOR_Y - 17, 2.4, 0, Math.PI * 2); ctx.fill();
+        }
+
+        /* THE THING THAT HAPPENS: a cat on the rope swing, out and back on a
+           three-second arc. A background you wait for is a background you
+           look at, and this is the one loop in the stage with a character in
+           it — the chickens are scenery, this is an event. */
+        var ang = Math.sin(t * 0.035) * 0.62;
+        var px = tx - 88 + bend, py = 54, len = 74;
+        var sx = px + Math.sin(ang) * len, sy = py + Math.cos(ang) * len;
+        ctx.strokeStyle = '#d8bd8c'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(px - 4, py); ctx.lineTo(sx - 6, sy);
+        ctx.moveTo(px + 4, py); ctx.lineTo(sx + 6, sy);
+        ctx.stroke();
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(ang);
+        ctx.fillStyle = '#6b4a2e';
+        ctx.fillRect(-9, 0, 18, 3.5);
+        ctx.fillStyle = 'rgba(0,0,0,.3)';
+        ctx.fillRect(-9, 2.6, 18, 1);
+        K.spectator(ctx, 0, 0, 0.82, 411, t, 0);
+        ctx.restore();
+      });
+
+      /* --- the frame: one vast trunk at the left edge of the picture,
+             close enough that you cannot see the top of it --- */
       K.layer(ctx, camX, 0.86, function () {
         var drift2 = camX * 0.05;
-        [[-24, 1], [W + 24, -1]].forEach(function (side) {
+        [[-24, 1]].forEach(function (side) {
           var ex = side[0] - drift2 * side[1], dir = side[1];
           ctx.fillStyle = '#3d2a1a';
           ctx.beginPath();
@@ -212,33 +604,6 @@
         });
       });
 
-      /* --- grass, and things moving in it --- */
-      K.ground(ctx, camX, '#4e8f3a', '#6fae4c', 0.07);
-      /* mown stripes: the mower went up and back, so every other band is
-         lighter. A lawn with no stripes in it is a green rectangle. */
-      K.repeatX(camX, 1, 46, function (x, i) {
-        if (Math.abs(i) % 2) return;
-        ctx.fillStyle = 'rgba(255,255,210,.13)';
-        ctx.beginPath();
-        ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x + 46, FLOOR_Y);
-        ctx.lineTo(x + 46 - 30, H); ctx.lineTo(x - 30, H);
-        ctx.closePath(); ctx.fill();
-      });
-      /* clover and windfall apples lying in it */
-      K.litter(ctx, camX, 1, 34, ['rgba(210,60,44,.75)', 'rgba(255,244,190,.5)',
-                                  'rgba(40,90,30,.35)'], 1.1, 2.6);
-      K.floorPool(ctx, W * 0.42, 210, 'rgba(255,238,180,.6)', 0.32);
-      K.layer(ctx, camX, 1, function () {
-        K.repeatX(camX, 0, 9, function (x, i) {
-          ctx.strokeStyle = 'rgba(40,80,26,' + K.vary(i, 103, 0.14, 0.34).toFixed(2) + ')';
-          ctx.lineWidth = 1;
-          var gh = K.vary(i, 104, 3, 8);
-          ctx.beginPath();
-          ctx.moveTo(x, H);
-          ctx.lineTo(x + K.sway(t, 0.02, 2, i), H - gh - 30);
-          ctx.stroke();
-        });
-      });
       K.chicken(ctx, K.at(camX, 1, 150), FLOOR_Y + 22, 1, t, 0, '#e8b45c', '#c9382f');
       K.chicken(ctx, K.at(camX, 1, 470), FLOOR_Y + 34, 0.86, t, 2.4, '#f2ecdd', '#c9382f');
       this.petals.update();
@@ -251,6 +616,11 @@
          a solid band of leaves across the top just reads as a green stripe. */
       K.layer(ctx, camX, 1.5, function () {
         ctx.save();
+        /* Kept to the left two thirds. The great tree's canopy owns the
+           top right, and a foreground branch at depth 1.5 crossing it slid
+           over it at a different rate — two sets of leaves sliding through
+           each other reads as a rendering fault, not as depth. */
+        ctx.beginPath(); ctx.rect(0, 0, 236, 70); ctx.clip();
         ctx.globalAlpha = 0.9;
         ctx.strokeStyle = '#4a3320';
         ctx.lineWidth = 6;
@@ -276,6 +646,10 @@
         });
         ctx.restore();
       });
+      /* the grass turns away from the light as it comes towards you: without
+         this the bottom of the picture is the same green as the middle and
+         the fighters stand on a coloured band rather than in a field */
+      K.nearLip(ctx, 16, 0.34);
       K.vignette(ctx, 0.24);
     }
   };

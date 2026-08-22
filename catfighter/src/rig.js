@@ -15,12 +15,34 @@
   /* Proportions, in screen units. A cat stands about 96 tall in a 224-tall
      screen, which is roughly the Street Fighter II sprite-to-screen ratio. */
   var P = {
-    torsoLen: 28,
-    /* The skull used to be 18.4 — two thirds the length of the torso, which
-       is plush-toy proportion, not fighting-game proportion. A Street Fighter
-       II sprite is about six and a half heads tall. Shrinking it is the
-       single biggest thing that turns this from a mascot into a fighter. */
-    headR: 13.6,
+    /* 28 once. The five units are the ones the skull gave up: they had to go
+       somewhere or the whole figure would have simply got shorter, and the
+       torso is the only segment that can take them without moving a foot.
+
+       LEG LENGTH IS NOT AVAILABLE for this, which is worth knowing before
+       anyone tries. 21.5 and 20.5 is the proportion a fighter really wants
+       and it fails `every cat stands on the floor`: `pelvisScale` corrects
+       exactly for a straight leg and only approximately for a bent one, so
+       lilly's crouch floated five units and ruby's walk sank five — in
+       hand-tuned poses that live in cat files. That change needs whoever
+       owns those poses in the room. */
+    torsoLen: 33,
+    /* HEAD COUNT is the number that decides whether these read as fighters
+       or as mascots, and for a long time it was 3.4 — a child's proportion,
+       and the reason no costume could stop them reading as mascots: when the
+       skull is a third of the black shape, the costume is a minority of it.
+       Street Fighter II runs 4.8 (E. Honda) to 6.5 (Ryu). The skull came
+       down from 18.4 to 13.6 once and stopped a head and a half short.
+
+       At 10.0, with the difference put into the torso, the roster measures
+       4.7 (gracie) to 6.5 (luigi) crown-to-sole over head diameter, at the
+       same overall height — so no pose, no hitbox and no stage anchor
+       moves. Everything else on the head is expressed in headR, so the
+       ears, muzzle, face and neck all followed without a second edit. */
+    headR: 10.0,
+    /* unused by the solver — the neck is drawn as a capsule between `neck`
+       and `head`, which is why lengthening it here does nothing. Kept only
+       so a reader looking for it finds this note. */
     neckLen: 4.6,
     /* Arms long enough to actually reach. A fierce punch that does not break
        the silhouette does not read as a punch at all. */
@@ -39,9 +61,15 @@
     /* Poses were authored against 21+21 legs. Shortening them to a stockier
        fighting-game build would leave every pose hovering, so pelvis height
        is scaled by the same ratio and the whole library still lands on the
-       floor without a single number being re-typed. */
-    pelvisScale: 38 / 42
+       floor without a single number being re-typed.
+
+       Derived rather than typed: it was the literal 38/42, and it is the one
+       number that has to move the moment a leg length does. Leaving it
+       behind puts every cat in the game a few units into the floor, which is
+       a very loud bug to introduce by editing a leg. */
+    pelvisScale: 1
   };
+  P.pelvisScale = (P.thigh + P.shin) / 42;
   CF.PROP = P;
 
   /* Nudge a hex colour lighter or darker. Used to separate the front limbs
@@ -404,25 +432,24 @@
       return;
     }
     var dx = LX * step, dy = LY * step;
+
+    /* `clip()` does not reset the current path, so the shadow fill can reuse
+       the path the clip was built from. One fewer path construction per
+       shape, twenty-odd shapes a cat, twice a frame — it buys back most of
+       what the wider crescent above costs. */
+    ctx.save();
     path(ctx);
+    ctx.clip();
     ctx.fillStyle = mix(colour, SHADE_TO, 0.46);
     ctx.fill();
 
-    /* NO CLIP for a part without a highlight band.
-
-       The clip exists to stop the base tone, laid back over the shadow at an
-       offset, spilling out past the shape on the lit side. But the contour
-       pass has already put a stroke of OUTLINE * 2 under everything, which
-       reaches OUTLINE past the path on every side — so as long as the offset
-       is smaller than that, the spill lands on the contour and is invisible.
-
-       `clip()` is the expensive call in a software rasteriser and there are
-       twenty of these per cat, twice a frame. Dropping it on the parts that
-       do not need a second pass is most of a millisecond per cat. The parts
-       WITH a band still clip, because they shift twice and the second shift
-       does clear the contour. */
+    /* This branch used to skip the clip, on the reasoning that the contour
+       pass has already laid a stroke of OUTLINE * 2 under everything, so a
+       base fill offset by less than OUTLINE spills onto the contour and is
+       invisible. True — and only true while `step` is under 1.8 * s, which
+       is precisely the cap that made every shadow crescent too narrow to
+       see. The clip is back and the crescent is worth what it costs. */
     if (!band) {
-      ctx.save();
       ctx.translate(dx, dy);
       path(ctx);
       ctx.fillStyle = colour;
@@ -431,9 +458,6 @@
       return;
     }
 
-    ctx.save();
-    path(ctx);
-    ctx.clip();
     /* the mid tone, one step towards the light */
     ctx.translate(dx, dy);
     path(ctx);
@@ -568,7 +592,17 @@
      changes an outline more than height does. */
   var EARS = {
     normal: { h: 1.00, w: 1.00, lean: 0.00 },
-    tall:   { h: 1.72, w: 0.80, lean: 0.10 },
+    /* 1.72 high and 0.80 wide put the tip two and three quarter head-radii
+       above the skull in a straight vertical pair — a hare, not a cat, and
+       both Luigi and Lilly wore it, which is most of why they were the
+       confusable pair in the black-shape test. 1.34 is still the tallest
+       ear on the roster and still reads from across a room. */
+    tall:   { h: 1.34, w: 0.86, lean: 0.14 },
+    /* Raked hard back, so a cat wearing it has a different TOP to its black
+       shape rather than a different height of the same shape. Nothing uses
+       it yet; it is here so a cat file can pick `ear: 'swept'` in one word
+       instead of two cats sharing `tall`. */
+    swept:  { h: 1.30, w: 0.78, lean: -0.34 },
     small:  { h: 0.60, w: 1.02, lean: -0.06 },
     wide:   { h: 0.86, w: 1.44, lean: 0.16 },
     torn:   { h: 1.18, w: 1.06, lean: -0.14, notch: true },
@@ -1206,14 +1240,33 @@
     };
   }
 
+  /* Which of `frontParts` are worth casting a shadow with, and worth
+     outlining against the chest: thigh, shin, upper arm, forearm. */
+  var SHADOW_PARTS = [1, 2, 4, 5];
+
   /* Lay the figure down: fills, markings, cast shadows, then the light, then
      the contour underneath it all, then the face on top. */
   function paintFigure(ctx, fig, j, c, opts) {
     var s = fig.s, G = fig.G, white = fig.white;
     var shapes = fig.shapes;
     var i, sh;
-    var step = white ? 0 : 1.75 * s;   /* < OUTLINE (1.8 * s), so an unclipped
-                                            base fill cannot escape the contour */
+    /* THE SHADOW CRESCENT'S WIDTH, and the single number that decided
+       whether this roster read as a sprite or as vector art.
+
+       It was 1.75 * s, deliberately just under OUTLINE (1.8 * s) so the
+       unclipped base fill in `celFill` could spill onto the contour instead
+       of being clipped. That works, and it costs the whole effect: a shadow
+       crescent 1.8px wide sitting directly on top of a 1.8px black outline
+       is not a shadow, it is a slightly thicker outline. Every large form —
+       torso, thigh, upper arm, gi, tail, headband tails — came out a flat
+       fill with a heavy edge, which is exactly what vector art looks like.
+
+       At 4.2 the crescent is a visible band of shadow tone on the near arm,
+       both thighs, the calf and the gi at 1x game scale. It is past OUTLINE,
+       so the no-clip shortcut in `celFill` is no longer valid and that
+       branch clips again — measured at about a third of a millisecond a
+       cat, which is the price of the thing the art brief is mostly about. */
+    var step = white ? 0 : 4.2 * s;
 
     /* ---- pass one: the contour ----
 
@@ -1298,7 +1351,12 @@
       ctx.save();
       ctx.translate(-3.0 * s, -3.8 * s);
       ctx.fillStyle = 'rgba(18,10,24,.46)';
-      for (i = 0; i < fig.frontParts.length; i++) { fig.frontParts[i](ctx); ctx.fill(); }
+      /* The two big limb segments and the head, not all seven parts. The
+         shoulder cap, the foot and the fist are either inside the torso
+         already or nowhere near it, so their offset copies were three fills
+         that changed no pixel. Order in `frontParts` is shoulder, thigh,
+         shin, foot, upper arm, forearm, fist. */
+      SHADOW_PARTS.forEach(function (q) { fig.frontParts[q](ctx); ctx.fill(); });
       ellipsePath(ctx, j.head.x, j.head.y, j.headR * 1.06, j.headR * 0.96);
       ctx.fill();
       ctx.restore();
@@ -1345,7 +1403,9 @@
       ctx.strokeStyle = fig.line;
       ctx.globalAlpha = 0.95;
       ctx.lineWidth = 1.9 * s;
-      for (i = 0; i < fig.frontParts.length; i++) { fig.frontParts[i](ctx); ctx.stroke(); }
+      /* Same list: the clip is the torso, so a foot or a fist can only ever
+         stroke into empty space and be thrown away. */
+      SHADOW_PARTS.forEach(function (q) { fig.frontParts[q](ctx); ctx.stroke(); });
       ctx.restore();
     }
 
@@ -1420,6 +1480,31 @@
     crease(j.hipF, j.kneeF, j.footF, R * 1.12);
     crease(j.hipB, j.kneeB, j.footB, R * 0.92);
     crease(j.shB, j.elbB, j.handB, R * 0.88);
+
+    /* A WRIST.
+
+       Both elbows and both knees were creased and nothing else, so a fist
+       ran straight into its own forearm and the limb finished in a rounded
+       stub. It is loudest on the FAR arm, which is filled flat in the
+       darkened back tone with no shading to break it up at all — Lilly's
+       read as a scabbard hanging off her elbow and Gracie's as a second
+       tail. One line across the joint, the same idea as the elbow crease,
+       two strokes a cat and no clip. */
+    var HANDR = 4.8 * s * G * (fig.limbW || 1);
+    function wrist(elbow, hand, rad) {
+      var dx = hand.x - elbow.x, dy = hand.y - elbow.y;
+      var dl = Math.hypot(dx, dy) || 1;
+      var px = -dy / dl, py = dx / dl;          /* across the forearm */
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.05 * s;
+      ctx.beginPath();
+      ctx.moveTo(hand.x - px * rad, hand.y - py * rad);
+      ctx.lineTo(hand.x + px * rad, hand.y + py * rad);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    wrist(j.elbF, j.handF, HANDR * 0.45);
+    wrist(j.elbB, j.handB, HANDR * 0.40);
 
     /* the line under the collarbone, where the chest meets the shoulders */
     var cx1 = U.lerp(j.pelvis.x, j.neck.x, 0.82), cy1 = U.lerp(j.pelvis.y, j.neck.y, 0.82);
@@ -1671,8 +1756,14 @@
       skullPath(ctx, r, (j.build && j.build.headShape) || 'round');
       ctx.clip();
 
+      /* The four tones were LIGHT_TO 0.20, then SHADE_TO 0.26, 0.34 and
+         0.40 — the two darkest six percent apart, all four inside a twenty
+         percent band. Four faceted shapes that close together do not read as
+         facets at 90px, they average out into the soft vertical gradient the
+         comment above says was fixed. Spread apart they are what they were
+         meant to be: a lit crown and three separated darks. */
       /* the crown, lit */
-      ctx.fillStyle = mix(fur, LIGHT_TO, 0.20);
+      ctx.fillStyle = mix(fur, LIGHT_TO, 0.32);
       ctx.beginPath();
       ctx.moveTo(-r * 1.2, r * 0.30);
       ctx.quadraticCurveTo(0, r * 0.86, r * 1.2, r * 0.16);
@@ -1682,7 +1773,7 @@
       ctx.fill();
 
       /* the brow, and the shadow it throws over the eyes */
-      ctx.fillStyle = mix(fur, SHADE_TO, 0.26);
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.30);
       ctx.beginPath();
       ctx.moveTo(-r * 1.2, r * 0.34);
       ctx.quadraticCurveTo(0, r * 0.10, r * 1.2, r * 0.30);
@@ -1692,7 +1783,7 @@
       ctx.fill();
 
       /* the far cheek, turning away from the light */
-      ctx.fillStyle = mix(fur, SHADE_TO, 0.34);
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.50);
       ctx.beginPath();
       ctx.moveTo(-r * 1.2, r * 0.72);
       ctx.quadraticCurveTo(-r * 0.50, r * 0.10, -r * 0.62, -r * 0.90);
@@ -1701,7 +1792,7 @@
       ctx.fill();
 
       /* under the jaw */
-      ctx.fillStyle = mix(fur, SHADE_TO, 0.40);
+      ctx.fillStyle = mix(fur, SHADE_TO, 0.62);
       ctx.beginPath();
       ctx.moveTo(-r * 1.2, -r * 0.52);
       ctx.quadraticCurveTo(0, -r * 0.86, r * 1.2, -r * 0.60);
@@ -1848,7 +1939,12 @@
          the cat means it. At 0.56 the almond came out 1.4:1, which is a
          circle with corners — and a circle reads as surprise however small
          you draw it. */
-      var lid = eyeState === 'angry' ? 0.32 : 0.44;
+      /* 0.32/0.44 was measured on the 8x view and lost the fight at game
+         size: a 2.45 x 1.3 pixel almond is one dark pixel with a lighter one
+         beside it, which is why the duplicated plush eye underneath it went
+         unnoticed for so long. Wider lids keep the two-to-one almond and
+         give the iris something to sit in at 90px tall. */
+      var lid = eyeState === 'angry' ? 0.52 : 0.72;
       var w = 2.45 * sc, h = 2.9 * sc * lid;
 
       ctx.save();
@@ -1874,9 +1970,14 @@
          ellipse behind a clip. Same picture; the clip was there only to trim
          an ellipse that was deliberately too big, and `clip()` is the
          expensive call — two of them per eye, four per cat, twice a frame. */
+      /* 0.90/0.88 left a sliver of sclera a fifth of a pixel wide at game
+         scale, so the whole eye rasterised as one dark mark and the faces
+         came out blank. Backed off until the pale corner is a real pixel:
+         at 90px tall the eye is about 4x3 pixels and it has to be a dark
+         pupil ON something light or it is not an eye at all. */
       ctx.save();
-      ctx.translate(w * 0.20, 0);
-      ctx.scale(0.90, 0.88);
+      ctx.translate(w * 0.26, 0);
+      ctx.scale(0.78, 0.76);
       almond(ctx);
       ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
       /* the lid's shadow, over the top third of the iris */
@@ -1885,7 +1986,7 @@
       ctx.quadraticCurveTo(-w * 0.20, -h * 1.18, w * 0.78, -h * 0.60);
       ctx.quadraticCurveTo(-w * 0.10, -h * 0.42, -w * 0.98, -h * 0.16);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(24,14,26,.44)'; ctx.fill();
+      ctx.fillStyle = 'rgba(24,14,26,.30)'; ctx.fill();
       ctx.restore();
       /* the slit pupil, which is the one thing that says cat. Narrow enough
          that it never reaches the almond's edge, so it needs no trimming. */
@@ -1910,11 +2011,20 @@
          sticker. Both were tried, on 22 Aug 2026. */
       ctx.fillStyle = mix(fur, SHADE_TO, 0.46);
       ctx.beginPath();
-      ctx.moveTo(-w * 1.10, h * 0.24 + browK * h * 0.34);
-      ctx.quadraticCurveTo(-w * 0.10, -h * 1.05 + browK * h * 0.42,
-                           w * 1.02, -h * 0.72 + browK * h * 0.16);
-      ctx.lineTo(w * 0.94, -h * 1.34);
-      ctx.quadraticCurveTo(-w * 0.16, -h * 1.86, -w * 1.18, -h * 0.40);
+      /* The quad spans -1.86h to +0.46h in its own frame and the eye spans
+         -h to +h, so with no lift the "brow ridge" was filled straight over
+         the top two thirds of the almond — the eye was a green sliver under
+         a shadow-toned lozenge, which is why the plush eyes the duplicate
+         block was drawing underneath went unnoticed for so long. Painted red
+         and re-rendered on 22 Aug 2026 to find it. Lifted until the lower
+         edge clears the lash line and no further: at 3h it floats off as a
+         separate eyebrow, at 0.5h it still covers half the iris. */
+      var bl = h * 1.45;
+      ctx.moveTo(-w * 1.10, bl + h * 0.24 + browK * h * 0.34);
+      ctx.quadraticCurveTo(-w * 0.10, bl - h * 1.05 + browK * h * 0.42,
+                           w * 1.02, bl - h * 0.72 + browK * h * 0.16);
+      ctx.lineTo(w * 0.94, bl - h * 1.34);
+      ctx.quadraticCurveTo(-w * 0.16, bl - h * 1.86, -w * 1.18, bl - h * 0.40);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -1958,104 +2068,28 @@
     }
     ctx.restore();
 
-    if (c.elder) {
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath();
-      ctx.ellipse(r * 0.36, -r * 0.28, r * 0.66, r * 0.50, 0, 0, Math.PI * 2);
-      ctx.fillStyle = c.silver || '#d8d3c8'; ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    /* WHISKERS, kept quiet.
 
-
-    /* an open mouth, for a cat that is making a noise */
-    if (opts.mouth === 'open') {
-      ctx.beginPath();
-      ctx.ellipse(r * 0.56, -r * 0.46, r * 0.23, r * 0.18, -0.12, 0, Math.PI * 2);
-      ctx.fillStyle = '#4a2026'; ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(r * 0.56, -r * 0.41, r * 0.14, r * 0.095, -0.12, 0, Math.PI * 2);
-      ctx.fillStyle = '#c9707e'; ctx.fill();
-      ctx.fillStyle = '#fdfbf5';
-      ctx.beginPath();
-      ctx.moveTo(r * 0.40, -r * 0.36); ctx.lineTo(r * 0.47, -r * 0.36);
-      ctx.lineTo(r * 0.435, -r * 0.47); ctx.closePath(); ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(r * 0.66, -r * 0.36); ctx.lineTo(r * 0.73, -r * 0.36);
-      ctx.lineTo(r * 0.695, -r * 0.47); ctx.closePath(); ctx.fill();
-    }
-
-    /* nose */
-    ctx.beginPath();
-    ctx.moveTo(r * 0.66, -r * 0.12);
-    ctx.lineTo(r * 0.90, -r * 0.06);
-    ctx.lineTo(r * 0.78, -r * 0.30);
-    ctx.closePath();
-    ctx.fillStyle = c.nose || '#d98a94'; ctx.fill();
-
-    /* eyes */
-    var eyeState = opts.eyes || 'normal';
-    function eye(ex, ey, sc) {
-      if (eyeState === 'closed' || eyeState === 'ko') {
-        ctx.strokeStyle = line; ctx.lineWidth = 1.7 * sc; ctx.lineCap = 'round';
-        ctx.beginPath();
-        if (eyeState === 'ko') {
-          ctx.moveTo(ex - 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex + 2.8 * sc, ey + 2.8 * sc);
-          ctx.moveTo(ex + 2.8 * sc, ey - 2.8 * sc); ctx.lineTo(ex - 2.8 * sc, ey + 2.8 * sc);
-        } else {
-          ctx.moveTo(ex - 3.2 * sc, ey); ctx.quadraticCurveTo(ex, ey - 2.2 * sc, ex + 3.2 * sc, ey);
-        }
-        ctx.stroke();
-        return;
-      }
-      var open = eyeState === 'angry' ? 0.76 : 1;
-      ctx.beginPath();
-      ctx.ellipse(ex, ey, 2.75 * sc, 3.15 * sc * open, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#fdfbf5'; ctx.fill();
-      ctx.strokeStyle = line; ctx.lineWidth = 1.1 * sc; ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(ex + 0.7 * sc, ey, 1.65 * sc, 2.6 * sc * open, 0, 0, Math.PI * 2);
-      ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(ex + 0.8 * sc, ey, 0.66 * sc, 2.35 * sc * open, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#181414'; ctx.fill();
-      ctx.beginPath();
-      ctx.arc(ex + 1.5 * sc, ey + 1.2 * sc, 0.72 * sc, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
-    }
-    eye(r * 0.46, r * 0.12, es);
-    eye(-r * 0.30, r * 0.15, 0.92 * es);
-
-    /* a heavy brow is most of what makes a face look like it means it */
-    if (eyeState === 'angry') {
-      ctx.strokeStyle = line; ctx.lineWidth = 2.4 * es; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(r * 0.10, r * 0.66); ctx.lineTo(r * 0.76, r * 0.42);
-      ctx.moveTo(-r * 0.58, r * 0.46); ctx.lineTo(-r * 0.02, r * 0.68);
-      ctx.stroke();
-    }
-
-    if (c.elder) {
-      ctx.save();
-      ctx.globalAlpha = 0.42;
-      ctx.strokeStyle = c.silver || '#e8e4da';
-      ctx.lineWidth = 0.85 * es; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(r * 0.22, r * 0.56); ctx.quadraticCurveTo(r * 0.46, r * 0.64, r * 0.64, r * 0.52);
-      ctx.moveTo(-r * 0.46, r * 0.50); ctx.quadraticCurveTo(-r * 0.26, r * 0.62, -r * 0.06, r * 0.58);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    /* whiskers */
-    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, 0.95 * es);
+       Three pure-white hairlines running to r * 1.44 put an eleven-pixel
+       bright line out past the muzzle and into the background, at higher
+       contrast than the eyes and than the contour that is supposed to be the
+       brightest edge on the figure. At 1x on a dark stage they read exactly
+       like the radiating-line hit sparks the art brief bans: scratches on
+       the display. Two of them, stopping at the edge of the silhouette, in
+       the cat's own lit fur tone — the cat still reads as a cat and the eyes
+       get to be the loudest thing on the face again. */
+    ctx.strokeStyle = mix(fur, LIGHT_TO, 0.62);
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = Math.max(1, 0.9 * es);
     ctx.lineCap = 'round';
-    for (var w2 = -1; w2 <= 1; w2++) {
+    for (var w2 = -1; w2 <= 1; w2 += 2) {
       ctx.beginPath();
-      ctx.moveTo(r * 0.62, -r * 0.28 + w2 * r * 0.10);
-      ctx.quadraticCurveTo(r * 1.10, -r * 0.30 + w2 * r * 0.24,
-                           r * 1.44, -r * 0.24 + w2 * r * 0.34);
+      ctx.moveTo(r * 0.62, -r * 0.28 + w2 * r * 0.09);
+      ctx.quadraticCurveTo(r * 0.88, -r * 0.30 + w2 * r * 0.20,
+                           r * 1.08, -r * 0.26 + w2 * r * 0.28);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
 
     /* per-cat accessory */
     if (c.accessory === 'headband') {
@@ -2132,9 +2166,15 @@
     return [
       /* The skull is drawn smaller than it used to be. The box it fights with
          is deliberately a little larger than the drawing, so shrinking the
-         head did not silently re-tune every anti-air in the game. */
-      { x: j.head.x - j.headR * 1.3, y: j.head.y - j.headR * 1.3,
-        w: j.headR * 2.6, h: j.headR * 2.6, part: 'head' },
+         head did not silently re-tune every anti-air in the game.
+
+         The multiplier moved with it. It was 1.3 against a headR of 13.6;
+         dropping headR to 10.0 for the head count would have taken 35 world
+         units of head hitbox down to 26 and quietly made every anti-air in
+         the game worse. 1.77 puts it back where it was. An art change must
+         not be a balance change. */
+      { x: j.head.x - j.headR * 1.77, y: j.head.y - j.headR * 1.77,
+        w: j.headR * 3.54, h: j.headR * 3.54, part: 'head' },
       box(j.pelvis, j.neck, 11 * j.s),
       box(j.hipF, j.footF, 6 * j.s),
       box(j.hipB, j.footB, 5 * j.s)
