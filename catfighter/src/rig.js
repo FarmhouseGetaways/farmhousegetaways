@@ -408,6 +408,29 @@
     ctx.fillStyle = mix(colour, SHADE_TO, 0.46);
     ctx.fill();
 
+    /* NO CLIP for a part without a highlight band.
+
+       The clip exists to stop the base tone, laid back over the shadow at an
+       offset, spilling out past the shape on the lit side. But the contour
+       pass has already put a stroke of OUTLINE * 2 under everything, which
+       reaches OUTLINE past the path on every side — so as long as the offset
+       is smaller than that, the spill lands on the contour and is invisible.
+
+       `clip()` is the expensive call in a software rasteriser and there are
+       twenty of these per cat, twice a frame. Dropping it on the parts that
+       do not need a second pass is most of a millisecond per cat. The parts
+       WITH a band still clip, because they shift twice and the second shift
+       does clear the contour. */
+    if (!band) {
+      ctx.save();
+      ctx.translate(dx, dy);
+      path(ctx);
+      ctx.fillStyle = colour;
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
     path(ctx);
     ctx.clip();
@@ -671,6 +694,26 @@
   }
 
   /* ---- the cat ------------------------------------------------------------ */
+
+  /* ---- how much of the drawing to do -------------------------------------
+
+     The cats are drawn twice a frame and a cat costs about six milliseconds
+     of rasterising against a sixteen-millisecond budget, so there has to be
+     a way to buy frames back on a machine that needs them. This is that
+     dial, and the order it gives things up in is deliberate — cheapest to
+     lose first:
+
+       2  everything (default)
+       1  no muscle shapes and no cast shadow under the near limbs — the two
+          passes with clips in them, which is where the time actually goes
+       0  flat fills as well: one tone per part, no cel shading at all
+
+     Level 1 keeps the contour, the costume, the three-tone head and the
+     whole silhouette, so it still reads as the same character. Level 0 is a
+     last resort and looks like one. */
+  var DETAIL = 2;
+  function setDetail(n) { DETAIL = Math.max(0, Math.min(2, n | 0)); }
+  function getDetail() { return DETAIL; }
 
   function drawCat(ctx, j, c, opts) {
     opts = opts || {};
@@ -1169,7 +1212,8 @@
     var s = fig.s, G = fig.G, white = fig.white;
     var shapes = fig.shapes;
     var i, sh;
-    var step = white ? 0 : 2.3 * s;
+    var step = white ? 0 : 1.75 * s;   /* < OUTLINE (1.8 * s), so an unclipped
+                                            base fill cannot escape the contour */
 
     /* ---- pass one: the contour ----
 
@@ -1223,7 +1267,7 @@
       sh = shapes[i];
       if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = sh.c; ctx.lineWidth = sh.w; ctx.stroke(); }
       else if (white) { sh.p(ctx); ctx.fillStyle = sh.c; ctx.fill(); }
-      else celFill(ctx, sh.p, sh.c, sh.band, sh.flat ? 0 : step);
+      else celFill(ctx, sh.p, sh.c, sh.band, (sh.flat || DETAIL < 1) ? 0 : step);
       /* A piece of kit is a different material from the fur under it, and a
          material boundary in a sprite of this kind carries a line. Fur on fur
          does not — that is what turns a limb into a sticker. */
@@ -1247,7 +1291,7 @@
        this is in front of that — without ever cutting the body. It is an
        offset copy inside the torso; the limbs are then laid down again on
        top, so all that survives is the part sticking out from under them. */
-    if (!white) {
+    if (!white && DETAIL >= 2) {
       /* One pass, not two. The second, wider, fainter copy was fourteen more
          fills to soften an edge nobody can see softening at ninety pixels
          tall, and the cats are drawn twice a frame. */
@@ -1269,7 +1313,7 @@
       sh = shapes[i];
       if (sh.k === 's') { sh.p(ctx); ctx.strokeStyle = sh.c; ctx.lineWidth = sh.w; ctx.stroke(); }
       else if (white) { sh.p(ctx); ctx.fillStyle = sh.c; ctx.fill(); }
-      else celFill(ctx, sh.p, sh.c, sh.band, sh.flat ? 0 : step);
+      else celFill(ctx, sh.p, sh.c, sh.band, (sh.flat || DETAIL < 1) ? 0 : step);
       if (sh.edge) {
         sh.p(ctx);
         ctx.strokeStyle = fig.line;
@@ -1319,7 +1363,7 @@
     ctx.fill();
     ctx.restore();
 
-    if (!white) drawForm(ctx, fig, j);
+    if (!white && DETAIL >= 2) drawForm(ctx, fig, j);
     if (!white) drawKit(ctx, fig, j, c);
     drawHead(ctx, j, c, fig.fur, fig.fur2, fig.belly, fig.line, opts, fig);
 
@@ -1800,8 +1844,12 @@
          old one was a quarter of the skull's radius across, which is manga
          proportion; a Street Fighter II eye is about an eighth of the head
          and mostly iris. */
-      var lid = eyeState === 'angry' ? 0.40 : 0.56;
-      var w = 2.35 * sc, h = 2.9 * sc * lid;
+      /* Width to height wants to be about two to one, and nearer three when
+         the cat means it. At 0.56 the almond came out 1.4:1, which is a
+         circle with corners — and a circle reads as surprise however small
+         you draw it. */
+      var lid = eyeState === 'angry' ? 0.32 : 0.44;
+      var w = 2.45 * sc, h = 2.9 * sc * lid;
 
       ctx.save();
       ctx.translate(ex, ey);
@@ -1819,26 +1867,31 @@
       almond(ctx);
       ctx.fillStyle = '#efe8d8'; ctx.fill();
 
-      /* the iris fills nearly all of it — a sliver of white at the outside
-         corner is the only sclera a sprite this size can afford */
+      /* The iris fills nearly all of it — a sliver of white at the outside
+         corner is the only sclera a sprite this size can afford.
+
+         Drawn as an INSET COPY of the almond rather than an oversized
+         ellipse behind a clip. Same picture; the clip was there only to trim
+         an ellipse that was deliberately too big, and `clip()` is the
+         expensive call — two of them per eye, four per cat, twice a frame. */
       ctx.save();
-      almond(ctx); ctx.clip();
-      ctx.beginPath();
-      ctx.ellipse(w * 0.22, 0, w * 0.84, h * 1.40, 0, 0, Math.PI * 2);
+      ctx.translate(w * 0.20, 0);
+      ctx.scale(0.90, 0.88);
+      almond(ctx);
       ctx.fillStyle = c.eye || '#8fd14f'; ctx.fill();
-      /* the slit pupil, which is the one thing that says cat */
+      /* the lid's shadow, over the top third of the iris */
       ctx.beginPath();
-      ctx.ellipse(w * 0.28, 0, w * 0.20, h * 1.40, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#140f12'; ctx.fill();
-      /* the lid's shadow across the top of it */
-      ctx.fillStyle = 'rgba(24,14,26,.44)';
-      ctx.beginPath();
-      ctx.moveTo(-w * 1.3, -h * 1.5);
-      ctx.lineTo(w * 1.3, -h * 1.5);
-      ctx.lineTo(w * 1.3, -h * 0.34);
-      ctx.quadraticCurveTo(0, -h * 0.66, -w * 1.3, -h * 0.10);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(-w * 1.02, h * 0.10);
+      ctx.quadraticCurveTo(-w * 0.20, -h * 1.18, w * 0.78, -h * 0.60);
+      ctx.quadraticCurveTo(-w * 0.10, -h * 0.42, -w * 0.98, -h * 0.16);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(24,14,26,.44)'; ctx.fill();
       ctx.restore();
+      /* the slit pupil, which is the one thing that says cat. Narrow enough
+         that it never reaches the almond's edge, so it needs no trimming. */
+      ctx.beginPath();
+      ctx.ellipse(w * 0.26, 0, w * 0.19, h * 0.86, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#140f12'; ctx.fill();
 
       /* the lash line: heavy on top, nothing underneath. A line all the way
          round is a cartoon eye however narrow you make it. */
@@ -2091,6 +2144,7 @@
   CF.Rig = {
     DEFAULT_BUILD: DEFAULT_BUILD,
     solve: solve, drawCat: drawCat, hurtboxes: hurtboxes, tailPath: tailPath,
+    setDetail: setDetail, getDetail: getDetail,
     capsule: capsule, blob: blob, P: P
   };
 })();

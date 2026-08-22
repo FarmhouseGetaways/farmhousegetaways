@@ -43,6 +43,23 @@ window.__run = () => {
     time('cat ' + chr.id, () => { x.save(); x.translate(190,172); x.scale(1,-1);
       CF.Rig.drawCat(x, j, chr.palette, {eyes:'angry', t:0, vx:0}); x.restore(); });
   }
+  /* Where does a cat's time go? Silhouette mode runs the same shape paths
+     and the same contour pass and then stops, so the gap between the two is
+     everything after it: cel shading, the muscle pass, the kit and the head. */
+  for (const chr of [CF.ROSTER[0]]) {
+    const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
+    time('  contour+paths', () => { x.save(); x.translate(190,172); x.scale(1,-1);
+      CF.Rig.drawCat(x, j, chr.palette, {silhouette:'#000'}); x.restore(); });
+  }
+  /* the same cat at each detail level, so the dial can be judged */
+  for (const lvl of [1, 0]) {
+    CF.Rig.setDetail(lvl);
+    const chr = CF.ROSTER[0];
+    const j = CF.Rig.solve(CF.Pose.stand, 1, chr.build);
+    time('  detail ' + lvl, () => { x.save(); x.translate(190,172); x.scale(1,-1);
+      CF.Rig.drawCat(x, j, chr.palette, {eyes:'angry'}); x.restore(); });
+  }
+  CF.Rig.setDetail(2);
   for (const s of CF.Stages) {
     if (s.init) s.init();
     time('stage ' + s.id, () => { s.drawBack(x,-80,400,0.8); CF.StageKit.deepen(x, s.air||null);
