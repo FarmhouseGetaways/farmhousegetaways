@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 18
+REV  = 19
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -430,19 +430,18 @@ ax.annotate("400A MAIN ELEC. PANEL\n(LOCATION APPROX.)", (ex+2, ey), (ex+52, ey+
             ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
-# ---- driveway, DIGITIZED FROM THE OWNER'S YELLOW MARKUP (8/22, rev 18).
-# No road crosses the parcel. The driveway starts at the store/parking yard
-# (NW), sweeps SE past the well, runs E past the residence, then SE to leave
-# the parcel near the SE corner — continuing ±700' to Handlebar Rd via an
-# access easement across the adjacent parcel. A spur runs S down the west
-# yard toward the barn. Coordinates in FEET, traced off the owner's markup.
-DRV_FT = [(68,263),(96,256),(126,247),(156,231),(179,207),(187,186),(219,181),
-          (260,176),(312,173),(364,167),(416,158),(457,143),(487,115),(513,83),
-          (535,50),(561,27),(579.2,13)]
-SPUR_FT = [(70,250),(76,200),(82,150),(86,120),(88,100)]
+# ---- driveway, per the owner's yellow markup (8/22, corrected rev 19 — the
+# rev 18 trace of the west half was wrong, and its "spur" was a misread of
+# the store label's leader line; there is no spur). No road crosses the
+# parcel. Route: from the store/parking yard (NW), S along AG-1's east side
+# down past the barn's NE corner, picking up the original driveway line E
+# past the residence, then SE between AG-9 and AG-12 to leave the parcel
+# near the SE corner — ±700' on to Handlebar Rd via an access easement
+# across the adjacent parcel. Coordinates in FEET.
+DRV_FT = [(68,262),(96,254),(110,234),(104,212),(112,192),(125,172),(158,168),
+          (213,172),(261,177),(307,175),(360,168),(405,157),(457,143),(487,115),
+          (513,83),(535,50),(561,27),(579.2,13)]
 ax.plot([p[0] for p in DRV_FT], [p[1] for p in DRV_FT], color='0.35', lw=1.0,
-        ls=(0,(6,3)), zorder=2)
-ax.plot([p[0] for p in SPUR_FT], [p[1] for p in SPUR_FT], color='0.35', lw=1.0,
         ls=(0,(6,3)), zorder=2)
 ax.annotate("DRIVEWAY LEAVES THE PARCEL NEAR THE SE CORNER —\nCONTINUES ±700' TO HANDLEBAR RD VIA ACCESS\nESMT. ACROSS ADJACENT PARCEL (NOTE 9)", (524, 66), (400, -34),
             fontsize=6.4, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.8),
@@ -801,10 +800,11 @@ notes = [
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT; MAY QUALIFY FOR THE AGRICULTURAL BUILDING",
  "     EXEMPTION — CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL NE OF BARN.",
- "8.  DRIVEWAY RUNS E FROM THE RESIDENCE, THEN SE BETWEEN AG-9 AND AG-12, LEAVING",
- "     THE PARCEL NEAR THE SE CORNER AND CONTINUING ±700' TO HANDLEBAR RD VIA AN",
- "     ACCESS ESMT. ACROSS THE ADJACENT PARCEL. GRAVEL BOTH ENDS, DIRT MID-",
- "     SEGMENT, 12' WIDE; SLOPE 2% DRAINING W. NO OTHER ROAD CROSSES THE PARCEL.",
+ "8.  DRIVEWAY RUNS FROM THE STORE/PARKING YARD (NW) S PAST AG-1 AND THE BARN,",
+ "     E PAST THE RESIDENCE, THEN SE BETWEEN AG-9 AND AG-12, LEAVING THE PARCEL",
+ "     NEAR THE SE CORNER AND CONTINUING ±700' TO HANDLEBAR RD VIA AN ACCESS",
+ "     ESMT. ACROSS THE ADJACENT PARCEL. GRAVEL BOTH ENDS, DIRT MID-SEGMENT,",
+ "     12' WIDE; SLOPE 2% DRAINING W. NO OTHER ROAD CROSSES THE PARCEL.",
  "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
  "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL — ACCESS IS BY THE",
  "     DRIVEWAY AND ESMT. OF NOTE 8. ESMT. GEOMETRY PER RECORDED PM 05062, TBD.",
@@ -844,8 +844,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6  8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16 8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17   8/22/2026  NO ROAD CROSSES THE PARCEL", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}   {DATE}  DRIVEWAY+STORE PER MARKUP", 5.4, x=0.62)
+tline(tb_h*0.170, "17-18 8/22/2026 NO ROAD; STORE PER MARKUP", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}   {DATE}  DRIVEWAY RE-TRACED PER MARKUP", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

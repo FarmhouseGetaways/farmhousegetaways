@@ -642,17 +642,21 @@ east side. Owner: "The setbacks should be from the thick black line not some
 imaginary road." Fixed — east is now a straight 25' REAR yard off the east
 property line, and no setback anywhere is measured from any road.
 
-**Fifth round, 8/22 (rev 18):** the owner marked the sheet itself in yellow —
-the definitive driveway route and the store's true location. Both digitized
-from the markup by anchoring on drawn features (store/storage/well/pond/elec
-panel at ~2.69 px/ft): the driveway starts at the store/parking yard
-(~68,263), sweeps SE past the well, runs E past the residence, then SE to
-leave the parcel near the SE corner (~579,13), with a **spur S down the west
-yard toward the barn**; and the **store sits SW of the 10'×10' storage,
-12'×10' centred ~(63.5,224)** — the earlier placement W of the storage was
-wrong. Route and clearances updated to match. When the owner sends a markup
-drawn ON the sheet, digitize it this way rather than re-deriving from the
-aerial.
+**Fifth and sixth rounds, 8/22 (revs 18-19):** the owner marked the sheet
+itself in yellow — the definitive driveway route and the store's true
+location. Digitize such markups by anchoring on drawn features
+(store/storage/well/pond/elec panel, ~2.69 px/ft on their screenshot). The
+**store sits SW of the 10'×10' storage, 12'×10' centred ~(63.5,224)** — the
+earlier placement W of the storage was wrong. The rev 18 driveway trace was
+then rejected ("the line is totally off"): its west half wrongly swung high
+under the parking, and its "spur" was a **misread of the store label's
+orange leader line — there is NO spur**. The corrected route (rev 19): from
+the store/parking yard (~68,262), **S along AG-1's east side** (~110,234 →
+104,212 → 112,192), past the barn's NE corner (~125,172), then E on the
+original driveway line past the residence, then SE between AG-9 and AG-12 to
+leave the parcel near the SE corner (~579,13). Lesson: on a marked-up
+screenshot, verify no existing sheet linework (leaders, arrows) is being
+mistaken for the marker stroke before digitizing.
 
 **Fourth round, same day:** the renamed road still wasn't right — "There's
 still some stupid road through the right side. That doesn't exist. The

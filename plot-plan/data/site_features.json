@@ -329,47 +329,51 @@
       "centerline_px": [
         [
           255,
-          120
+          124
         ],
         [
           360,
-          147
+          155
         ],
         [
-          472,
-          182
+          412,
+          232
         ],
         [
-          585,
-          244
+          390,
+          317
         ],
         [
-          671,
-          336
+          420,
+          394
         ],
         [
-          701,
-          418
+          469,
+          472
         ],
         [
-          821,
-          437
+          592,
+          487
         ],
         [
-          975,
-          456
+          799,
+          472
         ],
         [
-          1170,
-          468
+          978,
+          452
         ],
         [
-          1365,
-          491
+          1151,
+          460
         ],
         [
-          1560,
-          526
+          1350,
+          487
+        ],
+        [
+          1518,
+          530
         ],
         [
           1713,
@@ -392,33 +396,11 @@
           1032
         ],
         [
-          2172,
+          2171,
           1086
         ]
       ],
-      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. DIGITIZED FROM THE OWNER'S YELLOW MARKUP 8/22/2026: starts at the store/parking yard (NW), SE past the well, E past the residence, then SE to leave the parcel near the SE corner — continuing +/-700' to Handlebar Rd via access esmt. across the adjacent parcel. A spur runs S down the west yard toward the barn.",
-      "spur_to_barn_px": [
-        [
-          262,
-          170
-        ],
-        [
-          285,
-          363
-        ],
-        [
-          307,
-          557
-        ],
-        [
-          322,
-          672
-        ],
-        [
-          330,
-          750
-        ]
-      ]
+      "surface": "gravel at both ends, dirt mid-segment passing residence; slope <5%. PER THE OWNER'S YELLOW MARKUP 8/22/2026 (rev 19 re-trace — the rev 18 trace was wrong and its 'spur' was a misread of the store label leader; there is NO spur): from the store/parking yard (NW), S along AG-1's east side past the barn's NE corner, E past the residence on the original driveway line, then SE between AG-9 and AG-12 to leave the parcel near the SE corner — +/-700' on to Handlebar Rd via access esmt. across the adjacent parcel."
     }
   },
   "pond": {
