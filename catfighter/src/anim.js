@@ -110,25 +110,43 @@
   L.dizzy2 = P({ py: 40, torso: 10, head: [4, 15, 10], armF: [-10, 50], armB: [-18, 46],
                  legF: [-12, 16], legB: [20, -18], tail: [230, -19.6, -16] });
 
-  /* ---- punches ---------------------------------------------------------- */
-  L.jabWind    = P({ torso: 4, armF: [58, 118], armB: [22, 104] });
-  L.jab        = P({ torso: 10, px: 1, armF: [92, 4], armB: [18, 108], head: [3, 15, 2] });
-  L.strongWind = P({ torso: -2, armF: [30, 140], armB: [20, 100], py: 42 });
-  L.strong     = P({ torso: 14, px: 2, armF: [95, 2], armB: [10, 116], head: [4, 15, 3],
-                     legF: [22, -22], legB: [-14, 12] });
-  L.fierceWind = P({ torso: -12, px: -2, armF: [8, 152], armB: [26, 96], py: 43,
-                     legF: [4, -6], legB: [-18, 16] });
-  L.fierce     = P({ torso: 20, px: 4, armF: [98, 0], armB: [4, 124], head: [5, 15, 5],
-                     legF: [34, -34], legB: [-24, 22], tail: [246, -47.6, -38.4] });
+  /* ---- punches ----------------------------------------------------------
+
+     Every one of these is a PAIR of extremes, and the further apart they are
+     the harder the punch reads. What was here was too polite: the arm went
+     out and came back and the rest of the cat stayed where it was, so a
+     fierce looked like a gentle reach. A Street Fighter II heavy punch moves
+     the WHOLE body — the rear leg straightens and drives, the pelvis travels
+     forward, the shoulder rotates past the chest, the far arm counter-swings
+     behind. The silhouette on the contact frame is one long diagonal, and
+     you can read which punch it is with the sprite turned black.
+
+     `px` moves the pelvis, so a big value on the contact frame is the lunge;
+     the hurtboxes come off the drawn skeleton and travel with it, which is
+     right — committing to a heavy should expose you.                     */
+  L.jabWind    = P({ torso: -4, px: -2, armF: [42, 128], armB: [30, 98],
+                     legF: [20, -24], legB: [-22, 22] });
+  L.jab        = P({ torso: 11, px: 5, armF: [99, 1], armB: [12, 130], head: [1, 15, 2],
+                     legF: [28, -30], legB: [-22, 16] });
+  L.strongWind = P({ torso: -12, px: -4, py: 42, armF: [22, 148], armB: [28, 94],
+                     head: [2, 15, -5], legF: [14, -18], legB: [-28, 30] });
+  L.strong     = P({ torso: 14, px: 9, armF: [103, 0], armB: [0, 134], head: [0, 15, 4],
+                     legF: [42, -42], legB: [-32, 16], tail: [248, -50, -40] });
+  L.fierceWind = P({ torso: -22, px: -7, py: 41, armF: [2, 160], armB: [36, 86],
+                     head: [0, 15, -10], legF: [8, -12], legB: [-36, 42],
+                     tail: [218, -12, -4] });
+  L.fierce     = P({ torso: 17, px: 15, py: 39, armF: [107, -3], armB: [-10, 140],
+                     head: [-1, 15, 7], legF: [50, -50], legB: [-42, 8],
+                     tail: [252, -54, -44] });
 
   L.uppercutWind = P({ py: 34, torso: 16, armF: [24, 60], armB: [24, 100],
                        legF: [40, -74], legB: [-30, 62] });
   L.uppercut     = P({ py: 46, torso: -14, px: 2, armF: [166, -6], armB: [8, 110],
                        head: [2, 15, -8], legF: [10, -14], legB: [-16, 10] });
 
-  L.lowJab   = P(U.deepMerge(L.crouch, { armF: [88, 2], torso: 22, px: 1 }));
-  L.lowStrong= P(U.deepMerge(L.crouch, { armF: [96, -4], torso: 26, px: 2, py: 20 }));
-  L.lowFierce= P(U.deepMerge(L.crouch, { armF: [140, -18], torso: 8, py: 27, px: 1 }));
+  L.lowJab   = P(U.deepMerge(L.crouch, { armF: [90, 2], armB: [18, 118], torso: 24, px: 4 }));
+  L.lowStrong= P(U.deepMerge(L.crouch, { armF: [97, -4], armB: [8, 126], torso: 28, px: 8, py: 20 }));
+  L.lowFierce= P(U.deepMerge(L.crouch, { armF: [146, -20], armB: [4, 120], torso: 6, py: 27, px: 5 }));
 
   /* ---- kicks ------------------------------------------------------------ */
   L.lkWind = P({ py: 43, legF: [26, -40], legB: [-8, 8], torso: 4, armF: [34, 100] });
@@ -137,15 +155,26 @@
   L.mkWind = P({ py: 42, legF: [30, -56], legB: [-10, 10], torso: 2, armF: [30, 104] });
   L.mk     = P({ py: 44, legF: [96, -14], legB: [-12, 12], torso: -14, px: 2,
                  armF: [18, 110], armB: [48, 84], head: [1, 15, -6], tail: [246, -50.4, -41.6] });
-  L.hkWind = P({ py: 40, legF: [-14, 24], legB: [-18, 18], torso: -8, armF: [22, 112],
-                 tail: [220, -11.2, -6.4] });
-  L.hk     = P({ py: 46, legF: [126, -18], legB: [-16, 14], torso: -26, px: 3,
-                 armF: [6, 120], armB: [60, 72], head: [-1, 15, -12], tail: [254, -61.6, -48] });
+  L.hkWind = P({ py: 38, legF: [-20, 34], legB: [-24, 26], torso: -12, px: -4,
+                 armF: [22, 112], armB: [34, 96], tail: [216, -8, 0] });
+  L.hk     = P({ py: 47, legF: [134, -10], legB: [-22, 8], torso: -30, px: 7,
+                 armF: [2, 124], armB: [68, 64], head: [-2, 15, -14],
+                 tail: [258, -66, -52] });
 
-  L.lowKick  = P(U.deepMerge(L.crouch, { legF: [96, -84], py: 21, torso: 16 }));
-  L.sweepWind= P(U.deepMerge(L.crouch, { legF: [40, -100], py: 20, torso: 22 }));
-  L.sweep    = P(U.deepMerge(L.crouch, { legF: [104, -96], legB: [-56, 118],
-                 py: 15, torso: 30, armF: [76, 40], armB: [40, 84] }));
+  L.lowKick  = P(U.deepMerge(L.crouch, { legF: [100, -70], py: 21, torso: 16 }));
+  /* A sweep is a leg thrown FLAT along the floor with the body dropped over
+     the other one. Folded at the knee it reads as sitting down, which is
+     what this was. */
+  L.sweepWind= P(U.deepMerge(L.crouch, { legF: [26, -104], legB: [-50, 118],
+                 py: 20, torso: 22, px: -4, armF: [52, 66], armB: [32, 92] }));
+  /* The leg goes out NEARLY HORIZONTAL and skims the floor. Thrown at 116
+     from a pelvis this low it just drove into the ground and the whole thing
+     read as a cat sitting down, which is what was on screen. The pelvis also
+     comes up a little: there has to be room under the hip for a leg to pass
+     through. */
+  L.sweep    = P(U.deepMerge(L.crouch, { legF: [99, -5], legB: [-54, 128],
+                 py: 18, torso: 30, px: 8, armF: [84, 34], armB: [26, 100],
+                 head: [2, 13, 7], tail: [254, -56, -44] }));
 
   L.jumpPunch = P(U.deepMerge(L.jumpFall, { armF: [128, -18], torso: 12, head: [4, 15, 6] }));
   L.jumpKick  = P(U.deepMerge(L.jumpFall, { legF: [104, -22], torso: -8, px: 2,
