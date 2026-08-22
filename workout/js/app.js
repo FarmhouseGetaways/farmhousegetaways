@@ -1383,14 +1383,19 @@ function settingsSheet() {
 }
 
 function askSignIn(returnTo, thenUnlockAdmin = false) {
-  openSheet("Sign in", `
-    <p class="small muted" style="margin-bottom:1rem">The app's own password &mdash; <code>WORKOUT_PASSWORD</code> in
-      Netlify. It unlocks editing the week, and it is what keeps the record private: nobody can read it without this.</p>
+  /* The same sheet does two jobs and has to say which one it is doing. Reached
+     from the long press or /#/admin it is the way into the editor, and calling
+     it "Sign in" told somebody standing in front of it nothing at all. */
+  openSheet(thenUnlockAdmin ? "Unlock the editor" : "Sign in", `
+    <p class="small muted" style="margin-bottom:1rem">${thenUnlockAdmin
+      ? "Type the password and the pencil appears in the bar at the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures and videos."
+      : "The app's own password. It syncs the record between devices, and it is what keeps the record private: nobody can read it without this."}</p>
     <label class="field"><span>Password</span>
       <input type="password" id="s-key" autocomplete="current-password" enterkeyhint="go"></label>
     <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-sign-in">Sign in</button></div>
-    <p class="small dimmer" style="margin-top:1rem">The week can be followed without signing in, and workouts done that
-      way are kept on this phone and go up when you next sign in. Signing in is what shares them between devices.</p>
+    <p class="small dimmer" style="margin-top:1rem">${thenUnlockAdmin
+      ? "The editor stays unlocked on this device for twelve hours, across every tab. Settings &rarr; Lock the editor ends it sooner."
+      : "The week can be followed without signing in, and workouts done that way are kept on this phone and go up when you next sign in. Signing in is what shares them between devices."}</p>
   `, (root) => {
     const input = root.querySelector("#s-key");
     const submit = async () => {
