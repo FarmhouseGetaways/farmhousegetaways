@@ -161,16 +161,105 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 }
 .card + .card { margin-top: .75rem; }
 
-/* The day it is now. Bigger, warmer, and the only thing on the screen with a
-   coloured edge — she should not have to read to know where to press. */
+/* --------------------------------------------------------------------------
+   Today
+
+   The one card on the screen that is asking to be pressed, and it should look
+   like it. Everything else on this page is a quiet dark rectangle; this one
+   gets a warm glow behind it, a hairline of light along its top edge, a real
+   badge rather than a lowercase eyebrow, and a display face big enough to read
+   across a room.
+
+   The whole card is the target, not only the button on it. A highlight you
+   cannot press is decoration, and decoration that looks pressable is a bug.
+   -------------------------------------------------------------------------- */
+
 .today {
-  border: 1px solid rgba(231, 154, 166, .35);
-  background: linear-gradient(160deg, rgba(231, 154, 166, .13), rgba(231, 154, 166, .02) 55%), var(--card);
-  border-radius: var(--radius);
-  padding: 1.35rem;
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgba(231, 154, 166, .34);
+  border-radius: 20px;
+  padding: 1.5rem 1.35rem 1.35rem;
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgba(231, 154, 166, .20), transparent 62%),
+    linear-gradient(168deg, rgba(231, 154, 166, .10), rgba(231, 154, 166, .02) 55%),
+    var(--card);
+  box-shadow: 0 12px 30px -24px rgba(231, 154, 166, .5);
+  overflow: hidden;
 }
-.today__meta { display: flex; flex-wrap: wrap; gap: .4rem .9rem; margin: .75rem 0 1.1rem; font-size: .9rem; color: var(--dim); }
-.today.is-done { border-color: rgba(157, 194, 168, .4); background: linear-gradient(160deg, rgba(157, 194, 168, .13), rgba(157, 194, 168, .02) 55%), var(--card); }
+
+/* A hairline of light along the top edge — the thing that makes a dark card
+   read as lit rather than flat. */
+.today::before {
+  content: "";
+  position: absolute; inset: 0 0 auto; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 226, 232, .55), transparent);
+  pointer-events: none;
+}
+
+.today--go { cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.today--go:hover {
+  transform: translateY(-2px);
+  border-color: rgba(231, 154, 166, .6);
+  box-shadow: 0 18px 38px -22px rgba(231, 154, 166, .62);
+}
+.today--go:active { transform: translateY(0); }
+.today--go:focus-visible { outline: 2px solid var(--blush); outline-offset: 3px; }
+
+.today__badge {
+  display: inline-flex; align-items: center;
+  margin: 0 0 .85rem;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: rgba(231, 154, 166, .18);
+  border: 1px solid rgba(231, 154, 166, .38);
+  color: var(--blush);
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+
+.today__title {
+  font-family: var(--display); font-weight: 400;
+  font-size: clamp(2.1rem, 9vw, 3rem);
+  line-height: 1.02; letter-spacing: -.015em;
+  margin: 0; text-wrap: balance;
+  color: #FFF3F1;
+}
+
+.today__desc { margin: .75rem 0 0; color: var(--dim); font-size: 1rem; line-height: 1.55; }
+
+/* Small chips rather than a run-on line, so the three facts read as three. */
+.today__meta { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1.1rem 0 1.25rem; padding: 0; }
+.chip {
+  padding: .32rem .7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--line);
+  font-size: .78rem; color: var(--dim); white-space: nowrap;
+}
+
+.today__done { margin: .9rem 0 0; font-size: .85rem; color: var(--sage); }
+
+/* Done today, and a rest day, are the same card in different weather. */
+.today.is-done {
+  border-color: rgba(157, 194, 168, .42);
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgba(157, 194, 168, .20), transparent 62%),
+    linear-gradient(168deg, rgba(157, 194, 168, .10), rgba(157, 194, 168, .02) 55%),
+    var(--card);
+  box-shadow: 0 12px 30px -24px rgba(157, 194, 168, .45);
+}
+.today.is-done .today__badge { background: rgba(157, 194, 168, .16); border-color: rgba(157, 194, 168, .4); color: var(--sage); }
+.today.is-done.today--go:hover { border-color: rgba(157, 194, 168, .65); box-shadow: 0 18px 38px -22px rgba(157, 194, 168, .55); }
+
+.today--rest {
+  border-color: var(--line);
+  background: linear-gradient(168deg, rgba(255, 255, 255, .045), transparent 60%), var(--card);
+  box-shadow: none;
+}
+.today--rest .today__badge { background: rgba(255, 255, 255, .05); border-color: var(--line-2); color: var(--dimmer); }
+.today--rest .today__title { color: var(--dim); }
+.today--rest::before { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .18), transparent); }
 
 /* ---------- the week ---------- */
 
@@ -637,3 +726,54 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .pill--go:hover { background: rgba(231, 154, 166, .12); color: var(--blush); }
 .pill.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
 .pill.is-on:hover { background: #F0AAB5; color: #2A1216; }
+
+/* ==========================================================================
+   Settings
+
+   It was a column of controls with no shape, so nothing on it looked more or
+   less important than anything else. Now it is sections with headings and a
+   sentence each saying what the thing actually does, and the actions sit in a
+   bar at the bottom that stays put while the rest scrolls.
+   ========================================================================== */
+
+.sheet__lede {
+  margin: -.35rem 0 1.35rem;
+  color: var(--dim); font-size: .93rem; line-height: 1.55;
+}
+
+.set-group { padding-bottom: 1.35rem; margin-bottom: 1.35rem; border-bottom: 1px solid var(--line); }
+.set-group--last { border-bottom: 0; margin-bottom: 0; }
+
+.set-group__h {
+  font-family: var(--display); font-weight: 400;
+  font-size: 1.2rem; line-height: 1.2;
+  margin: 0 0 .4rem; color: var(--text);
+}
+.set-group__note { margin: 0 0 1rem; font-size: .87rem; line-height: 1.55; color: var(--dim); }
+.set-group__note strong { color: var(--text); }
+
+/* A checkbox with its explanation beside it, and the whole row a target. */
+.switch {
+  display: grid; grid-template-columns: auto 1fr; gap: .8rem;
+  align-items: start; cursor: pointer;
+  padding: .85rem; border-radius: var(--radius-s);
+  border: 1px solid var(--line); background: var(--card);
+}
+.switch:hover { background: var(--card-2); }
+.switch input { width: 22px; height: 22px; margin: .1rem 0 0; flex: 0 0 auto; accent-color: var(--blush); }
+.switch__body strong { display: block; font-size: .93rem; font-weight: 600; margin-bottom: .2rem; }
+.switch__body small { display: block; font-size: .82rem; line-height: 1.5; color: var(--dim); }
+
+/* The actions stay at the bottom of the panel while everything above scrolls,
+   so Save is never something you have to go looking for. */
+.sheet__actions {
+  position: sticky; bottom: calc(-1.25rem - env(safe-area-inset-bottom));
+  display: grid; gap: .55rem;
+  margin: 1.5rem -1.25rem calc(-1.25rem - env(safe-area-inset-bottom));
+  padding: 1rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--ink-2) 72%, transparent);
+}
+
+/* Save quietly lights up when there is actually something to save. */
+#s-save { opacity: .55; }
+#s-save.is-waiting { opacity: 1; box-shadow: 0 0 0 3px rgba(231, 154, 166, .18); }

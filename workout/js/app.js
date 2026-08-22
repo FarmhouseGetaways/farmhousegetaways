@@ -212,13 +212,21 @@ function openSheet(title, html, wire) {
   document.body.style.overflow = "hidden";
   if (wire) wire($("#sheet-body"));
 }
-function closeSheet() {
+/* A sheet may refuse to close. Settings sets one of these so that pressing the
+   X, tapping the backdrop or hitting Escape with unsaved changes asks rather
+   than throwing away what was typed. Returning false blocks the close; the
+   guard is responsible for showing something useful when it does. */
+let sheetGuard = null;
+
+function closeSheet(force = false) {
+  if (!force && sheetGuard && sheetGuard() === false) return;
+  sheetGuard = null;
   pendingConfirm = null;
   $("#sheet").hidden = true;
   $("#sheet-body").innerHTML = "";
   document.body.style.overflow = "";
 }
-$("#sheet-close").addEventListener("click", closeSheet);
+$("#sheet-close").addEventListener("click", () => closeSheet());
 $("#sheet").addEventListener("click", (e) => { if (e.target.id === "sheet") closeSheet(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#sheet").hidden) closeSheet(); });
 
@@ -237,21 +245,26 @@ function renderWeek() {
   const doneToday = week[today]?.done;
 
   const hero = isRest(day)
-    ? `<div class="today ${doneToday ? "is-done" : ""}">
-         <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="h-display">${day.title ? esc(day.title) : "Rest day"}</h2>
-         <p class="muted">${day.description ? esc(day.description) : "Nothing scheduled. Rest is part of the plan."}</p>
+    ? `<div class="today today--rest">
+         <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
+         <h2 class="today__title">${day.title ? esc(day.title) : "Rest day"}</h2>
+         <p class="today__desc">${day.description ? esc(day.description) : "Nothing scheduled. Rest is part of the plan."}</p>
          ${adminOn() ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-action="edit-here">Add a workout for today</button></div>` : ""}
        </div>`
-    : `<div class="today ${doneToday ? "is-done" : ""}">
-         <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="h-display">${esc(day.title || "Workout")}</h2>
+    /* The whole card starts the workout. It is the biggest, brightest thing on
+       the screen and it says today's workout on it, so a person reasonably
+       expects to press it — and a highlight you cannot press is just decoration.
+       The two buttons inside carry their own destinations, so pressing one of
+       those still does its own thing rather than the card's. */
+    : `<div class="today today--go ${doneToday ? "is-done" : ""}" data-go="#/go/${today}" role="link" tabindex="0">
+         <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
+         <h2 class="today__title">${esc(day.title || "Workout")}</h2>
          ${day.image ? `<img class="today__shot" src="${esc(day.image)}" alt="">` : ""}
-         ${day.description ? `<p class="muted">${esc(day.description)}</p>` : ""}
+         ${day.description ? `<p class="today__desc">${esc(day.description)}</p>` : ""}
          <p class="today__meta">
-           <span>${plural(day.exercises.length, "exercise")}</span>
-           <span>${plural(plannedSets(day), "set")}</span>
-           <span>about ${estimateMinutes(day)} min</span>
+           <span class="chip">${plural(day.exercises.length, "exercise")}</span>
+           <span class="chip">${plural(plannedSets(day), "set")}</span>
+           <span class="chip">${estimateMinutes(day)} min</span>
          </p>
          <div class="btn-row">
            <button class="btn btn--go btn--big" data-go="#/go/${today}">
@@ -259,7 +272,7 @@ function renderWeek() {
            </button>
            <button class="btn" data-go="#/day/${today}">See the exercises</button>
          </div>
-         ${doneToday ? `<p class="small" style="margin:.9rem 0 0;color:var(--sage)">&#10003; Done today &mdash; ${plural(week[today].sessions.length, "workout")} logged.</p>` : ""}
+         ${doneToday ? `<p class="today__done">&#10003; Done today &mdash; ${plural(week[today].sessions.length, "workout")} logged.</p>` : ""}
        </div>`;
 
   screen.innerHTML = `
@@ -1427,74 +1440,141 @@ async function renderRemind() {
    Settings, signing in, and the notices
    ========================================================================== */
 
+/* What Settings is holding that has not been saved. Kept out here so the
+   "you have unsaved changes" panel can put the person back where they were
+   with everything they typed still in place. */
+let settingsDraft = null;
+
+const settingsDirty = () => {
+  if (!settingsDraft) return false;
+  const now = store.settings();
+  return settingsDraft.weightLb !== now.weightLb || settingsDraft.countRest !== now.countRest;
+};
+
 function settingsSheet() {
   const s = store.get();
-  const set = store.settings();
+  if (!settingsDraft) settingsDraft = { ...store.settings() };
+  const d = settingsDraft;
+
+  const where = s.mode !== "server"
+    ? `<p class="note note--warn">Working offline &mdash; this browser only.${s.note ? " " + esc(s.note) : ""}
+         Anything logged now goes up on its own when the app can reach its server again.</p>`
+    : s.signedIn
+      ? `<p class="note note--good"><strong>Signed in.</strong> The week and the record both save to the server
+           and appear on every device. The record is private: reading it needs this password.</p>`
+      : s.hasPassword
+        ? `<p class="note">Not signed in. The week is readable, and workouts done now are kept on this phone
+             until you sign in. Signing in is what shares them between devices.</p>`
+        : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it.
+             Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`;
 
   openSheet("Settings", `
-    <label class="field field--hint"><span>Body weight, in pounds</span>
-      <input type="number" id="s-weight" value="${set.weightLb}" min="40" max="700" step="1">
-      <small>Only used for the calorie estimate. It is stored with each workout, so changing it does not rewrite the past.</small></label>
+    <p class="sheet__lede">Everything about how this app behaves on this device.</p>
 
-    <label class="field field--hint" style="display:flex;gap:.7rem;align-items:flex-start">
-      <input type="checkbox" id="s-rest" ${set.countRest ? "checked" : ""} style="width:22px;height:22px;min-height:0;margin-top:.15rem;flex:0 0 auto">
-      <span style="text-transform:none;letter-spacing:0;font-size:.92rem;font-weight:400;color:var(--dim)">
-        Count the rest between sets. She is on her feet for it, so it counts by default.</span></label>
+    <section class="set-group">
+      <h3 class="set-group__h">The calorie estimate</h3>
+      <p class="set-group__note">Two things feed it. Neither changes anything already logged &mdash; each workout
+        keeps the numbers it was recorded with.</p>
 
-    <div class="btn-row" style="margin-bottom:1.25rem">
-      <button class="btn btn--go" data-action="save-settings">Save</button>
-    </div>
+      <label class="field field--hint"><span>Body weight, in pounds</span>
+        <input type="number" id="s-weight" value="${d.weightLb}" min="40" max="700" step="1" inputmode="numeric">
+        <small>The estimate scales with this. A pound or two either way barely moves it.</small></label>
 
-    <hr style="border:0;border-top:1px solid var(--line);margin:1.25rem 0">
+      <label class="switch">
+        <input type="checkbox" id="s-rest" ${d.countRest ? "checked" : ""}>
+        <span class="switch__body">
+          <strong>Count the rest between sets</strong>
+          <small>She is on her feet between sets, so it counts by default. Turn it off to count only the
+            working time. Rest is credited at most three minutes a set either way, so a forgotten timer
+            cannot invent a day's calories.</small>
+        </span>
+      </label>
+    </section>
 
-    <p class="eyebrow">Where this is saved</p>
-    ${s.mode === "server"
-      ? (s.signedIn
-        ? `<p class="note note--good">Signed in. The week and the record both save here and show up on every device.
-             The record is private &mdash; reading it needs this password.</p>
-           <div class="btn-row"><button class="btn btn--ghost" data-action="sign-out">Sign out</button></div>`
-        : (s.hasPassword
-          ? `<p class="note">The week is coming from the server. Sign in to see the record, log workouts to it, and edit the week.</p>
-             <div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>`
-          : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it and
-               the record stays on this phone. Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`))
-      : `<p class="note note--warn">Saving to this browser only.${s.note ? " " + esc(s.note) : ""}</p>
-         ${s.signedIn
-           ? `<p class="small muted">Editing is unlocked on this device. Changes stay here until the server is reachable.</p>
-              <div class="btn-row"><button class="btn btn--ghost" data-action="sign-out">Lock editing</button></div>`
-           : `<p class="small muted">The week can still be edited on this device with the password.</p>
-              <div class="btn-row"><button class="btn" data-action="sign-in">Sign in to edit</button></div>`}`}
+    <section class="set-group">
+      <h3 class="set-group__h">Reminders</h3>
+      <p class="set-group__note">A push notification on the morning of a day that has a workout in it &mdash;
+        never on a rest day, and never once it is already done.</p>
+      <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
+    </section>
 
-    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Edit the week</p>
+    <section class="set-group">
+      <h3 class="set-group__h">Where this is saved</h3>
+      ${where}
+      <div class="btn-row">
+        ${s.signedIn
+          ? `<button class="btn btn--ghost" data-action="sign-out">Sign out</button>`
+          : `<button class="btn btn--go" data-action="sign-in">Sign in</button>`}
+      </div>
+    </section>
+
+    ${adminOn() ? `
+    <section class="set-group">
+      <h3 class="set-group__h">Edit the week</h3>
+      <p class="set-group__note">Pick a day to open it with the pencil already down.</p>
       <div class="week">
         ${DAY_KEYS.map((k) => `<button class="day" data-action="edit-day" data-day="${k}">
           <span class="day__name">${DAY_SHORT[k]}</span>
           <span class="day__title">${esc(store.dayPlan(k).title || "Rest")}</span></button>`).join("")}
-      </div>` : ""}
+      </div>
+      <p class="set-group__note" style="margin-top:.9rem">The editor is unlocked on this device and locks itself
+        again twelve hours after you unlocked it.</p>
+      <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button></div>
+    </section>` : ""}
 
-    <p class="eyebrow" style="margin-top:1.5rem">Reminders</p>
-    <p class="small muted">A nudge on the morning of a day that has a workout in it.</p>
-    <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
+    <section class="set-group set-group--last">
+      <h3 class="set-group__h">Put it on the home screen</h3>
+      <p class="set-group__note">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu,
+        then <strong>Install app</strong>. It then opens without browser chrome, keeps the screen awake during a
+        workout, and works in a gym with no signal. On an iPhone, reminders only work from the home-screen copy.</p>
+    </section>
 
-    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Editor</p>
-      <p class="small muted">Unlocked on this device. It locks itself again twelve hours after you unlocked it,
-        or right now if you press the button.</p>
-      <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor</button></div>` : ""}
-
-    <p class="eyebrow" style="margin-top:1.5rem">Put it on the home screen</p>
-    <p class="small muted">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu, then
-      <strong>Install app</strong>. It then opens without browser chrome and works in a gym with no signal.</p>
+    <div class="sheet__actions">
+      <button class="btn btn--go btn--big" data-action="save-settings" id="s-save">Save changes</button>
+      <button class="btn btn--big" data-action="cancel-settings">Cancel</button>
+    </div>
   `, (root) => {
-    root.querySelector('[data-action="save-settings"]')?.addEventListener("click", async () => {
-      await store.saveSettings({
-        weightLb: Number(root.querySelector("#s-weight").value) || 150,
-        countRest: root.querySelector("#s-rest").checked,
-      });
-      closeSheet();
-      toast("Saved.", "good");
-      render();
+    const mark = () => {
+      root.querySelector("#s-save")?.classList.toggle("is-waiting", settingsDirty());
+    };
+    root.querySelector("#s-weight")?.addEventListener("input", (e) => {
+      settingsDraft.weightLb = Number(e.target.value) || store.settings().weightLb;
+      mark();
     });
+    root.querySelector("#s-rest")?.addEventListener("change", (e) => {
+      settingsDraft.countRest = e.target.checked;
+      mark();
+    });
+    mark();
   });
+
+  /* Closing with something unsaved asks instead of silently dropping it. */
+  sheetGuard = () => {
+    if (!settingsDirty()) { settingsDraft = null; return true; }
+    unsavedSettingsPanel();
+    return false;
+  };
+}
+
+/** Shown in place of the settings body when a close would lose changes. */
+function unsavedSettingsPanel() {
+  const now = store.settings();
+  const changes = [];
+  if (settingsDraft.weightLb !== now.weightLb) changes.push(`body weight ${now.weightLb} &rarr; ${settingsDraft.weightLb} lb`);
+  if (settingsDraft.countRest !== now.countRest) changes.push(`rest between sets ${settingsDraft.countRest ? "counted" : "not counted"}`);
+
+  $("#sheet-title").textContent = "Unsaved changes";
+  $("#sheet-body").innerHTML = `
+    <p class="muted" style="margin-bottom:1rem">You changed ${changes.length === 1 ? "one thing" : "a couple of things"}
+      and have not saved:</p>
+    <ul class="tally" style="margin-top:0">
+      ${changes.map((c) => `<li><span>${c}</span></li>`).join("")}
+    </ul>
+    <div class="sheet__actions" style="margin-top:1.5rem">
+      <button class="btn btn--go btn--big" data-action="save-settings">Save and close</button>
+      <button class="btn btn--big" data-action="back-to-settings">Back to settings</button>
+      <button class="btn btn--danger btn--big" data-action="discard-settings">Discard them</button>
+    </div>`;
 }
 
 function askSignIn(returnTo, thenUnlockAdmin = false) {
@@ -1606,6 +1686,17 @@ function render() {
   return renderWeek();
 }
 
+/* The card is a div rather than a button — it contains buttons, and a button
+   inside a button is invalid — so it is given a link's keyboard behaviour by
+   hand rather than being left unreachable without a mouse. */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest?.('[role="link"][data-go]');
+  if (!card || e.target.closest("button")) return;
+  e.preventDefault();
+  go(card.dataset.go);
+});
+
 window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); });
 
 $("#back").addEventListener("click", () => {
@@ -1622,11 +1713,15 @@ $("#settings-btn").addEventListener("click", settingsSheet);
 /* One listener for the whole app. Everything that can be pressed says what it
    does in a data attribute, so a repaint never leaves a dead button behind. */
 document.addEventListener("click", (e) => {
-  const goTo = e.target.closest("[data-go]");
-  if (goTo) { e.preventDefault(); go(goTo.dataset.go); return; }
-
+  /* Actions are looked for first. Today's card is itself a destination, and it
+     contains buttons that do something else — without this order the card's
+     destination would swallow "Add a workout for today" pressed inside it. */
   const el = e.target.closest("[data-action]");
-  if (!el) return;
+  if (!el) {
+    const goTo = e.target.closest("[data-go]");
+    if (goTo) { e.preventDefault(); go(goTo.dataset.go); }
+    return;
+  }
   const { action, id, i, day } = el.dataset;
 
   switch (action) {
@@ -1745,7 +1840,8 @@ document.addEventListener("click", (e) => {
     }
 
     case "edit-day":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       if (!editing) startEditing();
       go(`#/day/${day}`);
       render();
@@ -1794,21 +1890,36 @@ document.addEventListener("click", (e) => {
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "admin-pill":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       if (!adminOn()) { unlockAdmin(); break; }
       if (editing) { if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing(); }
       else startEditing();
       break;
-    case "go-remind": closeSheet(); go("#/remind"); break;
-    case "sign-in": closeSheet(); askSignIn(null); break;
+    case "save-settings":
+      store.saveSettings({ ...settingsDraft }).then((r) => {
+        settingsDraft = null;
+        closeSheet(true);
+        toast(r.ok === false ? (r.error || "Could not save.") : "Saved.", r.ok === false ? "bad" : "good");
+        render();
+      });
+      break;
+    case "cancel-settings": closeSheet(); break;
+    case "back-to-settings": settingsSheet(); break;
+    case "discard-settings": settingsDraft = null; closeSheet(true); toast("Changes discarded."); break;
+
+    case "go-remind": settingsDraft = null; closeSheet(true); go("#/remind"); break;
+    case "sign-in": settingsDraft = null; closeSheet(true); askSignIn(null); break;
     case "sign-out":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       setAdmin(false);
       editing = false; draft = null;
       store.signOut().then(() => { toast("Signed out."); render(); });
       break;
     case "lock-admin":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       setAdmin(false);
       editing = false; draft = null;
       toast("Editor locked.");
