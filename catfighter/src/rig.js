@@ -713,9 +713,16 @@
 
     /* Three tones front to back: the shaded far side, the torso, and a
        slightly brighter near side. Depth without a single extra line. */
+    /* How hard the near/far split is pushed. A quarter of a stop either way
+       is what gives the figure depth without a single extra line — but on a
+       cat whose MARKING is the point, it fights the marking: a tuxedo's legs
+       are meant to be one unbroken black, and the near one came out mid-grey
+       against the far one. `palette.depth` turns the split down for those,
+       0 being none at all. Luigi's artist found this. */
     var dark = lum(c.fur) < 0.34;
-    var furFront = white ? '#ffffff' : shade(c.fur, dark ? 0.34 : 0.24);
-    var furBack  = white ? '#dddddd' : shade(c.fur2 || c.fur, dark ? -0.30 : -0.30);
+    var DEPTH = c.depth === undefined ? 1 : c.depth;
+    var furFront = white ? '#ffffff' : shade(c.fur, (dark ? 0.34 : 0.24) * DEPTH);
+    var furBack  = white ? '#dddddd' : shade(c.fur2 || c.fur, -0.30 * DEPTH);
     /* The tail sits BEHIND the cat, so it takes the far-side tone and it is
        thinner than it was — at full girth it came out as thick as a thigh and
        read as a third limb arching over the shoulder. */

@@ -79,6 +79,12 @@ look: {
     //      the same again with B for the far side, tail[0..3], headR, s
     // f  — measurements: chestW waistW hipW headR R_TOP R_MID R_END HAND
     //      FOOT_X FOOT_Y s G GW fur fur2 belly furFront furBack line
+    // palette.depth (0..1, default 1) turns down the near/far tone split.
+    // The split is what gives the figure depth without an extra line, but on
+    // a cat whose MARKING is the point it fights the marking — a tuxedo's
+    // legs are meant to be one unbroken black and the near one came out
+    // mid-grey. Turn it down, do not fight it in the costume.
+    //
     // opts: {band: true} for a lit rim, {edge: true} for a material
     //       boundary, {flat: true} for anything under ~6px
     //
