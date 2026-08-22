@@ -58,7 +58,7 @@
          rivets, spikes, the lit facets, the ankle bands — is flat now, and
          at 384x224 not one of them shows a tone it lost. */
       var HIDE = '#2e1d18', HIDE2 = '#4a2e24', STUD = '#cfcabc',
-          CHAIN = '#9c968a', TROU = '#443f36', TROU2 = '#2c2924',
+          TROU = '#443f36', TROU2 = '#2c2924',
           HACKLE = '#7a3f26';
       /* The pauldron is STEEL, not more leather. Drawn in the same near-
          black hide as the cut it merged straight into it and the two
@@ -375,9 +375,16 @@
          above her spine, and the near arm is left as clean ginger, which a
          cat this dark badly needs somewhere. It is the bump on her back in
          the silhouette test and it is worth more there than anywhere. */
-      var pr = f.chestW * 0.70;
-      var sh = { x: j.shB.x + UPX * pr * 0.74 - sfx * pr * 1.05,
-                 y: j.shB.y + UPY * pr * 0.74 - sfy * pr * 1.05 };
+      /* Sized against the SKULL, not against the shoulder. At 0.70 of a
+         chest it was legible at 3.6x and a grey lump at 1:1, which is the
+         only size that counts — the plate is the thing that tells her
+         apart from the other heavy across a lit room. */
+      var pr = f.chestW * 0.82;
+      /* A shade further back than looks right at 3.6x: at game size the
+         skull is only twenty-five pixels across and a plate any closer
+         reads as a HELMET rather than as a shoulder. */
+      var sh = { x: j.shB.x + UPX * pr * 0.70 - sfx * pr * 1.22,
+                 y: j.shB.y + UPY * pr * 0.70 - sfy * pr * 1.22 };
       function Q(u, v) {   /* u up the spine, v forward, in chestW units */
         return { x: sh.x + UPX * pr * u + sfx * pr * v,
                  y: sh.y + UPY * pr * u + sfy * pr * v };
@@ -405,7 +412,7 @@
       A.add('body', function (cx) {
         /* Fat and short. A.tuft makes each spike len*0.22 wide, so a long
            thin one is a hair at 384x224 and the contour pass eats it. */
-        A.tuft(cx, Q(0.78, -0.34), 3, pr * 0.92, 56, 66, false);
+        A.tuft(cx, Q(0.80, -0.30), 3, pr * 1.08, 58, 64, false);
       }, STUD, { edge: true, flat: true });
 
       /* the lit top plane, cut hard across the plate. Three tones on one

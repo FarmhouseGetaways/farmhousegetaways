@@ -7,6 +7,22 @@
   var W = K.W, H = K.H, FLOOR_Y = K.FLOOR_Y;
   var P = K.Particles;
 
+  /* A prize cat in the claw machine. Two ears and a face is enough at five
+     pixels across — anything more turned into a smudge. */
+  function plush(ctx, x, y, r, col) {
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.9, y - r * 0.4); ctx.lineTo(x - r * 0.55, y - r * 1.5);
+    ctx.lineTo(x - r * 0.1, y - r * 0.75); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.9, y - r * 0.4); ctx.lineTo(x + r * 0.55, y - r * 1.5);
+    ctx.lineTo(x + r * 0.1, y - r * 0.75); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(30,20,18,.8)';
+    ctx.fillRect(x - r * 0.5, y - r * 0.2, 1, 1);
+    ctx.fillRect(x + r * 0.35, y - r * 0.2, 1, 1);
+  }
+
   CF.StageDefs = CF.StageDefs || {};
   CF.StageDefs.barn = {
     id: 'barn', name: 'THE GAME BARN',
@@ -192,45 +208,128 @@
         });
       });
 
-      /* --- the landmark: a claw machine, lit up, with a jackpot sign over
-             it. It stays where it is in the world, which is what makes this
-             a place rather than a pattern. --- */
+      /* --- THE LANDMARK: THE BIG CLAW.
+
+             It used to be a claw machine 60px wide standing in a row of
+             cabinets 46px wide, which is not a landmark, it is another
+             cabinet. A landmark has to be the size of the building it is in:
+             this one is 104 wide and runs from the floor up out of the top of
+             the picture, cropped by the roof beam, and cropped again by the
+             left edge of the screen. Cropping is most of what sells scale —
+             a thing you can see all of is a thing you can measure.
+
+             It is also the loop. The claw tracks, drops, grabs, lifts and
+             carries a plush cat to the chute, and every third go it fumbles
+             it on the way — which is the bit worth waiting for. --- */
       K.layer(ctx, camX, 0.42, function () {
-        var cx = K.at(camX, 0, 96);
-        K.mass(ctx, cx - 30, FLOOR_Y - 96, 60, 96, '#b8342f', { top: 4, side: 8, foot: false });
-        /* the glass box of prizes, sunk into the front of it */
-        ctx.fillStyle = '#141c30';
-        ctx.fillRect(cx - 26, FLOOR_Y - 89, 49, 54);
-        ctx.fillStyle = '#1d2740';
-        ctx.fillRect(cx - 25, FLOOR_Y - 88, 47, 52);
-        ctx.fillStyle = 'rgba(190,225,255,.10)';   /* the glass catching light */
-        ctx.beginPath();
-        ctx.moveTo(cx - 25, FLOOR_Y - 88); ctx.lineTo(cx - 4, FLOOR_Y - 88);
-        ctx.lineTo(cx - 25, FLOOR_Y - 52); ctx.closePath(); ctx.fill();
-        for (var q2 = 0; q2 < 9; q2++) {
-          ctx.fillStyle = K.pick(q2, 50, ['#ffd166', '#ff7a8a', '#8fe6ff', '#b6ff8f', '#ffa04a']);
-          ctx.beginPath();
-          ctx.arc(cx - 19 + (q2 % 5) * 9, FLOOR_Y - 44 - Math.floor(q2 / 5) * 8,
-                  K.vary(q2, 51, 2.4, 3.8), 0, Math.PI * 2);
-          ctx.fill();
+        /* Pinned to the screen with a whisper of drift. A landmark that
+           scrolls out of frame stops being one; a landmark nailed to the
+           glass reads as a matte painting. A twentieth of the camera is the
+           compromise the other stages use. */
+        var mx = K.at(camX, 0, 0) - camX * 0.02;
+        var MW = 104, MTOP = 16, MBOT = FLOOR_Y;
+        var bx = mx - 8;                       /* off the left edge on purpose */
+
+        /* the cabinet: one painted mass, lit from the right because the light
+           in this barn comes off the string lights over the fight */
+        K.mass(ctx, bx, MTOP, MW, MBOT - MTOP, '#b8342f',
+               { top: 0, side: 9, light: -1, foot: false });
+
+        /* the glass box */
+        var gx = bx + 12, gy = MTOP + 20, gw = MW - 26, gh = 88;
+        ctx.fillStyle = '#0e1426'; ctx.fillRect(gx - 3, gy - 3, gw + 6, gh + 6);
+        ctx.fillStyle = '#1b2540'; ctx.fillRect(gx, gy, gw, gh);
+        /* the back wall of it, lit, so the prizes have something to sit against */
+        ctx.fillStyle = '#26325a'; ctx.fillRect(gx, gy, gw, gh * 0.55);
+
+        /* the pile of plushes at the bottom of the box */
+        var pileY = gy + gh - 9;
+        for (var q2 = 0; q2 < 11; q2++) {
+          plush(ctx, gx + 7 + (q2 % 6) * 12 + (q2 > 5 ? 6 : 0),
+                pileY - (q2 > 5 ? 9 : 0), K.vary(q2, 50, 4.2, 5.6),
+                K.pick(q2, 51, ['#ffd166', '#ff7a8a', '#8fe6ff', '#b6ff8f', '#ffa04a', '#d3a0ff']));
         }
-        /* the claw, tracking slowly back and forth */
-        var clawX = cx - 2 + Math.sin(t * 0.012) * 16;
+
+        /* ---- the loop ----
+           One cycle, five and a half seconds, in normalised time so the
+           phases can be shuffled without recomputing frame numbers. */
+        var CYCLE = 330;
+        var n = Math.floor(t / CYCLE), u = (t % CYCLE) / CYCLE;
+        var fumble = (n % 3) === 2;
+        function seg(a, b) { var v = (u - a) / (b - a); return v < 0 ? 0 : v > 1 ? 1 : v; }
+        function ease(v) { return v * v * (3 - 2 * v); }
+
+        var home = gx + 11, far = gx + gw - 14;
+        var clawX = home + (far - home) * ease(seg(0, 0.26))
+                         - (far - home) * ease(seg(0.62, 0.80));
+        var railY = gy + 5;
+        var deep = pileY - 7;
+        var clawY = railY + (deep - railY) * (ease(seg(0.26, 0.40)) - ease(seg(0.48, 0.62)));
+        var grip = u > 0.36 && u < 0.66 ? 1 : 0;          /* fingers closed */
+        var carrying = u > 0.40 && u < (fumble ? 0.71 : 0.84);
+
+        /* the gantry rail, and the trolley riding it */
+        ctx.fillStyle = '#8e8577'; ctx.fillRect(gx + 4, railY - 3, gw - 8, 2);
+        ctx.fillStyle = '#cfc6b4'; ctx.fillRect(clawX - 5, railY - 5, 10, 5);
         ctx.strokeStyle = '#d8d2c4'; ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(clawX, FLOOR_Y - 88); ctx.lineTo(clawX, FLOOR_Y - 62); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(clawX, railY); ctx.lineTo(clawX, clawY); ctx.stroke();
+        /* the fingers — three of them, opening and closing */
+        var spread = 5.5 - grip * 3;
+        ctx.lineWidth = 1.6;
         ctx.beginPath();
-        ctx.moveTo(clawX - 4, FLOOR_Y - 56); ctx.lineTo(clawX, FLOOR_Y - 62);
-        ctx.lineTo(clawX + 4, FLOOR_Y - 56); ctx.stroke();
-        /* the sign, flashing */
-        var lit = (t % 60) < 34;
-        ctx.fillStyle = lit ? '#ffe07a' : '#7a6a3a';
-        ctx.fillRect(cx - 28, FLOOR_Y - 110, 56, 13);
-        K.glow(ctx, cx, FLOOR_Y - 104, 34, 'rgba(255,224,122,.8)', lit ? 0.3 : 0.08);
+        ctx.moveTo(clawX - spread, clawY + 7); ctx.lineTo(clawX - spread * 0.5, clawY);
+        ctx.lineTo(clawX + spread * 0.5, clawY); ctx.lineTo(clawX + spread, clawY + 7);
+        ctx.moveTo(clawX, clawY); ctx.lineTo(clawX, clawY + 7);
+        ctx.stroke();
+
+        /* the prize in transit, and the tease */
+        if (carrying) {
+          plush(ctx, clawX, clawY + 11, 5.4, '#ffd166');
+        } else if (fumble && u >= 0.71 && u < 0.80) {
+          var fall = (u - 0.71) / 0.09;
+          plush(ctx, clawX, clawY + 11 + fall * fall * (pileY - clawY - 8), 5.4, '#ffd166');
+        }
+        /* delivered: it sits in the chute tray, and the cat at the panel
+           throws its paws up */
+        var won = !fumble && u >= 0.84;
+        if (won) plush(ctx, bx + MW - 17, MBOT - 12, 5.4, '#ffd166');
+
+        /* glass, over everything inside it — one diagonal, no gradient */
+        ctx.fillStyle = 'rgba(200,230,255,.09)';
+        ctx.beginPath();
+        ctx.moveTo(gx, gy); ctx.lineTo(gx + gw * 0.55, gy);
+        ctx.lineTo(gx, gy + gh * 0.8); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,240,210,.30)'; ctx.lineWidth = 1;
+        ctx.strokeRect(gx + 0.5, gy + 0.5, gw - 1, gh - 1);
+
+        /* control panel and chute, at fighter height, which is what makes the
+           machine read as something a cat could walk up to */
+        ctx.fillStyle = '#6d1f1c'; ctx.fillRect(bx + 4, gy + gh + 6, MW - 12, 12);
+        ctx.fillStyle = '#8f2a25'; ctx.fillRect(bx + 4, gy + gh + 6, MW - 12, 2);
+        ctx.fillStyle = '#2a2028';
+        ctx.fillRect(bx + 22, gy + gh + 3, 4, 5);                   /* stick */
+        ctx.fillStyle = '#e8d24a';
+        ctx.beginPath(); ctx.arc(bx + 24, gy + gh + 3, 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff5b5b';
+        ctx.beginPath(); ctx.arc(bx + 40, gy + gh + 12, 2.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#241a14';
+        ctx.fillRect(bx + MW - 26, MBOT - 22, 20, 20);              /* the chute */
+        ctx.fillStyle = 'rgba(255,224,140,.14)';
+        ctx.fillRect(bx + MW - 26, MBOT - 22, 20, 3);
+
+        /* the sign over it, flashing, tucked under the roof beam */
+        var lit = (t % 64) < 38;
+        K.mass(ctx, bx + 10, MTOP + 2, MW - 22, 15, lit ? '#ffd45c' : '#6f5f33',
+               { top: 0, side: 4, light: -1, foot: false });
+        K.glow(ctx, bx + MW / 2, MTOP + 9, 52, 'rgba(255,214,92,.85)', lit ? 0.26 : 0.06);
         ctx.fillStyle = '#3a2410';
-        ctx.font = '800 8px "Arial Narrow", Arial, sans-serif';
+        ctx.font = '800 10px "Arial Narrow", Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('JACKPOT', cx, FLOOR_Y - 101);
+        ctx.fillText('BIG CLAW', bx + MW / 2, MTOP + 13);
         ctx.textAlign = 'left';
+
+        /* somebody working it, and celebrating when it pays out */
+        K.spectator(ctx, bx + MW + 9, FLOOR_Y - 2, 0.95, 404, t, won ? 1 : (mood || 0) * 0.5);
       });
 
       /* --- hay bales, stacked to different heights, with a crowd on them --- */
