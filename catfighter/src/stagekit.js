@@ -815,6 +815,15 @@
      for free and cannot forget it. */
   function deepen(ctx, o) {
     o = o || {};
+    /* Static per stage, like the sky and the vignette, and every bit as
+       full-screen. Both bands are positioned against the horizon and the
+       floor line — screen coordinates — so pinning them to the screen rather
+       than the camera is what they always meant. */
+    var key = 'deep' + [o.air, o.haze, o.floorDark, o.horizon].join(',');
+    cachedFull(ctx, key, function (ox) { paintDeepen(ox, o); });
+  }
+
+  function paintDeepen(ctx, o) {
     var air = o.air || AIR;
     var A = hex(air) || [185, 198, 216];
     var rgb = A[0] + ',' + A[1] + ',' + A[2];
