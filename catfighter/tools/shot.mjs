@@ -157,7 +157,7 @@ roster: (a) => `
   /* A presentation sheet: every cat big, lit, named, on a dark ground — what
      you hand somebody when they ask what the roster looks like. */
   const SC = ${Number(a[0]) || 2.6};
-  const CW = Math.round(150*SC/2.6), CH = Math.round(250*SC/2.6), COLS = 3;
+  const CW = Math.round(168*SC/2.6), CH = Math.round(330*SC/2.6), COLS = 3;
   const ROWS = Math.ceil(CF.ROSTER.length/COLS);
   size(CW*COLS, CH*ROWS);
   const bgGrad = ctx.createLinearGradient(0,0,0,CH*ROWS);
@@ -178,7 +178,7 @@ roster: (a) => `
         ctx.closePath(); ctx.fill();
       }
       ctx.restore();
-      const floorY = oy+CH-Math.round(40*SC/2.6);
+      const floorY = oy+CH-Math.round(52*SC/2.6);
       ctx.save();
       ctx.globalAlpha=0.5; ctx.fillStyle='#000';
       ctx.beginPath(); ctx.ellipse(ox+CW/2, floorY, 30*SC/2.6*1.4, 6*SC/2.6*1.4, 0,0,Math.PI*2);
