@@ -94,6 +94,28 @@ look: {
 }
 ```
 
+### Four shapes that change an outline
+
+Hand-rolled in raw canvas paths these come out as mush, which is why they
+are in the API. Run `node tools/shot.mjs kit out.png` to see all four worn
+by a cat.
+
+    A.mane(cx, j, out, n, drop, ragged)
+        A ruff or a lion's mane round the neck and shoulders. `out` is the
+        radius — it must exceed `f.headR` or the skull covers the whole
+        thing and you see nothing. Put it in the `back` layer and what
+        survives is exactly the part standing proud of the body, which is
+        the part that changes the silhouette.
+    A.pad(cx, at, toward, r, flare)
+        A pauldron capping a joint and overhanging the limb. `at` is the
+        joint (j.shF, j.shB, j.hipF…), `toward` the next one down.
+    A.streamer(cx, from, len, wide, ang, sway)
+        A ribbon that trails backwards and tapers — a scarf, a headband
+        tail, a belt end, a sash. Pass `f.sway` and it whips when the cat
+        moves. Make it LONG; a short one reads as a smudge.
+    A.tuft(cx, at, n, len, spread, ang, jag)
+        A crest of spikes — a mohawk, a topknot, a torn crop of fur.
+
 Layers, in draw order: `back` (behind everything — a cape, a braid),
 `body` (on the torso, over the far limbs — a gi, a vest, a belt),
 `front` (over the near arm and leg — a glove, a wrap, a pauldron),

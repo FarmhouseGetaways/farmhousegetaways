@@ -781,7 +781,112 @@
         smooth: smoothClosed,
         capsule: capsulePath,
         ellipse: ellipsePath,
-        limb: limbPath
+        limb: limbPath,
+
+        /* ---- shapes that stick OUT ------------------------------------
+
+           A costume drawn inside the body outline changes nothing about a
+           silhouette — a gi across the chest and a belt round the waist look
+           like a lot of work in colour and vanish completely in black. What
+           changes an outline is what stands proud of it, and these are the
+           four shapes that do it. Hand-rolled in raw paths they come out as
+           mush, which is why they live here.
+
+           Every one takes the figure's own coordinates: +y up, +x forward. */
+
+        /* A mass of fur round the neck and shoulders, standing out past the
+           chest — a lion's mane, a ruff, a fur collar. `n` spikes, `out` how
+           far past the body they reach, `drop` how far down the chest it
+           comes. */
+        mane: function (cx, j, out, n, drop, ragged) {
+          var nk = j.neck, pv = j.pelvis;
+          var dx = nk.x - pv.x, dy = nk.y - pv.y;
+          var L2 = Math.hypot(dx, dy) || 1;
+          var ux = dx / L2, uy = dy / L2;          /* up the spine */
+          var fx2 = uy, fy2 = -ux;                 /* forward */
+          var cxp = nk.x - ux * L2 * drop, cyp = nk.y - uy * L2 * drop;
+          var pts = [];
+          for (var q = 0; q < n; q++) {
+            var a3 = (q / n) * Math.PI * 2;
+            var spike = ragged ? (q % 2 ? 1 : 0.62) : 1;
+            var rr = out * spike;
+            /* squashed along the spine so it is a collar, not a ball */
+            pts.push({ x: cxp + fx2 * Math.cos(a3) * rr + ux * Math.sin(a3) * rr * 0.78,
+                       y: cyp + fy2 * Math.cos(a3) * rr + uy * Math.sin(a3) * rr * 0.78 });
+          }
+          smoothClosed(cx, pts);
+        },
+
+        /* A pauldron: a cap over the shoulder that overhangs the arm and
+           flares out past the body. Drawn as a fan of points rather than
+           four bezier guesses — the guesses came out as a disc. */
+        pad: function (cx, at, toward, r, flare) {
+          var dx = toward.x - at.x, dy = toward.y - at.y;
+          var L3 = Math.hypot(dx, dy) || 1;
+          var ux = dx / L3, uy = dy / L3;          /* down the arm */
+          var px = -uy, py = ux;                   /* across it */
+          var f2 = flare === undefined ? 1.3 : flare;
+          /* u runs from just above the joint to a third down the arm; v is
+             across, widening as it goes so the cap sits ON the shoulder and
+             the skirt hangs off it */
+          var ring = [[-0.55, -0.55], [-0.72, 0.10], [-0.55, 0.72],
+                      [0.10, 1.02], [0.86, 1.24], [1.20, 0.86],
+                      [1.16, -0.30], [0.70, -1.05], [0.05, -1.00]];
+          var pts = [];
+          for (var q4 = 0; q4 < ring.length; q4++) {
+            var u4 = ring[q4][0] * r, v4 = ring[q4][1] * r * f2;
+            pts.push({ x: at.x + ux * u4 + px * v4, y: at.y + uy * u4 + py * v4 });
+          }
+          smoothClosed(cx, pts);
+        },
+
+        /* A ribbon that trails backwards and tapers — a scarf, a headband
+           tail, a belt end, a sash. `ang` is the direction it leaves in
+           (degrees, 0 = straight back), `sway` bends it; pass `f.sway`. */
+        streamer: function (cx, from, len, wide, ang, sway) {
+          var a4 = (ang || 0) * DEG;
+          var bx = -Math.cos(a4), by = Math.sin(a4);      /* backwards */
+          var n2 = 7, pts = [], i2;
+          for (i2 = 0; i2 <= n2; i2++) {
+            var t2 = i2 / n2;
+            /* the further along, the more it whips */
+            var curl = Math.sin(t2 * 2.1) * sway * (0.4 + t2 * 1.5);
+            pts.push({ x: from.x + bx * len * t2,
+                       y: from.y + by * len * t2 + curl,
+                       w: wide * (1 - t2 * 0.82) });
+          }
+          var fwd = [], bwd = [];
+          for (i2 = 0; i2 < pts.length; i2++) {
+            var a5 = pts[Math.max(0, i2 - 1)], b5 = pts[Math.min(pts.length - 1, i2 + 1)];
+            var ddx = b5.x - a5.x, ddy = b5.y - a5.y, dl2 = Math.hypot(ddx, ddy) || 1;
+            fwd.push({ x: pts[i2].x - ddy / dl2 * pts[i2].w, y: pts[i2].y + ddx / dl2 * pts[i2].w });
+            bwd.push({ x: pts[i2].x + ddy / dl2 * pts[i2].w, y: pts[i2].y - ddx / dl2 * pts[i2].w });
+          }
+          cx.beginPath();
+          cx.moveTo(fwd[0].x, fwd[0].y);
+          for (i2 = 1; i2 < fwd.length; i2++) cx.lineTo(fwd[i2].x, fwd[i2].y);
+          for (i2 = bwd.length - 1; i2 >= 0; i2--) cx.lineTo(bwd[i2].x, bwd[i2].y);
+          cx.closePath();
+        },
+
+        /* A crest of spikes: a mohawk, a topknot, a torn crop of fur. `ang`
+           is the direction they point in degrees (90 = straight up). */
+        tuft: function (cx, at, n, len, spread, ang, jag) {
+          var base = (ang === undefined ? 90 : ang) * DEG;
+          cx.beginPath();
+          for (var q2 = 0; q2 < n; q2++) {
+            var k2 = n === 1 ? 0.5 : q2 / (n - 1);
+            var a6 = base + (k2 - 0.5) * spread * DEG;
+            var ln = len * (jag ? (0.55 + 0.45 * Math.sin(q2 * 2.3)) : (1 - Math.abs(k2 - 0.5) * 0.5));
+            var w2 = len * 0.20;
+            var ox2 = at.x + Math.cos(base) * (k2 - 0.5) * len * 0.9;
+            var oy2 = at.y + Math.sin(base) * 0 + (k2 - 0.5) * 0;
+            cx.moveTo(ox2 - Math.sin(a6) * w2, oy2 + Math.cos(a6) * w2);
+            cx.lineTo(ox2 + Math.cos(a6) * ln, oy2 + Math.sin(a6) * ln);
+            cx.lineTo(ox2 + Math.sin(a6) * w2, oy2 - Math.cos(a6) * w2);
+            cx.closePath();
+          }
+        }
       };
       /* Measurements a costume needs, in the same units the body uses.
 

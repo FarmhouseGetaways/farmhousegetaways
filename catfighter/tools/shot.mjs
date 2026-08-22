@@ -7,6 +7,7 @@
  *   node tools/shot.mjs stage out.png <id> [camX]       one stage + two cats
  *   node tools/shot.mjs stages out.png                  all six stages
  *   node tools/shot.mjs roster out.png [scale]           a presentation sheet
+ *   node tools/shot.mjs kit    out.png                  the silhouette primitives
  *   node tools/shot.mjs silhouette out.png [scale]       every cat, flat black
  *   node tools/shot.mjs fight out.png [stageIdx] [frames]   the real game
  *
@@ -125,6 +126,32 @@ stage: (a) => `
   K.nearLip(x,13,0.40);
   ctx.imageSmoothingEnabled=false; ctx.drawImage(c,0,0,384,224,0,0,384*Z,224*Z);
   label(s.name, 8, 18);`,
+
+kit: () => `
+  /* The four silhouette primitives, worn by one cat, so you can see what
+     each one actually looks like before you build with it. */
+  const SC=3.0, CW=Math.round(150*SC), CH=Math.round(185*SC), COLS=2;
+  const DEMOS = [
+    ['mane', (A,j,f)=>A.add('back', cx=>A.mane(cx, j, f.headR*1.9, 13, 0.16, true), '#c8913f', {band:true, edge:true})],
+    ['pad',  (A,j,f)=>{ A.add('front', cx=>A.pad(cx, j.shF, j.elbF, f.R_TOP*1.9, 1.5), '#8a8f9c', {band:true, edge:true});
+                        A.add('back',  cx=>A.pad(cx, j.shB, j.elbB, f.R_TOP*1.7, 1.4), '#6c7180', {band:true, edge:true}); }],
+    ['streamer', (A,j,f)=>{ A.add('back', cx=>A.streamer(cx, j.neck, f.chestW*4.2, f.chestW*0.40, 14, f.sway+7), '#c0392b', {band:true, edge:true});
+                            A.add('head', cx=>A.streamer(cx, {x:-f.headR*0.8,y:f.headR*0.2}, f.headR*2.6, f.headR*0.22, -8, 4), '#c0392b', {edge:true}); }],
+    ['tuft', (A,j,f)=>A.add('head', cx=>A.tuft(cx, {x:0,y:f.headR*0.62}, 7, f.headR*1.55, 84, 90, true), '#e0b04a', {band:true, edge:true})]
+  ];
+  size(CW*COLS, CH*Math.ceil(DEMOS.length/COLS)); bg('#7c7c86');
+  const chr = CF.byId('gracie');
+  DEMOS.forEach(([name, fn], i)=>{
+    const pal = {}; for (const k in chr.palette) pal[k]=chr.palette[k];
+    pal.look = { pieces: fn };
+    const j = CF.Rig.solve(CF.Pose.stand, SC, chr.build);
+    const col=i%COLS, row=(i/COLS)|0, ox=col*CW, oy=row*CH;
+    clipCell(ox,oy,CW,CH, ()=>{
+      ctx.translate(ox+CW/2, oy+CH-Math.round(22*SC)); ctx.scale(1,-1);
+      CF.Rig.drawCat(ctx,j,pal,{eyes:'angry'});
+    });
+    label('A.'+name+'()', ox+6, oy+16); frame(ox,oy,CW,CH);
+  });`,
 
 roster: (a) => `
   /* A presentation sheet: every cat big, lit, named, on a dark ground — what
