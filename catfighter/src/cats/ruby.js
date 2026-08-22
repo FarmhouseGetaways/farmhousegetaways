@@ -50,6 +50,13 @@
          into the ginger: at game size a costume on a warm cat has to be a
          VALUE break, not a hue one. The studs and the chain are the only
          light things on her, which is why the eye goes to the shoulder. */
+      /* A note on {flat: true}, which is on nine of the shapes below.
+         It skips the CLIP inside celFill, and the clip is the expensive
+         call — not the fills. Her costume measured 3.4ms of a 7.9ms cat
+         before this pass, which put her over figuro as the most expensive
+         thing on the roster. Everything under about six pixels — studs,
+         rivets, spikes, the lit facets, the ankle bands — is flat now, and
+         at 384x224 not one of them shows a tone it lost. */
       var HIDE = '#2e1d18', HIDE2 = '#4a2e24', STUD = '#cfcabc',
           CHAIN = '#9c968a', TROU = '#443f36', TROU2 = '#2c2924',
           HACKLE = '#7a3f26';
@@ -104,7 +111,7 @@
          on a hunched figure reads as a mohawk sitting on nothing.     */
       A.add('back', function (cx) {
         A.tuft(cx, N(-0.72, 0.34), 5, cw * 0.74, 64, 146, true);
-      }, HACKLE, { edge: true });
+      }, HACKLE, { edge: true, flat: true });
 
       /* ================= THE CUT ====================================
 
@@ -125,18 +132,35 @@
          edges and a lot of cat.                                        */
       A.add('body', function (cx) {
         cx.beginPath();
-        var a = T(0.62, f.chestW * 0.98); cx.moveTo(a.x, a.y);  /* front edge */
-        seg(cx, 0.92, f.chestW * 0.92);
-        seg(cx, 1.16, f.chestW * 0.70);
-        seg(cx, 1.38, f.chestW * 0.12);                         /* collar, standing */
-        seg(cx, 1.36, -f.chestW * 0.66);
-        seg(cx, 1.14, -f.chestW * 1.34);
-        seg(cx, 0.74, -f.chestW * 1.46);
-        seg(cx, 0.30, -f.hipW * 1.54);
-        seg(cx, -0.26, -f.hipW * 1.46);                         /* the long back hem */
+        /* WIDER THAN THE CAT, and that is not a style choice.
+
+           Five goes at this were painted flat on her ribs and every one
+           came out as a narrow wedge down the middle of her trunk. The
+           reason is in rig.js and it is worth writing down: after the
+           costume is poured, the trunk gets four muscle blocks — pec,
+           the shadow under it, lat, belly line — painted in FUR tones and
+           clipped to the body outline. They know nothing about a garment,
+           so anything laid inside that outline is buried under them. The
+           only strip they leave is the gap between pec and lat, which is
+           exactly the wedge that kept turning up.
+
+           So the cut is cut BIG: every edge sits outside the body, and the
+           part that survives is a rim of leather all the way round her —
+           which is what a heavy hide worn over a cat looks like anyway.
+           The front edge stands proud at 1.3 chests and the ginger shows
+           in front of it, so the cut still reads open. */
+        var a = T(0.14, f.hipW * 1.42); cx.moveTo(a.x, a.y);
+        seg(cx, 0.50, f.waistW * 1.44);
+        seg(cx, 0.86, f.chestW * 1.30);
+        seg(cx, 1.16, f.chestW * 0.98);
+        seg(cx, 1.38, f.chestW * 0.16);                         /* collar, standing */
+        seg(cx, 1.36, -f.chestW * 0.72);
+        seg(cx, 1.12, -f.chestW * 1.46);
+        seg(cx, 0.74, -f.chestW * 1.60);
+        seg(cx, 0.30, -f.hipW * 1.64);
+        seg(cx, -0.26, -f.hipW * 1.50);                         /* the long back hem */
         seg(cx, -0.34, -f.hipW * 0.66);
-        seg(cx, 0.14, -f.hipW * 0.34);
-        seg(cx, 0.44, f.chestW * 0.34);
+        seg(cx, 0.02, -f.hipW * 0.24);
         cx.closePath();
       }, HIDE, { band: true, edge: true });
 
@@ -144,22 +168,16 @@
          One material, two planes — with a single flat fill the cut is a
          black hole with a cat behind it. */
       A.add('body', function (cx) {
-        A.smooth(cx, [T(1.34, -f.chestW * 0.58), T(1.14, f.chestW * 0.64),
-                      T(0.88, f.chestW * 0.86), T(0.84, f.chestW * 0.30),
-                      T(1.06, f.chestW * 0.16), T(1.20, -f.chestW * 0.72)]);
-      }, HIDE2, { edge: true });
+        A.smooth(cx, [T(1.36, -f.chestW * 0.62), T(1.16, f.chestW * 0.90),
+                      T(0.88, f.chestW * 1.22), T(0.86, f.chestW * 0.72),
+                      T(1.08, f.chestW * 0.40), T(1.22, -f.chestW * 0.80)]);
+      }, HIDE2, { edge: true, flat: true });
 
-      /* studs down the front edge of the yoke, where the eye is already
-         going because the collar and the chain are there. Flat — they are
-         two pixels across in the game and a clip each buys nothing. */
-      for (var q = 0; q < 3; q++) {
-        (function (t) {
-          A.add('body', function (cx) {
-            var p = T(t, f.chestW * 0.80);
-            A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);
-          }, STUD, { flat: true });
-        })(0.74 + q * 0.19);
-      }
+      /* No studs down the front edge of the yoke. Three were drawn there
+         and every one of them is behind the near shoulder ball in every
+         pose — three contour strokes and three fills a frame for nothing.
+         She is the heaviest cat on the roster to draw, so anything that
+         does not appear comes out. */
 
       /* The back hem swings. A slab of leather hanging off her that never
          moves is a plank; f.sway already folds her speed and a slow idle
@@ -176,39 +194,20 @@
         cx.closePath();
       }, HIDE, { band: true, edge: true });
 
-      /* ================= THE CHAIN ==================================
+      /* No collar, and that is a finding rather than an omission.
 
-         Five links round the throat rather than a band, because a band at
-         this size is a black collar and she has enough black on her. They
-         are drawn as separate flat discs and the gaps between them are
-         what says metal. The ring hanging off the front is the bright
-         spot the eye lands on and the only round thing on her.        */
-      /* The first go laid the links along the spine with T(), from t 1.14
-         to 1.24 and w swinging from +0.78 to -0.92 of the chest — which
-         is not the throat, it is a diagonal across both shoulders, and it
-         came out as a row of pale pebbles up her back. A collar is hung
-         off the NECK JOINT and follows the neck, so it is built here in a
-         little frame of its own: N(w, h) is w forward of the neck and h
-         above it. It slopes down towards the front, which is where a
-         collar sits on a cat carrying its head low. */
-      for (var k = 0; k < 5; k++) {
-        (function (u) {
-          A.add('body', function (cx) {
-            var p = N(-0.52 + u * 1.14, 0.34 - u * 0.42);
-            A.ellipse(cx, p.x, p.y, cw * 0.18, cw * 0.15, 0);
-          }, CHAIN, { flat: true });
-        })(k / 4);
-      }
-      /* the ring hanging off the front of it. The only round thing on her
-         and the brightest — a heavy cat with one bright ring at the
-         throat gives the eye somewhere to land on a very dark figure. */
-      A.add('body', function (cx) {
-        var p = N(0.74, -0.44);
-        cx.beginPath();
-        cx.ellipse(p.x, p.y, cw * 0.34, cw * 0.34, 0, 0, Math.PI * 2);
-        cx.ellipse(p.x, p.y, cw * 0.15, cw * 0.15, 0, Math.PI * 2, 0, true);
-        cx.closePath();
-      }, STUD, { edge: true });
+         A chain, then a studded band, were both drawn round her throat and
+         neither survived a single pose. Between the skull, which is about
+         twenty-five pixels across, and the near shoulder ball, this build
+         has no visible neck at all — she is hunched, and a hunched cat
+         tucks its head down between its shoulders, which is exactly what
+         makes the stance work everywhere else. Two blocks of code cost
+         eight fills a frame and drew nothing. They are gone.
+
+         The rule this leaves behind, for whoever styles the next heavy:
+         on this rig only the FAR SHOULDER, the FOREARMS, the HIPS, the
+         LEGS and the outline itself are paintable. The chest is under the
+         muscle blocks and the throat is under the skull.                */
 
       /* ================= THE BELT ===================================
          Wide and low, with a plate buckle. A narrow belt is eaten by the
@@ -220,7 +219,7 @@
       A.add('front', function (cx) {
         var b = T(0.25, f.hipW * 1.06);
         A.ellipse(cx, b.x, b.y, f.s * 3.4, f.s * 2.8, 0.25);
-      }, STUD, { edge: true });
+      }, STUD, { edge: true, flat: true });
       /* the tongue of the belt hanging loose off the buckle, swinging on
          f.sway. A strap that does not move is a strip of tape. */
       A.add('front', function (cx) {
@@ -232,7 +231,7 @@
         seg(cx, -0.26, f.hipW * 0.98 + d * 1.8);
         seg(cx, -0.02, f.hipW * 0.96 + d);
         cx.closePath();
-      }, HIDE2, { edge: true });
+      }, HIDE2, { edge: true, flat: true });
 
       /* ================= THE TROUSERS ===============================
 
@@ -277,7 +276,7 @@
           L2(cx, P(b, knee, b.L * 0.24, -ws * 0.24));
           L2(cx, P(a, hip, -a.L * 0.26, -wh * 0.34));
           cx.closePath();
-        }, TROU2, {});
+        }, TROU2, { flat: true });
       }
       trouser('body', j.hipB, j.kneeB, j.footB,
               f.R_TOP * 1.06, f.R_MID * 1.36, f.R_MID * 1.24);
@@ -296,7 +295,7 @@
          Wider at the wrist than at the elbow, so the arm ends in a flare
          rather than tapering away, and the studs sit on the outside edge
          where the light is.                                            */
-      function bracer(layer, elb, hand, w0, w1) {
+      function bracer(layer, elb, hand, w0, w1, near) {
         var o = frame(elb, hand);
         function A2(u, v) { return P(o, elb, o.L * u, v); }
         /* Stops at 0.84 along the forearm, not at the hand. Run all the way
@@ -306,12 +305,16 @@
         A.add(layer, function (cx) {
           A.limb(cx, top, end, w0, w1, 0.18, 'foreArm');
         }, HIDE, { band: true, edge: true });
-        /* the lit edge along the top of the cuff — one material, two
-           planes, same as the cut and the plate */
+        /* The lit edge and the studs go on the NEAR cuff only. The far arm
+           is drawn in the shade tone and half behind the trunk, and four
+           more shapes on it were four more shapes nobody sees — this cat
+           is the most expensive one to draw and the far side is where the
+           savings are free. */
+        if (!near) return;
         A.add(layer, function (cx) {
           A.smooth(cx, [A2(0.30, w0 * 0.28), A2(0.82, w1 * 0.32),
                         A2(0.82, w1 * 0.92), A2(0.30, w0 * 0.90)]);
-        }, HIDE2, {});
+        }, HIDE2, { flat: true });
         /* two studs, along the cuff. Three sat in a row across it and read
            as a domino tile rather than as rivets. */
         [0.42, 0.68].forEach(function (u) {
@@ -321,8 +324,36 @@
           }, STUD, { flat: true });
         });
       }
-      bracer('body', j.elbB, j.handB, f.R_MID * 0.98, f.R_END * 1.16);
-      bracer('front', j.elbF, j.handF, f.R_MID * 1.06, f.R_END * 1.26);
+      bracer('body', j.elbB, j.handB, f.R_MID * 0.98, f.R_END * 1.16, false);
+      bracer('front', j.elbF, j.handF, f.R_MID * 1.06, f.R_END * 1.26, true);
+
+      /* ================= THE ANKLE WRAPS ============================
+
+         Bare feet, but strapped ankles — she has been doing this a long
+         time and the ankles are the thing that goes first. They earn their
+         place on the picture as well as on the character: the lower legs
+         are the only part of her that is never crossed by an arm, so a
+         hard dark band there reads at 1:1 where most of this costume does
+         not. Wider than the shin, so the leg steps out of its own outline
+         at the ankle instead of tapering into the paw.                  */
+      function anklet(layer, knee, foot, near) {
+        var o = frame(knee, foot);
+        /* Stops at four fifths of the shin. Run down to the foot joint it
+           swallowed the paw and she came out in boots, which is the one
+           thing the brief for her says she is not wearing. */
+        var top = { x: knee.x + o.ux * o.L * 0.56, y: knee.y + o.uy * o.L * 0.56 };
+        var low = { x: knee.x + o.ux * o.L * 0.80, y: knee.y + o.uy * o.L * 0.80 };
+        A.add(layer, function (cx) {
+          A.limb(cx, top, low, f.R_END * 1.34, f.R_END * 1.30, 0.08, 'shin');
+        }, HIDE, { edge: true, flat: true });
+        if (!near) return;                 /* the far one keeps no stud */
+        A.add(layer, function (cx) {
+          var q3 = P(o, low, -o.L * 0.06, f.R_END * 0.80);
+          A.ellipse(cx, q3.x, q3.y, f.s * 1.5, f.s * 1.5, 0);
+        }, STUD, { flat: true });
+      }
+      anklet('body', j.kneeB, j.footB, false);
+      anklet('front', j.kneeF, j.footF, true);
 
       /* ================= THE PAULDRON ===============================
 
@@ -372,8 +403,10 @@
          forward and they cross her own muzzle, which at this size reads
          as a broken drawing rather than as studs */
       A.add('body', function (cx) {
-        A.tuft(cx, Q(0.78, -0.34), 3, pr * 0.60, 54, 68, false);
-      }, STUD, { edge: true });
+        /* Fat and short. A.tuft makes each spike len*0.22 wide, so a long
+           thin one is a hair at 384x224 and the contour pass eats it. */
+        A.tuft(cx, Q(0.78, -0.34), 3, pr * 0.92, 56, 66, false);
+      }, STUD, { edge: true, flat: true });
 
       /* the lit top plane, cut hard across the plate. Three tones on one
          material: HIDE in shadow, HIDE2 catching the light, and the
@@ -387,23 +420,19 @@
         L2(cx, Q(-0.12, -0.68));
         L2(cx, Q(0.10, 0.10));
         cx.closePath();
-      }, PLATE2, {});
+      }, PLATE2, { flat: true });
 
       /* three rivets round the rim, flat — they are two pixels across in
          the game and a clip each buys nothing anybody can see */
-      [[0.30, -0.92], [-0.30, -1.12], [-0.80, -0.80]].forEach(function (r) {
+      [[0.22, -1.02], [-0.56, -1.00]].forEach(function (r) {
         A.add('body', function (cx) {
           var p = Q(r[0], r[1]);
           A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);
         }, STUD, { flat: true });
       });
 
-      /* the strap running from under the plate across to the far side of
-         her chest, so it is buckled ON and not floating over her */
-      A.add('body', function (cx) {
-        A.smooth(cx, [Q(-0.70, -0.46), Q(-0.98, -0.16),
-                      T(0.50, f.waistW * 0.30), T(0.44, f.waistW * 0.90)]);
-      }, HIDE2, { edge: true });
+      /* The strap that buckled the plate across her chest is gone too:
+         it crossed the one part of her that is never visible. */
     },
 
     /* Old damage, in three pale lines. It goes on the bare upper arm and
@@ -457,7 +486,11 @@
        of them. The old `accessory: 'collar'` in particular put a little
        gold BELL under her chin, which is the exact opposite of the read. */
     kit: {},
-    fur: '#a55c34', fur2: '#82452a', belly: '#e8c9a4', marks: '#5d2f1c',
+    /* Warmed up a step on 22 Aug. Against near-black leather and a steel
+       plate the old #a55c34 sat in the same muddy band as the kit and the
+       whole cat read brown-on-brown; the ginger has to be the light in the
+       picture or there is no picture. */
+    fur: '#b8683a', fur2: '#8d4b2c', belly: '#f0d6b2', marks: '#5d2f1c',
     eye: '#e0b23a', nose: '#c4736a', inner: '#d99a90',
     accent: '#6b2f22', pattern: 'tabby',
     tailTip: '#5d2f1c', line: 'rgba(38,20,14,.6)'
