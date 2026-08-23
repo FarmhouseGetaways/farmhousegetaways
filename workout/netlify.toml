@@ -61,6 +61,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/account"
+  to = "/.netlify/functions/account"
+  status = 200
+
+[[redirects]]
   from = "/api/plan"
   to = "/.netlify/functions/plan"
   status = 200

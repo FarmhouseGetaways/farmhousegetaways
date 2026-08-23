@@ -1,5 +1,7 @@
 /**
- * Shared plumbing for the workout tracker's three functions.
+ * Shared plumbing for the workout tracker's functions — the admin password
+ * specifically. See _lib/users.mjs for the separate, unrelated account
+ * system this file's sessionSeed also signs.
  *
  * THE IDEA
  * The app is a folder of static files. Exactly two things need a server: the
@@ -34,7 +36,13 @@ export const MEDIA = () => getStore("workout-media");
 export const SUBS = () => getStore("workout-subs");
 
 export const PLAN_KEY = "plan";
+/* The shared record, from before accounts existed. Kept only as the seed the
+   very first account is copied from — see account.mjs's migrateLegacyHistory
+   — never read from again after that. */
 export const HISTORY_KEY = "history";
+/* Every account after that gets its own key, so five people's training does
+   not collide in one blob. */
+export const historyKeyFor = (userId) => "history:" + userId;
 
 export const json = (obj, status = 200, headers = {}) =>
   Response.json(obj, { status, headers: { "Cache-Control": "no-store", ...headers } });
@@ -60,14 +68,25 @@ export function passwordOk(given) {
 }
 
 /**
- * The signing key for session tokens. A separate WORKOUT_SESSION_SECRET is
- * better — changing the password then need not sign everybody out — but
- * deriving one from the password keeps setup to a single environment variable,
- * which is the difference between this being set up and not being set up.
+ * The seed behind every signing key on this site — the admin session above,
+ * and the account sessions and reset tokens in _lib/users.mjs. A separate
+ * WORKOUT_SESSION_SECRET is better — changing the password then need not sign
+ * everybody out — but falling back to the password keeps setup to a single
+ * environment variable, which is the difference between this being set up and
+ * not being set up.
+ *
+ * Each user of this seed hashes it with its own prefix ("workout:", "account:",
+ * "reset:") so an admin session token and an account session token are signed
+ * with different keys even though they trace back to the same secret — one
+ * cannot be replayed as the other.
  */
-function signingKey() {
+export function sessionSeed() {
   const explicit = (process.env.WORKOUT_SESSION_SECRET || "").trim();
-  return explicit || createHash("sha256").update("workout:" + password()).digest("hex");
+  return explicit || password();
+}
+
+function signingKey() {
+  return createHash("sha256").update("workout:" + sessionSeed()).digest("hex");
 }
 
 export function makeToken() {
@@ -89,7 +108,7 @@ export function tokenOk(token) {
   return timingSafeEqual(a, b);
 }
 
-function readCookie(req, name) {
+export function readCookie(req, name) {
   const raw = req.headers.get("cookie") || "";
   for (const part of raw.split(";")) {
     const [k, ...v] = part.trim().split("=");

@@ -70,18 +70,49 @@ unaccounted for at nothing. Set the body weight in Settings. It is stored with
 each workout, so changing it does not rewrite the past. It is an estimate and
 the app says so on screen.
 
+## Accounts — up to five, for the beta
+
+**Signing in and editing are two unrelated locks**, on purpose. An account —
+email and password, or Google — is a real person's own, and it is what their
+training record is attached to and what makes it sync between their phone and
+their iPad. It has nothing to do with editing the week.
+
+**Create one, sign in, or reset a forgotten password** from the **Sign in**
+pill at the bottom of every screen, or `/#/login`. Five accounts, while this
+stays a small beta rather than something built out with real multi-tenant
+infrastructure — invoices, roles, an admin screen for managing other people's
+accounts — before it is known whether any of that is needed. Raising the
+number later is a one-line change in `_lib/users.mjs`.
+
+**Google is optional.** If `GOOGLE_CLIENT_ID` is set (see *Deploying*) a
+"Sign in with Google" button appears on the sign-in screen; without it, it
+simply does not, the same fail-quiet-until-configured pattern reminders
+already use for `VAPID_PUBLIC`/`VAPID_PRIVATE`. Nothing about it needs a
+Google *password* reaching this app — Google's own script hands back a signed
+token, verified here against Google's public keys.
+
+**Forgotten passwords are emailed a reset link**, if `RESEND_API_KEY` and
+`RESEND_FROM` are set (see *Deploying*); without them, the site still works,
+it just cannot send that email, and says so. The reply is identical whether or
+not the address typed in has an account — telling the two apart would let the
+box be used to find out who has signed up here.
+
+**Each account's own record, and nobody else's — the admin password
+included.** The old, single shared record from before accounts existed was
+copied once into whoever created the very first account, so nothing already
+logged was lost; every account after that starts with a clean training log of
+its own. See the storage table below for exactly who can read what.
+
 ## Editing the week — click the thing and type
 
-**Signing in is not enough, on purpose.** Signing in is Carissa's — it is what
-syncs her record between the phone and the iPad. Editing the week is not hers,
-and it should not be one mis-tap away while she is halfway through a set.
-
-So the editor is behind a second, deliberate gesture, the same one the
-farmhouse app uses for its own admin screen: **press and hold the title at the
-top of any screen for three quarters of a second.** There is no button,
-because a button is something you press by accident. On a laptop, `/#/admin`
-does the same. Either way it asks for `WORKOUT_PASSWORD` if you are not already
-signed in.
+The editor is a completely separate thing from any of the above: the app's own
+shared password, known to whoever is trusted to write the week, not tied to
+any one account. It is behind a deliberate gesture, the same one the farmhouse
+app uses for its own admin screen: **press and hold the title at the top of
+any screen for three quarters of a second.** There is no button, because a
+button is something you press by accident. On a laptop, `/#/admin` does the
+same. Either way it asks for `WORKOUT_PASSWORD` if it has not already been
+typed on this device.
 
 It is held for the session only: closing the app locks the editor again, and
 **Settings → Lock the editor** does it on the spot. Nobody wants to hand over
@@ -198,31 +229,46 @@ so rather than failing silently.
 
 ## Where things are stored, and who can read what
 
-Two Netlify Blobs belonging to this site alone. Not files in this repository —
+Netlify Blobs belonging to this site alone. Not files in this repository —
 `FarmhouseGetaways/farmhousegetaways` is **public**, and a training log is not.
 
 | | Read | Write |
 |---|---|---|
-| **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the password |
-| **The record** (`/api/history`) | the password | the password |
+| **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the admin password |
+| **An account's own record** (`/api/history`) | that account, signed in | that account, signed in |
+| **Accounts** (email, name, a password hash — never the password itself) | nobody, over the API | signing up, or Google, once |
 
-`data/plan.json` stays committed as the floor underneath: if the store has
-never been written, or is wiped, the app falls back to it rather than to a
-blank week. It is imported by the function rather than fetched, so there is no
-network call to fail silently in production.
+Two separate locks, two separate cookies: the admin password gates the week
+and nothing else; an account gates one person's own record and nothing
+else — not another account's record, and not the week. Knowing the admin
+password does not let anyone read a training record; being signed into an
+account does not let anyone edit the week.
 
-**How signing in works.** The password lives in a Netlify environment variable
-and is compared on the server. Signing in sets an `HttpOnly` session cookie —
+`data/plan.json` stays committed as the floor underneath the plan: if the
+store has never been written, or is wiped, the app falls back to it rather
+than to a blank week. It is imported by the function rather than fetched, so
+there is no network call to fail silently in production.
+
+**How the admin password works.** It lives in a Netlify environment variable
+and is compared on the server. Typing it sets an `HttpOnly` session cookie —
 the page's own JavaScript cannot read it, and nor can anything else that ends
 up running on the page — which is a signed, expiring token, not the password
-itself. Every write and every read of the record checks that cookie
-server-side, so a visitor editing the page in dev tools changes what *they* see
-and nothing else. Ten wrong guesses from one address inside fifteen minutes and
-that address waits.
+itself. Every write of the week checks that cookie server-side, so a visitor
+editing the page in dev tools changes what *they* see and nothing else. Ten
+wrong guesses from one address inside fifteen minutes and that address waits.
 
-With `WORKOUT_PASSWORD` unset, signing in is impossible, every write is refused
-and the record cannot be read. **A misconfigured site is a read-only site,
-never an open one.**
+**How an account works.** A password, hashed with scrypt and a random salt per
+person (`_lib/credentials.mjs`), or a Google sign-in verified against Google's
+own public keys (`_lib/google.mjs`) — either way nothing this app could leak
+is anyone's actual Google password. Signing in sets its own `HttpOnly` cookie,
+carrying which account and which "generation" of its password; changing the
+password bumps that generation, which is what actually signs every other
+device out rather than just feeling like it should. The same ten-wrong-guesses
+lockout applies, kept separately from the admin password's.
+
+With `WORKOUT_PASSWORD` unset, none of this works at all — no signing in as
+admin, no accounts, nothing readable but the week. **A misconfigured site is a
+read-only site, never an open one.**
 
 The app works completely with no server at all — the committed week, the
 browser, and a whole workout logged offline, which goes up on its own when
@@ -240,16 +286,42 @@ repository root:
 4. **Publish directory:** `workout`
 5. **Environment variables** → add:
 
-       WORKOUT_PASSWORD = whatever you want to type to edit the week and see the record
+       WORKOUT_PASSWORD = whatever you want to type to edit the week
+
+   Everything else — accounts, reminders — needs this one set to work at all,
+   fails closed without it, and is otherwise all optional:
 
    Optionally `WORKOUT_SESSION_SECRET` (any long random string). Without it the
    signing key is derived from the password, which means changing the password
-   signs every device out — usually what you want anyway.
+   signs every device out — usually what you want anyway. It signs account
+   sessions and password-reset links too, each with its own domain-separated
+   key derived from this one seed — see `_lib/auth.mjs`'s `sessionSeed`.
 
    For push reminders, two more from `npx web-push generate-vapid-keys`:
 
        VAPID_PUBLIC   = the public key
        VAPID_PRIVATE  = the private key
+
+   For emailing a password-reset link, from [resend.com](https://resend.com) —
+   free at this scale, a few minutes to sign up and verify a sending domain
+   (or use their sandbox address, which only delivers to the account's own
+   sign-up email until a domain is verified):
+
+       RESEND_API_KEY = the key from Resend
+       RESEND_FROM    = the address it sends as, e.g. "Carissa's Workouts <no-reply@yourdomain.com>"
+
+   Without these, accounts and sign-in still work — only "forgot your
+   password" cannot send an email, and says so rather than pretending to.
+
+   For "Sign in with Google", from a Web application OAuth client at
+   [Google Cloud Console](https://console.cloud.google.com/apis/credentials) —
+   an authorized JavaScript origin of this site's URL, no client secret needed
+   for this flow:
+
+       GOOGLE_CLIENT_ID = the OAuth 2.0 client id
+
+   Without it, the sign-in screen simply has no Google button — email and
+   password still work.
 
 6. Deploy. Then *Domain management* if it should have a name of its own.
 
@@ -294,6 +366,7 @@ again.
     css/workout.css           all of the styling
     js/catalog.js             effort levels, the calorie maths, video links, formatting
     js/store.js               the week and the record: load, save, sync, the numbers
+    js/account.js             talking to /api/account — sign up, sign in, Google, reset
     js/media.js               shrinking a picture and sending it
     js/push.js                asking to be reminded, and what to do if it cannot
     js/app.js                 the screens, the editor, and the one click handler
@@ -304,17 +377,22 @@ again.
     netlify.toml              this folder's own site config
     package.json              one dependency: @netlify/blobs, for the functions
 
-    netlify/functions/auth.mjs       signing in, out, and the lockout
-    netlify/functions/plan.mjs       the week: public to read, password to write
-    netlify/functions/history.mjs    the record: password to read and to write
+    netlify/functions/auth.mjs       the ADMIN password: signing in, out, the lockout
+    netlify/functions/account.mjs    accounts: sign up, sign in, Google, reset — see below
+    netlify/functions/plan.mjs       the week: public to read, admin password to write
+    netlify/functions/history.mjs    an account's own record: that account only, to read or write
     netlify/functions/media.mjs      pictures and clips: public to read, password to add
-    netlify/functions/reminders.mjs  which device wants nudging, and when
+    netlify/functions/reminders.mjs  which device wants nudging, and when — an account, signed in
     netlify/functions/reminder-tick.mjs  the hourly sweep, run by Netlify itself
-    netlify/functions/_lib/remind.mjs    whether a nudge is owed — pure, and tested
-    netlify/functions/_lib/push.mjs      sending one, and pruning dead devices
-    netlify/functions/_lib/tick.mjs      the sweep itself, so it can also be run on demand
-    netlify/functions/_lib/auth.mjs  the password, the cookie, the stores
-    netlify/functions/_lib/data.mjs  the shape of the data and every clamp
+    netlify/functions/_lib/remind.mjs        whether a nudge is owed — pure, and tested
+    netlify/functions/_lib/push.mjs          sending one, and pruning dead devices
+    netlify/functions/_lib/tick.mjs          the sweep itself, so it can also be run on demand
+    netlify/functions/_lib/auth.mjs          the admin password, its cookie, the stores, the shared session seed
+    netlify/functions/_lib/users.mjs         the account store, its sessions, password resets
+    netlify/functions/_lib/credentials.mjs   password hashing and email validation — pure, and tested
+    netlify/functions/_lib/google.mjs        verifying a Google sign-in — pure claim checks, and tested
+    netlify/functions/_lib/mail.mjs          sending the reset-link email, via Resend
+    netlify/functions/_lib/data.mjs          the shape of the plan and the record, and every clamp
 
 Run the tests after touching anything under `_lib/`:
 

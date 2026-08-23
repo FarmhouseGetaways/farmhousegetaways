@@ -23,9 +23,18 @@
    THE PASSWORD IS NEVER STORED HERE. Signing in posts it once to /api/auth,
    which sets an HttpOnly cookie the page cannot read. Every later request
    carries that cookie on its own.
+
+   SIGNING IN AND HAVING AN ACCOUNT ARE TWO DIFFERENT THINGS
+   "Signing in" above, and `signedIn` below, is the app's one shared admin
+   password — it gates the editor and nothing else. An account (see
+   js/account.js and `state.account` below) is a real person's own email and
+   password, or Google, and it is what a training record is attached to and
+   what makes it sync. The two are unrelated locks; having one says nothing
+   about the other.
    ========================================================================== */
 
 import { sessionCalories, todayKey, DAY_KEYS, startOfDay } from "./catalog.js";
+import * as account from "./account.js";
 
 const API = {
   auth: "/api/auth",
@@ -36,10 +45,18 @@ const SOURCE = "data/plan.json";
 
 const KEYS = {
   plan: "fg-workout-plan",
-  history: "fg-workout-history",
-  pending: "fg-workout-pending", // workouts that have not reached the server yet
+  history: "fg-workout-history",   // used only when nobody is signed into an account
+  pending: "fg-workout-pending",
   live: "fg-workout-live",       // a workout in progress, so closing the app loses nothing
 };
+
+/* A signed-in account's history and queue are cached under their own key, so
+   two different people signing into the same account system on the same
+   phone never see a flash of the wrong person's workouts before the server's
+   answer arrives. Signed out, the app falls back to the plain shared key —
+   the local-only record it always had. */
+const historyKey = () => (state.account ? `${KEYS.history}:${state.account.id}` : KEYS.history);
+const pendingKey = () => (state.account ? `${KEYS.pending}:${state.account.id}` : KEYS.pending);
 
 /* ---------- localStorage that cannot take the page down ---------- */
 
@@ -103,10 +120,15 @@ const state = {
   plan: emptyPlan(),
   history: emptyHistory(),
   mode: "local",        // "server" once /api/plan has answered
-  signedIn: false,
+  signedIn: false,       // the admin password — gates the editor only
   hasPassword: true,    // assumed until the server says otherwise
   note: "",             // why the mode is what it is, in plain English
   loaded: false,
+
+  account: null,               // { id, email, name } | null — a real person's account
+  accountConfig: {              // what this site is set up to offer
+    full: false, maxUsers: 5, mailConfigured: false, google: null,
+  },
 };
 
 const listeners = new Set();
@@ -150,15 +172,36 @@ async function call(url, options = {}) {
  */
 export async function load() {
   state.plan = shapePlan(read(KEYS.plan, null) || emptyPlan());
-  state.history = shapeHistory(read(KEYS.history, null) || emptyHistory());
+  // state.account is not known yet, so this reads the plain, unscoped key —
+  // correct for "nobody signed in" and replaced below the moment an account
+  // status comes back, so a second person's phone never shows a flash of it.
+  state.history = shapeHistory(read(historyKey(), null) || emptyHistory());
   if (state.plan.days.some((d) => d.exercises.length)) { state.loaded = true; emit(); }
 
   let served = null;
+  let acctStatus = null;
   try {
-    const { res, body } = await call(API.plan);
-    if (res.ok && body.plan) served = body;
+    const [planResult, acctResult] = await Promise.all([
+      call(API.plan).catch(() => null),
+      account.status().catch(() => null),
+    ]);
+    if (planResult?.res.ok && planResult.body.plan) served = planResult.body;
+    acctStatus = acctResult;
   } catch {
     served = null;                                    // no signal: the cache stands
+  }
+
+  if (acctStatus?.ok) {
+    state.accountConfig = {
+      full: !!acctStatus.full, maxUsers: acctStatus.maxUsers || 5,
+      mailConfigured: !!acctStatus.mailConfigured, google: acctStatus.google || null,
+    };
+    if (acctStatus.signedIn && acctStatus.account) {
+      state.account = acctStatus.account;
+      // Re-read from this account's own cache — the first read above used the
+      // generic key because nobody was known to be signed in yet.
+      state.history = shapeHistory(read(historyKey(), null) || emptyHistory());
+    }
   }
 
   if (served) {
@@ -168,7 +211,7 @@ export async function load() {
     state.note = state.hasPassword ? "" : "No password is set on this site, so nothing can be saved to it.";
     state.plan = shapePlan(served.plan);
     write(KEYS.plan, state.plan);
-    if (state.signedIn) await pullHistory();
+    if (state.account) await pullHistory();
   } else {
     state.mode = "local";
     state.signedIn = false;
@@ -195,7 +238,7 @@ async function pullHistory() {
     const { res, body } = await call(API.history);
     if (!res.ok || !body.history) return false;
     state.history = mergeLocalInto(shapeHistory(body.history));
-    write(KEYS.history, state.history);
+    write(historyKey(), state.history);
     return true;
   } catch { return false; }
 }
@@ -231,17 +274,59 @@ export async function signIn(password) {
     return { ok: false, error: body.error || "That password isn't right." };
   }
 
+  // The admin password. It has nothing to do with anyone's training record —
+  // that is an account's business (see accountLogIn et al below) — so there
+  // is no history to pull here, only the plan becoming editable.
   state.signedIn = true;
   state.mode = "server";
-  await pullHistory();
   emit();
-  flush();
   return { ok: true };
 }
 
 export async function signOut() {
   try { await call(API.auth, { method: "DELETE" }); } catch { /* the cookie expires anyway */ }
   state.signedIn = false;
+  emit();
+}
+
+/* ---------- accounts ---------- */
+
+/** After any successful sign-in — new account, existing one, or Google.
+ * Three things: remember who it is, bring along whatever this device already
+ * has for them (their own cache, plus any local-only workouts logged on this
+ * phone before an account ever existed here — nobody signed in yet is what
+ * "signed out" always meant, not "nothing counts"), then reconcile with the
+ * server. */
+async function afterAccountSignIn(result) {
+  if (!result.ok) return result;
+  state.account = result.account;
+
+  const ownCache = shapeHistory(read(historyKey(), null) || emptyHistory());
+  const orphaned = shapeHistory(read(KEYS.history, null) || emptyHistory());
+  const known = new Set(ownCache.sessions.map((s) => s.id));
+  const carried = orphaned.sessions.filter((s) => !known.has(s.id));
+  state.history = carried.length
+    ? { ...ownCache, sessions: [...ownCache.sessions, ...carried].sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : -1)) }
+    : ownCache;
+  write(historyKey(), state.history);
+
+  emit();
+  await pullHistory();
+  emit();
+  flush();
+  return { ok: true };
+}
+
+export const accountSignUp = (fields) => account.signUp(fields).then(afterAccountSignIn);
+export const accountLogIn = (fields) => account.logIn(fields).then(afterAccountSignIn);
+export const accountWithGoogle = (credential) => account.withGoogle(credential).then(afterAccountSignIn);
+export const accountRequestReset = (email) => account.requestReset(email);
+export const accountResetPassword = (fields) => account.resetPassword(fields).then(afterAccountSignIn);
+
+export async function accountLogOut() {
+  await account.logOut();
+  state.account = null;
+  state.history = emptyHistory();
   emit();
 }
 
@@ -288,7 +373,7 @@ export async function logSession(session) {
     sessions: [clean, ...state.history.sessions.filter((s) => s.id !== clean.id)]
       .sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : -1)),
   };
-  write(KEYS.history, state.history);
+  write(historyKey(), state.history);
   emit();
 
   return send([clean]);
@@ -296,10 +381,10 @@ export async function logSession(session) {
 
 export async function saveSettings(patch) {
   state.history = { ...state.history, settings: { ...state.history.settings, ...patch } };
-  write(KEYS.history, state.history);
+  write(historyKey(), state.history);
   emit();
 
-  if (state.mode !== "server" || !state.signedIn) return { ok: true, storage: "local" };
+  if (state.mode !== "server" || !state.account) return { ok: true, storage: "local" };
   try {
     const { res, body } = await call(API.history, {
       method: "POST",
@@ -314,17 +399,17 @@ export async function saveSettings(patch) {
 
 export async function deleteSession(id) {
   state.history = { ...state.history, sessions: state.history.sessions.filter((s) => s.id !== id) };
-  write(KEYS.history, state.history);
+  write(historyKey(), state.history);
   // A queued workout deleted before it was ever sent must not come back to
   // life on the next flush.
-  write(KEYS.pending, (read(KEYS.pending, []) || []).filter((s) => s.id !== id));
+  write(pendingKey(), (read(pendingKey(), []) || []).filter((s) => s.id !== id));
   emit();
 
-  if (state.mode !== "server" || !state.signedIn) return { ok: true, storage: "local" };
+  if (state.mode !== "server" || !state.account) return { ok: true, storage: "local" };
   try {
     const { res, body } = await call(API.history, { method: "DELETE", body: JSON.stringify({ ids: [id] }) });
     if (!res.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
-    if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); emit(); }
+    if (body.history) { state.history = shapeHistory(body.history); write(historyKey(), state.history); emit(); }
     return { ok: true, storage: "server" };
   } catch (err) {
     return { ok: false, error: err.message };
@@ -334,7 +419,7 @@ export async function deleteSession(id) {
 /* ---------- the queue ---------- */
 
 async function send(sessions) {
-  if (state.mode !== "server" || !state.signedIn) {
+  if (state.mode !== "server" || !state.account) {
     queue(sessions);
     return { ok: true, storage: "local",
       note: state.mode === "server"
@@ -342,14 +427,14 @@ async function send(sessions) {
         : "Saved on this phone." };
   }
   try {
-    const pending = read(KEYS.pending, []) || [];
+    const pending = read(pendingKey(), []) || [];
     const { res, body } = await call(API.history, {
       method: "POST",
       body: JSON.stringify({ sessions: [...pending, ...sessions], settings: state.history.settings }),
     });
     if (!res.ok) throw new Error(body.error || `The server said ${res.status}.`);
-    write(KEYS.pending, []);
-    if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); emit(); }
+    write(pendingKey(), []);
+    if (body.history) { state.history = shapeHistory(body.history); write(historyKey(), state.history); emit(); }
     return { ok: true, storage: "server" };
   } catch (err) {
     queue(sessions);
@@ -359,26 +444,26 @@ async function send(sessions) {
 }
 
 function queue(sessions) {
-  const pending = read(KEYS.pending, []) || [];
+  const pending = read(pendingKey(), []) || [];
   const byId = new Map(pending.map((s) => [s.id, s]));
   for (const s of sessions) byId.set(s.id, s);
-  write(KEYS.pending, [...byId.values()]);
+  write(pendingKey(), [...byId.values()]);
 }
 
-export const pendingCount = () => (read(KEYS.pending, []) || []).length;
+export const pendingCount = () => (read(pendingKey(), []) || []).length;
 
 /** Push anything queued. Called on load, after signing in, and when the network returns. */
 export async function flush() {
-  const pending = read(KEYS.pending, []) || [];
-  if (!pending.length || state.mode !== "server" || !state.signedIn) return { ok: false, sent: 0 };
+  const pending = read(pendingKey(), []) || [];
+  if (!pending.length || state.mode !== "server" || !state.account) return { ok: false, sent: 0 };
   try {
     const { res, body } = await call(API.history, {
       method: "POST",
       body: JSON.stringify({ sessions: pending, settings: state.history.settings }),
     });
     if (!res.ok) return { ok: false, sent: 0 };
-    write(KEYS.pending, []);
-    if (body.history) { state.history = shapeHistory(body.history); write(KEYS.history, state.history); }
+    write(pendingKey(), []);
+    if (body.history) { state.history = shapeHistory(body.history); write(historyKey(), state.history); }
     emit();
     return { ok: true, sent: pending.length };
   } catch {

@@ -30,6 +30,7 @@
    ========================================================================== */
 
 import * as store from "./store.js";
+import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
 import * as push from "./push.js";
 import {
@@ -183,7 +184,7 @@ function unlockAdmin() {
     return;
   }
 
-  if (!store.get().signedIn) { askSignIn(null, true); return; }
+  if (!store.get().signedIn) { askAdminPassword(); return; }
   setAdmin(true);
   toast("Editor unlocked. The pencil is at the top.", "good");
   render();
@@ -1411,8 +1412,8 @@ async function renderRemind() {
 
   reminderState = await push.status().catch((err) => ({ ok: false, supported: true, why: err.message }));
   const st = reminderState;
-  if (!store.get().signedIn) {
-    st.why = "Sign in first — a reminder is attached to this device on the server, and that needs the password.";
+  if (!store.get().account) {
+    st.why = "Sign in first — a reminder is attached to this device on the server, and that needs an account.";
   }
   const on = st.subscribed && st.reminder?.enabled;
   const hour = st.reminder?.hour ?? 8;
@@ -1427,7 +1428,7 @@ async function renderRemind() {
           st.permission === "denied"
             ? "Notifications are blocked for this app in the browser's settings. Allow them there, then come back."
             : st.why || "Reminders are not available here.")}</p>
-         ${!store.get().signedIn ? `<div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>` : ""}`
+         ${!store.get().account ? `<div class="btn-row"><button class="btn btn--go" data-action="go-login">Sign in</button></div>` : ""}`
       : ""}
 
     <p class="muted">A nudge on the morning of a day that has a workout in it &mdash; never on a rest day, and never
@@ -1469,6 +1470,127 @@ async function renderRemind() {
 }
 
 /* ==========================================================================
+   Accounts — signing in, signing up, and getting a forgotten password back.
+
+   Separate from the admin password (askAdminPassword, above) in every way
+   that matters: this is a real person's own email, and what their training
+   record is attached to. Four modes share one screen because they share
+   almost everything about it — the same shell, the same handful of fields,
+   the same "something went wrong" box above the button.
+   ========================================================================== */
+
+function renderAccountScreen(mode, token = "") {
+  const s = store.get();
+
+  // Already signed in, and not here to use a reset link someone forwarded —
+  // there is nothing for this screen to do.
+  if (mode !== "reset" && s.account) { go("#/"); return renderWeek(); }
+
+  bar.hidden = true;
+  const cfg = s.accountConfig;
+
+  const COPY = {
+    login: { bar: "Sign in", eyebrow: "Sign in", title: "Welcome back", sub: "Your workouts and your record follow you here.",
+      submit: "Sign in" },
+    signup: { bar: "Sign up", eyebrow: "New here", title: "Create an account", sub: "So your workouts follow you between devices, and stay yours.",
+      submit: "Create account" },
+    forgot: { bar: "Reset", eyebrow: "Account", title: "Forgot your password?", sub: "We'll email a link to set a new one.",
+      submit: "Send the link" },
+    reset: { bar: "Reset", eyebrow: "Account", title: "Set a new password", sub: "This link works once, for one hour.",
+      submit: "Set the new password" },
+  }[mode];
+  setTitle(COPY.bar, "account");
+
+  const full = mode === "signup" && cfg.full;
+
+  screen.innerHTML = `
+    <p class="eyebrow">${esc(COPY.eyebrow)}</p>
+    <h2 class="h-display">${esc(COPY.title)}</h2>
+    <p class="muted" style="margin-bottom:1.25rem">${esc(COPY.sub)}</p>
+
+    <div id="acct-error"></div>
+
+    ${full ? `<p class="note note--warn">This app is in a small beta and already has its ${cfg.maxUsers} accounts.
+        Ask to be added, or <a href="#/login">sign in</a> if you already have one.</p>` : `
+    <form id="acct-form" novalidate>
+      ${mode !== "reset" ? `<label class="field"><span>Email</span>
+        <input type="email" id="a-email" autocomplete="email" enterkeyhint="next" required></label>` : ""}
+      ${mode === "signup" ? `<label class="field field--hint"><span>Your name</span>
+        <input type="text" id="a-name" autocomplete="name">
+        <small>Just for the app to greet you by &mdash; optional.</small></label>` : ""}
+      ${mode === "login" || mode === "signup" || mode === "reset" ? `<label class="field">
+        <span>${mode === "reset" ? "New password" : "Password"}</span>
+        <input type="password" id="a-password"
+          autocomplete="${mode === "signup" || mode === "reset" ? "new-password" : "current-password"}"
+          enterkeyhint="go" required></label>` : ""}
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn btn--go btn--wide btn--big" type="submit">${esc(COPY.submit)}</button>
+      </div>
+    </form>
+
+    ${mode === "login" && cfg.google
+      ? `<p class="muted small" style="text-align:center;margin:1rem 0">or</p>
+         <div id="google-btn" style="display:flex;justify-content:center;min-height:44px"></div>`
+      : ""}
+
+    ${mode === "forgot" && !cfg.mailConfigured
+      ? `<p class="note note--warn" style="margin-top:1rem">Email is not set up on this site yet, so a reset
+           link cannot be sent. Ask whoever runs the site to add it.</p>` : ""}
+
+    <p class="small dimmer" style="margin-top:1.5rem;text-align:center">
+      ${mode === "login" ? `<a href="#/forgot">Forgot your password?</a><br>
+          New here? <a href="#/signup">Create an account</a>` : ""}
+      ${mode === "signup" ? `Already have an account? <a href="#/login">Sign in</a>` : ""}
+      ${mode === "forgot" || mode === "reset" ? `<a href="#/login">Back to sign in</a>` : ""}
+    </p>`}
+
+    ${footer()}`;
+
+  const errorBox = () => document.getElementById("acct-error");
+  const showError = (message) => {
+    const box = errorBox();
+    if (box) box.innerHTML = `<p class="note note--warn">${esc(message)}</p>`;
+  };
+
+  document.getElementById("acct-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("a-email")?.value.trim() || "";
+    const name = document.getElementById("a-name")?.value.trim() || "";
+    const password = document.getElementById("a-password")?.value || "";
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+    errorBox().innerHTML = "";
+
+    let res;
+    if (mode === "login") res = await store.accountLogIn({ email, password });
+    else if (mode === "signup") res = await store.accountSignUp({ email, password, name });
+    else if (mode === "forgot") res = await store.accountRequestReset(email);
+    else res = await store.accountResetPassword({ token, password });
+
+    submitBtn.disabled = false;
+    if (!res.ok) { showError(res.error); return; }
+
+    if (mode === "forgot") {
+      toast(res.note || "If that email has an account, a link is on its way.", "good");
+      go("#/login");
+      return;
+    }
+    toast(mode === "reset" ? "Password set — you're signed in." : "Signed in.", "good");
+    go("#/");
+  });
+
+  if (mode === "login" && cfg.google) {
+    const el = document.getElementById("google-btn");
+    account.renderGoogleButton(el, cfg.google.clientId, async (credential) => {
+      const res = await store.accountWithGoogle(credential);
+      if (!res.ok) { showError(res.error); return; }
+      toast("Signed in.", "good");
+      go("#/");
+    }).catch(() => { if (el) el.remove(); });        // the button just does not appear
+  }
+}
+
+/* ==========================================================================
    Settings, signing in, and the notices
    ========================================================================== */
 
@@ -1491,12 +1613,14 @@ function settingsSheet() {
   const where = s.mode !== "server"
     ? `<p class="note note--warn">Working offline &mdash; this browser only.${s.note ? " " + esc(s.note) : ""}
          Anything logged now goes up on its own when the app can reach its server again.</p>`
-    : s.signedIn
-      ? `<p class="note note--good"><strong>Signed in.</strong> The week and the record both save to the server
-           and appear on every device. The record is private: reading it needs this password.</p>`
+    : s.account
+      ? `<p class="note note--good"><strong>Signed in as ${esc(s.account.email)}.</strong> Your workouts save
+           to the server and follow you to any device you sign into. Nobody else &mdash; including
+           the admin password &mdash; can read your record.</p>`
       : s.hasPassword
         ? `<p class="note">Not signed in. The week is readable, and workouts done now are kept on this phone
-             until you sign in. Signing in is what shares them between devices.</p>`
+             until you sign in. Signing in is what keeps your record safe if you lose the phone, and shares
+             it with another device.</p>`
         : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it.
              Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`;
 
@@ -1534,9 +1658,9 @@ function settingsSheet() {
       <h3 class="set-group__h">Where this is saved</h3>
       ${where}
       <div class="btn-row">
-        ${s.signedIn
-          ? `<button class="btn btn--ghost" data-action="sign-out">Sign out</button>`
-          : `<button class="btn btn--go" data-action="sign-in">Sign in</button>`}
+        ${s.account
+          ? `<button class="btn btn--ghost" data-action="account-sign-out">Sign out</button>`
+          : `<button class="btn btn--go" data-action="go-login">Sign in or create an account</button>`}
       </div>
     </section>
 
@@ -1609,31 +1733,29 @@ function unsavedSettingsPanel() {
     </div>`;
 }
 
-function askSignIn(returnTo, thenUnlockAdmin = false) {
-  /* The same sheet does two jobs and has to say which one it is doing. Reached
-     from the long press or /#/admin it is the way into the editor, and calling
-     it "Sign in" told somebody standing in front of it nothing at all. */
-  openSheet(thenUnlockAdmin ? "Unlock the editor" : "Sign in", `
-    <p class="small muted" style="margin-bottom:1rem">${thenUnlockAdmin
-      ? "Type the password and the pencil appears in the bar at the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures and videos."
-      : "The app's own password. It syncs the record between devices, and it is what keeps the record private: nobody can read it without this."}</p>
+/** The app's one shared admin password — unrelated to anyone's account, see
+ * store.js's header note. This is the only door it opens: the editor. */
+function askAdminPassword() {
+  openSheet("Unlock the editor", `
+    <p class="small muted" style="margin-bottom:1rem">Type the password and the pencil appears in the bar at
+      the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures
+      and videos.</p>
     <label class="field"><span>Password</span>
       <input type="password" id="s-key" autocomplete="current-password" enterkeyhint="go"></label>
-    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-sign-in">Sign in</button></div>
-    <p class="small dimmer" style="margin-top:1rem">${thenUnlockAdmin
-      ? "The editor stays unlocked on this device for twelve hours, across every tab. Settings &rarr; Lock the editor ends it sooner."
-      : "The week can be followed without signing in, and workouts done that way are kept on this phone and go up when you next sign in. Signing in is what shares them between devices."}</p>
+    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-admin-sign-in">Unlock</button></div>
+    <p class="small dimmer" style="margin-top:1rem">The editor stays unlocked on this device for twelve hours,
+      across every tab. Settings &rarr; Lock the editor ends it sooner.</p>
   `, (root) => {
     const input = root.querySelector("#s-key");
     const submit = async () => {
       const res = await store.signIn(input.value);
       if (!res.ok) { toast(res.error, "bad"); return; }
       closeSheet();
-      if (thenUnlockAdmin) { setAdmin(true); toast("Editor unlocked. The pencil is at the top.", "good"); }
-      else toast("Signed in.", "good");
-      if (returnTo) go(returnTo); else render();
+      setAdmin(true);
+      toast("Editor unlocked. The pencil is at the top.", "good");
+      render();
     };
-    root.querySelector('[data-action="do-sign-in"]').addEventListener("click", submit);
+    root.querySelector('[data-action="do-admin-sign-in"]').addEventListener("click", submit);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     setTimeout(() => input.focus(), 50);
   });
@@ -1652,15 +1774,14 @@ function footer() {
   const s = store.get();
   return `<div class="foot">
     <div class="pills">
-      ${s.signedIn
-        ? `<button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
-             ${adminOn() ? "&#9998; Admin" : "Admin"}</button>`
-        : `<button type="button" class="pill pill--go" data-action="sign-in">Sign in</button>
-           <button type="button" class="pill" data-action="admin-pill">Admin</button>`}
+      <button type="button" class="pill ${s.account ? "is-on" : "pill--go"}" data-action="${s.account ? "open-settings" : "go-login"}">
+        ${s.account ? esc(s.account.name || s.account.email) : "Sign in"}</button>
+      <button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
+        ${adminOn() ? "&#9998; Admin" : "Admin"}</button>
       <button type="button" class="pill" data-action="open-settings">Settings</button>
     </div>
     <p>${s.mode === "server"
-        ? (s.signedIn ? "Signed in &middot; everything syncs" : "Reading the week from the server")
+        ? (s.account ? "Signed in &middot; your record syncs" : "Not signed in &middot; the record stays on this phone")
         : "This browser only"}</p>
     <p class="dimmer">Calories are an estimate from body weight, the effort of each exercise and how long it took. Treat them as a guide.</p>
   </div>`;
@@ -1677,7 +1798,8 @@ function setTitle(main, sub) {
   /* The pencil shows only where it means something: signed in, and not in the
      middle of a workout. */
   const pencil = $("#edit-btn");
-  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind"].some((h) => location.hash.startsWith(h));
+  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset"]
+    .some((h) => location.hash.startsWith(h));
   pencil.hidden = !canEdit;
   pencil.classList.toggle("is-on", editing);
   pencil.setAttribute("aria-pressed", editing ? "true" : "false");
@@ -1687,7 +1809,10 @@ function setTitle(main, sub) {
 
 function render() {
   const hash = location.hash || "#/";
-  const [, route, arg] = hash.split("/");
+  // Split the query off first — #/reset?token=… would otherwise glue
+  // "reset?token=…" together as one unrecognisable route name.
+  const [path, query] = hash.split("?");
+  const [, route, arg] = path.split("/");
 
   if (route !== "go") {
     stopTicking();
@@ -1715,6 +1840,10 @@ function render() {
   if (route === "history") return renderHistory();
   if (route === "remind") return renderRemind();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
+  if (route === "login") return renderAccountScreen("login");
+  if (route === "signup") return renderAccountScreen("signup");
+  if (route === "forgot") return renderAccountScreen("forgot");
+  if (route === "reset") return renderAccountScreen("reset", new URLSearchParams(query || "").get("token") || "");
   return renderWeek();
 }
 
@@ -1939,13 +2068,11 @@ document.addEventListener("click", (e) => {
     case "discard-settings": settingsDraft = null; closeSheet(true); toast("Changes discarded."); break;
 
     case "go-remind": settingsDraft = null; closeSheet(true); go("#/remind"); break;
-    case "sign-in": settingsDraft = null; closeSheet(true); askSignIn(null); break;
-    case "sign-out":
+    case "go-login": settingsDraft = null; closeSheet(true); go("#/login"); break;
+    case "account-sign-out":
       settingsDraft = null;
       closeSheet(true);
-      setAdmin(false);
-      editing = false; draft = null;
-      store.signOut().then(() => { toast("Signed out."); render(); });
+      store.accountLogOut().then(() => { toast("Signed out."); render(); });
       break;
     case "lock-admin":
       settingsDraft = null;

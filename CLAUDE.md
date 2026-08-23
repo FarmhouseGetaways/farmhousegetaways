@@ -742,16 +742,38 @@ makes Netlify read `workout/netlify.toml` instead of the root one — exactly ho
 forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
 farmhouse domain by accident. **Do not "fix" that 404.**
 
-**The editor is admin-only, behind a long press.** Signing in is Carissa's —
-it syncs her record. Editing the week is not, so the pencil does not appear
-just because somebody is signed in: **press and hold the title for 750ms**,
-the same gesture the farmhouse app uses for its own admin screen, or open
-`/#/admin` on a laptop. **The unlock lapses after twelve hours** and is stored
-in `localStorage` — it was `sessionStorage` for one evening, which relocked on
-every new browser tab and drove the owner mad within the hour. Twelve hours is
-long enough to write a week in one sitting and short enough that a phone left
-about tomorrow is locked. Do not "fix" this by showing the pencil to anyone
-signed in.
+**The editor is admin-only, behind a long press, and unrelated to accounts.**
+Added 23 Aug 2026: real accounts (below) now handle who a training record
+belongs to, and editing the week is a completely separate lock — the app's
+one shared admin password, `WORKOUT_PASSWORD`, same as it always was. The
+pencil does not appear just because somebody has signed into an account:
+**press and hold the title for 750ms**, the same gesture the farmhouse app
+uses for its own admin screen, or open `/#/admin` on a laptop, and either way
+it asks for `WORKOUT_PASSWORD`. **The unlock lapses after twelve hours** and
+is stored in `localStorage` — it was `sessionStorage` for one evening, which
+relocked on every new browser tab and drove the owner mad within the hour.
+Twelve hours is long enough to write a week in one sitting and short enough
+that a phone left about tomorrow is locked. Do not "fix" this by showing the
+pencil to anyone signed into an account.
+
+**Accounts — up to five, for the beta.** Added 23 Aug 2026, at the owner's
+request: "we need accounts/users and also one admin login for editing." So
+there are now two unrelated locks rather than one doing both jobs. An
+account is a real person's own email and password, or Google, created or
+signed into from the **Sign in** pill or `/#/login`; it is what a training
+record is attached to and what makes it sync. It has nothing to do with
+`WORKOUT_PASSWORD` and cannot open the editor. Capped at five while this
+stays a small beta rather than real multi-tenant infrastructure — raising
+`MAX_USERS` in `netlify/functions/_lib/users.mjs` is a one-line change
+whenever that conversation happens. The old, single shared record from
+before accounts existed was copied once into whoever created the very first
+account, so nothing already logged was lost. **Google sign-in** and
+**password-reset emails (via Resend)** are both optional and both fail
+quiet: unset `GOOGLE_CLIENT_ID` and the Google button simply does not
+appear; unset `RESEND_API_KEY`/`RESEND_FROM` and "forgot your password"
+says it cannot send an email rather than pretending to. Passwords are
+hashed with scrypt, never stored or logged in the clear. `workout/README.md`
+has the full shape of it, including exactly who can read what.
 
 **Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
 runs hourly on Netlify's schedule and decides per device, in that device's own
@@ -788,15 +810,19 @@ Three more things a future session needs to know:
 
 **It has its own password and its own store.** `WORKOUT_PASSWORD` on its own
 site — not this site's `ADMIN_PASSWORD`, and nothing to do with `GITHUB_TOKEN`
-or the November token renewal. The week and the record live in Netlify Blobs
-belonging to that site, never in this repository, because this repository is
-public and a training log is not. `data/plan.json` stays committed as the floor
-under the live week and nothing else does.
+or the November token renewal. The week, the record and the accounts all live
+in Netlify Blobs belonging to that site, never in this repository, because
+this repository is public and a training log is not. `data/plan.json` stays
+committed as the floor under the live week and nothing else does.
 
-**Signing in is a cookie, not a stored password.** The password goes to
-`/api/auth` once; what the browser keeps is an HttpOnly, signed, expiring
-token. Reading the record needs it as much as writing does. With the variable
-unset nobody can write and the record cannot be read — it fails closed.
+**Two cookies, not one.** The admin password goes to `/api/auth` once; an
+account's email and password (or Google credential) goes to `/api/account`.
+Either way what the browser keeps is an HttpOnly, signed, expiring token, not
+the secret itself, and each cookie only ever opens its own door — the admin
+one cannot read a training record, an account cannot edit the week. With
+`WORKOUT_PASSWORD` unset neither system works at all: nobody can sign in as
+admin, nobody can create or use an account, and no record can be read. It
+fails closed.
 
 **Everything works with no server at all.** If the functions cannot be reached
 the app falls back to the committed `workout/data/plan.json` and the browser,
