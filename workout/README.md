@@ -261,6 +261,24 @@ on.
 read when the functions are built, so a site deployed before the variable
 existed stays read-only until it is redeployed.
 
+### This site skips a build when the commit was not about it
+
+Two Netlify sites watch `main` on this one repository — this one and the
+Farmhouse Getaways website — so every push used to build both and cost twice
+over. `netlify.toml` here now carries, in `[build]`:
+
+    ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+Netlify runs that from the base directory, which is `workout`, so the bare `.`
+means this folder and nothing else. **Exit 0 skips the build** — the sense is
+inverted from what it looks like — so a commit that only touched the website
+stops here and a commit that touched anything in `workout/` goes through. An
+empty `$CACHED_COMMIT_REF` makes `git diff` error, which builds; an extra build
+is the safe way to be wrong.
+
+A skipped build appears greyed out in the Netlify deploy list. That is not a
+failure, it is the line above doing its job.
+
 ## On a phone
 
 It is installable. iPhone: Share, then **Add to Home Screen**. Android: the

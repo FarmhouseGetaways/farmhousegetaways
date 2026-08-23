@@ -213,6 +213,44 @@ build command, so files ship exactly as they are here.
 
 Live at **https://farmhousegetaways.netlify.app**.
 
+### Two sites watch this one repo, so a build is skipped when it is not owed
+
+Added 23 Aug 2026, because every push was costing two builds. `carissa-workouts`
+and `farmhousegetaways` are both pointed at `main` on this repository — the
+workout tracker with its base directory set to `workout`, this site with the
+root — so a commit to either one used to build **both**, and the bill was double
+what the work was.
+
+Both `netlify.toml` files now carry an `ignore` line in `[build]`:
+
+| Site | `ignore` | Builds when |
+|---|---|---|
+| Farmhouse Getaways | `git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout'` | anything outside `workout/` changed |
+| Carissa's workouts | `git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- .` | anything in `workout/` changed |
+
+Three things to know before touching either line:
+
+- **Exit 0 means skip.** `ignore` is a shell command, and the sense is
+  inverted from what most people expect — a *successful* exit cancels the
+  build. `git diff --quiet` exits 0 when nothing differs, which is exactly
+  right, but it does read backwards.
+- **Netlify runs it from the base directory.** For the workout site that is
+  `workout/`, which is why its pathspec is a bare `.` and not `workout`.
+  Copying this site's line into that file would compare the wrong thing.
+- **It fails towards building.** An empty `$CACHED_COMMIT_REF` — a first
+  build, a cleared cache, a manual deploy — makes `git diff` error, which is a
+  non-zero exit, which builds. An extra build is the safe way to be wrong; a
+  skipped one would leave a change stuck in the repo looking live. Do not wrap
+  this in anything cleverer that could swallow that error.
+
+Both lines were checked against real commit ranges from this repo's history
+before shipping — workout-only, website-only, both, and an empty cached ref —
+and all eight answers were right.
+
+**A skipped build reads as a failure in the Netlify UI and is not one.** The
+deploy list shows it greyed out, and the log says the build was cancelled
+because the ignore command returned 0. That is the feature working.
+
 ### The one rule: never drag files onto Netlify
 
 Do not drag a folder or zip onto the Netlify drop area, and do not upload files

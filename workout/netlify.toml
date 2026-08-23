@@ -34,9 +34,18 @@
 # The root netlify.toml deliberately 404s /workout/* on the Farmhouse Getaways
 # site, so this app appears at its own address and nowhere else.
 
+# `ignore` stops this site rebuilding for a commit that only touched the
+# Farmhouse Getaways website. Both sites watch `main` on the same repository,
+# so without it every push to either one builds both and costs twice over.
+#
+# Netlify runs this command from the base directory, which is `workout`, so
+# the pathspec `.` means this folder. Exit 0 skips the build; anything else
+# builds. An empty $CACHED_COMMIT_REF makes git diff error, which builds — an
+# extra build is the safe way to be wrong.
 [build]
   publish = "."
   command = ""
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
 
 [functions]
   directory = "netlify/functions"
