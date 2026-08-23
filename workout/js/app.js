@@ -1599,15 +1599,20 @@ function renderAccountScreen(mode, token = "") {
         Ask to be added, or <a href="#/login">sign in</a> if you already have one.</p>` : `
     <form id="acct-form" novalidate>
       ${mode !== "reset" ? `<label class="field"><span>Email</span>
-        <input type="email" id="a-email" autocomplete="email" enterkeyhint="next" required></label>` : ""}
+        <input type="email" id="a-email" autocomplete="email" enterkeyhint="next"
+          autocapitalize="off" autocorrect="off" spellcheck="false" required></label>` : ""}
       ${mode === "signup" ? `<label class="field field--hint"><span>Your name</span>
         <input type="text" id="a-name" autocomplete="name">
         <small>Just for the app to greet you by &mdash; optional.</small></label>` : ""}
-      ${mode === "login" || mode === "signup" || mode === "reset" ? `<label class="field">
+      ${mode === "login" || mode === "signup" || mode === "reset" ? `<label class="field field--hint">
         <span>${mode === "reset" ? "New password" : "Password"}</span>
         <input type="password" id="a-password"
           autocomplete="${mode === "signup" || mode === "reset" ? "new-password" : "current-password"}"
-          enterkeyhint="go" required></label>` : ""}
+          enterkeyhint="${mode === "signup" || mode === "reset" ? "next" : "go"}" required>
+        ${mode === "signup" || mode === "reset" ? `<small>At least 8 characters.</small>` : ""}</label>` : ""}
+      ${mode === "signup" || mode === "reset" ? `<label class="field">
+        <span>Type it again</span>
+        <input type="password" id="a-password-2" autocomplete="new-password" enterkeyhint="go" required></label>` : ""}
       <div class="btn-row" style="margin-top:1rem">
         <button class="btn btn--go btn--wide btn--big" type="submit">${esc(COPY.submit)}</button>
       </div>
@@ -1642,9 +1647,20 @@ function renderAccountScreen(mode, token = "") {
     const email = document.getElementById("a-email")?.value.trim() || "";
     const name = document.getElementById("a-name")?.value.trim() || "";
     const password = document.getElementById("a-password")?.value || "";
+    const password2 = document.getElementById("a-password-2")?.value ?? password;
+    errorBox().innerHTML = "";
+
+    // Caught here rather than waiting on the server: a mistyped confirmation
+    // is the single most common reason a brand new account can never sign
+    // back in, and there is no reason to make a round trip to say so.
+    if ((mode === "signup" || mode === "reset") && password !== password2) {
+      showError("Those two don't match.");
+      document.getElementById("a-password-2")?.focus();
+      return;
+    }
+
     const submitBtn = e.target.querySelector("button[type=submit]");
     submitBtn.disabled = true;
-    errorBox().innerHTML = "";
 
     let res;
     if (mode === "login") res = await store.accountLogIn({ email, password });
@@ -1865,8 +1881,11 @@ function changePasswordSheet() {
     <div id="cp-error"></div>
     <label class="field"><span>Current password</span>
       <input type="password" id="cp-current" autocomplete="current-password"></label>
-    <label class="field"><span>New password</span>
-      <input type="password" id="cp-new" autocomplete="new-password"></label>
+    <label class="field field--hint"><span>New password</span>
+      <input type="password" id="cp-new" autocomplete="new-password">
+      <small>At least 8 characters.</small></label>
+    <label class="field"><span>Type it again</span>
+      <input type="password" id="cp-new-2" autocomplete="new-password"></label>
     <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-change-password">Change it</button></div>
   `, (root) => {
     const errBox = root.querySelector("#cp-error");
@@ -1874,6 +1893,12 @@ function changePasswordSheet() {
       errBox.innerHTML = "";
       const currentPassword = root.querySelector("#cp-current").value;
       const password = root.querySelector("#cp-new").value;
+      const password2 = root.querySelector("#cp-new-2").value;
+      if (password !== password2) {
+        errBox.innerHTML = `<p class="note note--warn">Those two don't match.</p>`;
+        root.querySelector("#cp-new-2")?.focus();
+        return;
+      }
       const res = await store.accountChangePassword({ currentPassword, password });
       if (!res.ok) { errBox.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
       closeSheet();

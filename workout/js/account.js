@@ -105,5 +105,7 @@ export async function renderGoogleButton(el, clientId, onCredential) {
     client_id: clientId,
     callback: (resp) => onCredential(resp.credential),
   });
-  window.google.accounts.id.renderButton(el, { theme: "outline", size: "large", width: 280 });
+  // "filled_black" is the one Google button theme that doesn't look like a
+  // hole punched in a dark page — "outline" renders white-on-white here.
+  window.google.accounts.id.renderButton(el, { theme: "filled_black", size: "large", shape: "pill", width: 280 });
 }
