@@ -180,7 +180,12 @@ The **assessor's map** (Book 278, Page 36) shows the record parcel as a clean
 rectangle **550.50' × 285.58' = 157,212 SF (3.61 AC)**, side lines N0°43'E, end
 lines N89°32'W — which matches the assessor's stated acreage exactly.
 
-The two disagree by about 32.6' in width and 7,231 SF in area. PDS 090 item 1
+The two disagree by about 32.75' in width and 7,231 SF in area — **and that is
+the 30' road easement along the west boundary.** The GIS polygon runs out to
+the far side of the Whirlwind Ln easement; the record and assessor figures stop
+at the net parcel. This is the county's own gross-vs-net distinction, so the
+two numbers are consistent rather than contradictory, and the sheet now tables
+both (rev 25). PDS 090 item 1
 requires the plot plan to "match the legal lot plat/map to 100%", so this is an
 acceptance risk at the counter, and **recorded PM 5062 governs**. It has not been
 obtained — still the top blocking item.

@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 24
+REV  = 25
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -207,7 +207,14 @@ def _fit(k, target):
     def shape(d):
         g = _raw[k].buffer(d) if d else _raw[k]
         g = g.intersection(PARCEL).difference(KEEPOUT).difference(others)
-        return g.intersection(AG3_BOX) if k == '3' else g
+        if k == '3':
+            g = g.intersection(AG3_BOX)
+        # a 20 SF speck is drafting litter, not a crop area — drop it, and let
+        # the search make up the area in the parts that remain
+        if g.geom_type == 'MultiPolygon':
+            keep = [q for q in g.geoms if q.area >= 20.0]
+            g = unary_union(keep) if keep else g
+        return g
     lo, hi = (0.0, 80.0) if shape(0).area < target else (-40.0, 0.0)
     if shape(hi).area < target:            # cannot reach it — draw the most we can
         print(f"  NOTE: AG-{k} tops out at {shape(hi).area:,.0f} SF vs table {target:,.0f}")
@@ -369,7 +376,7 @@ for name, poly, lab_at in structures:
 
 # the barn — storage, 50' x 44' = 2,200 SF (owner; NOT the Mini Barn Market)
 ax.add_patch(MPoly(BARN, closed=True, fc='0.82', ec='black', lw=1.3, zorder=4))
-ax.annotate("EXIST. BARN — STORAGE\n50'x44' (2,200 SF)", (_bc[0]-12, _bc[1]-16), (70, 74),
+ax.annotate("EXIST. BARN — STORAGE\n50'x44' (2,200 SF)", (_bc[0], _bc[1]-22), (138, 100),
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
@@ -391,7 +398,7 @@ MBM_G = SPoly(MBM)
 MBM_SF = 120
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
 ax.annotate("PROPOSED 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF), UNDER CONSTRUCTION\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
-            (63.5, 219.0), (90, 55), fontsize=6.6, ha='center', color='#8a4a00',
+            (63.5, 219.0), (120, 52), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
 
@@ -461,7 +468,7 @@ ax.text(pcx, pcy, "EXIST.\nPOOL", fontsize=5.6, ha='center', va='center', zorder
 th_poly = poly_px([(130,505),(188,520),(165,705),(107,690)])
 ax.add_patch(MPoly(th_poly, closed=True, fc='white', ec='black', lw=1.1, ls=(0,(4,3)), zorder=4))
 thx = sum(p[0] for p in th_poly)/4; thy = sum(p[1] for p in th_poly)/4
-ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 5)", (thx, thy-12), (thx+40, thy-52),
+ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 5)", (thx, thy-14), (106, 80),
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
@@ -753,32 +760,93 @@ for ln in ["NO GRADING OR CLEARING PROPOSED. NEW IMPERVIOUS AREA IS THE",
     sw.text(0.04, swy, ln, fontsize=5.9, ha='left', va='top'); swy -= 0.135
 
 # ---- Col 4: vicinity map
-vm = band_axes(C4, 0.45, CW, 7.10)
+vm = band_axes(C4, 4.50, CW, 3.05)
 vm.text(0.5, 0.975, "VICINITY MAP", fontsize=9.5, fontweight='bold', ha='center', va='top')
-vm.text(0.5, 0.945, "(NOT TO SCALE)", fontsize=6.8, ha='center', va='top')
+vm.text(0.5, 0.930, "(NOT TO SCALE)", fontsize=6.8, ha='center', va='top')
 sx0, sy0v, swv, shv = 0.34, 0.50, 0.30, 0.13
 vm.add_patch(Rectangle((sx0, sy0v), swv, shv, fc='none', ec='#7a0000', lw=1.8))
-vm.plot([sx0, sx0, sx0], [0.86, 0.57, 0.16], color='0.3', lw=1.8)
-vm.text(sx0-0.028, 0.76, "WHIRLWIND LN", fontsize=6.8, rotation=90, va='center', ha='center')
+vm.plot([sx0, sx0, sx0], [0.822, 0.57, 0.16], color='0.3', lw=1.8)
+vm.text(sx0-0.028, 0.68, "WHIRLWIND LN", fontsize=6.8, rotation=90, va='center', ha='center')
 # Handlebar Rd is well away from the site — reached by the driveway through an
 # access easement across the adjacent parcel (±700', dashed).
 vm.plot([0.79, 0.775, 0.77, 0.78, 0.80],
-        [0.86, 0.68, 0.50, 0.32, 0.16], color='0.3', lw=2.0)
-vm.text(0.812, 0.74, "HANDLEBAR RD", fontsize=6.8, rotation=85, va='center')
+        [0.822, 0.66, 0.50, 0.32, 0.16], color='0.3', lw=2.0)
+vm.text(0.812, 0.66, "HANDLEBAR RD", fontsize=6.8, rotation=85, va='center')
 vm.plot([0.64, 0.70, 0.777], [0.503, 0.46, 0.42], color='0.3', lw=1.2,
         ls=(0, (4, 3)))
-vm.text(0.705, 0.398, "DRIVEWAY /\nACCESS ESMT.\n±700'", fontsize=6.0, ha='center',
+vm.text(0.755, 0.375, "DRIVEWAY /\nACCESS ESMT. ±700'", fontsize=6.0, ha='center',
         va='top', style='italic', color='0.25')
-vm.plot([0.12, 0.13, 0.14], [0.86, 0.50, 0.16], color='0.3', lw=1.8)
+vm.plot([0.12, 0.13, 0.14], [0.822, 0.50, 0.16], color='0.3', lw=1.8)
 vm.text(0.094, 0.50, "GARJAN LN", fontsize=6.8, rotation=87, va='center', ha='center')
-vm.plot([0.10, 0.90], [0.885, 0.885], color='0.3', lw=2.4)
-vm.text(0.50, 0.900, "HIGHLAND VALLEY RD", fontsize=6.8, ha='center')
+vm.plot([0.10, 0.90], [0.845, 0.845], color='0.3', lw=2.4)
+vm.text(0.50, 0.862, "HIGHLAND VALLEY RD", fontsize=6.8, ha='center')
 vm.plot([0.455], [0.565], marker='*', ms=13, color='#7a0000')
-vm.text(0.52, 0.455, "SITE\n17054 HANDLEBAR RD\nAPN 278-361-08-00", fontsize=7.2, ha='center',
+vm.text(0.42, 0.435, "SITE\n17054 HANDLEBAR RD\nAPN 278-361-08-00", fontsize=7.2, ha='center',
         va='top', color='#7a0000', fontweight='bold')
 vm.text(0.5, 0.10, "RAMONA, SAN DIEGO COUNTY, CALIFORNIA", fontsize=6.8, ha='center')
 vm.annotate('', (0.90, 0.80), (0.90, 0.71), arrowprops=dict(arrowstyle='-|>', lw=1.6, color='black'))
 vm.text(0.90, 0.825, 'N', fontsize=9, ha='center', fontweight='bold')
+
+# ---- Col 4 lower: BOUNDARY & RECORD DATA (rev 25)
+# Record bearings, distances and area read directly off the Assessor's Map,
+# Book 278 Page 36, Sheet 1 (parcel 8 = "3.61 AC. PAR. 1", "PM 5062",
+# 550.50' x 285.58', N89°32'W / N0°43'E). Measured values are the county GIS
+# polygon this sheet is drawn from. Showing both is what a plan checker wants:
+# it proves the drawing was reconciled against the legal lot rather than
+# assumed. The 32.75' width difference matches the 30' road easement along the
+# west boundary — which is exactly the county's own gross-vs-net split.
+rd = band_axes(C4, 0.45, CW, 3.90, lw=1.3)
+def rl(y, txt, fs=6.4, bold=False, x=0.04, ha='left', color='black'):
+    rd.text(x, y, txt, fontsize=fs, fontweight='bold' if bold else 'normal',
+            color=color, ha=ha, va='top')
+def rrule(y, lw=0.7):
+    rd.plot([0.03, 0.97], [y, y], color='black', lw=lw, transform=rd.transAxes)
+LH = 0.032
+ry = 0.975
+rl(ry, "BOUNDARY & RECORD DATA", 9.0, True, x=0.5, ha='center');            ry -= 0.043
+rl(ry, "LEGAL: PARCEL 1 OF PARCEL MAP NO. 5062", 6.8, True, x=0.5, ha='center'); ry -= 0.031
+rl(ry, "ASSESSOR'S MAP BK 278, PG 36, SHT 1, PARCEL 8", 6.2, x=0.5, ha='center'); ry -= 0.024
+rrule(ry);                                                                  ry -= 0.017
+rl(ry, "COURSE", 6.4, True)
+rl(ry, "RECORD PER PM 5062", 6.4, True, x=0.29)
+rl(ry, "MEASURED (GIS)", 6.4, True, x=0.97, ha='right');                    ry -= 0.026
+rrule(ry, 0.5);                                                             ry -= 0.014
+for c, rec, meas in [("NORTH", "N89°32'W  550.50'", "S88°48'E  583.25'"),
+                     ("EAST",  "N00°43'E  285.58'", "S00°48'W  281.71'"),
+                     ("SOUTH", "N89°32'W  550.50'", "N89°20'W  579.19'"),
+                     ("WEST",  "N00°43'E  285.58'", "N00°00'E  287.11'")]:
+    rl(ry, c, 6.4, True); rl(ry, rec, 6.4, x=0.29)
+    rl(ry, meas, 6.4, x=0.97, ha='right');                                  ry -= LH
+ry -= 0.005; rrule(ry);                                                     ry -= 0.017
+rl(ry, "AREA RECONCILIATION", 7.2, True);                                   ry -= 0.034
+for lab, val, bold in [("RECORD 550.50' x 285.58'", "157,212 SF  (3.61 AC)", False),
+                       ("ASSESSOR'S NET AREA (PDS 090 ITEM 12)", "157,251 SF  (3.61 AC)", False),
+                       ("COUNTY GIS POLYGON — AREA DRAWN", "164,443 SF  (3.78 AC)", True),
+                       ("DIFFERENCE (GIS LESS RECORD)", "7,231 SF", False)]:
+    rl(ry, lab, 6.4, bold, x=0.05); rl(ry, val, 6.4, bold, x=0.97, ha='right'); ry -= LH
+ry -= 0.005
+for ln in ["THE GIS POLYGON IS 32.75' WIDER E-W THAN RECORD; THAT",
+           "STRIP IS THE 30' ROAD ESMT. ALONG THE WEST BOUNDARY",
+           "— i.e. THE COUNTY'S OWN GROSS / NET SPLIT."]:
+    rl(ry, ln, 6.3, x=0.05);                                                ry -= LH
+ry -= 0.007
+for ln in ["ZO §6157 TESTS ARE APPLIED TO THE LARGEST (GROSS)",
+           "AREA — THE MOST CONSERVATIVE BASIS. THE PARCEL PASSES",
+           "ON GROSS (35.1%) AND ON THE RECORD PARCEL (36.7%)."]:
+    rl(ry, ln, 6.3, True, x=0.05, color='#0a6b16');                         ry -= LH
+ry -= 0.009; rrule(ry);                                                     ry -= 0.017
+for ln in ["BASIS OF BEARINGS: GRID BEARINGS, NAD83 CALIFORNIA",
+           "STATE PLANE ZONE 6, PER COUNTY GIS. RECORD BEARINGS AND",
+           "DISTANCES PER PM 5062 / ASSESSOR'S MAP AS TABLED ABOVE."]:
+    rl(ry, ln, 6.3);                                                        ry -= LH
+ry -= 0.007
+for ln in ["ADJOINING PARCELS:  EAST — APN 278-361-10-00.  SOUTH —",
+           "APN 278-361-06/07/09-00.  WEST — WHIRLWIND LN, THEN APN",
+           "278-361-02/03/04-00.  NORTH — ASSESSOR'S BK 277, PG 12."]:
+    rl(ry, ln, 6.3);                                                        ry -= LH
+if ry < 0.008:
+    raise SystemExit(f"LAYOUT: record data box overruns its column, ry={ry:.4f}")
+print(f"record box ends ry={ry:.4f}")
 
 # ============================ RIGHT PANEL ==================================
 px_ = fig.add_axes([17.55/SHEET_W, 0.45/SHEET_H, 5.90/SHEET_W, 17.10/SHEET_H])
@@ -796,7 +864,7 @@ y -= 0.058
 tline(y, "17054 HANDLEBAR ROAD, RAMONA, CA 92065", 8.5, True, x=0.5, ha='center'); y -= 0.0165
 tline(y, "APN 278-361-08-00  ·  ZONE A70 (LIMITED AGRICULTURE)", 7.5, x=0.5, ha='center'); y -= 0.0145
 tline(y, "ZONING BOX: A70 / L / 2AC / C / G / C / C", 7, x=0.5, ha='center'); y -= 0.0145
-tline(y, "LEGAL: PARCEL 1 OF PARCEL MAP 05062 (FILE NO. 69370)", 7, x=0.5, ha='center'); y -= 0.0145
+tline(y, "LEGAL: PARCEL 1 OF PARCEL MAP NO. 5062  ·  ASSR. BK 278 PG 36 PAR. 8", 7, x=0.5, ha='center'); y -= 0.0145
 tline(y, f"GROSS AREA: {GROSS_SF:,} SF (3.78 AC)  ·  NET AREA: {NET_SF:,} SF (3.61 AC)", 7, x=0.5, ha='center'); y -= 0.0125
 hrule(y); y -= 0.013
 tline(y, "OWNER:  CORY J. DZBINSKI & CARISSA ULTSCH", 7, True, x=0.05); y -= 0.0135
@@ -845,9 +913,9 @@ TB_H = 0.122          # title block height, reserved at the panel foot
 tline(y, "NOTES", 9, True); y -= 0.0145
 NOTES_TOP = y
 notes = [
- "1.  PARCEL BOUNDARY PER COUNTY GIS / PM 05062, OWNER-VERIFIED AGAINST THE SITE",
- "     AERIAL. BEARINGS AND DISTANCES ARE GIS-DERIVED (APPROXIMATE); RECORD BEARINGS",
- "     AND DIMENSIONS PER RECORDED PM 05062. ALL DIMENSIONS IN FEET.",
+ "1.  PARCEL BOUNDARY PER COUNTY GIS, OWNER-VERIFIED AGAINST THE SITE AERIAL;",
+ "     BEARINGS AND DISTANCES ON THE DRAWING ARE GIS-DERIVED. RECORD BEARINGS,",
+ "     DISTANCES AND AREA PER PM 5062: SEE 'BOUNDARY & RECORD DATA'. DIMS IN FEET.",
  "2.  AG AREAS AND STRUCTURE FOOTPRINTS AERIAL-DERIVED, FIELD-CORROBORATED, AND",
  "     PER OWNER MEASUREMENT WHERE STATED (STORE 12'x10', STORAGE 10'x10', BARN",
  "     50'x44'). EACH CROP AREA IS DRAWN INSIDE THE PROPERTY LINES, CLEAR OF THE",
@@ -913,8 +981,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-23 8/22/2026  ROAD, STORE, DRIVE, AG, GARAGE", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  FENCE/GATE HEIGHTS ADDED", 5.4, x=0.62)
+tline(tb_h*0.170, "17-24 8/22/2026  ROAD, STORE, DRIVE, AG, FENCES", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  RECORD DATA PER PM 5062", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

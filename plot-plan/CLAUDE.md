@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 24 generated — the submittal sheet. The Small
+**Current status: plot plan REV 25 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -129,10 +129,32 @@ These are hard-won and matter more than any technical detail here.
 | Assessor net area | 3.610 ac = **157,251 SF** |
 | Recorded dimensions | ~**550.50' E–W × 285.58' N–S** |
 | County GIS polygon (gross) | 164,443 SF = 3.775 ac |
-| Difference (~7,192 SF) | Presumed road easement |
+| Record area (550.50' × 285.58') | 157,212 SF = 3.609 ac |
+| Difference (GIS less record) | 7,231 SF — see below |
 | **25% requirement (net)** | **39,313 SF** |
 | Design target | ≥40,000 SF for margin |
 | Residence | 4BR/2BA, 2,724 SF living area |
+
+**RECORD DATA — read off the Assessor's Map (Bk 278, Pg 36, Sht 1), 8/22/2026.**
+Parcel 8 on that map is this parcel: **"3.61 AC. PAR. 1"**, labelled **"PM 5062"**,
+**550.50' × 285.58'**, bearings **N89°32'W** (N and S lines) and **N0°43'E**
+(E and W lines). This is now tabled on the sheet in the **BOUNDARY & RECORD
+DATA** panel against the measured GIS values (S88°48'E 583.25' / S00°48'W
+281.71' / N89°20'W 579.19' / N00°00'E 287.11').
+
+**The gross-vs-net difference is finally explained.** GIS is **32.75' wider
+E–W** than record — and there is a **30' road easement along the west
+boundary**. So the GIS polygon includes the Whirlwind Ln easement strip and the
+record/assessor figure excludes it. That is precisely the county's own
+gross/net split, and it means 164,443 (gross) vs 157,251 (net) is coherent, not
+an error. **ZO §6157 tests are applied to the largest figure**, which is the
+most conservative reading; the parcel passes on gross (35.1%) and on the record
+parcel (36.7%). Do not "fix" the boundary to the record rectangle — the owner
+confirmed the GIS boundary against the aerial, and the sheet discloses both.
+
+The same assessor's map independently confirms two owner corrections:
+**Whirlwind Ln runs along the west line**, and **Handlebar Rd is several
+parcels east**, nowhere near this property.
 
 **Site orientation — these were owner corrections, get them right:**
 

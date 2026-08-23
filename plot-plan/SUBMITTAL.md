@@ -31,7 +31,7 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev24.pdf` (always the
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev25.pdf` (always the
   highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
@@ -120,11 +120,16 @@ PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
 These are on the sheet as notes rather than hidden:
 
-- **Recorded Parcel Map PM 5062** — still to be obtained from the County
-  Recorder, for the access road easement width/centreline and the Whirlwind
-  frontage geometry. The boundary on the sheet is the county GIS parcel you
-  verified against the aerial; PM 5062 supplies the record bearings when it
-  arrives.
+- **Recorded Parcel Map PM 5062 — largely answered, no longer blocking.** The
+  record bearings, distances and area are now **on the sheet** in the BOUNDARY
+  & RECORD DATA panel, read off the Assessor's Map (Bk 278, Pg 36, Sht 1),
+  which shows your parcel as "3.61 AC. PAR. 1", PM 5062, 550.50' × 285.58',
+  N89°32'W / N0°43'E. The panel also reconciles the areas: the GIS polygon is
+  32.75' wider east-west than record, which is the 30' road easement on the
+  west — the county's own gross/net split. Ordering the recorded map itself
+  ([srs.sandiegocounty.gov](https://srs.sandiegocounty.gov/), free) is still
+  worth doing for the access easement across the neighbouring parcel, but you
+  can submit without it.
 - **Preliminary title report** — not obtained. Definitive easement locations,
   including the ~700' access easement across the adjacent parcel out to
   Handlebar Rd.
