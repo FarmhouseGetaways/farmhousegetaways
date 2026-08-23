@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 23
+REV  = 24
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -877,9 +877,9 @@ notes = [
  "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
  "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL — ACCESS IS BY THE",
  "     DRIVEWAY AND ESMT. OF NOTE 8. ESMT. GEOMETRY PER RECORDED PM 05062, TBD.",
- "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG AND",
- "     PERIMETER FENCING ONLY; HEIGHTS TO BE FIELD-VERIFIED AND ADDED PRIOR TO",
- "     SUBMITTAL. NO NEW FENCES, WALLS OR GATES PROPOSED.",
+ "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG,",
+ "     PERIMETER AND POOL FENCING AND GATES ONLY; ALL ARE 6'-0\" OR LESS IN HEIGHT",
+ "     PER OWNER — NO BUILDING PERMIT REQ'D (PDS 070). NO NEW FENCING PROPOSED.",
  "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE NEW 'MINI BARN MARKET', A",
  "     12'x10' = 120 SF BUILDING UNDER CONSTRUCTION — WELL UNDER THE 1,500 SF LIMIT",
  "     OF §6157.a.2.e INCL. OPEN ROOFED DISPLAY (NONE). THE ADJACENT 10'x10' BLDG IS",
@@ -913,8 +913,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-22 8/22/2026  ROAD, STORE, DRIVEWAY, AG SF", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  GARAGE 30' OFF NORTH P.L.", 5.4, x=0.62)
+tline(tb_h*0.170, "17-23 8/22/2026  ROAD, STORE, DRIVE, AG, GARAGE", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  FENCE/GATE HEIGHTS ADDED", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

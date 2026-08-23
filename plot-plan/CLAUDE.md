@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 23 generated — the submittal sheet. The Small
+**Current status: plot plan REV 24 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -342,7 +342,8 @@ Every item below must appear to scale or plans get rejected.
 - [x] Structure footprints labeled Existing / As-Built / Proposed (never "Future")
 - [x] Use of each structure identified + SF summary table
 - [x] Electrical service location and size (400A)
-- [ ] **Fence/wall/gate heights labeled** — NOT YET ON SHEET
+- [x] **Fence/wall/gate heights labeled** — note 10: all existing fencing and
+      gates are 6'-0" or less (owner, 8/22/2026); no new fencing proposed
 - [~] Front, exterior side, interior side, rear setbacks — drawn, 3 of 4 unverified
 - [x] Well and leach lines located
 - [x] Owner name, address, parcel address
@@ -404,8 +405,12 @@ Every item below must appear to scale or plans get rejected.
    **DONE — both resolved from the ordinance and the parcel's zoning box. See §6
    above and `research/FINDINGS.md`.** What remains for PDS is the single
    question in §16 below.
-4. Add fence, wall, and gate heights to the sheet — still open; note 13 states
-   existing fencing only, heights to be field-verified, none proposed.
+4. ~~Add fence, wall, and gate heights to the sheet.~~ **DONE 8/22/2026** —
+   owner confirms nothing exceeds 6'-0"; note 10 states it, so no building
+   permit is required under PDS 070. Fence LINES are not drawn (locations not
+   mapped); if a plan checker wants them, the owner marks them on the sheet.
+   Watch ZO §6708: front/exterior side yard fences are capped at 42", so a 6'
+   run inside the west 35' exterior side yard would need confirming with PDS.
 5. ~~Add stormwater BMPs as the final layer.~~ **DONE — rev 6 carries the PDS 272
    block: land disturbance 0 SF plus the SD-B / SD-G / SD-H baseline measures
    that apply to an existing-use site with no construction.**

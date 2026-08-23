@@ -128,11 +128,13 @@ These are on the sheet as notes rather than hidden:
 - **Preliminary title report** — not obtained. Definitive easement locations,
   including the ~700' access easement across the adjacent parcel out to
   Handlebar Rd.
-- **Fence heights — a straight rejection item.** PDS 090 item 8 requires the
-  height of every free-standing fence, wall and gate to be shown and labelled.
-  Nothing is drawn. Note 10 defers it. Walk the property with a tape, note the
-  pool barrier, the bird garden and the perimeter runs, and send me the heights
-  and rough locations; they go on the sheet in one pass.
+- **Fence heights — now answered.** Note 10 states all existing fencing and
+  gates are 6'-0" or less, so none of it needs a building permit (PDS 070), and
+  no new fencing is proposed. Fence *lines* are not drawn, because their
+  locations were never mapped; if the plan checker asks for them, mark them on
+  a print and they go on in one pass. One thing to watch: ZO §6708 caps fences
+  in a front or exterior side yard at 42", so if any 6' run sits inside the
+  west 35' Whirlwind yard, ask PDS about it while you are there.
 - **Tiny home** — to be removed; best removed before submitting so it comes off
   the sheet entirely.
 - **Greenhouse** is labelled **AS-BUILT** — the county's own term from PDS 090
