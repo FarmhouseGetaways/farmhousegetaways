@@ -1,0 +1,52 @@
+# The Midwestern — archive site. ITS OWN NETLIFY SITE, not part of Farmhouse
+# Getaways. Static HTML, one stylesheet, no build step, no functions.
+#
+# This folder is a complete site. Point a *separate* Netlify site at this repo
+# with the base directory set to `midwestern`, and Netlify reads this file
+# instead of the one in the repository root, which belongs to the Farmhouse
+# Getaways website and knows nothing about this.
+#
+#   Add new site → Import an existing project → FarmhouseGetaways/farmhousegetaways
+#   Base directory:     midwestern
+#   Build command:      (leave empty — there is no build step)
+#   Publish directory:  midwestern
+#
+# No environment variables, no functions, no forms. It is a closed record of a
+# bar that no longer operates — text and photos rebuilt from the original
+# themidwestern.yourwebsitespace.com pages.
+#
+# The root netlify.toml deliberately 404s /midwestern/* on the Farmhouse
+# Getaways site, so this app appears at its own address and nowhere else.
+
+# `ignore` stops this site rebuilding for a commit that only touched the
+# Farmhouse Getaways website or the workout tracker. All three watch `main` on
+# the same repository, so without this every push to any of them builds all
+# three and costs three times over.
+#
+# Netlify runs this command from the base directory, which is `midwestern`, so
+# the pathspec `.` means this folder. Exit 0 skips the build; anything else
+# builds. An empty $CACHED_COMMIT_REF makes git diff error, which builds — an
+# extra build is the safe way to be wrong.
+[build]
+  publish = "."
+  command = ""
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+# It is a closed business, not something to promote or index.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

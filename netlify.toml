@@ -1,14 +1,15 @@
 # Farmhouse Getaways — Netlify config
 # Static site. No build step.
 
-# Both this site and Carissa's workout tracker (workout/netlify.toml) watch
-# `main` on this one repository, so without the line below every push builds
-# BOTH sites and every push costs twice what it should.
+# This site and two others — Carissa's workout tracker (workout/netlify.toml)
+# and The Midwestern archive (midwestern/netlify.toml) — all watch `main` on
+# this one repository, so without the line below every push builds all three
+# and every push costs three times what it should.
 #
 # `ignore` is a shell command Netlify runs before building, from this
 # directory. Exit 0 means "nothing relevant changed, skip the build"; any
 # other exit code means build. So: skip when the commit range touched nothing
-# outside workout/.
+# outside workout/ and midwestern/.
 #
 # If $CACHED_COMMIT_REF is empty — a first build, a cleared cache, a manual
 # deploy — git diff errors, which is a non-zero exit, which builds. The
@@ -16,7 +17,7 @@
 # round and is why this is not wrapped in anything cleverer.
 [build]
   publish = "."
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout'"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout' ':(exclude)midwestern'"
 
 [functions]
   directory = "netlify/functions"
@@ -117,6 +118,17 @@
 # deploys fine, and does absolutely nothing.
 [[redirects]]
   from = "/workout/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# The Midwestern archive lives in midwestern/ and is DELIBERATELY NOT PART OF
+# THIS SITE, for the same reason as workout/ above — see midwestern/netlify.toml.
+# It is a separate Netlify site pointed at the same repository with the base
+# directory set to `midwestern`. The folder is in this repository only because
+# that is where the branch was; it is not a page here and must not become one.
+[[redirects]]
+  from = "/midwestern/*"
   to = "/404.html"
   status = 404
   force = true
