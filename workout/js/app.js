@@ -33,6 +33,7 @@ import * as store from "./store.js";
 import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
 import * as push from "./push.js";
+import { computeInsights, newlyEarned } from "./insights.js";
 import {
   EFFORTS, effortLabel, sessionCalories, videoSource,
   clock, duration, plural, niceDate, todayKey, dayKeyOf,
@@ -1222,12 +1223,20 @@ function renderSummary(id) {
   const session = store.history().sessions.find((s) => s.id === id);
   if (!session) { go("#/"); return; }
   const stats = store.stats();
+  const earned = newlyEarned(store.history().sessions, id);   // see insights.js — chronological, tested
 
   screen.innerHTML = `
     <p class="eyebrow">Workout complete</p>
     <h2 class="h-display">${esc(session.title)}</h2>
     <p class="summary__big">${session.calories} <span style="font-size:1.2rem;color:var(--dim)">calories</span></p>
     <p class="muted small">An estimate, from ${session.weightLb} lb, the effort of each exercise and how long it actually took.</p>
+
+    ${earned.length ? `<div class="milestone-banner">
+      <p class="milestone-banner__eyebrow">${plural(earned.length, "new milestone")}</p>
+      <div class="badges">
+        ${earned.map((b) => `<span class="badge"><span class="badge__dot"></span>${esc(b.label)}</span>`).join("")}
+      </div>
+    </div>` : ""}
 
     <ul class="tally">
       <li><span>Time</span><b>${duration(session.elapsedSec)}</b></li>

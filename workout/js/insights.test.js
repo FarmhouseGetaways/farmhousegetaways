@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { computeInsights } from "./insights.js";
+import { computeInsights, newlyEarned } from "./insights.js";
 
 const session = (over = {}) => ({
   id: "s_" + Math.random().toString(36).slice(2),
@@ -126,4 +126,40 @@ test("a single session earns the first-workout badge and nothing streak-related 
   const labels = i.badges.map((b) => b.label);
   assert.ok(labels.includes("First workout logged"));
   assert.ok(!labels.includes("3 days in a row"));
+});
+
+test("newlyEarned flags the milestone on the workout that actually crossed it", () => {
+  const sessions = Array.from({ length: 5 }, (_, n) =>
+    session({ id: `s${n + 1}`, date: `2026-08-0${n + 1}`, finishedAt: `2026-08-0${n + 1}T08:00:00Z` }));
+  const earned = newlyEarned(sessions, "s5");
+  assert.ok(earned.some((b) => b.label === "5 workouts"));
+});
+
+test("newlyEarned is silent on a workout that did not cross anything", () => {
+  const sessions = Array.from({ length: 5 }, (_, n) =>
+    session({ id: `s${n + 1}`, date: `2026-08-0${n + 1}`, finishedAt: `2026-08-0${n + 1}T08:00:00Z` }));
+  const earned = newlyEarned(sessions, "s4");   // the 4th workout crossed nothing new
+  assert.deepEqual(earned, []);
+});
+
+test("newlyEarned does not re-announce an old milestone when revisited later — the exact bug a naive with/without diff has", () => {
+  // Exactly five workouts total, spread out (not consecutive days, so no
+  // streak badge muddies what is being checked here). A naive "remove this
+  // one session and see what disappears" check would say EVERY one of the
+  // five just earned "5 workouts", since removing any single session drops
+  // the total to four. The correct, chronological answer is that only the
+  // fifth one (s5) earned it — s2 and s3 earned nothing when they finished,
+  // because far fewer than five workouts existed yet (s1 is exempt from this
+  // check: it legitimately earns "First workout logged" the moment it
+  // exists, which is covered separately above).
+  const dates = ["2026-08-01", "2026-08-05", "2026-08-10", "2026-08-15", "2026-08-20"];
+  const sessions = dates.map((date, n) => session({ id: `s${n + 1}`, date, finishedAt: `${date}T08:00:00Z` }));
+  assert.deepEqual(newlyEarned(sessions, "s2"), []);
+  assert.deepEqual(newlyEarned(sessions, "s3"), []);
+  assert.ok(newlyEarned(sessions, "s5").some((b) => b.label === "5 workouts"));
+});
+
+test("newlyEarned on an id not in the record returns nothing, rather than throwing", () => {
+  const sessions = [session({ id: "s1", date: "2026-08-01" })];
+  assert.deepEqual(newlyEarned(sessions, "does-not-exist"), []);
 });

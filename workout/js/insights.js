@@ -150,3 +150,28 @@ export function computeInsights(sessions, now = new Date()) {
 
   return { ...summary, empty: false, badges: milestones(summary) };
 }
+
+/**
+ * Whatever the session with this id earned that did not exist the moment
+ * before it finished — for the "you just hit a milestone" banner on the
+ * summary screen right after finishing a workout.
+ *
+ * This is a chronological comparison, not "what if this one session were
+ * removed from the whole record". That distinction is the whole function:
+ * with exactly five workouts logged, removing ANY one of them drops the
+ * total below the "5 workouts" badge, so naively diffing "with it" against
+ * "without it" would say every one of the five just earned that badge,
+ * including the first one, revisited a year later. Sorting by when each
+ * workout actually finished and asking "was this the one that tipped it
+ * over" is what makes the banner appear exactly once, on the workout that
+ * actually reached it, and never again after — however many more get logged.
+ */
+export function newlyEarned(sessions, id, now = new Date()) {
+  const sorted = [...sessions].sort((a, b) => (a.finishedAt < b.finishedAt ? -1 : 1));
+  const at = sorted.findIndex((s) => s.id === id);
+  if (at === -1) return [];
+  const before = computeInsights(sorted.slice(0, at), now);
+  const after = computeInsights(sorted.slice(0, at + 1), now);
+  const had = new Set(before.badges.map((b) => b.key));
+  return after.badges.filter((b) => !had.has(b.key));
+}

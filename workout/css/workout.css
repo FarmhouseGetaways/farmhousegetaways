@@ -379,6 +379,19 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 }
 .badge__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); flex: none; }
 
+/* The moment a milestone is actually reached, on the summary screen right
+   after finishing — not buried on the history screen where it would only
+   ever be found by looking for it. */
+.milestone-banner {
+  background: rgba(214, 168, 95, .1); border: 1px solid rgba(214, 168, 95, .35);
+  border-radius: var(--radius-s); padding: .9rem 1rem; margin: 1rem 0;
+}
+.milestone-banner__eyebrow {
+  font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--brass); margin: 0 0 .5rem;
+}
+.milestone-banner .badges { margin-top: 0; }
+
 /* ---------- exercise list ---------- */
 
 .ex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }

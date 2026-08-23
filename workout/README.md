@@ -74,6 +74,18 @@ record, no clock of its own, tested the same way the calorie maths is:
 
     node --test workout/js/*.test.js
 
+**A milestone is announced once, on the workout that actually earned it** —
+`newlyEarned` in `js/insights.js`, shown right on the summary screen the
+moment a workout finishes, not left to be found later on the history screen.
+It works by sorting the record by when each workout actually finished and
+comparing insights just before that moment against just after — deliberately
+not by removing the session and seeing what badge disappears, which sounds
+equivalent but is not: with exactly five workouts logged, removing any one
+of them drops the total below the "5 workouts" badge, so that approach would
+announce the same milestone on all five, including the first one revisited a
+year later. Caught by a test before it ever shipped — see
+`insights.test.js`'s "does not re-announce an old milestone".
+
 **Calories** are estimated with the standard MET equation —
 `MET × 3.5 × body weight in kg ÷ 200` per minute — using the values from the
 2011 Compendium of Physical Activities. What makes it better than a flat guess
