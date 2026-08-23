@@ -925,11 +925,9 @@
         K.mass(ctx, bx + 10, MTOP + 2, MW - 22, 15, lit ? '#ffd45c' : '#6f5f33',
                { top: 0, side: 4, light: -1, foot: false });
         softGlow(ctx, bx + MW / 2, MTOP + 9, 52, 'rgba(255,214,92,.85)', lit ? 0.26 : 0.06);
-        ctx.fillStyle = '#3a2410';
-        ctx.font = '800 9px "Arial Narrow", Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('THE CLAW', bx + MW / 2, MTOP + 13);
-        ctx.textAlign = 'left';
+        CF.Font.draw(ctx, 'THE CLAW',
+          CF.Font.originFor(bx + MW / 2, CF.Font.widthOf('THE CLAW', 1, 0), 'center'),
+          MTOP + 13, 1, 0);
 
         /* The base of the machine, which was a flat red panel a foot and a
            half tall right at fighter height. A kick plate, the scuffs where
@@ -995,14 +993,11 @@
             K.mass(ctx, sx3, sy3, 34, 84, '#2f1a12', { top: 3, side: 5, foot: false });
             var buzz = (t % 190) < 4 ? 0.35 : 1;      /* the tube is on its way out */
             ctx.globalAlpha = buzz;
+            ctx.fillStyle = '#ffdf8c';
             'GAME BARN'.split('').forEach(function (ch, k) {
               if (ch === ' ') return;
-              ctx.fillStyle = '#ffdf8c';
-              ctx.font = '800 9px "Arial Narrow", Arial, sans-serif';
-              ctx.textAlign = 'center';
-              ctx.fillText(ch, sx3 + 17, sy3 + 13 + k * 8);
+              CF.Font.draw(ctx, ch, sx3 + 17 - 2, sy3 + 13 + k * 8, 1, 0);
             });
-            ctx.textAlign = 'left';
             ctx.globalAlpha = 1;
             softGlow(ctx, sx3 + 17, sy3 + 42, 46, 'rgba(255,206,120,.75)', 0.22 * buzz);
           }

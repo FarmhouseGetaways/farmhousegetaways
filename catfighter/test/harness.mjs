@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, '..');
+export const ROOT = join(HERE, '..');
 
 /* Everything except main.js, which needs a real document. The list comes from
    index.html itself, so a new cat or stage file cannot be forgotten here. */

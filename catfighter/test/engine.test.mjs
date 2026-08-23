@@ -1402,6 +1402,9 @@ test('the hand cursor appears over exactly the clickable rects', () => {
    context that records every call, and the rules are checked there.        */
 
 import { recordingCtx } from './harness.mjs';
+import { FILES, ROOT } from './harness.mjs';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 function drawn(chr, poseName) {
   const ctx = recordingCtx();
@@ -1477,6 +1480,71 @@ test('every part of the body is shaded by the same light', () => {
     assert.ok(tones.size >= 10,
       `${chr.id}: only ${tones.size} tones on the whole figure — three per material is the point`);
   }
+});
+
+/* ---- the bitmap font -----------------------------------------------------
+
+   The game is drawn at 384x224 and so is its text. Anything that reaches the
+   screen through ctx.font is anti-aliased into the backing store and then
+   magnified by the nearest-neighbour upscale, so it arrives with a soft grey
+   fringe on a picture where nothing else has one.                          */
+
+test('nothing in the game reaches the screen through ctx.font', () => {
+  for (const f of FILES) {
+    const src = readFileSync(join(ROOT, 'src', f), 'utf8');
+    /* the two mentions in the comments that explain why are not uses */
+    const uses = [...src.matchAll(/ctx\.font\s*=/g)];
+    assert.equal(uses.length, 0,
+      `src/${f} sets ctx.font — canvas will anti-alias that into a 384x224 buffer`);
+  }
+});
+
+test('every character the game prints has a glyph', () => {
+  /* The fallback for an unknown character is a question mark, which is
+     indistinguishable from a question mark somebody meant to type. Twenty-nine
+     em dashes shipped as '?' before this test existed. */
+  const have = new Set(Object.keys(CF.Font.glyphs));
+  const missing = new Map();
+  for (const f of FILES) {
+    const src = readFileSync(join(ROOT, 'src', f), 'utf8');
+    for (const m of src.matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"/g)) {
+      const t = m[1] ?? m[2];
+      if (!t) continue;
+      for (const ch of t) {
+        if (!have.has(ch) && !have.has(ch.toUpperCase())) {
+          missing.set(ch, (missing.get(ch) || 0) + 1);
+        }
+      }
+    }
+  }
+  /* Anything under here is in a regex, a colour or a selector rather than a
+     printed string, so the test reports what it found rather than guessing. */
+  const report = [...missing.entries()]
+    .filter(([ch]) => ch.codePointAt(0) > 126)
+    .map(([ch, n]) => `${JSON.stringify(ch)} (U+${ch.codePointAt(0).toString(16)}) x${n}`);
+  assert.deepEqual(report, [],
+    `these characters have no glyph and would print as '?': ${report.join(', ')}`);
+});
+
+test('the font quantises to whole-number scales and measures what it draws', () => {
+  const F = CF.Font;
+  for (const size of [7, 8, 9, 13, 15, 20, 25, 30]) {
+    const sc = F.scaleFor(size);
+    assert.ok(Number.isInteger(sc) && sc >= 1,
+      `size ${size} gave scale ${sc} — a fractional scale is how a hard edge goes soft`);
+  }
+  /* widthOf has to agree with draw, or every plate sized from measure() is
+     the wrong size for the words on it. */
+  const seen = [];
+  const probe = { fillRect(x, y, w) { seen.push(x + w); }, save() {}, restore() {} };
+  const str = 'ROUND 1';
+  F.draw(probe, str, 0, 20, 2, 0);
+  const drawnRight = Math.max(...seen);
+  const measured = F.widthOf(str, 2, 0);
+  assert.ok(drawnRight <= measured,
+    `draw ran to ${drawnRight} but measure said ${measured} — text will overflow its plate`);
+  assert.ok(measured - drawnRight <= 2 * 2,
+    `measure said ${measured} for ink ending at ${drawnRight} — more than one blank column`);
 });
 
 test('a costume layer lands where its name says it does', () => {

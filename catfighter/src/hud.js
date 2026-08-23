@@ -7,56 +7,45 @@
 (function () {
   var U = CF.util, S = CF.STAGE;
 
+  /* Every one of these used to set `ctx.font` and hand the string to canvas,
+     which anti-aliased it into a 384x224 buffer that is then magnified by
+     nearest neighbour. See src/font.js. The signatures are unchanged so the
+     hundred-odd call sites across the HUD, the menus and the character card
+     all inherit the fix; `size` is now a request rather than a measurement,
+     and font.js quantises it to a whole-number scale. */
+  var F = CF.Font;
+
   function text(ctx, str, x, y, size, color, align, weight, track) {
+    var sc = F.scaleFor(size);
+    var w = F.widthOf(str, sc, track);
     ctx.save();
-    ctx.font = (weight || 700) + ' ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = align || 'left';
-    ctx.textBaseline = 'alphabetic';
-    if (track) {
-      var chars = String(str).split('');
-      var total = 0, i;
-      for (i = 0; i < chars.length; i++) total += ctx.measureText(chars[i]).width + track;
-      total -= track;
-      var cx = align === 'center' ? x - total / 2 : (align === 'right' ? x - total : x);
-      ctx.textAlign = 'left';
-      for (i = 0; i < chars.length; i++) {
-        ctx.fillStyle = color;
-        ctx.fillText(chars[i], cx, y);
-        cx += ctx.measureText(chars[i]).width + track;
-      }
-    } else {
-      ctx.fillStyle = color;
-      ctx.fillText(str, x, y);
-    }
+    ctx.fillStyle = color;
+    F.draw(ctx, str, F.originFor(x, w, align), y, sc, track);
     ctx.restore();
   }
 
   /* How wide `text` would draw that string, tracking included. Used to size a
      plate behind a label so the plate always fits the words on it. */
   function measure(ctx, str, size, weight, track) {
-    ctx.save();
-    ctx.font = (weight || 700) + ' ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
-    var total;
-    if (track) {
-      var chars = String(str).split('');
-      total = 0;
-      for (var i = 0; i < chars.length; i++) total += ctx.measureText(chars[i]).width + track;
-      total -= track;
-    } else {
-      total = ctx.measureText(String(str)).width;
-    }
-    ctx.restore();
-    return total;
+    return F.widthOf(str, F.scaleFor(size), track);
   }
 
+  /* The outline is eight offset copies rather than a stroke: a stroked glyph
+     gets round joins and a soft edge, which is the whole thing we are here to
+     avoid. Eight directions rather than four, so a diagonal stem does not
+     come out with the outline missing at the corners. */
+  var RING = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
   function outlineText(ctx, str, x, y, size, fill, stroke, align, track) {
+    var sc = F.scaleFor(size);
+    var w = F.widthOf(str, sc, track);
+    var ox = F.originFor(x, w, align === undefined ? 'center' : align);
     ctx.save();
-    ctx.font = '800 ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = align || 'center';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(2, size * 0.16);
-    ctx.strokeStyle = stroke; ctx.strokeText(str, x, y);
-    ctx.fillStyle = fill; ctx.fillText(str, x, y);
+    ctx.fillStyle = stroke;
+    for (var i = 0; i < RING.length; i++) {
+      F.draw(ctx, str, ox + RING[i][0] * sc, y + RING[i][1] * sc, sc, track);
+    }
+    ctx.fillStyle = fill;
+    F.draw(ctx, str, ox, y, sc, track);
     ctx.restore();
   }
 
@@ -64,15 +53,14 @@
      already in it. Character blurbs are written by hand and get edited, so
      they must wrap rather than run off into the next column. */
   function wrapText(ctx, str, maxWidth, size, weight) {
-    ctx.save();
-    ctx.font = (weight || 600) + ' ' + size + 'px "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+    var sc = F.scaleFor(size);
     var out = [];
     var paras = String(str).split('\n');
     for (var p = 0; p < paras.length; p++) {
       var words = paras[p].split(/\s+/), line = '';
       for (var i = 0; i < words.length; i++) {
         var probe = line ? line + ' ' + words[i] : words[i];
-        if (ctx.measureText(probe).width > maxWidth && line) {
+        if (F.widthOf(probe, sc, 0) > maxWidth && line) {
           out.push(line);
           line = words[i];
         } else {
@@ -81,7 +69,6 @@
       }
       if (line) out.push(line);
     }
-    ctx.restore();
     return out;
   }
 

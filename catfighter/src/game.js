@@ -1341,9 +1341,10 @@
       var f = faces[i];
       ctx.fillStyle = f[2];
       ctx.beginPath(); ctx.arc(f[0], f[1], 4.6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,.65)';
-      ctx.font = '800 5.4px Arial';
-      ctx.fillText(f[3], f[0], f[1] + 2);
+      /* the letter on the button face, in the bitmap font like everything
+         else — a 5px Arial glyph inside a 9px circle was the last piece of
+         anti-aliased type left in the game */
+      HUD.text(ctx, f[3], f[0], f[1] + 3, 7, 'rgba(0,0,0,.72)', 'center');
     }
 
     /* right stick, start and back */
@@ -1421,11 +1422,7 @@
         var row = rows[i], ly = 44 + i * 12;
         ctx.fillStyle = row[1];
         ctx.beginPath(); ctx.arc(lx + 6, ly - 3, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.save();
-        ctx.font = '800 6px Arial'; ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(0,0,0,.72)';
-        ctx.fillText(row[0], lx + 6, ly - 1);
-        ctx.restore();
+        HUD.text(ctx, row[0], lx + 6, ly, 7, 'rgba(0,0,0,.72)', 'center');
         HUD.text(ctx, row[2], lx + 18, ly, 8, '#ffe9b8', 'left', 700, 0.4);
       }
       HUD.text(ctx, 'STICK OR D-PAD  —  MOVE, CROUCH, AIM', lx, 44 + rows.length * 12 + 2,

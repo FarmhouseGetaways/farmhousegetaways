@@ -42,7 +42,28 @@
          silo standing across its right-hand edge — which is worth more than
          a clear disc: something crossing the sun is what gives it size. */
       K.sky(ctx, [[0, '#f2a35a'], [0.4, '#f5c07a'], [1, '#f7dcb0']], 0, 150);
-      K.glow(ctx, 62, 114, 98, 'rgba(255,236,170,.95)', 0.6);
+
+      /* THE HALO IS STEPPED, not a gradient.
+
+         This was K.glow — a 98-pixel radial gradient composited with
+         'lighter', which is a quarter of a 384-wide picture rendered as a
+         perfectly smooth disc bleeding into a perfectly smooth sky. Street
+         Fighter II has no additive bloom anywhere in it; a limited palette
+         cannot make one, so its skies step. Four flat-alpha discs at
+         stepped radii give the same shape with hard rings, and they are
+         cheaper than the gradient and the compositing pass together.
+
+         The alphas stack, so the numbers are per-ring and not cumulative —
+         the middle ends up around 0.6 by the time the sun disc goes over
+         it. Alphas any higher and the rings read as targets rather than as
+         glare. */
+      ctx.save();
+      ctx.fillStyle = '#ffeaa6';
+      [[98, 0.10], [76, 0.16], [55, 0.22], [35, 0.30]].forEach(function (ring) {
+        ctx.globalAlpha = ring[1];
+        ctx.beginPath(); ctx.arc(62, 114, ring[0], 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
       ctx.fillStyle = '#fff2c8';
       ctx.beginPath(); ctx.arc(62, 116, 27, 0, Math.PI * 2); ctx.fill();
       /* a hotter core. K.deepen hazes the whole picture towards #f4c684 on
@@ -179,6 +200,95 @@
         }
       });
 
+      /* --- the crowd, on the ridge behind the orchard -------------------
+
+         This was a K.crowdRow of full-colour spectators at y=158, sat along
+         the fence rail. Two things were wrong with it and they compound:
+         158 is fourteen pixels above the floor — the fighters' shins — and
+         K.spectator draws a little cat in the same palette family as the
+         roster, so at 1x they read as small copies of the fighters standing
+         in the ring. That is the one silhouette that must never appear at
+         that height.
+
+         First fix was to raise them to 141 and blacken them, still in front
+         of the trees. It failed for a reason worth writing down: a
+         ten-pixel dark shape standing among tree trunks IS a tree trunk. A
+         silhouette only works if there is something plain behind it.
+
+         So they went BEHIND the orchard instead, standing on the tan hill
+         band at y=147 and drawn at the barn's own depth, so the two never
+         slide against each other and the row has real ground under it. The
+         trees cut them off at the chest and the heads and ears clear the
+         canopies. That height is not arbitrary: at 149 all but one of them
+         hid behind the near rank at half the camera positions, and anything
+         above about 144 lifts their feet off the band so they float
+         wherever a tree happens not to be. Nineteen apart rather than
+         twenty-seven, so enough of them land in the gaps to read as an
+         audience. The sun is out at x=62 behind them, which makes near-black with a hard warm rim on the
+         sunward side the honest drawing rather than a stylistic choice.
+         Two flat fills each, no cel shading: a hard rim reads at this size
+         and a shaded one is mud. It also costs less than the row it
+         replaced, which drew a whole little cat apiece. --- */
+      K.layer(ctx, camX, 0.19, function () {
+        K.repeatX(camX, 0, 19, function (x, i) {
+          if (K.chance(i, 61, 0.24)) return;
+          var sc = K.vary(i, 62, 0.92, 1.18);
+          var ph = K.hash(i, 63) * 6.28;
+          /* the idle bob, and the hop when a round has just been won */
+          var y = 147 + K.vary(i, 64, -3, 3)
+                  - Math.sin(t * 0.06 + ph) * 1.0 * sc
+                  - (mood > 0.5 ? Math.max(0, Math.sin(t * 0.22 + ph)) * 5 * sc * mood : 0);
+          var lean = Math.sin(t * 0.03 + ph) * 0.06;
+
+          function shape(c, dx) {
+            var cx = x + K.vary(i, 65, -4, 4) + dx, hy = y - 11 * sc;
+            var hx = cx + lean * 10;
+            c.beginPath();
+            /* SHOULDERS WIDER THAN THE HEAD, and that is the whole trick.
+               The first pass had them the same width, so head, neck and body
+               fused into one column with a V cut in the top and every
+               spectator read as a fence post. The step in at the neck is
+               what says "living thing" at eleven pixels tall. */
+            c.moveTo(cx - 5.4 * sc, y + 5 * sc);
+            c.lineTo(cx - 4.2 * sc + lean * 8, hy + 2.2 * sc);
+            c.lineTo(cx + 4.2 * sc + lean * 8, hy + 2.2 * sc);
+            c.lineTo(cx + 5.4 * sc, y + 5 * sc);
+            c.closePath();
+            c.moveTo(hx + 3.0 * sc, hy);
+            c.arc(hx, hy, 3.0 * sc, 0, Math.PI * 2);
+            /* Ears out past the width of the skull, with sky between them.
+               Tucked inside the head's own circle they simply disappear —
+               an ear only exists in a silhouette if it breaks the outline.
+               Not much taller than that, though — at 6.6 units on a 3-unit
+               skull the row read as rabbits. */
+            c.moveTo(hx - 2.9 * sc, hy - 0.8 * sc);
+            c.lineTo(hx - 4.4 * sc, hy - 5.4 * sc);
+            c.lineTo(hx - 0.7 * sc, hy - 2.9 * sc);
+            c.closePath();
+            c.moveTo(hx + 0.7 * sc, hy - 2.9 * sc);
+            c.lineTo(hx + 4.4 * sc, hy - 5.4 * sc);
+            c.lineTo(hx + 2.9 * sc, hy - 0.8 * sc);
+            c.closePath();
+            /* a tail up behind on about half of them, so the ridge is not a
+               row of fourteen identical lumps */
+            if (K.chance(i, 66, 0.5)) {
+              c.moveTo(cx - 4.4 * sc, y + 3 * sc);
+              c.lineTo(cx - 7.2 * sc, y - 7 * sc);
+              c.lineTo(cx - 5.4 * sc, y - 7.6 * sc);
+              c.lineTo(cx - 2.4 * sc, y + 2 * sc);
+              c.closePath();
+            }
+          }
+          /* the rim first, as the same silhouette shifted towards the sun,
+             then the body over it — what survives is a hard edge of low sun
+             a pixel or so wide down the sunward side */
+          ctx.fillStyle = 'rgba(255,228,168,.9)';
+          shape(ctx, -1.2); ctx.fill();
+          ctx.fillStyle = K.pick(i, 67, ['#2b2320', '#342a25', '#241d1b']);
+          shape(ctx, 0); ctx.fill();
+        });
+      });
+
       /* --- three ranks of trees, every one a different size and shade --- */
       /* The three ranks used to run '#2f5c28'/'#3d7534' up to
          '#457f38'/'#57a049'. The nearest rank stands directly behind the
@@ -204,77 +314,6 @@
               ctx.fill();
             }
           });
-        });
-      });
-
-      /* --- the crowd, up on the rise behind the orchard ----------------
-
-         This was a K.crowdRow of full-colour spectators at y=158, sat along
-         the fence rail. Two things were wrong with that and they compound:
-         158 is fourteen pixels above the floor — the fighters' shins — and
-         K.spectator draws a little cat in the same palette family as the
-         roster. At 1x they read as small copies of the fighters standing in
-         the ring, which is the one silhouette that must never appear at
-         that height.
-
-         They are now up the slope at 141, above the hill crest, and drawn as
-         backlit shapes rather than as cats: the sun is behind them at x=62,
-         so a warm rim on the sunward side and near-black everywhere else is
-         what a low sun actually does to a row of spectators. Two flat fills
-         each, no cel shading — a hard rim reads at ten pixels tall, and a
-         shaded one is mud. It is also cheaper than the row it replaces.
-
-         Drawn before the fence on purpose: the fence is nearer, so it wants
-         to be in front of them, and its top rail is well below their feet
-         anyway now that they are up the bank. --- */
-      K.layer(ctx, camX, 0.42, function () {
-        K.repeatX(camX, 0, 26, function (x, i) {
-          if (K.chance(i, 61, 0.3)) return;
-          var sc = K.vary(i, 62, 0.52, 0.78);
-          var ph = K.hash(i, 63) * 6.28;
-          /* the idle bob, and the hop when a round has just been won */
-          var y = 141 + K.vary(i, 64, -2.5, 2.5)
-                  - Math.sin(t * 0.06 + ph) * 1.0 * sc
-                  - (mood > 0.5 ? Math.max(0, Math.sin(t * 0.22 + ph)) * 5 * sc * mood : 0);
-          var lean = Math.sin(t * 0.03 + ph) * 0.05;
-
-          function shape(c, dx) {
-            var cx = x + K.vary(i, 65, -4, 4) + dx, hy = y - 11 * sc;
-            c.beginPath();
-            /* shoulders down to the grass — a wedge, not a capsule: a
-               rounded blob at this size is a pebble */
-            c.moveTo(cx - 3.4 * sc, y);
-            c.lineTo(cx - 2.6 * sc + lean * 8, hy + 2 * sc);
-            c.lineTo(cx + 2.6 * sc + lean * 8, hy + 2 * sc);
-            c.lineTo(cx + 3.4 * sc, y);
-            c.closePath();
-            c.moveTo(cx + 3.0 * sc + lean * 9, hy);
-            c.arc(cx + lean * 9, hy, 3.0 * sc, 0, Math.PI * 2);
-            /* ears — the whole reason the shape reads as a cat at all */
-            c.moveTo(cx - 2.9 * sc + lean * 9, hy - 1.4 * sc);
-            c.lineTo(cx - 2.2 * sc + lean * 9, hy - 5.2 * sc);
-            c.lineTo(cx - 0.5 * sc + lean * 9, hy - 2.4 * sc);
-            c.closePath();
-            c.moveTo(cx + 0.6 * sc + lean * 9, hy - 2.4 * sc);
-            c.lineTo(cx + 2.3 * sc + lean * 9, hy - 5.2 * sc);
-            c.lineTo(cx + 3.0 * sc + lean * 9, hy - 1.4 * sc);
-            c.closePath();
-            /* a tail up behind, so the row is not fourteen identical lumps */
-            if (K.chance(i, 66, 0.45)) {
-              c.moveTo(cx - 3.2 * sc, y);
-              c.lineTo(cx - 5.4 * sc, y - 7 * sc);
-              c.lineTo(cx - 4.0 * sc, y - 7.4 * sc);
-              c.lineTo(cx - 1.8 * sc, y - 1 * sc);
-              c.closePath();
-            }
-          }
-          /* the rim first, as the same silhouette shifted towards the sun,
-             then the body over it — what survives is a hard edge of low sun
-             one pixel wide down the sunward side */
-          ctx.fillStyle = 'rgba(255,226,164,.85)';
-          shape(ctx, -1.1); ctx.fill();
-          ctx.fillStyle = K.pick(i, 67, ['#3b2a26', '#46332b', '#322523']);
-          shape(ctx, 0); ctx.fill();
         });
       });
 
@@ -400,7 +439,13 @@
            path is ten circles — stroked, every lobe got its own outline and
            the canopy read as a bunch of grapes. The shadow crescent gives it
            all the form it needs. */
-        K.paint(ctx, canopy, '#41803a',
+        /* The base green came down from '#41803a' when the mid ranks went
+           olive: the canopy hangs into the band a fighter's head occupies on
+           the right-hand side, and its shadowed green was ten points off
+           Luigi's scarf. Deepening it costs the landmark nothing — the lit
+           crowns below are what the eye actually returns to, and a darker
+           mass under them makes them read harder, not softer. */
+        K.paint(ctx, canopy, '#3a6f33',
                 { step: 4, lx: -1, ly: 0.7, shade: 0.42, hi: 0.16, edge: false });
 
         /* sunlit crowns on the lobes facing the sun, and blossom in them.

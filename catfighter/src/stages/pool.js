@@ -859,7 +859,19 @@
              middle of the fight to get past the bird. --- */
       K.layer(ctx, camX, 1.22, function () {
         var fx = 30 - camX * 0.055;
-        var PINK = '#ff9dbb';
+        /* A DUSTY ROSE, not a hot pink, and the reason is measurable. The
+           flamingo is the biggest shape in the frame and at '#ff9dbb' it was
+           also the brightest and the most saturated — brighter than the deck
+           it stands on — so at 1x the eye went to the bird and not to the
+           fighter standing in front of it. The reference's huge near objects
+           are DARK: scale contrast is bought with size, never with value.
+           This sits it below the deck's own tone, which is what a thing
+           propped in the shade of that parasol would do anyway. Keep the
+           size; it is only the value that was wrong. */
+        var PINK = '#bd6a86';
+        var PINK_SHADE = K.darker(PINK, 0.34);   /* the same tone K.paint's
+           own crescent leaves, so the hard shadows below and the crescent
+           read as one shadow side rather than as two different greys */
 
         /* shadow on the deck under it */
         ctx.fillStyle = 'rgba(70,60,52,.26)';
@@ -925,7 +937,13 @@
            first pass lightened the pink by 0.16 and at 1x the wing simply
            was not there — on a shape this large the separation has to read
            from across the room or the whole exercise is a decoration
-           nobody sees. */
+           nobody sees.
+
+           No lit band on it (`band: false`). The wing is already a lighter
+           plane than the body and the hard edge is doing the separating; the
+           highlight pass on a shape this large was a second bright field
+           rather than a rim, and it put the brightest pixels in the picture
+           back on the bird. */
         K.paint(ctx, function (c) {
           c.beginPath();
           c.moveTo(fx + 44, 172);
@@ -935,8 +953,8 @@
           c.quadraticCurveTo(fx + 16, 200, fx + 26, 188);
           c.quadraticCurveTo(fx + 38, 192, fx + 44, 172);
           c.closePath();
-        }, K.lighter(PINK, 0.34), { step: 5, shade: 0.26, hi: 0.22, edgeW: 1.8,
-                                    edge: 'rgba(150,60,92,.85)' });
+        }, K.lighter(PINK, 0.32), { step: 5, shade: 0.26, band: false, edgeW: 1.8,
+                                    edge: 'rgba(96,36,58,.85)' });
         /* the shadow it throws on the body below the feather tips — the
            wing has to sit ON something or it is a decal */
         ctx.save();
@@ -964,11 +982,24 @@
         ctx.moveTo(fx + 54, 64); ctx.lineTo(fx + 66, 72); ctx.lineTo(fx + 52, 69);
         ctx.closePath(); ctx.fill();
 
-        /* eye */
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(fx + 26, 57, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#241c22';
-        ctx.beginPath(); ctx.arc(fx + 28, 58, 2.4, 0, Math.PI * 2); ctx.fill();
+        /* eye — an almond with a slit, not a circle with a dot. A round
+           white disc with a black dot is a cartoon eye on the largest
+           landmark in the stage; every fighter on the roster earned an
+           almond and a slit pupil for exactly this reason and the flamingo
+           had not. */
+        ctx.save();
+        ctx.translate(fx + 27, 57);
+        ctx.rotate(-0.18);
+        ctx.beginPath();
+        ctx.moveTo(-5, 0);
+        ctx.quadraticCurveTo(-2, -3.4, 5, -0.6);
+        ctx.quadraticCurveTo(2, 3.2, -5, 0);
+        ctx.closePath();
+        ctx.fillStyle = '#f4ead6'; ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(1.4, -0.1, 1.7, 3.0, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#241c22'; ctx.fill();
+        ctx.restore();
 
         /* the seams and the valve — what makes it read as inflatable rather
            than as a pink bird */

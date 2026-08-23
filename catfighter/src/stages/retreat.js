@@ -144,8 +144,31 @@
   CF.StageDefs.retreat = {
     id: 'retreat', name: 'MOUNTAIN RETREAT',
     blurb: 'Night on the granite. Firelight, fireflies, and bats over the moon.',
-    /* the colour of the air here — see K.deepen */
-    air: { air: '#3b4a74', haze: 0.24, floorDark: 0.24, horizon: 130 },
+    /* The colour of the air here — see K.deepen.
+       Haze was 0.24, and on a NIGHT stage that is backwards. Haze pulls the
+       mid-ground towards `air`, and `air` is a mid-blue, so 24 percent of it
+       LIFTED the pines and the ridge into the same value band as a dark cat:
+       the backdrop where the fighters stand measured 46 out of 255 against
+       Lilly's own median of 57, and at 1x her legs and tail simply went into
+       the trees. On a night stage the air has to be darker than the objects
+       standing in it, so the haze is down to a tenth and the pines and the
+       ridges have each come down a step to match.
+
+       floorDark is up as well, from 0.24 to 0.38. That band — 22 pixels above
+       the floor line — is exactly where a cat's shins and feet are, and it
+       measured BRIGHTER than the rest of the backdrop, so a dark-legged cat
+       lost her legs and stood on stumps. It stays narrow, because a narrow
+       dark band reads as contact and a wide one reads as fog.
+
+       `back` is set at all here — most stages take the 0.26 default — because
+       the four changes above got the band from 46 to 36 and the last four
+       points had to come out of the picture as a whole rather than out of any
+       one object. It multiplies towards black instead of washing towards
+       grey, so the stage lost brightness and kept its contrast: the moon, the
+       cabin windows and the campfires are still the only bright things in
+       frame, and the backdrop now sits at 32 against Lilly's 57. */
+    air: { air: '#3b4a74', haze: 0.10, floorDark: 0.38, back: 0.34,
+           horizon: 130 },
     init: function () {
       this.flies = new P({ count: 26, kind: 'firefly', depth: 0.8, seed: 44,
                            band: [96, FLOOR_Y + 14], vx: 0.07, vy: -0.03,
@@ -157,7 +180,13 @@
                             color2: 'rgba(255,220,140,1)', wobble: 1.6 });
     },
     drawBack: function (ctx, camX, t, mood) {
-      K.sky(ctx, [[0, '#080c26'], [0.42, '#1d2450'], [0.78, '#3a3260'], [1, '#5b4468']], 0, 150);
+      /* The horizon glow used to run up to #5b4468, and that turned out to be
+         the single brightest thing in the band the fighters stand in — a
+         purple wash at value 75 behind their shoulders. Pretty on its own and
+         the wrong end of the scale for a night stage: the moon is meant to be
+         the only place the eye rests. Both lower stops are down about a third,
+         which keeps the warmth in the horizon without lifting it. */
+      K.sky(ctx, [[0, '#080c26'], [0.42, '#151a3c'], [0.78, '#272045'], [1, '#3b2b49']], 0, 150);
 
       /* stars, of three different brightnesses, some of them twinkling */
       K.layer(ctx, camX, 0.03, function () {
@@ -179,7 +208,13 @@
          a coin, not a moon. At thirty-one it is the brightest thing in the
          picture and the only place the eye can rest between the two dark
          masses — and it gives the bats something to be seen against. */
-      K.glow(ctx, MOON_X, MOON_Y, MOON_R * 3.1, 'rgba(206,222,255,.75)', 0.36);
+      /* The halo was 0.36 over a 96-pixel radius, which reaches y=142 — the
+         middle of the picture, and it was quietly lifting the whole band the
+         fighters stand in. Down to 0.26 and pulled in a little: the disc is
+         still the brightest thing on the stage and now it is the ONLY bright
+         thing up there, which is what makes it read as the light source
+         rather than as a lamp behind frosted glass. */
+      K.glow(ctx, MOON_X, MOON_Y, MOON_R * 2.6, 'rgba(206,222,255,.75)', 0.26);
       ctx.fillStyle = '#f2f5ff';
       ctx.beginPath(); ctx.arc(MOON_X, MOON_Y, MOON_R, 0, Math.PI * 2); ctx.fill();
       /* the terminator: a sliver of the disc in shadow down the far side,
@@ -218,16 +253,16 @@
       /* --- two ranges: snow catching the moon, then the black wall in
              front of it. One ridge alone reads as a cardboard cut-out. --- */
       K.layer(ctx, camX, 0.07, function () {
-        K.ridge(ctx, camX, 0.07, '#3a4270', 132, 52, 5);
+        K.ridge(ctx, camX, 0.07, '#2a3057', 132, 52, 5);
         /* snow on the tops, offset up-right towards the moon */
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, W, 132); ctx.clip();
         ctx.globalAlpha = 0.5;
-        K.ridge(ctx, camX, 0.07, '#8fa0cc', 128, 52, 5);
+        K.ridge(ctx, camX, 0.07, '#7183b4', 128, 52, 5);
         ctx.restore();
       });
-      K.ridge(ctx, camX, 0.14, '#1d2547', 152, 34, 17);
+      K.ridge(ctx, camX, 0.14, '#131934', 152, 34, 17);
 
       /* --- THE MONOLITH: a granite tor most of the height of the picture,
              with a fall of water down the near face of it. It used to be a
@@ -261,13 +296,13 @@
         ctx.fill();
         ctx.save();
         body(ctx); ctx.clip();
-        ctx.fillStyle = '#332f4d';                 /* the moonward flank */
+        ctx.fillStyle = '#242137';                 /* the moonward flank */
         ctx.beginPath();
         ctx.moveTo(mx - 24, 8); ctx.lineTo(mx + 4, 30); ctx.lineTo(mx + 20, 86);
         ctx.lineTo(mx + 46, 126); ctx.lineTo(mx + 58, FLOOR_Y + 6);
         ctx.lineTo(mx - 14, FLOOR_Y + 6); ctx.lineTo(mx - 30, 60);
         ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#5a5479';                 /* the crown, full moon on it */
+        ctx.fillStyle = '#453f5e';                 /* the crown, full moon on it */
         ctx.beginPath();
         ctx.moveTo(mx - 24, 8); ctx.lineTo(mx + 4, 30); ctx.lineTo(mx - 6, 52);
         ctx.lineTo(mx - 34, 34); ctx.closePath(); ctx.fill();
@@ -359,7 +394,7 @@
         K.repeatX(camX, 0, 19, function (x, i) {
           if (K.chance(i, 130, 0.14)) return;
           var ph = K.vary(i, 131, 26, 54), pw = ph * K.vary(i, 132, 0.24, 0.34);
-          ctx.fillStyle = K.pick(i, 133, ['#1a2242', '#1e2749', '#151c38']);
+          ctx.fillStyle = K.pick(i, 133, ['#121831', '#151c39', '#0e1329']);
           ctx.beginPath();
           ctx.moveTo(x, 158 - ph);
           ctx.lineTo(x - pw, 160); ctx.lineTo(x + pw, 160);
@@ -371,7 +406,7 @@
         K.repeatX(camX, 0, 25, function (x, i) {
           if (K.chance(i, 115, 0.18)) return;
           var ph = K.vary(i, 116, 44, 92), pw = ph * K.vary(i, 117, 0.20, 0.30);
-          var col = K.pick(i, 118, ['#0f1428', '#131a33', '#0b1023']);
+          var col = K.pick(i, 118, ['#0a0e1e', '#0d1226', '#070b19']);
           /* three tiers rather than one triangle — a pine is a stack of
              skirts and the notches are what stop a row of them reading as
              bunting */
@@ -386,8 +421,12 @@
             ctx.lineTo(x + tw, ty + ph * 0.42);
             ctx.closePath(); ctx.fill();
           }
-          /* moonlight down the right-hand edge of the nearer ones */
-          ctx.strokeStyle = 'rgba(150,172,225,.16)';
+          /* Moonlight down the right-hand edge of the nearer ones. Lifted
+             from .16 to .28 when the pine mass itself came down a step: a
+             near-black tree needs the edge to keep its shape, and an edge is
+             one pixel wide so it costs nothing in the value of the band —
+             which was the whole point of darkening them. */
+          ctx.strokeStyle = 'rgba(150,172,225,.28)';
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(x + 1, 164 - ph); ctx.lineTo(x + pw * 0.9, 164 - ph * 0.16);
@@ -406,10 +445,10 @@
         var flick = 0.78 + 0.22 * Math.sin(t * 0.13) * Math.sin(t * 0.31);
 
         /* the shelf it stands on, so it is not floating on the floor line */
-        K.mass(ctx, hx - 104, 158, 190, 20, '#3c3950', { top: 4, side: 6, foot: false });
+        K.mass(ctx, hx - 104, 158, 190, 20, '#2c2a3d', { top: 4, side: 6, foot: false });
 
         /* the stone chimney, up the near end */
-        K.mass(ctx, hx + 58, 52, 24, 112, '#524d63', { top: 4, side: 5, foot: false });
+        K.mass(ctx, hx + 58, 52, 24, 112, '#3e3a4d', { top: 4, side: 5, foot: false });
         ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.lineWidth = 1;
         for (var st2 = 0; st2 < 9; st2++) {
           ctx.beginPath();
@@ -429,7 +468,7 @@
         ctx.globalAlpha = 1;
 
         /* the body of it, in logs */
-        K.mass(ctx, hx - 88, 94, 152, 66, '#463a56', { top: 0, side: 10, foot: false });
+        K.mass(ctx, hx - 88, 94, 152, 66, '#332a40', { top: 0, side: 10, foot: false });
         ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.lineWidth = 1;
         for (var lg = 1; lg < 8; lg++) {
           ctx.beginPath();
@@ -439,13 +478,13 @@
         /* the log ends stacked at the corner — the one detail that says
            "log cabin" rather than "shed" at this size */
         for (var le = 0; le < 8; le++) {
-          ctx.fillStyle = le % 2 ? '#564868' : '#3d3249';
+          ctx.fillStyle = le % 2 ? '#40354f' : '#2c2436';
           ctx.beginPath();
           ctx.ellipse(hx - 90, 98 + le * 8.2, 4, 3.6, 0, 0, Math.PI * 2);
           ctx.fill();
         }
         /* the roof, overhanging at both ends */
-        ctx.fillStyle = '#2a2336';
+        ctx.fillStyle = '#1d1826';
         ctx.beginPath();
         ctx.moveTo(hx - 104, 98); ctx.lineTo(hx - 12, 54);
         ctx.lineTo(hx + 78, 98); ctx.lineTo(hx + 78, 106);
@@ -590,7 +629,7 @@
              across. Drawing the shape once in shadow and once again shifted
              towards the moon gets the same crescent for two fills and no
              clip at all. */
-          var base = K.pick(i, 123, ['#3c3852', '#343048', '#454060']);
+          var base = K.pick(i, 123, ['#2c2940', '#262338', '#332f49']);
           lump(ctx);
           ctx.fillStyle = K.darker(base, 0.4); ctx.fill();
           ctx.save();
