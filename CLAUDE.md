@@ -775,6 +775,30 @@ says it cannot send an email rather than pretending to. Passwords are
 hashed with scrypt, never stored or logged in the clear. `workout/README.md`
 has the full shape of it, including exactly who can read what.
 
+**The record grew real intelligence, and a self-serve/admin layer, on 23 Aug
+2026.** Beyond `_lib/users.mjs`, three more pieces:
+
+- **`js/insights.js`** turns the plain list of finished workouts into things
+  a raw total can't say — this week versus last week, which day she actually
+  shows up, the longest run ever (not just the current streak, which forgets
+  a broken one), personal bests, and a short, deliberately small set of
+  milestones. The history screen leads with these now. **A milestone is
+  announced once, on the summary screen right when it's earned** — get this
+  wrong and it either never fires or re-fires on every old workout revisited;
+  the first version compared "with this session" to "without it" and
+  announced the same milestone on all five sessions once there were exactly
+  five, including the first one a year later. The fix compares insights from
+  just before a workout's own finish time to just after — pure, and tested
+  (`insights.test.js`, including that exact regression).
+- **Settings → Change password**, signed in, no email round trip — proves
+  the current password first and bumps the account's session generation,
+  which is what actually signs every other device out.
+- **Settings → Edit the week (admin) → Who has an account** — a read-only
+  roster (`netlify/functions/admin-people.mjs`), gated by the admin
+  password, never a password hash or Google id. No delete or edit button on
+  purpose: five people is small enough that "ask them to email you" beats a
+  button that could be mis-tapped.
+
 **Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
 runs hourly on Netlify's schedule and decides per device, in that device's own
 zone: nothing scheduled today, already done today, or already said today all
