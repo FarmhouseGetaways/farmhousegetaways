@@ -44,8 +44,13 @@ export const ACCOUNT_COOKIE = "workout_account";
 const ACCOUNT_DAYS = 60;
 const RESET_MINUTES = 60;
 
-/** What the browser is allowed to know about a user. Never the password hash. */
-export const publicUser = (u) => u && ({ id: u.id, email: u.email, name: u.name });
+/** What the browser is allowed to know about a user. Never the password hash
+ * or the Google id — only whether each exists, which is what the account
+ * screen needs to decide whether "change password" makes sense to offer. */
+export const publicUser = (u) => u && ({
+  id: u.id, email: u.email, name: u.name,
+  hasPassword: !!u.passwordHash, hasGoogle: !!u.googleSub,
+});
 
 /* ---------- the index and the store ---------- */
 
@@ -107,6 +112,7 @@ export async function createUser({ email, password, name, googleSub }) {
     resetTokenHash: "",
     resetExpires: 0,
     createdAt: new Date().toISOString(),
+    lastSeenAt: new Date().toISOString(),
   };
 
   await USERS().setJSON(record.id, record);
@@ -136,6 +142,40 @@ export async function linkGoogle(userId, googleSub) {
   user.googleSub = String(googleSub ?? "");
   await USERS().setJSON(userId, user);
   return true;
+}
+
+/** A "changed the password while already signed in" version of setPassword —
+ * the difference is only who calls it and why: this one is reached having
+ * already proved the CURRENT password, setPassword's other caller (a reset)
+ * having proved an emailed token instead. Either way the effect is the same,
+ * on purpose: a changed password signs every other device out. */
+export const changePassword = setPassword;
+
+/** When this account last signed in — not "last used the app", which would
+ * mean writing on every set logged; just "last time they typed a password or
+ * pressed the Google button". Cheap, and enough for the admin list to be
+ * more than a list of names nobody has ever used. */
+export async function touchLastSeen(userId) {
+  const user = await findById(userId);
+  if (!user) return;
+  user.lastSeenAt = new Date().toISOString();
+  await USERS().setJSON(userId, user);
+}
+
+/** Everything the admin screen is allowed to know about who has an account
+ * here — never a password hash, a Google id, or a session token. Sorted
+ * oldest first, the order people actually joined in. */
+export async function listAccounts() {
+  const idx = await readIndex();
+  const users = await Promise.all(Object.values(idx).map((id) => findById(id)));
+  return users
+    .filter(Boolean)
+    .map((u) => ({
+      id: u.id, email: u.email, name: u.name,
+      google: !!u.googleSub, password: !!u.passwordHash,
+      createdAt: u.createdAt, lastSeenAt: u.lastSeenAt || u.createdAt,
+    }))
+    .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }
 
 /* ---------- password reset ----------

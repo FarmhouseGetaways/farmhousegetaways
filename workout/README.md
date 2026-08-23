@@ -59,6 +59,21 @@ by pressing the square beside an exercise. See below.
 breakdown and a calorie estimate. A day streak, a week strip, totals, and a CSV
 download.
 
+**Worth knowing — `js/insights.js`.** A total is a number; these are the
+things a total cannot say on its own. How the last 30 days actually went, as
+a percentage rather than a raw count. The exercise that shows up in the most
+workouts — not the one with the most sets in a single big day, which would
+reward one marathon session over real consistency. Which day of the week she
+actually shows up. The longest run ever, which is not always the streak
+counter at the top — that one only counts back from today, so a four-day
+streak from a month ago would otherwise be forgotten the moment it broke.
+Three personal bests — longest workout, biggest calorie burn, most sets in
+one sitting — and a short, deliberately small set of milestones that only
+ever appear once actually earned. All of it is pure arithmetic over the
+record, no clock of its own, tested the same way the calorie maths is:
+
+    node --test workout/js/*.test.js
+
 **Calories** are estimated with the standard MET equation —
 `MET × 3.5 × body weight in kg ÷ 200` per minute — using the values from the
 2011 Compendium of Physical Activities. What makes it better than a flat guess
@@ -80,9 +95,25 @@ their iPad. It has nothing to do with editing the week.
 **Create one, sign in, or reset a forgotten password** from the **Sign in**
 pill at the bottom of every screen, or `/#/login`. Five accounts, while this
 stays a small beta rather than something built out with real multi-tenant
-infrastructure — invoices, roles, an admin screen for managing other people's
-accounts — before it is known whether any of that is needed. Raising the
-number later is a one-line change in `_lib/users.mjs`.
+infrastructure — invoices, roles, self-service account deletion — before it
+is known whether any of that is needed. Raising the number later is a
+one-line change in `_lib/users.mjs`.
+
+**Signed in, Settings → Change password** sets a new one without needing an
+email round trip — the current password proves it is really her, the same as
+any account settings screen. Changing it signs every other device out, on
+purpose: a stolen or forgotten-about session should not survive a password
+change. A Google-only account has no password to change and Settings says so
+rather than offering a form that would only fail.
+
+**Admin gets a read-only roster, not a management screen.** Settings → Edit
+the week (admin only) → *Who has an account* lists everyone who has signed
+up — email, name, Google or password, when they joined, when they last
+signed in, and how many workouts they have logged — so the operator can tell
+at a glance whether the beta is full and who is actually using it. It cannot
+change or remove anyone; for five people, "ask them to email you" covers the
+rare case that needs it, and it is not worth a delete button that could be
+mis-tapped.
 
 **Google is optional.** If `GOOGLE_CLIENT_ID` is set (see *Deploying*) a
 "Sign in with Google" button appears on the sign-in screen; without it, it
@@ -236,7 +267,7 @@ Netlify Blobs belonging to this site alone. Not files in this repository —
 |---|---|---|
 | **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the admin password |
 | **An account's own record** (`/api/history`) | that account, signed in | that account, signed in |
-| **Accounts** (email, name, a password hash — never the password itself) | nobody, over the API | signing up, or Google, once |
+| **Accounts** (email, name, a password hash — never the password itself) | the admin password, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
 
 Two separate locks, two separate cookies: the admin password gates the week
 and nothing else; an account gates one person's own record and nothing
@@ -365,6 +396,7 @@ again.
     index.html                the shell — everything else is rendered into it
     css/workout.css           all of the styling
     js/catalog.js             effort levels, the calorie maths, video links, formatting
+    js/insights.js            the intelligence in the record — trends, bests, milestones
     js/store.js               the week and the record: load, save, sync, the numbers
     js/account.js             talking to /api/account — sign up, sign in, Google, reset
     js/media.js               shrinking a picture and sending it
@@ -378,7 +410,8 @@ again.
     package.json              one dependency: @netlify/blobs, for the functions
 
     netlify/functions/auth.mjs       the ADMIN password: signing in, out, the lockout
-    netlify/functions/account.mjs    accounts: sign up, sign in, Google, reset — see below
+    netlify/functions/account.mjs    accounts: sign up, sign in, Google, reset, change password
+    netlify/functions/admin-people.mjs   admin-only: the account roster, read-only
     netlify/functions/plan.mjs       the week: public to read, admin password to write
     netlify/functions/history.mjs    an account's own record: that account only, to read or write
     netlify/functions/media.mjs      pictures and clips: public to read, password to add
@@ -394,8 +427,9 @@ again.
     netlify/functions/_lib/mail.mjs          sending the reset-link email, via Resend
     netlify/functions/_lib/data.mjs          the shape of the plan and the record, and every clamp
 
-Run the tests after touching anything under `_lib/`:
+Run the tests after touching anything under `_lib/`, or `js/catalog.js` /
+`js/insights.js`:
 
-    node --test workout/netlify/functions/_lib/*.test.mjs
+    node --test workout/netlify/functions/_lib/*.test.mjs workout/js/*.test.js
 
 Plain Node, nothing to install.

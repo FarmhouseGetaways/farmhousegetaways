@@ -29,8 +29,8 @@ import {
 } from "./_lib/auth.mjs";
 import {
   MAX_USERS, ACCOUNT_COOKIE, countUsers, findByEmail, findById, createUser,
-  verifyPassword, setPassword, linkGoogle, publicUser,
-  issueResetToken, consumeResetToken,
+  verifyPassword, setPassword, changePassword, linkGoogle, publicUser,
+  issueResetToken, consumeResetToken, touchLastSeen,
   makeAccountToken, accountCookie, currentAccount,
   validEmail, normaliseEmail,
 } from "./_lib/users.mjs";
@@ -57,7 +57,11 @@ async function migrateLegacyHistory(userId) {
 
 const siteOrigin = (req) => { try { return new URL(req.url).origin; } catch { return ""; } };
 
+/** The one place every successful sign-in ends up — signup, login, Google,
+ * reset, and a password change — so touching lastSeenAt here covers all of
+ * them without a separate call at each site to forget. */
 async function signedInAs(user) {
+  await touchLastSeen(user.id);
   return json({ ok: true, account: publicUser(user) }, 200, {
     "Set-Cookie": accountCookie(makeAccountToken(user)),
   });
@@ -104,6 +108,22 @@ export default async (req, context) => {
     await clearFailures(scope("signup"));
     if (result.isFirst) await migrateLegacyHistory(result.user.id);
     return signedInAs(result.user);
+  }
+
+  /* ---- change the password, already signed in ---- */
+  if (intent === "change-password") {
+    const user = await currentAccount(req);
+    if (!user) return json({ ok: false, error: "Not signed in." }, 401);
+    if (!user.passwordHash) {
+      return json({ ok: false, error: "This account signs in with Google, so there is no password to change here." }, 400);
+    }
+    const ok = await verifyPassword(String(body.currentPassword ?? ""), user.passwordHash);
+    if (!ok) return json({ ok: false, error: "That current password isn't right." }, 401);
+    const next = String(body.password ?? "");
+    if (next.length < 8) return json({ ok: false, error: "Use a new password of at least 8 characters." }, 400);
+    await changePassword(user.id, next);
+    const fresh = await findById(user.id);
+    return signedInAs(fresh);
   }
 
   /* ---- sign in with a password ---- */

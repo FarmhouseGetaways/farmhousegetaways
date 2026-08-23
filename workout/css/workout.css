@@ -336,6 +336,49 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .stat--streak .stat__n { color: var(--brass); }
 .stat--cal .stat__n { color: var(--blush); }
 
+/* ---------- insights: the intelligence in the record ---------- */
+
+.trend {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .82rem; color: var(--dim); margin: -.5rem 0 1rem;
+}
+.trend b { font-weight: 600; }
+.trend--up b { color: var(--sage); }
+.trend--down b { color: var(--dim); }
+
+.insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin-top: .9rem; }
+.insight-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-s);
+  padding: .9rem .95rem; min-width: 0; display: flex; align-items: center; gap: .8rem;
+}
+.insight-card__body { min-width: 0; }
+.insight-card__label { display: block; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--dimmer); }
+.insight-card__value { display: block; font-family: var(--display); font-size: 1.2rem; margin-top: .15rem; overflow-wrap: anywhere; }
+.insight-card__note { display: block; font-size: .78rem; color: var(--dim); margin-top: .1rem; }
+
+/* A CSS-only ring — a conic gradient dialled to a percentage, with an inset
+   circle punched out of the middle so it reads as a ring rather than a pie.
+   No canvas, no SVG, no library, and it inherits the theme for free because
+   it is just two custom properties on a background. */
+.ring {
+  --pct: 0;
+  flex: none; width: 46px; height: 46px; border-radius: 50%;
+  background: conic-gradient(var(--sage) calc(var(--pct) * 1%), var(--line) 0);
+  display: grid; place-items: center;
+}
+.ring::after {
+  content: ""; width: 32px; height: 32px; border-radius: 50%; background: var(--ink-2);
+}
+
+.badges { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .9rem; }
+.badge {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: rgba(214, 168, 95, .12); border: 1px solid rgba(214, 168, 95, .35);
+  color: var(--brass); border-radius: 999px; padding: .35rem .75rem .35rem .6rem;
+  font-size: .78rem; font-weight: 600;
+}
+.badge__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); flex: none; }
+
 /* ---------- exercise list ---------- */
 
 .ex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }

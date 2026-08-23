@@ -1261,9 +1261,89 @@ function renderSummary(id) {
 
 let openRow = null;
 
+/** "3 more than last week", "the same as last week", never a bare number
+ * with no feel for whether that is good — a trend means nothing without
+ * something to compare it to. */
+function trendLine(insights) {
+  const { thisWeekCount, lastWeekCount, trend } = insights;
+  if (lastWeekCount === 0 && thisWeekCount === 0) return "";
+  if (trend > 0) return `<p class="trend trend--up">&#9650; <b>${plural(trend, "workout")} more</b> than last week</p>`;
+  if (trend < 0) return `<p class="trend trend--down">&#9660; ${plural(-trend, "workout")} fewer than last week</p>`;
+  return `<p class="trend">&#8212; the same as last week</p>`;
+}
+
+/** The handful of things a plain total cannot say — worth showing only once
+ * there is enough of a record for them to mean anything. */
+function insightCards(insights) {
+  const cards = [];
+
+  cards.push(`<div class="insight-card">
+    <div class="ring" style="--pct:${insights.consistency30}"></div>
+    <div class="insight-card__body">
+      <span class="insight-card__label">Last 30 days</span>
+      <span class="insight-card__value">${insights.consistency30}%</span>
+      <span class="insight-card__note">of days had a workout</span>
+    </div>
+  </div>`);
+
+  if (insights.favorite) {
+    cards.push(`<div class="insight-card">
+      <div class="insight-card__body">
+        <span class="insight-card__label">Favorite exercise</span>
+        <span class="insight-card__value">${esc(insights.favorite.name)}</span>
+        <span class="insight-card__note">in ${plural(insights.favorite.count, "workout")}</span>
+      </div>
+    </div>`);
+  }
+
+  if (insights.bestDay) {
+    cards.push(`<div class="insight-card">
+      <div class="insight-card__body">
+        <span class="insight-card__label">Shows up most on</span>
+        <span class="insight-card__value">${insights.bestDay.name}</span>
+        <span class="insight-card__note">${plural(insights.bestDay.count, "workout")} logged</span>
+      </div>
+    </div>`);
+  }
+
+  cards.push(`<div class="insight-card">
+    <div class="insight-card__body">
+      <span class="insight-card__label">Best run ever</span>
+      <span class="insight-card__value">${plural(insights.longestStreak, "day")}</span>
+      <span class="insight-card__note">back to back</span>
+    </div>
+  </div>`);
+
+  return `<div class="insight-grid">${cards.join("")}</div>`;
+}
+
+/** Three personal records, only the ones a real session set — a longest
+ * workout of nought seconds is not a record, it is an empty record. */
+function recordCards(insights) {
+  const rows = [
+    insights.biggestBurn && { label: "Biggest burn", value: `${insights.biggestBurn.calories} cal`, when: insights.biggestBurn.date },
+    insights.longestWorkout && { label: "Longest workout", value: duration(insights.longestWorkout.elapsedSec), when: insights.longestWorkout.date },
+    insights.mostSets && { label: "Most sets in one workout", value: plural(insights.mostSets.setsDone, "set"), when: insights.mostSets.date },
+  ].filter(Boolean);
+  if (!rows.length) return "";
+  return `<h2 class="h-section">Personal bests</h2>
+    <ul class="tally">
+      ${rows.map((r) => `<li><span>${esc(r.label)} &middot; <span class="dimmer">${niceDate(r.when)}</span></span><b>${esc(r.value)}</b></li>`).join("")}
+    </ul>`;
+}
+
+function badgeRow(insights) {
+  if (!insights.badges.length) return "";
+  return `<h2 class="h-section">Milestones</h2>
+    <div class="badges">
+      ${insights.badges.map((b) => `<span class="badge"><span class="badge__dot"></span>${esc(b.label)}</span>`).join("")}
+    </div>`;
+}
+
 function renderHistory() {
   const h = store.history();
   const stats = store.stats();
+  const insights = store.insights();
   const week = store.weekOf();
   const today = dayKeyOf();
   const pending = store.pendingCount();
@@ -1282,10 +1362,15 @@ function renderHistory() {
     </div>
 
     <h2 class="h-section">This week</h2>
+    ${trendLine(insights)}
     <div class="weekstrip">
       ${DAY_KEYS.map((k) => `<div class="${week[k].done ? "is-done" : ""} ${k === today ? "is-today" : ""}">
         ${DAY_SHORT[k]}<b>${week[k].done ? "&#10003;" : "&middot;"}</b></div>`).join("")}
     </div>
+
+    ${!insights.empty ? `<h2 class="h-section">Worth knowing</h2>${insightCards(insights)}` : ""}
+    ${recordCards(insights)}
+    ${badgeRow(insights)}
 
     <h2 class="h-section">${h.sessions.length ? plural(h.sessions.length, "workout") + " logged" : "Nothing logged yet"}</h2>
     ${h.sessions.length ? `<ul class="log">
@@ -1661,7 +1746,10 @@ function settingsSheet() {
         ${s.account
           ? `<button class="btn btn--ghost" data-action="account-sign-out">Sign out</button>`
           : `<button class="btn btn--go" data-action="go-login">Sign in or create an account</button>`}
+        ${s.account?.hasPassword ? `<button class="btn btn--ghost" data-action="go-change-password">Change password</button>` : ""}
       </div>
+      ${s.account && !s.account.hasPassword && s.account.hasGoogle
+        ? `<p class="set-group__note" style="margin-top:.7rem">Signed in with Google — no separate password to change here.</p>` : ""}
     </section>
 
     ${adminOn() ? `
@@ -1675,7 +1763,10 @@ function settingsSheet() {
       </div>
       <p class="set-group__note" style="margin-top:.9rem">The editor is unlocked on this device and locks itself
         again twelve hours after you unlocked it.</p>
-      <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button></div>
+      <div class="btn-row">
+        <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
+        <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
+      </div>
     </section>` : ""}
 
     <section class="set-group set-group--last">
@@ -1761,6 +1852,75 @@ function askAdminPassword() {
   });
 }
 
+/** The account's own password — separate from the admin one above. Proving
+ * the current password before setting a new one, the same way any account
+ * settings screen would, even though the session cookie already proves who
+ * this is: it is the difference between "you are signed in" and "you meant
+ * to do this", which matters more for a password than almost anything else
+ * this app does. */
+function changePasswordSheet() {
+  openSheet("Change your password", `
+    <p class="small muted" style="margin-bottom:1rem">Changing it signs every other device out — anywhere
+      else this account is signed in will need the new one.</p>
+    <div id="cp-error"></div>
+    <label class="field"><span>Current password</span>
+      <input type="password" id="cp-current" autocomplete="current-password"></label>
+    <label class="field"><span>New password</span>
+      <input type="password" id="cp-new" autocomplete="new-password"></label>
+    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-change-password">Change it</button></div>
+  `, (root) => {
+    const errBox = root.querySelector("#cp-error");
+    const submit = async () => {
+      errBox.innerHTML = "";
+      const currentPassword = root.querySelector("#cp-current").value;
+      const password = root.querySelector("#cp-new").value;
+      const res = await store.accountChangePassword({ currentPassword, password });
+      if (!res.ok) { errBox.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+      closeSheet();
+      toast("Password changed.", "good");
+      render();
+    };
+    root.querySelector('[data-action="do-change-password"]').addEventListener("click", submit);
+    root.querySelectorAll("input").forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); }));
+    setTimeout(() => root.querySelector("#cp-current")?.focus(), 50);
+  });
+}
+
+/** Admin only — a read-only roster, not a management screen. Nothing here
+ * can change or remove an account; that is deliberately not built yet for a
+ * beta this size, where "ask them to email you" is a perfectly good way to
+ * handle the rare case it comes up. */
+function renderAdminPeople() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Accounts", "who has one");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">Who has an account</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  store.listPeople().then((res) => {
+    if (location.hash !== "#/admin/people") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    const { people, maxUsers } = res;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${people.length} of ${maxUsers} beta ${plural(maxUsers, "spot")} used.</p>
+      ${people.length ? `<ul class="tally">
+        ${people.map((p) => `<li>
+          <span>
+            <span style="display:block;font-weight:600">${esc(p.name)}</span>
+            <span class="dimmer small" style="display:block;margin-top:.15rem">${esc(p.email)}
+              &middot; ${p.google ? "Google" : "Password"}
+              &middot; joined ${niceDate(p.createdAt.slice(0, 10))}
+              &middot; last signed in ${niceDate(p.lastSeenAt.slice(0, 10))}</span>
+          </span>
+          <b>${plural(p.workouts, "workout")}</b>
+        </li>`).join("")}
+      </ul>` : `<p class="muted">Nobody has signed up yet.</p>`}
+    `);
+  });
+}
+
 /** Said once, at the top of the week, and only when it is actually true. */
 function storageNotice() {
   const s = store.get();
@@ -1798,7 +1958,7 @@ function setTitle(main, sub) {
   /* The pencil shows only where it means something: signed in, and not in the
      middle of a workout. */
   const pencil = $("#edit-btn");
-  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset"]
+  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset", "#/admin/people"]
     .some((h) => location.hash.startsWith(h));
   pencil.hidden = !canEdit;
   pencil.classList.toggle("is-on", editing);
@@ -1839,6 +1999,7 @@ function render() {
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
   if (route === "remind") return renderRemind();
+  if (route === "admin" && arg === "people") return renderAdminPeople();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
@@ -2069,6 +2230,8 @@ document.addEventListener("click", (e) => {
 
     case "go-remind": settingsDraft = null; closeSheet(true); go("#/remind"); break;
     case "go-login": settingsDraft = null; closeSheet(true); go("#/login"); break;
+    case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
+    case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
     case "account-sign-out":
       settingsDraft = null;
       closeSheet(true);

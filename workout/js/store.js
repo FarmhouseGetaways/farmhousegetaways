@@ -34,6 +34,7 @@
    ========================================================================== */
 
 import { sessionCalories, todayKey, DAY_KEYS, startOfDay } from "./catalog.js";
+import { computeInsights } from "./insights.js";
 import * as account from "./account.js";
 
 const API = {
@@ -322,6 +323,7 @@ export const accountLogIn = (fields) => account.logIn(fields).then(afterAccountS
 export const accountWithGoogle = (credential) => account.withGoogle(credential).then(afterAccountSignIn);
 export const accountRequestReset = (email) => account.requestReset(email);
 export const accountResetPassword = (fields) => account.resetPassword(fields).then(afterAccountSignIn);
+export const accountChangePassword = (fields) => account.changePassword(fields).then(afterAccountSignIn);
 
 export async function accountLogOut() {
   await account.logOut();
@@ -329,6 +331,9 @@ export async function accountLogOut() {
   state.history = emptyHistory();
   emit();
 }
+
+/** Admin only. See js/account.js's listPeople and the endpoint behind it. */
+export const listPeople = () => account.listPeople();
 
 /* ---------- writing ---------- */
 
@@ -502,6 +507,9 @@ export function stats(sessions = state.history.sessions) {
   const dates = new Set(done.map((s) => s.date));
   return { ...total, streak: streakFrom(dates), thisWeek: weekOf(done), days: dates.size };
 }
+
+/** The richer picture — trends, personal bests, milestones. See insights.js. */
+export const insights = (sessions = state.history.sessions) => computeInsights(sessions, new Date());
 
 /**
  * Consecutive days, counting back from today.

@@ -48,11 +48,27 @@ export const logIn = ({ email, password }) => call({ intent: "login", email, pas
 export const withGoogle = (credential) => call({ intent: "google", credential });
 export const requestReset = (email) => call({ intent: "reset-request", email });
 export const resetPassword = ({ token, password }) => call({ intent: "reset", token, password });
+export const changePassword = ({ currentPassword, password }) =>
+  call({ intent: "change-password", currentPassword, password });
 
 export async function logOut() {
   try { await fetch(API, { method: "DELETE", credentials: "include", cache: "no-store" }); }
   catch { /* the cookie expires on its own either way */ }
   return { ok: true };
+}
+
+/** Admin only — who has an account here, and how much they have used it. See
+ * netlify/functions/admin-people.mjs; gated by the admin password, not by
+ * being signed into any one account. */
+export async function listPeople() {
+  try {
+    const res = await fetch("/api/admin/people", { credentials: "include", cache: "no-store" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
+    return body;
+  } catch {
+    return { ok: false, error: "Could not reach the app's server." };
+  }
 }
 
 /* ---------- the Google button ----------
