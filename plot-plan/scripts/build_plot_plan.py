@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 25
+REV  = 26
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -167,6 +167,23 @@ DRV_FT = [(100,255),(110,240),(109.5,225),(109.4,211),(104.5,199.6),(102.5,190.5
           (537.5,31.3),(553.5,20.9),(570.8,11.9),(579.5,6.5)]
 DRV_BUF = LineString(DRV_FT).buffer(8.0)   # 12' travelled way + 2' shoulders
 
+# Customer parking bay — defined here, with the geometry, because the ag zones
+# must be kept OUT of it. Rev 25 grew AG-2 to its tabulated area and the
+# orchard swallowed the stalls; the bay is owner-confirmed, so it is the fixed
+# thing and the orchard butts up against it (owner, 8/22).
+_P1, _P2 = (97.4, 266.8), (200.3, 255.4)           # AG-2 bottom edge (SW -> NE)
+_L  = math.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
+_u  = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L)     # along the edge
+_n  = (_u[1], -_u[0])                              # perpendicular, into the yard
+_t0 = _L - 62.0                                    # 62' row anchored to the NE end
+PK_D = 18.0
+def _stall(t_off, w):
+    a = (_P1[0]+_u[0]*(_t0+t_off),   _P1[1]+_u[1]*(_t0+t_off))
+    b = (_P1[0]+_u[0]*(_t0+t_off+w), _P1[1]+_u[1]*(_t0+t_off+w))
+    return [a, b, (b[0]+_n[0]*PK_D, b[1]+_n[1]*PK_D), (a[0]+_n[0]*PK_D, a[1]+_n[1]*PK_D)]
+PARK_BUF = unary_union([SPoly(_stall(t, w)) for t, w in
+                        [(0, 9.0), (9.0, 8.0)] + [(17.0 + i*9.0, 9.0) for i in range(5)]]).buffer(1.0)
+
 # ---- DRAWN ZONES MUST MEASURE WHAT THE TABLE CLAIMS (rev 22).
 # Three rules, in order:
 #   1. inside the property lines,
@@ -188,7 +205,7 @@ _pool = Point(232.6, 233.3).buffer(1.0)
 _pool = SPoly([(232.6+20*math.cos(t*math.pi/18), 233.3+22*math.sin(t*math.pi/18))
                for t in range(36)])
 KEEPOUT = unary_union([
-    DRV_BUF,
+    DRV_BUF, PARK_BUF,
     SPoly(_px([(1222,103),(1590,138),(1575,300),(1208,262)])),      # SFD
     SPoly(_px([(1622,152),(1795,157),(1795,342),(1622,347)])),        # garage (30' off N P.L., owner 8/22)
     _rect(112.3, 120.4, 50, 44),                                    # barn
@@ -406,16 +423,6 @@ ax.annotate("PROPOSED 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' 
 # RIGHT AGAINST AG-2's sloping bottom line, west of the notch — the placement
 # the owner confirmed on the overlay ("parking spaces were correct here",
 # 8/21). Stall tops tangent to the edge (0 SF overlap), rotated to match it.
-_P1, _P2 = (97.4, 266.8), (200.3, 255.4)           # AG-2 bottom edge (SW -> NE)
-_L  = math.hypot(_P2[0]-_P1[0], _P2[1]-_P1[1])
-_u  = ((_P2[0]-_P1[0])/_L, (_P2[1]-_P1[1])/_L)     # along the edge
-_n  = (_u[1], -_u[0])                              # perpendicular, into the yard
-_t0 = _L - 62.0                                    # 62' row anchored to the NE end
-PK_D = 18.0
-def _stall(t_off, w):
-    a = (_P1[0]+_u[0]*(_t0+t_off),   _P1[1]+_u[1]*(_t0+t_off))
-    b = (_P1[0]+_u[0]*(_t0+t_off+w), _P1[1]+_u[1]*(_t0+t_off+w))
-    return [a, b, (b[0]+_n[0]*PK_D, b[1]+_n[1]*PK_D), (a[0]+_n[0]*PK_D, a[1]+_n[1]*PK_D)]
 _ang = math.degrees(math.atan2(_u[1], _u[0]))
 for lab, t_off, w in [("VAN\nACCESS.", 0, 9.0), ("AISLE", 9.0, 8.0)] + \
                      [("", 17.0 + i*9.0, 9.0) for i in range(5)]:
@@ -492,7 +499,7 @@ ax.annotate("EXIST. WELL", (wx+4, wy), (wx+44, wy+26), fontsize=6,
 # septic tank per site_features.json (x 422.5-444.9, just N of the garage);
 # leach lines relocated E of the garage so they cross under NO structure
 # (owner, 8/21) and stay inside the north property line.
-sx0, sy0 = px2ft(422.5, 19.4); sx1, sy1 = px2ft(444.9, 9.3)
+sx0, sy0 = px2ft(440.0, 25.1); sx1, sy1 = px2ft(462.4, 15.0)
 ax.add_patch(Rectangle((sx0, sy0), sx1-sx0, sy1-sy0, fc='none', ec='black', lw=1.1, zorder=5))
 lx0, ly0 = px2ft(481.0, 36.6); lx1, ly1 = px2ft(530.0, 12.6)
 ax.add_patch(Rectangle((lx0, ly0), lx1-lx0, ly1-ly0, fc='none', ec='black', lw=1.0, ls='--', hatch='///', zorder=5))
@@ -524,6 +531,25 @@ ax.annotate("DRIVEWAY LEAVES THE PARCEL NEAR THE SE CORNER —\nCONTINUES ±700'
 for lp, lab in [((417,148),"GRAVEL, 12' W"), ((285,170),"DIRT DRIVE, 12' W"), ((85,190),"GRAVEL")]:
     ax.text(*lp, lab, fontsize=5.8, color='0.25', style='italic', zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
+
+# ---- EXISTING 6' FENCE, per the owner's markup (8/22): along the north
+# property line from the NW corner east to about x=490, and down the west
+# property line to about y=175. Drawn just inside the lines it follows.
+FENCE_OFF, FENCE_X_END, FENCE_Y_END = 2.5, 478.0, 175.0
+_fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords if x <= FENCE_X_END]
+_nxt = [c for c in LINE_N.coords if c[0] > FENCE_X_END]
+if _nxt and _fn:                      # stop the run cleanly at x = FENCE_X_END
+    (x0, y0), (x1, y1) = (_fn[-1][0], _fn[-1][1] + FENCE_OFF), _nxt[0]
+    t = (FENCE_X_END - x0) / (x1 - x0)
+    _fn.append((FENCE_X_END, y0 + t * (y1 - y0) - FENCE_OFF))
+FENCE = [(FENCE_OFF, FENCE_Y_END), (FENCE_OFF, _fn[0][1])] + _fn
+ax.plot([q[0] for q in FENCE], [q[1] for q in FENCE], color='#1a1a1a', lw=1.0,
+        ls=(0, (10, 4)), zorder=3)
+for _fx, _fy in FENCE[2::2]:
+    ax.plot([_fx], [_fy], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
+ax.text(7.5, 232, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
+        ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
+        bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
 # ALL measured from the property lines (owner, 8/21 third round): N/S interior
@@ -705,6 +731,7 @@ leg_items = [
     ('respatch', "RESIDENTIAL / DOMESTIC AREA"),
     ('struct',   "EXISTING STRUCTURE"),
     ('tinyhome', "STRUCTURE TO BE REMOVED"),
+    ('fence',    "EXISTING 6'-0\" FENCE"),
     ('leach',    "LEACH LINES"),
     ('cl',       "ROAD CENTERLINE"),
     ('esmt',     "ROAD EASEMENT LINE"),
@@ -730,6 +757,9 @@ for kind, desc in leg_items:
         la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='0.82', ec='black', lw=1.0))
     elif kind == 'tinyhome':
         la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='white', ec='black', lw=1.0, ls=(0,(4,3))))
+    elif kind == 'fence':
+        la.plot([x0, x1], [ym, ym], color='#1a1a1a', lw=1.0, ls=(0,(10,4)))
+        la.plot([(x0+x1)/2], [ym], marker='x', ms=3.2, mew=0.9, color='#1a1a1a')
     elif kind == 'leach':
         la.add_patch(Rectangle((x0, ym-0.026), x1-x0, 0.052, fc='none', ec='black', lw=0.9, ls='--', hatch='///'))
     elif kind == 'cl':
@@ -746,7 +776,7 @@ for kind, desc in leg_items:
         la.add_patch(Circle((x0+0.045, ym), 0.021, fc='white', ec='black', lw=1.2))
         la.text(x0+0.045, ym, "W", fontsize=6, ha='center', va='center', fontweight='bold')
     la.text(0.26, ym, desc, fontsize=7.0, ha='left', va='center')
-    ly -= 0.060
+    ly -= 0.056
 
 # ---- Col 3 bottom: stormwater
 sw = band_axes(C3, 0.45, CW, 1.55)
@@ -947,7 +977,7 @@ notes = [
  "     DRIVEWAY AND ESMT. OF NOTE 8. ESMT. GEOMETRY PER RECORDED PM 05062, TBD.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG,",
  "     PERIMETER AND POOL FENCING AND GATES ONLY; ALL ARE 6'-0\" OR LESS IN HEIGHT",
- "     PER OWNER — NO BUILDING PERMIT REQ'D (PDS 070). NO NEW FENCING PROPOSED.",
+ "     PER OWNER (NORTH AND WEST RUN SHOWN) — NO BLDG. PERMIT REQ'D PER PDS 070.",
  "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE NEW 'MINI BARN MARKET', A",
  "     12'x10' = 120 SF BUILDING UNDER CONSTRUCTION — WELL UNDER THE 1,500 SF LIMIT",
  "     OF §6157.a.2.e INCL. OPEN ROOFED DISPLAY (NONE). THE ADJACENT 10'x10' BLDG IS",
@@ -981,8 +1011,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-24 8/22/2026  ROAD, STORE, DRIVE, AG, FENCES", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  RECORD DATA PER PM 5062", 5.4, x=0.62)
+tline(tb_h*0.170, "17-25 8/22/2026  ROAD, STORE, AG SF, RECORD DATA", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  FENCE SHOWN; SEPTIC OFF P.L.", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

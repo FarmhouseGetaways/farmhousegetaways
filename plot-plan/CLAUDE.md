@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 25 generated — the submittal sheet. The Small
+**Current status: plot plan REV 26 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -82,6 +82,18 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   straight through it; the footprint was shifted 17.3' south (px poly
   [(1622,152),(1795,157),(1795,342),(1622,347)]). The SFD traces at 19.6' off
   that line — clears the 15' yard, but unconfirmed by the owner.
+- **The parking bay is a KEEP-OUT, not a zone that can be overrun** (owner,
+  8/22). Rev 25 grew AG-2 to its tabulated area and the orchard swallowed the
+  six stalls. The bay is owner-confirmed geometry, so `PARK_BUF` is now in
+  `KEEPOUT` and the orchard butts up against the stalls instead of over them.
+- **The existing 6' fence is drawn** (owner's green markup, 8/22): along the
+  north property line from the NW corner east to x≈478, and down the west
+  property line to y≈175, offset 2.5' inside. Black dashed line with x marks —
+  deliberately NOT green, so it cannot be mistaken for the green RES outline.
+- **The septic tank was drawn hard against the north property line** and is
+  moved to x 440–462.4, y 269–279.1, about 6' clear (owner markup 8/22). NOTE:
+  the owner called this "the well" when marking it; the well itself is still at
+  (174.4, 218.5) and was not moved — CONFIRM WITH THE OWNER.
 - **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
   structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
   — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
