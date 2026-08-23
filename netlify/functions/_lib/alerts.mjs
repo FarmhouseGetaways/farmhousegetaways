@@ -135,6 +135,22 @@ async function toWebhook(alert, formName, data) {
   return res.ok ? "sent" : `failed ${res.status}`;
 }
 
+/**
+ * "sent" and "skipped" are the two routine outcomes and get an ordinary log
+ * line. Anything else — "failed 401", "error <message>" — means a channel
+ * that IS configured did not deliver, and that must never sit at the same
+ * log level as success. Before this, a channel missing its key in a preview
+ * or branch-deploy context reported through console.log, indistinguishable
+ * from a routine line and invisible to anything that only surfaces errors.
+ */
+function logChannel(name, result) {
+  if (result === "sent" || result === "skipped") {
+    console.log(`[alert] ${name}: ${result}`);
+  } else {
+    console.error(`[alert] ${name} FAILED: ${result}`);
+  }
+}
+
 /** Fire every configured channel. Never throws. */
 export async function sendAlert(formName, data) {
   if (!formName) return { ntfy: "skipped", webhook: "skipped" };
@@ -143,5 +159,7 @@ export async function sendAlert(formName, data) {
     toNtfy(alert).catch((e) => `error ${e.message}`),
     toWebhook(alert, formName, data || {}).catch((e) => `error ${e.message}`),
   ]);
+  logChannel("ntfy", ntfy);
+  logChannel("webhook", webhook);
   return { ntfy, webhook };
 }
