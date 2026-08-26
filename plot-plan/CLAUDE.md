@@ -91,9 +91,9 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   property line to y≈175, offset 2.5' inside. Black dashed line with x marks —
   deliberately NOT green, so it cannot be mistaken for the green RES outline.
 - **The septic tank was drawn hard against the north property line** and is
-  moved to x 440–462.4, y 269–279.1, about 6' clear (owner markup 8/22). NOTE:
-  the owner called this "the well" when marking it; the well itself is still at
-  (174.4, 218.5) and was not moved — CONFIRM WITH THE OWNER.
+  moved to x 440–462.4, y 269–279.1, about 6' clear (owner markup 8/22, and the
+  owner confirmed it is the septic he meant, not the well). **The well stays at
+  (174.4, 218.5)** — it was never against a line and is not to be moved.
 - **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
   structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
   — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
