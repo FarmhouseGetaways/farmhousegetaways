@@ -32,6 +32,7 @@
 import * as store from "./store.js";
 import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
+import * as library from "./library.js";
 import * as push from "./push.js";
 import { computeInsights, newlyEarned } from "./insights.js";
 import {
@@ -660,7 +661,9 @@ function mediaSheet(key, i) {
       <hr style="border:0;border-top:1px solid var(--line);margin:1.5rem 0">
 
       <p class="eyebrow">Video</p>
-      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise.</p>
+      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise. A YouTube link,
+        chosen from the library or pasted in fresh &mdash; no upload, so no re-encoding and no 4&nbsp;MB limit
+        to work around.</p>
       <div class="media-now media-now--small">
         ${v.kind === "file" ? `<video src="${esc(v.src)}" muted playsinline controls preload="metadata"></video>`
           : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
@@ -668,48 +671,59 @@ function mediaSheet(key, i) {
           : `<div class="media-now__note dimmer">No video</div>`}
       </div>
 
-      <label class="field field--hint"><span>Paste a link</span>
+      <p class="eyebrow" style="margin-top:1rem">From the library</p>
+      <div id="m-lib"><p class="small muted">Loading&hellip;</p></div>
+
+      <label class="field field--hint" style="margin-top:1rem"><span>Or paste a new link</span>
         <input type="url" id="m-url" value="${esc(target.video)}" placeholder="https://youtu.be/…" maxlength="2000">
         <small id="m-hint">${videoHint(target.video)}</small></label>
-      <div class="btn-row" style="margin-bottom:1rem">
+      <div class="btn-row">
         <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${idx}">Use this link</button>
       </div>
 
-      <input type="file" id="m-video" accept="video/*" hidden>
-      <div class="btn-row">
-        <button class="btn" data-action="media-choose" data-target="m-video">Or take a clip on this phone</button>
+      <div class="btn-row" style="margin-top:.5rem">
+        <button class="btn btn--ghost" data-action="media-save-lib" data-day="${key}" data-i="${idx}"
+          ${target.video ? "" : "disabled"}>Save this video to the library</button>
         ${target.video ? `<button class="btn btn--ghost" data-action="media-drop" data-what="video" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
       </div>
-      <p class="small dimmer" style="margin-top:.6rem">A clip has to be under 4&nbsp;MB &mdash; that is as much as one
-        upload can carry. Anything longer belongs on YouTube as an unlisted video, pasted in above.</p>
     `}
   `, (root) => {
     const url = root.querySelector("#m-url");
     url?.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
 
-    for (const [id, field] of [["m-image", "image"], ["m-video", "video"]]) {
-      const input = root.querySelector("#" + id);
-      if (!input) continue;
-      input.addEventListener("change", async () => {
-        const chosen = input.files?.[0];
-        if (!chosen) return;
-        toast("Sending…");
-        try {
-          const out = await upload(chosen);
-          // Trust what the server says it stored, not what the input was
-          // labelled: a phone hands back a .mov from the photo picker either
-          // way, and putting a video in the picture slot would be silent and
-          // baffling.
-          const slot = out.kind === "video" ? "video" : "image";
-          if (slot !== field) toast(`That is a ${slot}, so it went in the ${slot} slot.`);
-          const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
-          t[slot] = out.url;
-          closeSheet();
-          render();
-          toast(slot === "video" ? "Video added." : "Picture added.", "good");
-        } catch (err) {
-          toast(err.message, "bad");
+    const input = root.querySelector("#m-image");
+    input?.addEventListener("change", async () => {
+      const chosen = input.files?.[0];
+      if (!chosen) return;
+      toast("Sending…");
+      try {
+        const out = await upload(chosen);
+        const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
+        t.image = out.url;
+        closeSheet();
+        render();
+        toast("Picture added.", "good");
+      } catch (err) {
+        toast(err.message, "bad");
+      }
+    });
+
+    if (!forDay) {
+      library.list().then((res) => {
+        if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
+        const box = root.querySelector("#m-lib");
+        if (!box) return;
+        if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+        if (!res.videos.length) {
+          box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; use a link below, then
+            "Save this video to the library" to add it.</p>`;
+          return;
         }
+        box.innerHTML = `<div class="video-lib">
+          ${res.videos.map((vid) => `<button type="button" class="video-lib__item"
+              data-action="media-pick-lib" data-day="${key}" data-i="${idx}" data-url="${esc(vid.url)}">
+              ${esc(vid.label)}</button>`).join("")}
+        </div>`;
       });
     }
   });
@@ -1510,7 +1524,11 @@ async function renderRemind() {
     st.why = "Sign in first — a reminder is attached to this device on the server, and that needs an account.";
   }
   const on = st.subscribed && st.reminder?.enabled;
-  const hour = st.reminder?.hour ?? 8;
+  // Before subscribing, this is what WILL apply the moment "Remind me" is
+  // pressed; after, it is what actually is set. Either way it is the admin's
+  // decision now, not a picker on this screen — see admin-people.js's reminders
+  // panel, reached from Settings when signed in as admin.
+  const hour = on ? (st.reminder?.hour ?? 8) : (st.effective?.hour ?? 8);
   const snoozed = st.reminder?.snoozeUntil > Date.now();
 
   screen.innerHTML = `
@@ -1528,12 +1546,15 @@ async function renderRemind() {
     <p class="muted">A nudge on the morning of a day that has a workout in it &mdash; never on a rest day, and never
       once it is already done.</p>
 
-    <h2 class="h-section">Every day at</h2>
-    ${hourPicker("daily-hour", hour)}
+    <div class="card">
+      <p class="eyebrow">${on ? "Set for" : "Will be set for"}</p>
+      <p class="h-display" style="margin:0">${hourLabel(hour)}</p>
+      <p class="muted small" style="margin-top:.4rem">Set by the admin, for this account &mdash; not a choice made
+        here. Ask them if it should move.</p>
+    </div>
     <div class="btn-row" style="margin-top:1rem">
       ${on
-        ? `<button class="btn btn--go" data-action="remind-save">Save this time</button>
-           <button class="btn btn--ghost" data-action="remind-off">Turn off</button>`
+        ? `<button class="btn btn--ghost" data-action="remind-off">Turn off</button>`
         : `<button class="btn btn--go btn--big" data-action="remind-on" ${st.supported && st.ready ? "" : "disabled"}>Remind me</button>`}
     </div>
 
@@ -1559,7 +1580,6 @@ async function renderRemind() {
 
     ${footer()}`;
 
-  wireHourPicker(screen, "daily-hour");
   wireHourPicker(screen, "snooze-hour");
 }
 
@@ -1791,6 +1811,7 @@ function settingsSheet() {
       <div class="btn-row">
         <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
         <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
+        <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
       </div>
     </section>` : ""}
 
@@ -1955,6 +1976,91 @@ function renderAdminPeople() {
   });
 }
 
+const plainHour = (h) => `${h === 0 ? 12 : h > 12 ? h - 12 : h}${h < 12 ? "am" : "pm"}`;
+const hourOptions = (selected) =>
+  Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === selected ? "selected" : ""}>${plainHour(h)}</option>`).join("");
+
+/**
+ * Admin only — the schedule every "Remind me" press and every reminder's
+ * wording actually come from. Nothing here can subscribe a device that has
+ * never opened the app and granted permission; what it controls is what
+ * happens once one has, or already is.
+ */
+function renderAdminReminders() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Reminders", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">Reminder schedule</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  account.reminderConfig().then((s) => {
+    if (location.hash !== "#/admin/reminders") return;
+    if (!s.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(s.error)}</p>`); return; }
+
+    screen.innerHTML = shell(`
+      <section class="set-group">
+        <h3 class="set-group__h">Default, for anyone without their own</h3>
+        <p class="set-group__note">What a new "Remind me" press sets up, and what anyone not given their own
+          schedule already follows.</p>
+        <label class="switch">
+          <input type="checkbox" id="rd-enabled" ${s.default.enabled ? "checked" : ""}>
+          <span class="switch__body"><strong>Reminders on by default</strong></span>
+        </label>
+        <label class="field" style="margin-top:.9rem"><span>At</span>
+          <select id="rd-hour">${hourOptions(s.default.hour)}</select></label>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn btn--go" data-action="rd-save">Save the default</button>
+          <button class="btn btn--ghost" data-action="rd-apply-all">Set this for everyone now</button>
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3 class="set-group__h">What it says, by the hour</h3>
+        <p class="set-group__note">"${esc(s.defaultMessage)}" unless a different message is written in for that
+          hour. Whichever hour someone's reminder is set to, this is what it says.</p>
+        <div class="hour-messages">
+          ${Array.from({ length: 24 }, (_, h) => `
+            <label class="field field--hour"><span>${plainHour(h)}</span>
+              <input type="text" data-hour-message="${h}" value="${esc(s.messages[h] || "")}"
+                placeholder="${esc(s.defaultMessage)}" maxlength="200"></label>`).join("")}
+        </div>
+        <div class="btn-row" style="margin-top:.9rem">
+          <button class="btn btn--ghost" data-action="rd-reset-messages">Reset every message to default</button>
+        </div>
+      </section>
+
+      <section class="set-group set-group--last">
+        <h3 class="set-group__h">Each person</h3>
+        ${s.people.length ? s.people.map((p) => `
+          <div class="admin-person">
+            <div class="admin-person__who">
+              <strong>${esc(p.name)}</strong>
+              <span class="dimmer small">${esc(p.email)} &middot; ${p.subscribed ? "has a device set up" : "no device yet"}</span>
+            </div>
+            <div class="admin-person__row">
+              <input type="checkbox" data-person-enabled="${esc(p.id)}" ${p.effective.enabled ? "checked" : ""}>
+              <select data-person-hour="${esc(p.id)}">${hourOptions(p.effective.hour)}</select>
+              <button class="btn btn--ghost" data-action="rd-save-user" data-user="${esc(p.id)}">Save</button>
+              ${p.override
+                ? `<button class="btn btn--ghost" data-action="rd-reset-user" data-user="${esc(p.id)}">Return to default schedule</button>`
+                : `<span class="dimmer small">Following the default</span>`}
+            </div>
+          </div>`).join("") : `<p class="muted">Nobody has an account yet.</p>`}
+      </section>
+    `);
+
+    // Saved on blur, not with a per-row button — twenty-four buttons on one
+    // screen is clutter, and there is nothing destructive about a wording.
+    document.querySelectorAll("[data-hour-message]").forEach((el) => {
+      el.addEventListener("change", () => {
+        account.saveHourMessage(Number(el.dataset.hourMessage), el.value)
+          .then((r) => toast(r.ok ? "Saved." : r.error, r.ok ? "good" : "bad"));
+      });
+    });
+  });
+}
+
 /** Said once, at the top of the week, and only when it is actually true. */
 function storageNotice() {
   const s = store.get();
@@ -1992,7 +2098,7 @@ function setTitle(main, sub) {
   /* The pencil shows only where it means something: signed in, and not in the
      middle of a workout. */
   const pencil = $("#edit-btn");
-  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset", "#/admin/people"]
+  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset", "#/admin/"]
     .some((h) => location.hash.startsWith(h));
   pencil.hidden = !canEdit;
   pencil.classList.toggle("is-on", editing);
@@ -2034,6 +2140,7 @@ function render() {
   if (route === "history") return renderHistory();
   if (route === "remind") return renderRemind();
   if (route === "admin" && arg === "people") return renderAdminPeople();
+  if (route === "admin" && arg === "reminders") return renderAdminReminders();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
@@ -2192,6 +2299,24 @@ document.addEventListener("click", (e) => {
       toast("Removed.");
       break;
     }
+    case "media-pick-lib": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (target) target.video = el.dataset.url;
+      closeSheet();
+      render();
+      toast("Video set from the library.", "good");
+      break;
+    }
+    case "media-save-lib": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (!target?.video) break;
+      const label = prompt("Save this video to the library as:", target.name || "");
+      if (label === null) break;         // cancelled
+      library.add(label, target.video).then((res) => {
+        toast(res.ok ? "Saved to the library." : res.error, res.ok ? "good" : "bad");
+      });
+      break;
+    }
 
     case "edit-day":
       settingsDraft = null;
@@ -2202,13 +2327,8 @@ document.addEventListener("click", (e) => {
       break;
     /* ---- reminders ---- */
     case "remind-on":
-      push.enable({ hour: pickedHour("daily-hour") })
+      push.enable()
         .then(() => { toast("Reminders on.", "good"); renderRemind(); })
-        .catch((err) => toast(err.message, "bad"));
-      break;
-    case "remind-save":
-      push.update({ reminder: { enabled: true, hour: pickedHour("daily-hour") } })
-        .then(() => { toast("Saved.", "good"); renderRemind(); })
         .catch((err) => toast(err.message, "bad"));
       break;
     case "remind-off":
@@ -2266,6 +2386,61 @@ document.addEventListener("click", (e) => {
     case "go-login": settingsDraft = null; closeSheet(true); go("#/login"); break;
     case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
     case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
+    case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
+
+    case "rd-save": {
+      const enabled = document.getElementById("rd-enabled")?.checked;
+      const hour = Number(document.getElementById("rd-hour")?.value);
+      account.saveDefaultSchedule({ enabled, hour }).then((r) => {
+        if (!r.ok) { toast(r.error, "bad"); return; }
+        toast("Default schedule saved.", "good");
+        renderAdminReminders();
+      });
+      break;
+    }
+    case "rd-apply-all": {
+      const enabled = document.getElementById("rd-enabled")?.checked;
+      const hour = Number(document.getElementById("rd-hour")?.value);
+      askFirst({
+        title: "Set this for everyone?",
+        body: `Every account's reminder becomes ${plainHour(hour)}, ${enabled ? "on" : "off"} — including anyone
+          who currently has their own, different schedule. That is cleared.`,
+        yes: "Set it for everyone",
+        onYes: () => account.applyScheduleToAll({ enabled, hour }).then((r) => {
+          toast(r.ok ? "Applied to everyone." : r.error, r.ok ? "good" : "bad");
+          if (r.ok) renderAdminReminders();
+        }),
+      });
+      break;
+    }
+    case "rd-reset-messages":
+      askFirst({
+        title: "Reset every message?",
+        body: "All twenty-four go back to the one default wording. This cannot be undone.",
+        yes: "Reset them all",
+        danger: false,
+        onYes: () => account.resetHourMessages().then((r) => {
+          toast(r.ok ? "Reset." : r.error, r.ok ? "good" : "bad");
+          if (r.ok) renderAdminReminders();
+        }),
+      });
+      break;
+    case "rd-save-user": {
+      const uid = el.dataset.user;
+      const enabled = document.querySelector(`[data-person-enabled="${uid}"]`)?.checked;
+      const hour = Number(document.querySelector(`[data-person-hour="${uid}"]`)?.value);
+      account.saveUserSchedule(uid, { enabled, hour }).then((r) => {
+        toast(r.ok ? "Saved." : r.error, r.ok ? "good" : "bad");
+        if (r.ok) renderAdminReminders();
+      });
+      break;
+    }
+    case "rd-reset-user":
+      account.resetUserSchedule(el.dataset.user).then((r) => {
+        toast(r.ok ? "Back to the default." : r.error, r.ok ? "good" : "bad");
+        if (r.ok) renderAdminReminders();
+      });
+      break;
     case "account-sign-out":
       settingsDraft = null;
       closeSheet(true);

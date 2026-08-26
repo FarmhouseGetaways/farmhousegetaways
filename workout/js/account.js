@@ -71,6 +71,44 @@ export async function listPeople() {
   }
 }
 
+/** Admin only — the reminder schedule: the site default, each hour's
+ * message, and every account's own override. See
+ * netlify/functions/admin-reminders.mjs. */
+const REMIND_API = "/api/admin/reminders";
+
+export async function reminderConfig() {
+  try {
+    const res = await fetch(REMIND_API, { credentials: "include", cache: "no-store" });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
+    return body;
+  } catch {
+    return { ok: false, error: "Could not reach the app's server." };
+  }
+}
+
+async function reminderPost(payload) {
+  try {
+    const res = await fetch(REMIND_API, {
+      method: "POST", credentials: "include", cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) return { ok: false, error: body.error || `The server said ${res.status}.` };
+    return body;
+  } catch {
+    return { ok: false, error: "Could not reach the app's server." };
+  }
+}
+
+export const saveDefaultSchedule = ({ enabled, hour }) => reminderPost({ intent: "save-default", enabled, hour });
+export const saveHourMessage = (hour, message) => reminderPost({ intent: "save-message", hour, message });
+export const resetHourMessages = () => reminderPost({ intent: "reset-messages" });
+export const saveUserSchedule = (userId, { enabled, hour }) => reminderPost({ intent: "save-user", userId, enabled, hour });
+export const resetUserSchedule = (userId) => reminderPost({ intent: "reset-user", userId });
+export const applyScheduleToAll = ({ enabled, hour }) => reminderPost({ intent: "apply-all", enabled, hour });
+
 /* ---------- the Google button ----------
  *
  * Google's own script (accounts.google.com/gsi/client) renders it and hands

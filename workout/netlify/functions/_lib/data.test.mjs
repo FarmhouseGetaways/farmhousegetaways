@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import {
   DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
-  normaliseReminder, timezone,
+  normaliseReminder, timezone, normaliseLibraryEntry, normaliseLibrary,
 } from "./data.mjs";
 
 /* ---------- the week ---------- */
@@ -213,4 +213,32 @@ test("history survives junk without throwing", () => {
     const h = normaliseHistory(junk);
     assert.ok(Array.isArray(h.sessions));
   }
+});
+
+/* ---------- the video library ---------- */
+
+test("a library entry needs both a label and a valid url", () => {
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "https://youtu.be/abc" }).label, "Squat form");
+  assert.equal(normaliseLibraryEntry({ label: "", url: "https://youtu.be/abc" }), null);
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "" }), null);
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "javascript:alert(1)" }), null);
+});
+
+test("a library entry keeps a given id, or gets one", () => {
+  const withId = normaliseLibraryEntry({ id: "vid_fixed", label: "Push-ups", url: "https://youtu.be/x" });
+  assert.equal(withId.id, "vid_fixed");
+  const withoutId = normaliseLibraryEntry({ label: "Push-ups", url: "https://youtu.be/x" });
+  assert.ok(withoutId.id.startsWith("vid_"));
+});
+
+test("a library survives junk without throwing, and drops blank entries", () => {
+  const lib = normaliseLibrary([{ label: "Real one", url: "https://youtu.be/x" }, null, {}, { label: "", url: "" }]);
+  assert.equal(lib.length, 1);
+  assert.equal(normaliseLibrary(null).length, 0);
+  assert.equal(normaliseLibrary("nonsense").length, 0);
+});
+
+test("a library is capped rather than allowed to grow without bound", () => {
+  const many = Array.from({ length: 250 }, (_, n) => ({ label: `Video ${n}`, url: `https://youtu.be/v${n}` }));
+  assert.equal(normaliseLibrary(many).length, 200);
 });

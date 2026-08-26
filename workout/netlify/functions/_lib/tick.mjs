@@ -10,6 +10,7 @@ import { PLAN, PLAN_KEY, HISTORY, HISTORY_KEY } from "./auth.mjs";
 import { normalisePlan, normaliseHistory, normaliseReminder } from "./data.mjs";
 import { dueNow } from "./remind.mjs";
 import { allSubs, putSub, sendTo, configured } from "./push.mjs";
+import { getConfig } from "./reminder-config.mjs";
 
 async function readJson(store, key, fallback) {
   try { return (await store().get(key, { type: "json" })) || fallback; }
@@ -27,10 +28,11 @@ export async function runReminders({ at = Date.now(), force = false } = {}) {
     return report;
   }
 
-  const [planRaw, historyRaw, subs] = await Promise.all([
+  const [planRaw, historyRaw, subs, reminderConfig] = await Promise.all([
     readJson(PLAN, PLAN_KEY, null),
     readJson(HISTORY, HISTORY_KEY, null),
     allSubs(),
+    getConfig(),
   ]);
 
   const plan = normalisePlan(planRaw);
@@ -40,7 +42,7 @@ export async function runReminders({ at = Date.now(), force = false } = {}) {
 
   for (const sub of subs) {
     const reminder = normaliseReminder(sub.reminder);
-    const due = dueNow({ ...sub, reminder }, plan, history, at);
+    const due = dueNow({ ...sub, reminder }, plan, history, at, reminderConfig.messages);
 
     // A snooze whose day has passed is cleared rather than left to rot.
     if (due?.kind === "expired-snooze") {

@@ -21,6 +21,7 @@
  */
 
 import { DAYS } from "./data.mjs";
+import { messageFor } from "./reminder-shape.mjs";
 
 const DAY_KEYS = DAYS.map((d) => d.key);
 
@@ -56,7 +57,7 @@ export function localNow(tz, at = Date.now()) {
  * device, so "no" is by far the commonest answer and it has to be cheap and
  * certain.
  */
-export function dueNow(sub, plan, history, at = Date.now()) {
+export function dueNow(sub, plan, history, at = Date.now(), messages = null) {
   const r = sub?.reminder;
   if (!r || !r.enabled) return null;
 
@@ -72,17 +73,19 @@ export function dueNow(sub, plan, history, at = Date.now()) {
   if (doneToday) return null;
 
   const title = day.title || "Today's workout";
+  const teaser = `${plural(day.exercises.length, "exercise")}, about ${minutesFor(day)} minutes.`;
 
   // A snooze is the one thing allowed to speak twice in a day, because she
   // asked it to. It only counts on the day it was set — a snooze slept through
-  // is not a reason to be woken tomorrow.
+  // is not a reason to be woken tomorrow. Its message comes from the hour it
+  // was snoozed TO, same as any other reminder at that hour would say.
   if (r.snoozeUntil && at >= r.snoozeUntil) {
     const set = localNow(r.tz, r.snoozeUntil);
     if (set.date === now.date) {
       return {
         kind: "snooze",
-        title: "Time for your workout",
-        body: `${title} — ${plural(day.exercises.length, "exercise")}, about ${minutesFor(day)} minutes.`,
+        title: messageFor(messages, set.hour),
+        body: `${title} — ${teaser}`,
         tag: "workout-snooze",
         url: `/#/go/${now.day}`,
       };
@@ -95,8 +98,8 @@ export function dueNow(sub, plan, history, at = Date.now()) {
 
   return {
     kind: "daily",
-    title: "Workout today",
-    body: `${title} — ${plural(day.exercises.length, "exercise")}, about ${minutesFor(day)} minutes.`,
+    title: messageFor(messages, r.hour),
+    body: `${title} — ${teaser}`,
     tag: "workout-daily",
     url: `/#/day/${now.day}`,
     sentDate: now.date,

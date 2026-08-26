@@ -113,6 +113,10 @@ export async function createUser({ email, password, name, googleSub }) {
     resetExpires: 0,
     createdAt: new Date().toISOString(),
     lastSeenAt: new Date().toISOString(),
+    // The admin's per-account reminder schedule — null means "follow the
+    // site-wide default", set means this account has its own. See
+    // _lib/reminder-config.mjs.
+    reminderOverride: null,
   };
 
   await USERS().setJSON(record.id, record);
@@ -162,6 +166,20 @@ export async function touchLastSeen(userId) {
   await USERS().setJSON(userId, user);
 }
 
+/** null clears it — "return to default schedule" — anything else sets this
+ * account's own {enabled, hour}, which beats the site-wide default. See
+ * _lib/reminder-config.mjs, which also has to push the change onto whatever
+ * this account has subscribed; this function only stores it. */
+export async function setReminderOverride(userId, override) {
+  const user = await findById(userId);
+  if (!user) return false;
+  user.reminderOverride = override && typeof override === "object"
+    ? { enabled: override.enabled !== false, hour: override.hour }
+    : null;
+  await USERS().setJSON(userId, user);
+  return true;
+}
+
 /** Everything the admin screen is allowed to know about who has an account
  * here — never a password hash, a Google id, or a session token. Sorted
  * oldest first, the order people actually joined in. */
@@ -174,6 +192,7 @@ export async function listAccounts() {
       id: u.id, email: u.email, name: u.name,
       google: !!u.googleSub, password: !!u.passwordHash,
       createdAt: u.createdAt, lastSeenAt: u.lastSeenAt || u.createdAt,
+      reminderOverride: u.reminderOverride || null,
     }))
     .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }

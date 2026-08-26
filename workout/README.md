@@ -203,33 +203,59 @@ the stage shows the movement rather than a black rectangle while it loads.
 the square beside the title in the editor. It shows on the week board, at the
 top of the day, and on today's card.
 
-Two ways to fill any of these:
+**The picture** is uploaded from the phone — shrunk in the browser first, so a
+five-megabyte photo lands at two or three hundred kilobytes and looks
+identical at the size this shows it. Uploads are content-addressed: the
+file's name is a hash of its own bytes, so the same picture twice costs
+nothing extra, and they are served from `/media/<hash>`, cached for a year.
 
-**Paste a link.** YouTube, Vimeo or a Google Drive share link. The hint under
-the box says what it recognised before you commit to it, and an unrecognised
-link is offered as a plain link rather than pretending to be a player.
+**The video is a link, never an upload.** YouTube, Vimeo or a Google Drive
+share link — the hint under the box says what it recognised before you
+commit to it. There used to be a "take a clip on this phone" option too;
+it is gone, on purpose, in favour of the video library below. `/api/media`
+itself no longer accepts a video upload, though it still *serves* one from
+before this changed, so nothing already built goes dark.
 
-**Take one from the phone.** A picture is shrunk in the browser first — a
-five-megabyte phone photo lands at two or three hundred kilobytes and looks
-identical at the size this shows it — then uploaded and attached. A clip is
-sent as it is, so it has to be **under 4 MB**: that is as much as a single
-request can carry. Anything longer belongs on YouTube as an unlisted video,
-with the link pasted in — the app plays it just the same, and the message says
-so rather than just refusing. Whatever the file turns out to be, it lands in
-the right slot: a phone hands back a `.mov` from the photo picker either way,
-and a video quietly filed as a picture would be baffling.
+### The video library — pick one instead of pasting it every time
 
-Uploads are content-addressed: the file's name is a hash of its own bytes, so
-the same picture twice costs nothing extra and a URL can never mean something
-different tomorrow. They are served from `/media/<hash>` and cached for a year.
+A saved list of name-and-link pairs, admin only, at `/api/video-library`.
+Open any exercise's media sheet and "From the library" lists everything
+saved so far — press one and it is set, no re-typing a YouTube link that
+gets used in five different workouts.
+
+**Turning an exercise you already built into a library entry** is the same
+sheet: whatever video is currently set, "Save this video to the library"
+asks for a name (defaulting to the exercise's own) and adds it — the video
+does not have to be new, and nothing about the exercise it came from
+changes. That is the answer to "I already built workouts before there was a
+library."
+
+Entries are validated the same way an exercise's own video field is —
+`safeUrl` in `_lib/data.mjs`, http(s) only — so a saved link can never be a
+scheme the app would refuse to embed anyway. Capped at 200, far more than a
+home gym's worth of moves.
 
 ## Reminders
 
 A push notification, which means it arrives whether or not the app is open —
 on a phone face down on a kitchen counter.
 
-**When.** Choose an hour by scrolling a column; whatever is in the middle is
-the answer. Nobody types "17" when they mean five in the afternoon.
+**The hour is the admin's decision, not the device's.** Settings → Edit the
+week (admin) → Reminder schedule sets a site-wide default — on or off, and
+at which hour, "Don't forget to do your workout today!" by default — and
+each account can be given its own instead, or everyone can be set at once.
+"Return to default schedule" clears one person's override. A person still
+has to press **Remind me** on their own device and grant the browser's
+permission — nothing can subscribe a phone that never opened the app — but
+once it has, the hour it fires at is the admin's schedule, not a picker on
+the Reminders screen, which now just shows what that schedule is.
+
+**What it says is configurable by the hour, too.** Twenty-four fields, one
+per hour of the day, each defaulting to "Don't forget to do your workout
+today!" and each independently editable — a reminder at 6am can read
+differently from one at 8pm. Whichever hour a person's reminder is set to,
+that hour's wording is what gets sent; change it later and everyone at that
+hour says the new thing from then on, with nothing to touch per person.
 
 **Whether.** The decision is made fresh every hour, per device, and it is
 mostly *no*:
@@ -280,6 +306,8 @@ Netlify Blobs belonging to this site alone. Not files in this repository —
 | **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the admin password |
 | **An account's own record** (`/api/history`) | that account, signed in | that account, signed in |
 | **Accounts** (email, name, a password hash — never the password itself) | the admin password, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
+| **Reminder schedule & messages** | the admin password | the admin password |
+| **The video library** | the admin password | the admin password |
 
 Two separate locks, two separate cookies: the admin password gates the week
 and nothing else; an account gates one person's own record and nothing
@@ -410,8 +438,9 @@ again.
     js/catalog.js             effort levels, the calorie maths, video links, formatting
     js/insights.js            the intelligence in the record — trends, bests, milestones
     js/store.js               the week and the record: load, save, sync, the numbers
-    js/account.js             talking to /api/account — sign up, sign in, Google, reset
+    js/account.js             talking to /api/account and the admin endpoints
     js/media.js               shrinking a picture and sending it
+    js/library.js             the video library: list, add, remove — admin only
     js/push.js                asking to be reminded, and what to do if it cannot
     js/app.js                 the screens, the editor, and the one click handler
     data/plan.json            the committed week — the floor under the live one
@@ -424,12 +453,16 @@ again.
     netlify/functions/auth.mjs       the ADMIN password: signing in, out, the lockout
     netlify/functions/account.mjs    accounts: sign up, sign in, Google, reset, change password
     netlify/functions/admin-people.mjs   admin-only: the account roster, read-only
+    netlify/functions/admin-reminders.mjs   admin-only: the schedule, the messages, per-person overrides
+    netlify/functions/video-library.mjs     admin-only: saved videos — list, add, remove
     netlify/functions/plan.mjs       the week: public to read, admin password to write
     netlify/functions/history.mjs    an account's own record: that account only, to read or write
-    netlify/functions/media.mjs      pictures and clips: public to read, password to add
+    netlify/functions/media.mjs      pictures: public to read, password to add — no video, see above
     netlify/functions/reminders.mjs  which device wants nudging, and when — an account, signed in
     netlify/functions/reminder-tick.mjs  the hourly sweep, run by Netlify itself
-    netlify/functions/_lib/remind.mjs        whether a nudge is owed — pure, and tested
+    netlify/functions/_lib/remind.mjs         whether a nudge is owed, and what it says — pure, and tested
+    netlify/functions/_lib/reminder-shape.mjs the admin schedule's arithmetic — pure, and tested
+    netlify/functions/_lib/reminder-config.mjs  the schedule's store, and pushing it onto devices
     netlify/functions/_lib/push.mjs          sending one, and pruning dead devices
     netlify/functions/_lib/tick.mjs          the sweep itself, so it can also be run on demand
     netlify/functions/_lib/auth.mjs          the admin password, its cookie, the stores, the shared session seed

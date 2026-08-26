@@ -55,6 +55,7 @@ const MAX = {
   sessions: 2000,         // roughly five years of training, kept in full
   calories: 10000,
   seconds: 60 * 60 * 24,  // a single session cannot claim more than a day
+  library: 200,           // saved videos — far more than a home gym needs
 };
 
 const clampNum = (value, lo, hi, fallback) => {
@@ -348,6 +349,28 @@ export function dropSessions(history, ids) {
   const kill = new Set((Array.isArray(ids) ? ids : []).map((id) => text(id, 60)).filter(Boolean));
   const h = normaliseHistory(history);
   return { ...h, updated: new Date().toISOString(), sessions: h.sessions.filter((s) => !kill.has(s.id)) };
+}
+
+/* --------------------------------------------------------------------------
+   The video library
+
+   Saved links so a video is chosen, not re-pasted, every time an exercise
+   needs one — see video-library.mjs. Reuses safeUrl, the same check an
+   exercise's own video field goes through, so a library entry is never a
+   scheme this app couldn't already play safely.
+   -------------------------------------------------------------------------- */
+
+export function normaliseLibraryEntry(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const label = text(raw.label, MAX.name);
+  const url = safeUrl(raw.url);
+  if (!label || !url) return null;           // a blank entry is not a saved video
+  return { id: text(raw.id, 40) || uid("vid"), label, url };
+}
+
+export function normaliseLibrary(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.videos) ? raw.videos : [];
+  return list.map(normaliseLibraryEntry).filter(Boolean).slice(0, MAX.library);
 }
 
 export const LIMITS = MAX;

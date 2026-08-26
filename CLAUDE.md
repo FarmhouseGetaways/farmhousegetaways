@@ -809,6 +809,33 @@ twice a year. All of that is pure and tested in `_lib/remind.test.mjs`; it
 needs `VAPID_PUBLIC` and `VAPID_PRIVATE`, and without them the app is exactly
 as it was and says reminders are off.
 
+**The hour is admin-controlled, added 26 Aug 2026.** The owner asked for
+central control over who gets reminded and when: "as an admin, I need to be
+able to set push notifications for individual or all clients/users." Settings
+→ Edit the week (admin) → Reminder schedule sets a site-wide default (on,
+8am, "Don't forget to do your workout today!") and can give any one account
+its own instead, or set every account at once — `_lib/reminder-shape.mjs`
+(pure, tested) decides which wins, `_lib/reminder-config.mjs` stores it and
+pushes it onto whatever that account has subscribed. The Reminders screen
+itself no longer has an hour picker; a person still has to press **Remind
+me** and grant the browser's permission on their own device — nothing can
+subscribe a phone that never opened the app — but the hour it fires at is
+the admin's decision from then on. What a reminder SAYS is also
+admin-configurable, one message per hour of the day, looked up by whichever
+hour a person's reminder is set to — so changing hour 8's wording updates
+everyone at 8am with nothing to touch per person.
+
+**The video library, added 26 Aug 2026.** The owner asked to stop re-pasting
+the same YouTube link into every workout that reuses an exercise: "let's
+remove any option to upload from phone" for video — "photos only" — "I also
+need a repository of videos... so I don't have to rename and choose a
+YouTube link every time." `/api/media` no longer accepts a video upload (it
+still serves one from before this changed, so nothing already built goes
+dark); a video is a link only, chosen from `/api/video-library` or pasted
+in fresh. Any exercise's media sheet has "Save this video to the library",
+which works on an OLD exercise's video just as well as a new one — that is
+the answer to "I already built workouts before there was a library."
+
 **A picture and a video are different things.** An exercise has both fields and
 they are independent: the picture is the thumbnail and the video's poster, the
 video is what plays when she starts. A day has a picture and no video. Do not

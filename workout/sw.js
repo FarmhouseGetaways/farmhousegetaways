@@ -20,7 +20,7 @@
  * that already installed the app keeps serving yesterday's copy for ever.
  */
 
-const VERSION = "workouts-v18";
+const VERSION = "workouts-v19";
 
 const SHELL = [
   "./",
@@ -30,6 +30,7 @@ const SHELL = [
   "js/store.js",
   "js/account.js",
   "js/insights.js",
+  "js/library.js",
   "js/catalog.js",
   "js/media.js",
   "js/push.js",

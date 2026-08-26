@@ -1,19 +1,21 @@
 /**
- * POST /api/media   → upload a picture or a short clip (signed in).
- *                     The body is the raw bytes; the content type says what.
+ * POST /api/media   → upload a picture (signed in). The body is the raw
+ *                     bytes; the content type says what.
  * GET  /media/:id   → serve one. Public.
  *
  * Content-addressed: the id is a hash of the bytes. Uploading the same file
  * twice gives the same URL and costs nothing extra, and because a URL can only
  * ever mean one file, it is safe to cache for a year without ever going stale.
  *
- * WHY THE LIMIT IS WHAT IT IS
- * A function's request body has to fit through Lambda, which caps it around
- * six megabytes once encoded — so the real ceiling for raw bytes is nearer
- * four and a half. Pictures never come close: the browser resizes them to
- * 1600px before sending and they land at two or three hundred kilobytes.
- * Video is the one that bumps into it, which is why the message says so
- * plainly and points at YouTube rather than just refusing.
+ * PHOTOS ONLY, ON PURPOSE
+ * Video used to accept a phone upload too, capped at 4 MB because that is as
+ * much as a function's request body can carry through Lambda. The owner asked
+ * for that door closed: a video is now a YouTube link only, chosen from the
+ * library or pasted in (see video-library.mjs and js/app.js's media sheet) —
+ * never a file, and never uploaded here. POST accordingly only takes picture
+ * types. GET still serves an old .mp4/.webm/.mov by hash, so an exercise
+ * built before this change does not go dark; there is simply no way to add
+ * another one.
  *
  * Serving is public on purpose. These are pictures of dumbbells, the app has
  * to show them before anybody signs in, and the ids are unguessable hashes.
@@ -26,17 +28,22 @@ export const config = { path: ["/api/media", "/media/:id"] };
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
+/* What POST will still accept. */
 const TYPES = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "video/quicktime": "mov",
 };
 
-const EXT_TO_TYPE = Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [v, k]));
+/* What GET will still serve — includes video extensions from before this
+ * changed, so an exercise built with the old phone-upload flow keeps playing. */
+const EXT_TO_TYPE = {
+  ...Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [v, k])),
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
 
 export default async (req) => {
   const url = new URL(req.url);
@@ -71,7 +78,12 @@ export default async (req) => {
 
   const type = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   if (!TYPES[type]) {
-    return json({ ok: false, error: "That has to be a JPEG, PNG, WebP or GIF picture, or an MP4, WebM or MOV clip." }, 415);
+    return json({
+      ok: false,
+      error: type.startsWith("video/")
+        ? "Video is not uploaded here any more — paste a YouTube link instead, or pick one from the library."
+        : "That has to be a JPEG, PNG, WebP or GIF picture.",
+    }, 415);
   }
 
   const buf = Buffer.from(await req.arrayBuffer());
@@ -79,9 +91,7 @@ export default async (req) => {
   if (buf.length > MAX_BYTES) {
     return json({
       ok: false,
-      error: type.startsWith("video/")
-        ? "That clip is over 4 MB, which is as much as an upload can carry. Put it on YouTube as an unlisted video and paste the link instead — the app plays it just the same."
-        : "That picture is over 4 MB even after resizing, which usually means the browser could not re-encode it. Try a JPEG.",
+      error: "That picture is over 4 MB even after resizing, which usually means the browser could not re-encode it. Try a JPEG.",
     }, 413);
   }
 
@@ -92,5 +102,5 @@ export default async (req) => {
     return json({ ok: false, error: "Could not store that file: " + (err?.message || err) }, 502);
   }
 
-  return json({ ok: true, id, url: "/media/" + id, bytes: buf.length, kind: type.startsWith("video/") ? "video" : "image" });
+  return json({ ok: true, id, url: "/media/" + id, bytes: buf.length, kind: "image" });
 };

@@ -34,6 +34,10 @@ export const LOCKOUT = () => getStore("workout-lockout");
 export const MEDIA = () => getStore("workout-media");
 /* One entry per device that asked to be reminded — see reminders.mjs. */
 export const SUBS = () => getStore("workout-subs");
+/* Saved YouTube links, so an exercise's video can be picked rather than
+   pasted in fresh every time — see video-library.mjs. */
+export const LIBRARY = () => getStore("workout-video-library");
+export const LIBRARY_KEY = "list";
 
 export const PLAN_KEY = "plan";
 /* The shared record, from before accounts existed. Kept only as the seed the

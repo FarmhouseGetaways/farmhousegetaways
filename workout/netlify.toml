@@ -71,6 +71,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/admin/reminders"
+  to = "/.netlify/functions/admin-reminders"
+  status = 200
+
+[[redirects]]
+  from = "/api/video-library"
+  to = "/.netlify/functions/video-library"
+  status = 200
+
+[[redirects]]
   from = "/api/plan"
   to = "/.netlify/functions/plan"
   status = 200

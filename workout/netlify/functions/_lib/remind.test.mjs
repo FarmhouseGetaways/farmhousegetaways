@@ -94,8 +94,16 @@ test("a snooze speaks at the hour she chose, even though the daily one already w
   const fivePm = Date.UTC(2026, 7, 22, 0, 0, 0);
   const due = dueNow(s, plan, { sessions: [] }, fivePm);
   assert.equal(due.kind, "snooze");
-  assert.equal(due.title, "Time for your workout");
+  assert.equal(due.title, "Don't forget to do your workout today!");   // the default message, with no config passed
   assert.match(due.url, /#\/go\/fri$/);      // straight into the workout
+});
+
+test("a snooze's message comes from the hour it was snoozed TO, admin-configurable same as the daily one", () => {
+  const s = sub({ lastSentDate: "2026-08-21", snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0) }); // 5pm LA
+  const fivePm = Date.UTC(2026, 7, 22, 0, 0, 0);
+  const messages = { 17: "One more push before dinner!" };
+  const due = dueNow(s, plan, { sessions: [] }, fivePm, messages);
+  assert.equal(due.title, "One more push before dinner!");
 });
 
 test("a snooze does not speak before its time", () => {
