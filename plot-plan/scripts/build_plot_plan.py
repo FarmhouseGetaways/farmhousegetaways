@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 28
+REV  = 29
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -548,10 +548,14 @@ for lp, lab in [((417,148),"GRAVEL, 12' W"), ((285,170),"DIRT DRIVE, 12' W"), ((
 # property line down to about y=175. Drawn just inside the lines it follows.
 # A vehicle GATE breaks the west run at the driveway crossing (green markup):
 # open during business hours for customer parking access.
-# Owner, 8/22 (fifth round, rev 28): the west run butts up to the storage
-# building (stop at its north edge, y=240.5 -- STG = (72.1,230.5)-(82.1,240.5));
-# the north run stops where the leach-line hatch begins (x=481.0, its west edge).
-FENCE_OFF, FENCE_Y_END, FENCE_X_END = 2.5, 240.5, 481.0
+# Owner, 8/22 (sixth round, rev 29): "butts right up to the storage building"
+# means the fence physically CONNECTS to it, not just stops level with it on
+# the property line -- rev 28's straight run left a 70' open gap between the
+# fence end and STG = (72.1,230.5)-(82.1,240.5). Fence now runs down the west
+# P.L., then jogs EAST at y=235 (clear of the new store, y<=229) to the
+# storage building's west face at x=72.1, closing the yard there.
+# North run still stops at x=481.0, the west edge of the leach-line hatch.
+FENCE_OFF, FENCE_JOG_Y, FENCE_X_END = 2.5, 235.0, 481.0
 GATE_Y, GATE_HW = 258.0, 6.0        # gate centred on the driveway crossing, 12' wide
 _fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords if x <= FENCE_X_END]
 _nxt = [c for c in LINE_N.coords if c[0] > FENCE_X_END]
@@ -560,13 +564,15 @@ if _nxt and _fn:
     t = (FENCE_X_END - x0) / (x1 - x0)
     _fn.append((FENCE_X_END, y0 + t * (y1 - y0) - FENCE_OFF))
 FENCE_N  = _fn
-FENCE_W1 = [(FENCE_OFF, FENCE_Y_END), (FENCE_OFF, GATE_Y - GATE_HW)]
+FENCE_W1 = [(FENCE_OFF, FENCE_JOG_Y), (FENCE_OFF, GATE_Y - GATE_HW)]
 FENCE_W2 = [(FENCE_OFF, GATE_Y + GATE_HW), (FENCE_OFF, _fn[0][1])]
-for _seg in (FENCE_W1, FENCE_W2, FENCE_N):
+FENCE_J  = [(FENCE_OFF, FENCE_JOG_Y), (72.1, FENCE_JOG_Y)]   # jog east to STG's west face
+for _seg in (FENCE_W1, FENCE_W2, FENCE_N, FENCE_J):
     ax.plot([q[0] for q in _seg], [q[1] for q in _seg], color='#1a1a1a', lw=1.0,
             ls=(0, (10, 4)), zorder=3)
 for _fx, _fy in FENCE_N[1::2]:
     ax.plot([_fx], [_fy], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
+ax.plot([37.3], [FENCE_JOG_Y], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
 # gate leaf, swung open into the yard
 ax.plot([FENCE_OFF, FENCE_OFF + GATE_HW], [GATE_Y - GATE_HW, GATE_Y - GATE_HW],
         color='#1a1a1a', lw=0.9, ls=(0, (2, 2)), zorder=3)
@@ -575,7 +581,7 @@ ax.annotate("GATE — OPEN DURING BUSINESS\nHOURS (CUSTOMER PARKING ACCESS)",
             (FENCE_OFF, GATE_Y), (30, 210), fontsize=6.0, ha='center', zorder=7,
             arrowprops=dict(arrowstyle='-', lw=0.7), color='#1a1a1a',
             bbox=dict(fc='white', ec='#1a1a1a', lw=0.6, alpha=0.92, pad=1.6))
-ax.text(7.5, 220, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
+ax.text(7.5, 210, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
         ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
         bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
 

@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 28 generated — the submittal sheet. The Small
+**Current status: plot plan REV 29 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -114,12 +114,16 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   business hours" for customer parking access. Drawn as a gap in the fence
   line with a swung-open leaf and a callout.
 - **Fence endpoints corrected (rev 28) after rev 27's full-length guess missed
-  badly.** West run stops at y=240.5 — level with the north edge of the
-  10'x10' storage building (72.1,230.5)-(82.1,240.5), "butts right up to" it
-  per the owner. North run stops at x=481.0 — the west edge of the leach-line
-  hatch box — not the full property line. Both pinned to exact coordinates
-  already in the script (STG, the leach rect) rather than estimated from the
-  screenshot a third time.
+  badly.** North run stops at x=481.0 — the west edge of the leach-line hatch
+  box — not the full property line. Pinned to exact coordinates already in
+  the script (the leach rect) rather than estimated from the screenshot.
+- **"Butts right up to the storage building" means PHYSICALLY CONNECTS to it**
+  (rev 29) — rev 28's fix stopped the west run level with the building's north
+  edge but 70' short of it on the property line, an open unfenced gap. Fixed:
+  the west run now jogs EAST at y=235 (clear of the new store building, which
+  tops out at y=229) to x=72.1, the storage building's west face, closing the
+  yard there. Lesson for next time: "butts up to a structure" means the fence
+  reaches and touches it, not just matches its latitude from a distance.
 - **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
   structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
   — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
