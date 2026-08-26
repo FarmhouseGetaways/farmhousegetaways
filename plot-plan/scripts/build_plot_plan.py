@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 27
+REV  = 28
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -548,9 +548,17 @@ for lp, lab in [((417,148),"GRAVEL, 12' W"), ((285,170),"DIRT DRIVE, 12' W"), ((
 # property line down to about y=175. Drawn just inside the lines it follows.
 # A vehicle GATE breaks the west run at the driveway crossing (green markup):
 # open during business hours for customer parking access.
-FENCE_OFF, FENCE_Y_END = 2.5, 175.0
+# Owner, 8/22 (fifth round, rev 28): the west run butts up to the storage
+# building (stop at its north edge, y=240.5 -- STG = (72.1,230.5)-(82.1,240.5));
+# the north run stops where the leach-line hatch begins (x=481.0, its west edge).
+FENCE_OFF, FENCE_Y_END, FENCE_X_END = 2.5, 240.5, 481.0
 GATE_Y, GATE_HW = 258.0, 6.0        # gate centred on the driveway crossing, 12' wide
-_fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords]
+_fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords if x <= FENCE_X_END]
+_nxt = [c for c in LINE_N.coords if c[0] > FENCE_X_END]
+if _nxt and _fn:
+    (x0, y0), (x1, y1) = (_fn[-1][0], _fn[-1][1] + FENCE_OFF), _nxt[0]
+    t = (FENCE_X_END - x0) / (x1 - x0)
+    _fn.append((FENCE_X_END, y0 + t * (y1 - y0) - FENCE_OFF))
 FENCE_N  = _fn
 FENCE_W1 = [(FENCE_OFF, FENCE_Y_END), (FENCE_OFF, GATE_Y - GATE_HW)]
 FENCE_W2 = [(FENCE_OFF, GATE_Y + GATE_HW), (FENCE_OFF, _fn[0][1])]
