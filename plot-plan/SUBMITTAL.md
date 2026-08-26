@@ -31,7 +31,7 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev25.pdf` (always the
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev27.pdf` (always the
   highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
@@ -77,11 +77,14 @@ The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
 **Every setback on the sheet is measured from the property lines** — the thick
-black boundary — per your direction: north and south **interior side yards at
-15'**, east **rear yard at 25'** (a straight line parallel to the straight east
-boundary), and west **exterior side yard at 35' from the Whirlwind Ln
-centreline**, which is drawn at the west property line, so it too reads
-straight off the black line. No setback follows any road or easement.
+black boundary. The residence fronts the access road/Handlebar direction on
+the **east**, so that is the **front yard: 40' from the east property line**
+(Schedule C footnote (d) — a private easement under 40' wide gets a 40' front
+yard; there is no on-site centreline to measure from, so it comes straight off
+the property line). **Whirlwind Ln on the west is the exterior side yard, 35'
+from centreline**, drawn at the west property line. North and south are
+**interior side yards at 15'.** There is **no rear yard** — the lot fronts
+streets on both east and west. No setback follows any road or easement.
 
 **Handlebar Rd is not on the parcel, and no road crosses it.** The driveway is
 the only travelled way — east from the residence, then southeast between AG-9
@@ -101,13 +104,14 @@ the new 12'×10' Mini Barn Market building, 120 SF against a 1,500 SF limit.
 Nothing to ask about it.
 
 **1. Confirm the yard designations.** The sheet draws every setback from the
-property lines: 15' north and south, 25' rear on the east, 35' on the west
-(Whirlwind centreline at the west line). Access is by a private easement ~700'
-out to Handlebar Rd across the adjacent parcel; ask whether PDS wants any yard
-measured differently because of that easement (Schedule C footnote (d) can
-apply to lots fronting a private easement under 40' wide). Nothing about the
-store changes either way — it sits 57' from the west line and ~64' from the
-north line, clear of any answer they give.
+property lines: 15' north and south (interior side), 40' front on the east
+(footnote (d), the residence fronting the access road/Handlebar direction),
+35' exterior side on the west (Whirlwind centreline). Access is by a private
+easement ~700' out to Handlebar Rd across the adjacent parcel; ask whether PDS
+wants the front yard measured from an off-site centreline instead of the
+property line, since none is drawn on this parcel. Nothing about the store
+changes either way — it sits 57' from the west line and ~64' from the north
+line, clear of any answer they give.
 
 **2. Confirm no Zoning Verification Permit is required** for the small store
 post Update 102 — and what the building permit path is for the 12'×10' store
@@ -133,13 +137,15 @@ These are on the sheet as notes rather than hidden:
 - **Preliminary title report** — not obtained. Definitive easement locations,
   including the ~700' access easement across the adjacent parcel out to
   Handlebar Rd.
-- **Fence heights — now answered.** Note 10 states all existing fencing and
-  gates are 6'-0" or less, so none of it needs a building permit (PDS 070), and
-  no new fencing is proposed. Fence *lines* are not drawn, because their
-  locations were never mapped; if the plan checker asks for them, mark them on
-  a print and they go on in one pass. One thing to watch: ZO §6708 caps fences
-  in a front or exterior side yard at 42", so if any 6' run sits inside the
-  west 35' Whirlwind yard, ask PDS about it while you are there.
+- **Fence — heights answered and now drawn.** All existing fencing and gates
+  are 6'-0" or less, no building permit required (PDS 070). The fence itself
+  is drawn on the sheet: the full north property line, and the west property
+  line down to about y=175, with a gate at the driveway crossing that stays
+  open during business hours for customer parking access. One thing to watch:
+  ZO §6708 caps fences in a front or exterior side yard at 42" — the 6' fence
+  runs along the north (interior side, 72" allowed) and part of the west
+  (exterior side, 42" cap). If that west run falls inside the 35' Whirlwind
+  yard, ask PDS whether the 6' height is compliant there.
 - **Tiny home** — to be removed; best removed before submitting so it comes off
   the sheet entirely.
 - **Greenhouse** is labelled **AS-BUILT** — the county's own term from PDS 090

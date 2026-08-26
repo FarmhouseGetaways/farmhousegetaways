@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 26
+REV  = 27
 DATE = "8/22/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -94,11 +94,22 @@ STORE_SF   = 1500
 SB_SIDE  = 15.0    # interior side, from lot line (north and south)
 SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln (drawn at
                    # the west P.L. per owner, so effectively from the lot line)
-SB_REAR  = 25.0    # rear, from the east lot line. OWNER 8/21 (third round):
-                   # every setback is measured from the PROPERTY LINES (the
-                   # thick black boundary), NOT from the access road easement.
-                   # No curved setback following the road — the east side is a
-                   # straight offset of the straight east line.
+SB_FRONT = 40.0    # FRONT yard, on the EAST line (owner 8/22, rev 27: "the east
+                   # property line should be the front yard because that's the
+                   # side where our address road, Handlebar Rd, resides" —
+                   # confirmed against research/FINDINGS.md sec 3, "Which line
+                   # is the front": the residence fronts the access road/
+                   # Handlebar direction. Schedule C footnote (d): a lot
+                   # fronting a private easement <40' wide takes a 40' front
+                   # yard. No easement centreline is drawn on this parcel (it
+                   # exits immediately), so 40' is measured from the east
+                   # property line itself — a straight offset, consistent with
+                   # the owner's standing rule to measure from property lines,
+                   # not imaginary roads. NOTE: west (Whirlwind, 35') is the
+                   # EXTERIOR SIDE yard, not "rear" — Schedule C's rear figure
+                   # is 25', which doesn't apply here. This is a THROUGH LOT
+                   # (frontage on two streets, Whirlwind west / access road
+                   # east), so there is NO rear yard.
 ESMT_W     = 30.0       # Whirlwind Ln road easement along the west boundary
 WL_CL_X    = 0.0        # its centreline, drawn at the west P.L. per owner (see note)
 
@@ -140,7 +151,7 @@ ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
             .difference(LINE_WCL.buffer(SB_EXT))
-            .difference(LINE_E.buffer(SB_REAR)))
+            .difference(LINE_E.buffer(SB_FRONT)))
 
 # Zone polygons are DRAWN clipped to the parcel boundary (owner, 8/21: "my red
 # areas extend over the property lines — everything needs to be re-drawn so
@@ -532,22 +543,31 @@ for lp, lab in [((417,148),"GRAVEL, 12' W"), ((285,170),"DIRT DRIVE, 12' W"), ((
     ax.text(*lp, lab, fontsize=5.8, color='0.25', style='italic', zorder=7, ha='center',
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
-# ---- EXISTING 6' FENCE, per the owner's markup (8/22): along the north
-# property line from the NW corner east to about x=490, and down the west
-# property line to about y=175. Drawn just inside the lines it follows.
-FENCE_OFF, FENCE_X_END, FENCE_Y_END = 2.5, 478.0, 175.0
-_fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords if x <= FENCE_X_END]
-_nxt = [c for c in LINE_N.coords if c[0] > FENCE_X_END]
-if _nxt and _fn:                      # stop the run cleanly at x = FENCE_X_END
-    (x0, y0), (x1, y1) = (_fn[-1][0], _fn[-1][1] + FENCE_OFF), _nxt[0]
-    t = (FENCE_X_END - x0) / (x1 - x0)
-    _fn.append((FENCE_X_END, y0 + t * (y1 - y0) - FENCE_OFF))
-FENCE = [(FENCE_OFF, FENCE_Y_END), (FENCE_OFF, _fn[0][1])] + _fn
-ax.plot([q[0] for q in FENCE], [q[1] for q in FENCE], color='#1a1a1a', lw=1.0,
-        ls=(0, (10, 4)), zorder=3)
-for _fx, _fy in FENCE[2::2]:
+# ---- EXISTING 6' FENCE, per the owner's yellow markup (8/22, rev 27 — the only
+# two places a 6' fence exists): the FULL north property line, and the west
+# property line down to about y=175. Drawn just inside the lines it follows.
+# A vehicle GATE breaks the west run at the driveway crossing (green markup):
+# open during business hours for customer parking access.
+FENCE_OFF, FENCE_Y_END = 2.5, 175.0
+GATE_Y, GATE_HW = 258.0, 6.0        # gate centred on the driveway crossing, 12' wide
+_fn = [(x, y - FENCE_OFF) for x, y in LINE_N.coords]
+FENCE_N  = _fn
+FENCE_W1 = [(FENCE_OFF, FENCE_Y_END), (FENCE_OFF, GATE_Y - GATE_HW)]
+FENCE_W2 = [(FENCE_OFF, GATE_Y + GATE_HW), (FENCE_OFF, _fn[0][1])]
+for _seg in (FENCE_W1, FENCE_W2, FENCE_N):
+    ax.plot([q[0] for q in _seg], [q[1] for q in _seg], color='#1a1a1a', lw=1.0,
+            ls=(0, (10, 4)), zorder=3)
+for _fx, _fy in FENCE_N[1::2]:
     ax.plot([_fx], [_fy], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
-ax.text(7.5, 232, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
+# gate leaf, swung open into the yard
+ax.plot([FENCE_OFF, FENCE_OFF + GATE_HW], [GATE_Y - GATE_HW, GATE_Y - GATE_HW],
+        color='#1a1a1a', lw=0.9, ls=(0, (2, 2)), zorder=3)
+ax.plot([FENCE_OFF], [GATE_Y - GATE_HW], marker='o', ms=2.4, color='#1a1a1a', zorder=3)
+ax.annotate("GATE — OPEN DURING BUSINESS\nHOURS (CUSTOMER PARKING ACCESS)",
+            (FENCE_OFF, GATE_Y), (30, 210), fontsize=6.0, ha='center', zorder=7,
+            arrowprops=dict(arrowstyle='-', lw=0.7), color='#1a1a1a',
+            bbox=dict(fc='white', ec='#1a1a1a', lw=0.6, alpha=0.92, pad=1.6))
+ax.text(7.5, 220, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
         ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
         bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
 
@@ -581,8 +601,9 @@ ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(SB_EXT+4, 190, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
         fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-# All setbacks are measured from the PROPERTY LINES (owner). East = rear 25'.
-ax.text(551, 185, f"REAR YARD SETBACK {SB_REAR:.0f}' FROM EAST P.L.",
+# All setbacks are measured from the PROPERTY LINES (owner). East = FRONT 40'
+# (rev 27) — the residence fronts the access road/Handlebar direction there.
+ax.text(551, 185, f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM EAST P.L.",
         fontsize=6.4, rotation=90, va='center', ha='center', color=SB,
         fontweight='bold', zorder=8,
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
@@ -954,14 +975,14 @@ notes = [
  "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
  "3.  NO GRADING PROPOSED. THE ONLY NEW CONSTRUCTION IS THE 12'x10' STORE (UNDER",
  "     CONSTR.). PLAN DOCUMENTS EXISTING AG OPERATIONS + PROPOSED STORE (ZO §6157).",
- "4.  SETBACKS PER THE PARCEL ZONING BOX, DESIGNATOR C, ZO §4810 SCHEDULE C, ALL",
- "     MEASURED FROM THE PROPERTY LINES: NORTH AND SOUTH INTERIOR SIDE YARDS 15',",
- "     EAST REAR YARD 25', WEST EXTERIOR SIDE YARD 35' FROM WHIRLWIND LN ℄ (SHOWN",
- "     AT THE WEST P.L. PER OWNER — NOTE 9). YARD DESIGNATIONS TO BE CONFIRMED",
- "     WITH PDS AT SUBMITTAL.",
+ "4.  SETBACKS PER ZO §4810 SCHEDULE C (ZONING BOX DESIGNATOR C). THE RESIDENCE",
+ "     FRONTS THE ACCESS RD./HANDLEBAR DIRECTION (EAST) — FRONT YARD 40' FROM THE",
+ "     EAST P.L. PER FOOTNOTE (d) (PRIVATE ESMT. <40' WIDE; NO ON-SITE ℄ TO USE).",
+ "     WHIRLWIND LN (WEST) IS THE EXTERIOR SIDE YARD, 35' FROM ℄ AT THE WEST P.L.",
+ "     N/S ARE INTERIOR SIDE YARDS, 15'. NO REAR YARD — LOT FRONTS STREETS E + W.",
  "5.  THE PROPOSED STORE SITS IN THE BUILDABLE AREA, CLEAR OF EVERY REQUIRED YARD",
- "     (22' BEYOND THE WHIRLWIND SETBACK, 60'+ ELSEWHERE). EXIST. TINY HOME (W) IS",
- "     TO BE REMOVED. ROAD CENTRELINES ARE APPROXIMATE PENDING PM 05062 (NOTE 9).",
+ "     (22' BEYOND THE WHIRLWIND SETBACK, 470'+ FROM THE FRONT (EAST) P.L.). EXIST.",
+ "     TINY HOME (W) IS TO BE REMOVED. WHIRLWIND ℄ IS APPROXIMATE PENDING PM 05062.",
  "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
  "7.  GREENHOUSE SHOWN AS-BUILT; MAY QUALIFY FOR THE AG BUILDING EXEMPTION —",
@@ -1011,8 +1032,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-25 8/22/2026  ROAD, STORE, AG SF, RECORD DATA", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  FENCE SHOWN; SEPTIC OFF P.L.", 5.4, x=0.62)
+tline(tb_h*0.170, "17-26 8/22/2026  RECORD DATA, PARKING, FENCE", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  FRONT YARD = EAST; GATE ADDED", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

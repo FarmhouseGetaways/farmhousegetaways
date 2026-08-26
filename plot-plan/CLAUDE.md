@@ -23,7 +23,7 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 26 generated — the submittal sheet. The Small
+**Current status: plot plan REV 27 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking
@@ -94,6 +94,25 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   moved to x 440–462.4, y 269–279.1, about 6' clear (owner markup 8/22, and the
   owner confirmed it is the septic he meant, not the well). **The well stays at
   (174.4, 218.5)** — it was never against a line and is not to be moved.
+- **THE FRONT YARD IS ON THE EAST, NOT A "REAR YARD."** (Owner, 8/22 rev 27:
+  "the east property line should be the front yard because that is the side
+  where our address road, Handlebar Road, resides.") Confirmed against
+  research/FINDINGS.md §3 "Which line is the front" — the residence fronts the
+  access road/Handlebar direction, so per Schedule C that is the FRONT yard,
+  **40' from the east P.L.** (footnote (d): private esmt. <40' wide; no on-site
+  ℄ exists to measure from, so 40' comes straight off the property line).
+  **Whirlwind (west, 35') stays the EXTERIOR SIDE yard** — the owner's markup
+  called it "rear," but Schedule C's rear figure is 25', which doesn't apply;
+  west was already correctly labeled and needed no change. North/south remain
+  interior side yards, 15'. **There is no rear yard** — this is a through lot,
+  fronting streets on both the east and west.
+- **The 6' fence covers the FULL north property line, not a partial run**
+  (owner's yellow markup, 8/22 rev 27 — "these are the only places a 6' fence
+  exists"). Extended from stopping at x=478 to the entire length of LINE_N.
+- **A vehicle gate breaks the west fence run at the driveway crossing**
+  (owner's green markup, 8/22 rev 27): centred y=258, 12' wide, "open during
+  business hours" for customer parking access. Drawn as a gap in the fence
+  line with a swung-open leaf and a callout.
 - **Pond is RUNOFF-FED — no pump.** **Leach lines must not cross under any
   structure** (moved E of the garage). **Greenhouse is labelled AS-BUILT only**
   — no "(unpermitted)" tag; AS-BUILT is the county's own term for it (PDS 090).
