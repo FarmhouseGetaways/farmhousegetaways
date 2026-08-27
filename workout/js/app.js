@@ -829,9 +829,22 @@ function renderPlayer(key) {
   /* A workout in progress is offered rather than resumed silently when it is
      not obviously the one she meant: a different day (she tapped Tuesday by
      mistake), or one that has been running for hours (the phone went in a
-     pocket and the workout never ended). The second is the one that used to
-     quietly log a nine-hour session. */
-  if (live && (live.day !== key || isStale(live))) return askCarryOn(live, key);
+     pocket and the workout never ended).
+
+     The two combined — a different day AND hours old — is not "confirm
+     before I lose something": there is nothing left on a session that stale
+     to protect, so asking about it every single time another day is opened
+     is the interruption that never goes away on its own. That combination
+     clears it on the spot instead of asking. Stale on the SAME day still
+     asks — that one really is "still running, or start over?" — and a
+     different day that is NOT stale still asks too, because that one might
+     be real progress worth not losing. */
+  if (live && live.day !== key) {
+    if (isStale(live)) { store.clearLive(); live = null; }
+    else return askCarryOn(live, key);
+  } else if (live && isStale(live)) {
+    return askCarryOn(live, key);
+  }
   if (!live) {
     const day = store.dayPlan(key);
     if (isRest(day)) { go(`#/day/${key}`); return; }
@@ -2499,7 +2512,11 @@ ready = store.load();
 ready.then(() => {
   render();
   const live = store.loadLive();
-  if (live && !location.hash.startsWith("#/go/")) {
+  // A genuinely recent session is worth surfacing on cold start. A stale one
+  // (hours old — see isStale) is not: without this check it said so on
+  // EVERY single app open, for ever, until she happened to open that exact
+  // day and was asked what to do with it. That is the "perpetual run".
+  if (live && !isStale(live) && !location.hash.startsWith("#/go/")) {
     toast(`${live.title} is still in progress — tap to carry on.`);
   }
 });
