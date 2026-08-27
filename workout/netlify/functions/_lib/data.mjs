@@ -56,6 +56,7 @@ const MAX = {
   calories: 10000,
   seconds: 60 * 60 * 24,  // a single session cannot claim more than a day
   library: 200,           // saved videos — far more than a home gym needs
+  exerciseLibrary: 300,   // saved exercises — same reasoning, a bit more room
 };
 
 const clampNum = (value, lo, hi, fallback) => {
@@ -95,7 +96,7 @@ export function safeUrl(value) {
   return u.protocol === "https:" || u.protocol === "http:" ? u.href : "";
 }
 
-function normaliseExercise(raw) {
+export function normaliseExercise(raw) {
   if (!raw || typeof raw !== "object") return null;
   const name = text(raw.name, MAX.name);
   if (!name) return null;                       // an exercise with no name is a blank row
@@ -371,6 +372,20 @@ export function normaliseLibraryEntry(raw) {
 export function normaliseLibrary(raw) {
   const list = Array.isArray(raw) ? raw : Array.isArray(raw?.videos) ? raw.videos : [];
   return list.map(normaliseLibraryEntry).filter(Boolean).slice(0, MAX.library);
+}
+
+/* --------------------------------------------------------------------------
+   The exercise pool
+
+   A saved exercise is exactly the shape one already has inside a day —
+   name, video, image, sets, reps, rest, effort, notes — so it reuses
+   normaliseExercise rather than a second, parallel definition of the same
+   fields with its own chance to drift out of step. See exercise-library.mjs.
+   -------------------------------------------------------------------------- */
+
+export function normaliseExerciseLibrary(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.exercises) ? raw.exercises : [];
+  return list.map(normaliseExercise).filter(Boolean).slice(0, MAX.exerciseLibrary);
 }
 
 export const LIMITS = MAX;

@@ -81,6 +81,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/exercise-library"
+  to = "/.netlify/functions/exercise-library"
+  status = 200
+
+[[redirects]]
   from = "/api/plan"
   to = "/.netlify/functions/plan"
   status = 200

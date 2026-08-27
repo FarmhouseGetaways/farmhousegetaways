@@ -15,6 +15,7 @@ import {
   DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
   normaliseReminder, timezone, normaliseLibraryEntry, normaliseLibrary,
+  normaliseExercise, normaliseExerciseLibrary,
 } from "./data.mjs";
 
 /* ---------- the week ---------- */
@@ -241,4 +242,35 @@ test("a library survives junk without throwing, and drops blank entries", () => 
 test("a library is capped rather than allowed to grow without bound", () => {
   const many = Array.from({ length: 250 }, (_, n) => ({ label: `Video ${n}`, url: `https://youtu.be/v${n}` }));
   assert.equal(normaliseLibrary(many).length, 200);
+});
+
+/* ---------- the exercise pool ---------- */
+
+test("a pool exercise needs a name, and gets the same clamps as a day's own", () => {
+  assert.equal(normaliseExercise({ name: "" }), null);
+  assert.equal(normaliseExercise(null), null);
+  const ex = normaliseExercise({ name: "Squats", sets: 99, reps: "12", rest: -5, video: "javascript:alert(1)" });
+  assert.equal(ex.name, "Squats");
+  assert.equal(ex.sets, 10);         // clamped to MAX.sets, not the junk 99 given
+  assert.equal(ex.rest, 0);          // clamped up from a negative
+  assert.equal(ex.video, "");        // an unsafe url is dropped, not carried
+});
+
+test("a pool exercise keeps a given id, or gets one", () => {
+  const withId = normaliseExercise({ id: "ex_fixed", name: "Push-ups" });
+  assert.equal(withId.id, "ex_fixed");
+  const withoutId = normaliseExercise({ name: "Push-ups" });
+  assert.ok(withoutId.id.startsWith("ex_"));
+});
+
+test("the pool survives junk without throwing, and drops blank entries", () => {
+  const pool = normaliseExerciseLibrary([{ name: "Real one" }, null, {}, { name: "" }]);
+  assert.equal(pool.length, 1);
+  assert.equal(normaliseExerciseLibrary(null).length, 0);
+  assert.equal(normaliseExerciseLibrary("nonsense").length, 0);
+});
+
+test("the pool is capped rather than allowed to grow without bound", () => {
+  const many = Array.from({ length: 350 }, (_, n) => ({ name: `Exercise ${n}` }));
+  assert.equal(normaliseExerciseLibrary(many).length, 300);
 });

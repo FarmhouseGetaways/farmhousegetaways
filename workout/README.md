@@ -235,6 +235,36 @@ Entries are validated the same way an exercise's own video field is —
 scheme the app would refuse to embed anyway. Capped at 200, far more than a
 home gym's worth of moves.
 
+### The exercise pool — a whole exercise saved, not just its video
+
+Added 27 Aug 2026, at the owner's request: a place to see every exercise
+built so far and pick one to build a day from, rather than retyping the same
+name, sets, reps, rest, video and notes each time a movement recurs across
+the week. Admin only — viewing and picking are both gated the same way the
+video library is, since this is part of building the week, not something a
+signed-in account needs.
+
+Open a day in the editor and **"From the pool"**, next to "+ Add an
+exercise", lists everything saved so far — press one and it is added to that
+day exactly as it was saved, with a fresh id of its own so it never collides
+with the pool entry or another exercise already on the day.
+
+**Turning an exercise you already built into a pool entry** is a button on
+the exercise itself, "Save to the pool", right where "Save this video to the
+library" sits for video. The whole exercise is copied — name, picture,
+video, sets, reps, rest, effort and notes — and nothing about the exercise it
+came from changes.
+
+**Settings → Edit the week (admin) → Exercise pool** is the roster: every
+saved exercise with its sets/reps/rest and effort at a glance, and a Remove
+button. Removing one from the pool does not touch any day it is already used
+on — a pool entry is copied in, not linked.
+
+Server-side it is `/api/exercise-library`, and it reuses the exact same
+`normaliseExercise` a day's own exercises are validated through — a pool
+entry can never carry something the day editor itself would have refused.
+Capped at 300.
+
 ## Reminders
 
 A push notification, which means it arrives whether or not the app is open —
@@ -308,6 +338,7 @@ Netlify Blobs belonging to this site alone. Not files in this repository —
 | **Accounts** (email, name, a password hash — never the password itself) | the admin password, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
 | **Reminder schedule & messages** | the admin password | the admin password |
 | **The video library** | the admin password | the admin password |
+| **The exercise pool** | the admin password | the admin password |
 
 Two separate locks, two separate cookies: the admin password gates the week
 and nothing else; an account gates one person's own record and nothing
@@ -441,6 +472,7 @@ again.
     js/account.js             talking to /api/account and the admin endpoints
     js/media.js               shrinking a picture and sending it
     js/library.js             the video library: list, add, remove — admin only
+    js/exercise-library.js    the exercise pool: list, add, remove — admin only
     js/push.js                asking to be reminded, and what to do if it cannot
     js/app.js                 the screens, the editor, and the one click handler
     data/plan.json            the committed week — the floor under the live one
@@ -455,6 +487,7 @@ again.
     netlify/functions/admin-people.mjs   admin-only: the account roster, read-only
     netlify/functions/admin-reminders.mjs   admin-only: the schedule, the messages, per-person overrides
     netlify/functions/video-library.mjs     admin-only: saved videos — list, add, remove
+    netlify/functions/exercise-library.mjs  admin-only: saved exercises — list, add, remove
     netlify/functions/plan.mjs       the week: public to read, admin password to write
     netlify/functions/history.mjs    an account's own record: that account only, to read or write
     netlify/functions/media.mjs      pictures: public to read, password to add — no video, see above

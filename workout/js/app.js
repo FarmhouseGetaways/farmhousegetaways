@@ -33,6 +33,7 @@ import * as store from "./store.js";
 import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
 import * as library from "./library.js";
+import * as exerciseLibrary from "./exercise-library.js";
 import * as push from "./push.js";
 import { computeInsights, newlyEarned } from "./insights.js";
 import {
@@ -480,6 +481,7 @@ function editableDay(key, day) {
 
     <div class="btn-row" style="margin-top:.75rem">
       <button class="btn" data-action="add-exercise" data-day="${key}">+ Add an exercise</button>
+      <button class="btn btn--ghost" data-action="open-pool" data-day="${key}">From the pool</button>
       ${day.exercises.length ? `<button class="btn btn--danger" data-action="clear-day" data-day="${key}">Make it a rest day</button>` : ""}
     </div>
 
@@ -537,6 +539,10 @@ function editableExercise(ex, i, key, total) {
     <p class="edit-text edit-text--notes" contenteditable="plaintext-only" spellcheck="true"
        data-edit="ex-notes" data-day="${key}" data-i="${i}" data-multiline="1"
        data-placeholder="Notes for her, shown while she does it">${esc(ex.notes)}</p>
+
+    <div class="btn-row" style="margin-top:.5rem">
+      <button type="button" class="btn btn--ghost" data-action="save-to-pool" data-day="${key}" data-i="${i}">Save to the pool</button>
+    </div>
   </div>`;
 }
 
@@ -735,6 +741,47 @@ function videoHint(url) {
   if (v.kind === "embed") return `${v.provider} &mdash; plays in the app.`;
   if (v.kind === "file") return "A video file &mdash; plays in the app, and works with no signal once seen.";
   return "Not a video this can play. It would show as a link instead.";
+}
+
+/* Whichever pool list was loaded last, kept so a tap on one of its buttons can
+   look the exercise up by id without asking the server again. Read by both
+   this sheet and the admin roster screen. */
+let poolCache = [];
+
+/** "From the pool" on a day being edited — pick a saved exercise and it is
+ * added to this day exactly as it was saved, with a fresh id of its own so it
+ * never shares one with the pool entry or another exercise already on the
+ * day. */
+function exercisePoolSheet(key) {
+  const day = draftDay(key);
+  if (!day) return;
+
+  openSheet("From the pool", `
+    <p class="small muted" style="margin-bottom:.75rem">Pick a saved exercise to add it to ${esc(DAY_NAMES[key])}
+      &mdash; sets, reps, rest, video and all.</p>
+    <div id="pool-list"><p class="small muted">Loading&hellip;</p></div>
+  `, (root) => {
+    exerciseLibrary.list().then((res) => {
+      if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
+      const box = root.querySelector("#pool-list");
+      if (!box) return;
+      if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+      poolCache = res.exercises;
+      if (!poolCache.length) {
+        box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; open an exercise and use
+          "Save to the pool" to add one.</p>`;
+        return;
+      }
+      box.innerHTML = `<div class="video-lib">
+        ${poolCache.map((ex) => `<button type="button" class="video-lib__item"
+            data-action="pool-pick" data-day="${key}" data-id="${esc(ex.id)}">
+            <strong>${esc(ex.name)}</strong>
+            <span class="dimmer small" style="display:block;margin-top:.15rem">${ex.sets} &times;
+              ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}</span>
+          </button>`).join("")}
+      </div>`;
+    });
+  });
 }
 
 /**
@@ -1825,6 +1872,7 @@ function settingsSheet() {
         <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
         <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
         <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
+        <button class="btn btn--ghost" data-action="go-admin-exercises">Exercise pool</button>
       </div>
     </section>` : ""}
 
@@ -1985,6 +2033,42 @@ function renderAdminPeople() {
           <b>${plural(p.workouts, "workout")}</b>
         </li>`).join("")}
       </ul>` : `<p class="muted">Nobody has signed up yet.</p>`}
+    `);
+  });
+}
+
+/** Admin only — the saved exercises a day can be built from instead of
+ * retyping the same sets, reps, rest and video every time it recurs. Viewing
+ * and picking are both admin-only, same as the video library. */
+function renderAdminExercises() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Exercise pool", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">The exercise pool</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  exerciseLibrary.list().then((res) => {
+    if (location.hash !== "#/admin/exercises") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    poolCache = res.exercises;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${res.exercises.length
+        ? `${plural(res.exercises.length, "exercise")} saved. Build a day from any of them with
+           "From the pool" in the editor.`
+        : `Nothing saved yet. Open a day in the editor and use "Save to the pool" on an exercise.`}</p>
+      ${res.exercises.length ? res.exercises.map((ex) => `
+        <div class="admin-person">
+          <div class="admin-person__who">
+            <strong>${esc(ex.name)}</strong>
+            <span class="dimmer small">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}
+              &middot; ${esc(effortLabel(ex.effort))}${ex.video ? " &middot; has a video" : ""}${ex.image ? " &middot; has a picture" : ""}</span>
+          </div>
+          <div class="admin-person__row">
+            <button class="btn btn--ghost" data-action="pool-remove" data-id="${esc(ex.id)}">Remove</button>
+          </div>
+        </div>`).join("") : ""}
     `);
   });
 }
@@ -2154,6 +2238,7 @@ function render() {
   if (route === "remind") return renderRemind();
   if (route === "admin" && arg === "people") return renderAdminPeople();
   if (route === "admin" && arg === "reminders") return renderAdminReminders();
+  if (route === "admin" && arg === "exercises") return renderAdminExercises();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
@@ -2292,6 +2377,26 @@ document.addEventListener("click", (e) => {
       }
       break;
 
+    /* ---- the exercise pool ---- */
+    case "open-pool": exercisePoolSheet(day); break;
+    case "pool-pick": {
+      const entry = poolCache.find((e) => e.id === id);
+      if (!entry) break;
+      draftDay(day).exercises.push({ ...entry, id: store.uid("ex") });
+      closeSheet();
+      render();
+      toast("Added from the pool.", "good");
+      break;
+    }
+    case "save-to-pool": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (!target?.name) { toast("Name it first.", "bad"); break; }
+      exerciseLibrary.add(target).then((res) => {
+        toast(res.ok ? "Saved to the pool." : res.error, res.ok ? "good" : "bad");
+      });
+      break;
+    }
+
     /* ---- a picture or a video ---- */
     case "pick-media": mediaSheet(day, i === "" ? null : i); break;
     case "media-choose": document.getElementById(el.dataset.target)?.click(); break;
@@ -2400,6 +2505,15 @@ document.addEventListener("click", (e) => {
     case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
     case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
     case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
+    case "go-admin-exercises": settingsDraft = null; closeSheet(true); go("#/admin/exercises"); break;
+    case "pool-remove":
+      if (confirm("Remove this from the pool? It stays on any day it is already used on.")) {
+        exerciseLibrary.remove(id).then((res) => {
+          toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
+          if (res.ok) renderAdminExercises();
+        });
+      }
+      break;
 
     case "rd-save": {
       const enabled = document.getElementById("rd-enabled")?.checked;

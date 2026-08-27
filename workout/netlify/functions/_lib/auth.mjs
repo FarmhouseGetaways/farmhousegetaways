@@ -38,6 +38,10 @@ export const SUBS = () => getStore("workout-subs");
    pasted in fresh every time — see video-library.mjs. */
 export const LIBRARY = () => getStore("workout-video-library");
 export const LIBRARY_KEY = "list";
+/* Saved exercises — a pool to build a day from instead of retyping the same
+   sets/reps/rest/video every time it recurs — see exercise-library.mjs. */
+export const EXERCISE_LIBRARY = () => getStore("workout-exercise-library");
+export const EXERCISE_LIBRARY_KEY = "list";
 
 export const PLAN_KEY = "plan";
 /* The shared record, from before accounts existed. Kept only as the seed the

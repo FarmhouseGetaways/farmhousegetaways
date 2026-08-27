@@ -836,6 +836,24 @@ in fresh. Any exercise's media sheet has "Save this video to the library",
 which works on an OLD exercise's video just as well as a new one — that is
 the answer to "I already built workouts before there was a library."
 
+**The exercise pool, added 27 Aug 2026.** The owner then asked for the same
+treatment on a whole exercise, not just its video: "I need to be able to see
+the pool of exercises that I have created as an admin. A user or admin should
+then be able to select from this pool of exercises to create workouts" —
+scoped to admin-only for both viewing and picking, matching the video
+library's access model exactly, per the owner's follow-up answers. Any day
+being edited gets a "From the pool" button beside "+ Add an exercise"; any
+exercise gets "Save to the pool" beside its fields. Picking one copies the
+whole thing — name, picture, video, sets, reps, rest, effort, notes — onto
+the day with a fresh id, so it never shares one with the pool entry or
+collides with another exercise already there. Settings → Edit the week
+(admin) → Exercise pool is the roster, with Remove; removing a pool entry
+never touches a day it is already used on, because it was copied in, not
+linked. Server-side it is `/api/exercise-library`, reusing the exact same
+`normaliseExercise` a day's own exercises go through, so a pool entry can
+never carry something the day editor itself would have refused. Capped at
+300.
+
 **A picture and a video are different things.** An exercise has both fields and
 they are independent: the picture is the thumbnail and the video's poster, the
 video is what plays when she starts. A day has a picture and no video. Do not
