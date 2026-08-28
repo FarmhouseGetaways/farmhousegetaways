@@ -483,11 +483,15 @@ falls back to.
 before.** `renderWeek()` and `renderDay()` already refused to show anything
 signed out; `renderHistory()` did not, and read whatever was cached under
 this browser's unscoped, pre-account `history` key regardless — real data on
-a device that had ever logged a workout locally. The **History** icon in the
-topbar is never hidden (unlike Settings and the admin toggle, which are),
-so that leftover local record was one tap away for anyone holding the phone,
-signed in or not. `renderHistory()` now shows the same sign-in gate the week
-does when `!store.get().account`, before touching `store.history()` at all.
+a device that had ever logged a workout locally. `renderHistory()` now shows
+the same sign-in gate the week does when `!store.get().account`, before
+touching `store.history()` at all.
+
+**The History icon itself is also hidden signed out, same fix, same day.**
+It used to be the one topbar icon that never checked — Settings and the
+admin toggle already hid themselves — so pressing it just landed on the new
+sign-in gate anyway. Hidden alongside them in `setTitle()` now: no icon that
+leads nowhere useful.
 
 **How admin works, since 28 Aug 2026.** Every admin-only endpoint calls
 `isAdminRequest` (`_lib/users.mjs`), which is true for either of two proofs:
@@ -641,6 +645,19 @@ already pointed at these filenames, so no reference needed to change — only
 the pixels underneath them did, which is why `sw.js`'s `VERSION` had to bump
 (`workouts-v22`): the shell precache otherwise keeps serving an already-
 installed phone the old pink icon file for ever.
+
+**`/icons/*` no longer caches for a week, fixed 28 Aug 2026.** It did when
+these files were static and never touched; once the logo started changing,
+the same policy meant a browser (or a Safari tab, or an already-open PWA)
+that had fetched the old icon kept it for up to seven days after the new one
+shipped, with no way to tell. `netlify.toml` now gives `/icons/*` the same
+`public, max-age=0, must-revalidate` policy as `css/js/data` — always
+revalidated, never silently stale. **This cannot fix an icon already pinned
+to an iPhone home screen**, though: iOS snapshots that once, at "Add to Home
+Screen", and never re-fetches it regardless of any HTTP header. The only way
+to see a changed one there is to remove it from the home screen and add it
+again — tell the owner this rather than looking for a code fix if it comes
+up a second time.
 
 **The splash**: `#boot-splash` in `index.html` is an inline SVG of the mark,
 shown full-viewport over the ink background from the very first paint,

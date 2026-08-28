@@ -2182,6 +2182,11 @@ function setTitle(main, sub) {
   // Settings is per-account (the calorie estimate, reminders, the admin
   // tools above) — a signed-out visitor has no account for it to belong to.
   $("#settings-btn").hidden = !store.get().account;
+
+  // The record is per-account too (see renderHistory's own gate) — showing
+  // the icon signed out just leads to the same "sign in" screen the week
+  // already shows, one tap for nothing.
+  $("#history-btn").hidden = !store.get().account;
 }
 
 function render() {

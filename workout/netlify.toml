@@ -149,10 +149,18 @@
     Cache-Control = "public, max-age=0, must-revalidate"
     Content-Type = "application/json; charset=utf-8"
 
+# Was cached a week, back when these were static and never touched. They are
+# not any more — the logo changed 28 Aug 2026, and a week-long cache is
+# exactly what kept a stale icon showing in a browser tab or an already-open
+# PWA for up to seven days after the new one shipped. Revalidated instead,
+# same reasoning and same policy as css/js/data above. (An icon ALREADY
+# pinned to an iPhone home screen is a separate, unfixable-from-here problem
+# — iOS snapshots it once at "Add to Home Screen" and never re-fetches it, so
+# the only way to see a changed one there is to remove it and add it again.)
 [[headers]]
   for = "/icons/*"
   [headers.values]
-    Cache-Control = "public, max-age=604800"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # The name of an uploaded file IS the hash of its bytes, so a URL can never
 # mean a different picture tomorrow than it does today.
