@@ -10,23 +10,23 @@
    Routing is the URL hash, so the back button, a bookmark and the installed
    app all behave the way a person expects:
 
-     #/               the week
-     #/day/mon        one day, and what is in it
-     #/go/mon         the player
-     #/done/<id>      the summary of the workout just finished
-     #/history        everything ever done
+     #/                    the week — this account's own, once signed in
+     #/day/mon             one day, and what is assigned to it
+     #/go/<assignment id>  the player
+     #/done/<id>           the summary of the workout just finished
+     #/history             everything ever done
 
-   EDITING IS NOT A SEPARATE SCREEN
+   EDITING LIVES IN ITS OWN SCREENS, NOT ON TOP OF THESE ONES
 
-   Signed in, the pencil in the top bar turns the page you are already looking
-   at into the editor: the title, the description, an exercise name, the reps,
-   the notes are all clicked and typed straight over. A picture or a video is
-   added by pressing the thumbnail beside the exercise. Nothing is a form, and
-   nothing is somewhere else — the same rule /edit.html follows on the website.
-
-   Everything edits into one draft of the whole week, so moving between days
-   keeps the changes. Nothing leaves the browser until Save is pressed, and the
-   bar at the bottom says how many changes are waiting.
+   Rebuilt 28 Aug 2026. A day used to be its own editable form, in place,
+   behind a pencil. It no longer is: an exercise's fields are set exactly
+   once, in the exercise pool; a workout is built from pool exercises in the
+   workout library; and a person's week is which workouts are assigned to
+   them, on which day, at which time. All three are admin screens reached
+   from Settings -> Edit the week, and every change on them saves
+   immediately — there is no draft, and nothing to publish separately. The
+   week and day screens above are read-only: what they show is the signed-in
+   account's own resolved schedule.
    ========================================================================== */
 
 import * as store from "./store.js";
@@ -34,6 +34,8 @@ import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
 import * as library from "./library.js";
 import * as exerciseLibrary from "./exercise-library.js";
+import * as workoutLibrary from "./workout-library.js";
+import * as assignments from "./assignments.js";
 import * as push from "./push.js";
 import { computeInsights, newlyEarned } from "./insights.js";
 import {
@@ -53,22 +55,6 @@ const barIn = $("#bar-in");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-/**
- * Read what was typed into a contenteditable.
- *
- * Browsers scatter non-breaking spaces through an editable element without
- * being asked, and a non-breaking space stops a line wrapping — which is never
- * what somebody typing a workout title meant. The website learned this the
- * hard way when its editor published a paragraph that ran off the side of the
- * page. They are flattened to ordinary spaces on the way in, here, so nothing
- * downstream ever has to know.
- */
-const readText = (el, multiline = false) => {
-  const raw = (el?.innerText ?? "").replace(/\u00a0/g, " ").replace(/\r/g, "");
-  return multiline ? raw.replace(/\n{3,}/g, "\n\n").trim() : raw.replace(/\s+/g, " ").trim();
-};
-
-const isRest = (day) => !day.exercises.length;
 const plannedSets = (day) => day.exercises.reduce((n, ex) => n + (ex.sets || 0), 0);
 
 /** The estimate on a day card: what the owner typed, or the sum of the parts. */
@@ -240,90 +226,97 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#she
 
 function renderWeek() {
   const s = store.get();
+
+  if (!s.account) {
+    screen.innerHTML = `
+      ${storageNotice()}
+      <div class="today today--rest">
+        <h2 class="today__title">Sign in to see your week</h2>
+        <p class="today__desc">See what's on your schedule and get moving.</p>
+        <div class="btn-row" style="margin-top:1.1rem">
+          <button class="btn btn--go btn--big" data-go="#/login">Sign In</button>
+          <button class="btn btn--big" data-go="#/signup">Create Account</button>
+        </div>
+      </div>
+      ${footer()}`;
+    setTitle("Carissa", "");
+    bar.hidden = true;
+    return;
+  }
+
   const today = dayKeyOf();
-  const day = store.dayPlan(today);
-  const week = store.weekOf();
+  const week = store.weekSchedule();
+  const todays = week[today] || [];
+  const doneWeek = store.weekOf();
   const stats = store.stats();
   const live = store.loadLive();
-
-  const doneToday = week[today]?.done;
+  const doneToday = doneWeek[today]?.done;
 
   /* The card is pressed by a real <button> stretched across it, not by a click
      listener on the div. A div only receives taps because of a CSS cursor and a
      delegated listener, which is fragile on a phone; a button is a button
      everywhere, gets the keyboard for free, and tells a screen reader what it
-     does. The content above it does not take pointer events, so a tap anywhere
-     lands on the button — except the real buttons, which put theirs back. */
-  const hero = isRest(day)
-    /* An off day says Off, exactly like its card on the board below. It used to
-       show whatever the day was called before it was cleared, so today read
-       "Long walk" while the Saturday card two inches lower read "OFF". And it
-       was not pressable at all, because only the training branch carried a
-       destination — so the biggest thing on the screen was stale AND inert. */
+     does. */
+  const hero = !todays.length
     ? `<div class="today today--rest today--go">
-         <button class="today__hit" data-go="#/day/${today}"
-           aria-label="Open ${DAY_NAMES[today]}"></button>
+         <button class="today__hit" data-go="#/day/${today}" aria-label="Open ${DAY_NAMES[today]}"></button>
          <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
          <h2 class="today__title">Off</h2>
          <p class="today__desc">Nothing scheduled. Rest is part of the plan.</p>
-         ${adminOn() ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-action="edit-here">Add a workout for today</button></div>` : ""}
        </div>`
-    : `<div class="today today--go ${doneToday ? "is-done" : ""}">
-         <button class="today__hit" data-go="#/go/${today}"
-           aria-label="${doneToday ? "Do" : "Start"} ${esc(day.title || "today's workout")} again"></button>
-         <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="today__title">${esc(day.title || "Workout")}</h2>
-         ${day.image ? `<img class="today__shot" src="${esc(day.image)}" alt="">` : ""}
-         ${day.description ? `<p class="today__desc">${esc(day.description)}</p>` : ""}
+    : todays.map((item) => {
+        const w = item.workout;
+        if (!w) return `<div class="today today--rest"><p class="today__badge">${plainClock(item.time)}</p>
+          <h2 class="today__title">Missing</h2>
+          <p class="today__desc">A workout was assigned here and has since been removed.</p></div>`;
+        const isLive = live && live.assignmentId === item.id;
+        return `<div class="today today--go ${doneToday ? "is-done" : ""}">
+         <button class="today__hit" data-go="#/go/${item.id}"
+           aria-label="${isLive ? "Carry on" : "Start"} ${esc(w.title || "this workout")}"></button>
+         <p class="today__badge">${todays.length > 1 ? `${plainClock(item.time)} &middot; ` : ""}Today &middot; ${DAY_NAMES[today]}</p>
+         <h2 class="today__title">${esc(w.title || "Workout")}</h2>
+         ${w.image ? `<img class="today__shot" src="${esc(w.image)}" alt="">` : ""}
+         ${w.description ? `<p class="today__desc">${esc(w.description)}</p>` : ""}
          <p class="today__meta">
-           <span class="chip">${plural(day.exercises.length, "exercise")}</span>
-           <span class="chip">${plural(plannedSets(day), "set")}</span>
-           <span class="chip">${estimateMinutes(day)} min</span>
+           <span class="chip">${plural(w.exercises.length, "exercise")}</span>
+           <span class="chip">${plural(plannedSets(w), "set")}</span>
+           <span class="chip">${estimateMinutes(w)} min</span>
          </p>
          <div class="btn-row">
-           <button class="btn btn--go btn--big" data-go="#/go/${today}">
-             ${live && live.day === today ? "Carry on where you left off" : doneToday ? "Do it again" : "Start the workout"}
+           <button class="btn btn--go btn--big" data-go="#/go/${item.id}">
+             ${isLive ? "Carry on where you left off" : "Start the workout"}
            </button>
            <button class="btn" data-go="#/day/${today}">See the exercises</button>
          </div>
-         ${doneToday ? `<p class="today__done">&#10003; Done today &mdash; ${plural(week[today].sessions.length, "workout")} logged.</p>` : ""}
        </div>`;
+      }).join("");
 
   screen.innerHTML = `
     ${storageNotice()}
     ${hero}
+    ${doneToday ? `<p class="today__done" style="margin-top:.5rem">&#10003; Done today &mdash;
+        ${plural(doneWeek[today].sessions.length, "workout")} logged.</p>` : ""}
 
     <h2 class="h-section">The week</h2>
     <div class="week">
       ${DAY_KEYS.map((key) => {
-        const d = editing ? draftDay(key) : store.dayPlan(key);
-        const rest = isRest(d);
-        // Editing, the card is not a link — the title itself is the field, and
-        // a tap anywhere else opens the day so the exercises can be got at.
-        const title = editing
-          ? `<span class="day__title edit-text ${d.title ? "" : "is-empty"}" contenteditable="plaintext-only"
-               data-edit="title" data-day="${key}" data-placeholder="Name it">${esc(d.title)}</span>`
-          /* A day with no exercises is off, and it says "Off" — not whatever it
-             used to be called. Clearing a day left its old title on the board,
-             so a Wednesday turned into a rest day still read "Lower body
-             strength" with a dash under it. The stored title is left alone so
-             that putting exercises back restores the name. */
-          : `<span class="day__title">${rest ? "Off" : esc(d.title || "Workout")}</span>`;
-        return `<${editing ? "div" : "button"} class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}"
-            ${editing ? "" : `data-go="#/day/${key}"`}>
-          <span class="day__name">${DAY_SHORT[key]}${week[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
-          ${d.image ? `<img class="day__shot" src="${esc(d.image)}" alt="" loading="lazy">` : ""}
-          ${title}
-          <span class="day__meta">${rest && !editing ? "Rest day" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
-            ${editing ? `<button class="day__open" data-go="#/day/${key}">open &rarr;</button>` : ""}</span>
-        </${editing ? "div" : "button"}>`;
+        const items = week[key] || [];
+        const rest = !items.length;
+        const first = items[0]?.workout;
+        const label = items.length > 1 ? `${items.length} workouts` : (first?.title || "Workout");
+        return `<button class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}" data-go="#/day/${key}">
+          <span class="day__name">${DAY_SHORT[key]}${doneWeek[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
+          ${first?.image ? `<img class="day__shot" src="${esc(first.image)}" alt="" loading="lazy">` : ""}
+          <span class="day__title">${rest ? "Off" : esc(label)}</span>
+          <span class="day__meta">${rest ? "Rest day" : plural(items.length, "workout")}</span>
+        </button>`;
       }).join("")}
     </div>
 
     <h2 class="h-section">How it is going</h2>
     <div class="stats">
       <div class="stat stat--streak"><b class="stat__n">${stats.streak}</b><span class="stat__l">Day streak</span></div>
-      <div class="stat"><b class="stat__n">${Object.values(week).filter((w) => w.done).length}</b><span class="stat__l">This week</span></div>
+      <div class="stat"><b class="stat__n">${Object.values(doneWeek).filter((w) => w.done).length}</b><span class="stat__l">This week</span></div>
       <div class="stat"><b class="stat__n">${stats.workouts}</b><span class="stat__l">Workouts</span></div>
       <div class="stat stat--cal"><b class="stat__n">${stats.calories.toLocaleString()}</b><span class="stat__l">Calories</span></div>
     </div>
@@ -333,8 +326,8 @@ function renderWeek() {
 
     ${footer()}`;
 
-  setTitle("Carissa", editing ? "editing the week" : "The week");
-  if (editing) paintSaveBar(); else bar.hidden = true;
+  setTitle("Carissa", "The week");
+  bar.hidden = true;
 }
 
 /* ==========================================================================
@@ -342,399 +335,78 @@ function renderWeek() {
    ========================================================================== */
 
 function renderDay(key) {
-  const s = store.get();
-  const day = editing ? draftDay(key) : store.dayPlan(key);
-  const rest = isRest(day);
+  if (!store.get().account) { go("#/"); return; }
 
-  screen.innerHTML = editing ? editableDay(key, day) : `
-    ${day.image && !rest ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
+  const items = store.weekSchedule()[key] || [];
+  const rest = !items.length;
+
+  screen.innerHTML = `
     <p class="eyebrow">${DAY_NAMES[key]}</p>
-    <!-- An off day is called Off wherever it is read, so the board, today's
-         card and this page never disagree about what a day is. The name it had
-         before it was cleared is still stored, and still shown in the editor,
-         which is the one place it is any use. -->
-    <h2 class="h-display">${rest ? "Off" : esc(day.title || "Workout")}</h2>
-    ${!rest && day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
+    <h2 class="h-display">${rest ? "Off" : plural(items.length, "workout")}</h2>
 
-    ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.
-        ${adminOn() ? "Press the pencil at the top to add some exercises." : ""}</p>`
-      : `<p class="today__meta">
-           <span>${plural(day.exercises.length, "exercise")}</span>
-           <span>${plural(plannedSets(day), "set")}</span>
-           <span>about ${estimateMinutes(day)} min</span>
-         </p>
-         <ol class="ex-list">
-           ${day.exercises.map((ex, i) => `<li class="ex">
-               ${thumb(ex)}
-               <span class="ex__body">
-                 <span class="ex__name">${esc(ex.name)}</span>
-                 <span class="ex__meta">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""} &middot; ${esc(effortLabel(ex.effort))}</span>
-               </span>
-               <span class="ex__n">${i + 1}</span>
-             </li>`).join("")}
-         </ol>`}
-
-    <div class="btn-row" style="margin-top:1.5rem">
-      ${rest ? "" : `<button class="btn btn--go btn--big" data-go="#/go/${key}">Start the workout</button>`}
-      ${adminOn() ? `<button class="btn" data-action="edit-here">Edit this day</button>` : ""}
-    </div>
+    ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.</p>`
+      : items.map((item) => {
+          const w = item.workout;
+          if (!w) return `<div class="card" style="margin-top:1rem"><p class="muted">A workout assigned here
+              has since been removed.</p></div>`;
+          return `<div class="card" style="margin-top:1rem">
+            ${w.image ? `<img class="day-hero" src="${esc(w.image)}" alt="" width="1600" height="900">` : ""}
+            <p class="eyebrow" style="margin-top:${w.image ? ".9rem" : "0"}">${plainClock(item.time)}</p>
+            <h3 class="h-section" style="margin:.2rem 0 .5rem">${esc(w.title || "Workout")}</h3>
+            ${w.description ? `<p class="muted" style="white-space:pre-wrap">${esc(w.description)}</p>` : ""}
+            <p class="today__meta">
+              <span>${plural(w.exercises.length, "exercise")}</span>
+              <span>${plural(plannedSets(w), "set")}</span>
+              <span>about ${estimateMinutes(w)} min</span>
+            </p>
+            <ol class="ex-list">
+              ${w.exercises.map((ex, i) => `<li class="ex">
+                  ${thumb(ex)}
+                  <span class="ex__body">
+                    <span class="ex__name">${esc(ex.name)}</span>
+                    <span class="ex__meta">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""} &middot; ${esc(effortLabel(ex.effort))}</span>
+                  </span>
+                  <span class="ex__n">${i + 1}</span>
+                </li>`).join("")}
+            </ol>
+            <div class="btn-row" style="margin-top:1rem">
+              <button class="btn btn--go btn--big" data-go="#/go/${item.id}">Start the workout</button>
+            </div>
+          </div>`;
+        }).join("")}
     ${footer()}`;
 
-  setTitle(DAY_NAMES[key], editing ? "editing" : (rest ? "Off" : (day.title || "Workout")));
-  if (editing) paintSaveBar(); else bar.hidden = true;
+  setTitle(DAY_NAMES[key], rest ? "Off" : plural(items.length, "workout"));
+  bar.hidden = true;
 }
 
-/* The little square beside an exercise: its own picture if it has one, a frame
-   from nothing if it does not. It is the same control in both modes — read
-   only it is a thumbnail, editing it is the button that changes the media. */
-function thumb(ex, editable = false, day = "", i = 0) {
+/* The little square beside an exercise: its own picture if it has one, a
+   frame from nothing if it does not. Read-only — an exercise's media is only
+   ever changed on the Exercise pool screen now. */
+function thumb(ex) {
   const v = videoSource(ex.video);
   const has = ex.image || v.kind === "file" || v.kind === "embed";
   const inner = ex.image
     ? `<img src="${esc(ex.image)}" alt="" loading="lazy">`
     : v.kind !== "none"
       ? `<span class="thumb__play" aria-hidden="true">&#9654;</span>`
-      : `<span class="thumb__none" aria-hidden="true">${editable ? "+" : "&middot;"}</span>`;
-
-  const label = has ? (v.kind !== "none" ? "video" : "picture") : "add a picture or video";
-  return editable
-    ? `<button type="button" class="thumb thumb--edit ${has ? "" : "is-empty"}"
-         data-action="pick-media" data-day="${day}" data-i="${i}"
-         aria-label="${esc(label)} for ${esc(ex.name || "this exercise")}">${inner}</button>`
-    : `<span class="thumb ${has ? "" : "is-empty"}" aria-hidden="true">${inner}</span>`;
+      : `<span class="thumb__none" aria-hidden="true">&middot;</span>`;
+  return `<span class="thumb ${has ? "" : "is-empty"}" aria-hidden="true">${inner}</span>`;
 }
 
 /* ==========================================================================
    Editing
 
-   One draft of the whole week, made when the pencil is pressed and thrown
-   away when it is pressed again. Moving between days keeps the changes; only
-   Save sends them anywhere.
+   Retired 28 Aug 2026. A day used to be its own editable form, with a
+   pencil-pressed draft, a save bar, and exercises typed in place. All of
+   that is gone: an exercise's fields are edited exactly once, in the
+   exercise pool; a workout is built from pool exercises in the workout
+   library; and a person's week is which workouts are assigned to them, on
+   which day, at which time — see renderAdminAssign(),
+   renderAdminWorkoutEdit() and renderAdminExercises() above. Nothing on
+   the week or day screen is editable in place any more; admin work happens
+   entirely in Settings -> Edit the week.
    ========================================================================== */
-
-let editing = false;
-let draft = null;
-
-const clone = (o) => JSON.parse(JSON.stringify(o));
-
-function startEditing() {
-  draft = clone(store.plan());
-  editing = true;
-  render();
-}
-
-function stopEditing() {
-  editing = false;
-  draft = null;
-  render();
-}
-
-const draftDay = (key) => draft?.days.find((d) => d.day === key) || store.dayPlan(key);
-
-/** Has anything actually changed? Cheap enough at this size, and never wrong. */
-const dirty = () => !!draft && JSON.stringify(draft.days) !== JSON.stringify(store.plan().days);
-
-function countChanges() {
-  if (!draft) return 0;
-  const now = store.plan().days;
-  return draft.days.reduce((n, d, i) => n + (JSON.stringify(d) === JSON.stringify(now[i]) ? 0 : 1), 0);
-}
-
-/** The save bar is patched, never re-rendered — a repaint would eat the caret. */
-function paintSaveBar() {
-  if (!editing) { bar.hidden = true; return; }
-  const n = countChanges();
-  barIn.innerHTML = n
-    ? `<button class="btn btn--big btn--go" data-action="save-week"><span>Save &mdash; ${plural(n, "day")} changed</span></button>
-       <button class="icon-btn" data-action="discard-week" aria-label="Discard changes">&#8630;</button>`
-    : `<button class="btn btn--big" data-action="done-editing"><span>Done editing</span></button>`;
-  bar.hidden = false;
-}
-
-function editableDay(key, day) {
-  return `
-    <p class="eyebrow">Editing &middot; ${DAY_NAMES[key]}</p>
-
-    <div class="day-hero-edit">
-      ${thumb({ image: day.image, video: "", name: day.title }, true, key, "")}
-      <h2 class="h-display edit-text" contenteditable="plaintext-only" spellcheck="true"
-          data-edit="title" data-day="${key}"
-          data-placeholder="Name this workout">${esc(day.title)}</h2>
-    </div>
-
-    <p class="lede-edit edit-text" contenteditable="plaintext-only" spellcheck="true"
-       data-edit="description" data-day="${key}" data-multiline="1"
-       data-placeholder="What it is for, and anything she should know before starting.">${esc(day.description)}</p>
-
-    <p class="edit-inline">
-      About <input type="number" class="edit-num" data-field="minutes" data-day="${key}"
-        value="${day.minutes || ""}" min="0" max="600" step="5"
-        placeholder="${estimateMinutes(day) || 30}"> minutes
-      <span class="dimmer small">&mdash; leave it empty and the app works it out</span>
-    </p>
-
-    <h2 class="h-section">Exercises</h2>
-
-    <div class="edit-list">
-      ${day.exercises.map((ex, i) => editableExercise(ex, i, key, day.exercises.length)).join("")}
-    </div>
-
-    <div class="btn-row" style="margin-top:.75rem">
-      <button class="btn" data-action="add-exercise" data-day="${key}">+ Add an exercise</button>
-      <button class="btn btn--ghost" data-action="open-pool" data-day="${key}">From the pool</button>
-      ${day.exercises.length ? `<button class="btn btn--danger" data-action="clear-day" data-day="${key}">Make it a rest day</button>` : ""}
-    </div>
-
-    <h2 class="h-section">The rest of the week</h2>
-    <div class="week">
-      ${DAY_KEYS.map((k) => {
-        const d = draftDay(k);
-        return `<button class="day ${k === key ? "is-today" : ""}" data-go="#/day/${k}">
-          <span class="day__name">${DAY_SHORT[k]}</span>
-          <span class="day__title">${esc(d.title || "Rest")}</span>
-          <span class="day__meta">${d.exercises.length ? plural(d.exercises.length, "exercise") : "&mdash;"}</span>
-        </button>`;
-      }).join("")}
-    </div>
-    ${footer()}`;
-}
-
-function editableExercise(ex, i, key, total) {
-  const v = videoSource(ex.video);
-  return `<div class="edit-ex" data-i="${i}">
-    <div class="edit-ex__top">
-      ${thumb(ex, true, key, i)}
-      <div class="edit-ex__head">
-        <span class="edit-text edit-text--name" contenteditable="plaintext-only" spellcheck="true"
-          data-edit="ex-name" data-day="${key}" data-i="${i}"
-          data-placeholder="Name this exercise">${esc(ex.name)}</span>
-        <span class="edit-ex__media small dimmer">${mediaLabel(ex, v)}</span>
-      </div>
-      <div class="edit-ex__moves">
-        <button type="button" class="mini" data-action="move-up" data-day="${key}" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">&uarr;</button>
-        <button type="button" class="mini" data-action="move-down" data-day="${key}" data-i="${i}" ${i === total - 1 ? "disabled" : ""} aria-label="Move down">&darr;</button>
-        <button type="button" class="mini" data-action="remove-exercise" data-day="${key}" data-i="${i}" aria-label="Remove">&times;</button>
-      </div>
-    </div>
-
-    <p class="edit-inline">
-      <select class="edit-sel" data-field="sets" data-day="${key}" data-i="${i}" aria-label="Sets">
-        ${Array.from({ length: 10 }, (_, n) => `<option value="${n + 1}" ${ex.sets === n + 1 ? "selected" : ""}>${n + 1}</option>`).join("")}
-      </select>
-      sets of
-      <span class="edit-text edit-text--reps" contenteditable="plaintext-only"
-        data-edit="ex-reps" data-day="${key}" data-i="${i}"
-        data-placeholder="12">${esc(ex.reps)}</span>
-      &middot;
-      <input type="number" class="edit-num" data-field="rest" data-day="${key}" data-i="${i}"
-        value="${ex.rest}" min="0" max="900" step="15" aria-label="Rest in seconds">s rest
-    </p>
-
-    <p class="edit-inline">
-      <select class="edit-sel edit-sel--wide" data-field="effort" data-day="${key}" data-i="${i}" aria-label="Effort">
-        ${EFFORTS.map((e) => `<option value="${e.key}" ${ex.effort === e.key ? "selected" : ""}>${esc(e.label)}</option>`).join("")}
-      </select>
-    </p>
-
-    <p class="edit-text edit-text--notes" contenteditable="plaintext-only" spellcheck="true"
-       data-edit="ex-notes" data-day="${key}" data-i="${i}" data-multiline="1"
-       data-placeholder="Notes for her, shown while she does it">${esc(ex.notes)}</p>
-
-    <div class="btn-row" style="margin-top:.5rem">
-      <button type="button" class="btn btn--ghost" data-action="save-to-pool" data-day="${key}" data-i="${i}">Save to the pool</button>
-    </div>
-  </div>`;
-}
-
-function mediaLabel(ex, v) {
-  const bits = [];
-  if (v.kind === "embed") bits.push(v.provider);
-  else if (v.kind === "file") bits.push("video");
-  else if (v.kind === "link") bits.push("a link, not playable here");
-  if (ex.image) bits.push("picture");
-  return bits.length ? bits.join(" &middot; ") : "Add a picture or video";
-}
-
-/* ---------- typing straight into the draft ---------- */
-
-/* Written on every keystroke rather than read back at save time, so a mis-tap
-   on Back cannot lose half of what was typed. The element is never re-rendered
-   while it has focus — that would put the caret back at the start. */
-screen.addEventListener("input", (e) => {
-  const el = e.target.closest("[data-edit]");
-  if (!el || !editing) return;
-  const { edit, day, i } = el.dataset;
-  const d = draftDay(day);
-  if (!d) return;
-  const value = readText(el, el.dataset.multiline === "1");
-
-  if (edit === "title") d.title = value;
-  else if (edit === "description") d.description = value;
-  else {
-    const ex = d.exercises[Number(i)];
-    if (!ex) return;
-    if (edit === "ex-name") ex.name = value;
-    else if (edit === "ex-reps") ex.reps = value;
-    else if (edit === "ex-notes") ex.notes = value;
-  }
-  el.classList.toggle("is-empty", !value);
-  paintSaveBar();
-});
-
-screen.addEventListener("change", (e) => {
-  const el = e.target.closest("[data-field]");
-  if (!el || !editing) return;
-  const { field, day, i } = el.dataset;
-  const d = draftDay(day);
-  if (!d) return;
-
-  if (field === "minutes") d.minutes = Number(el.value) || 0;
-  else {
-    const ex = d.exercises[Number(i)];
-    if (!ex) return;
-    if (field === "sets") ex.sets = Number(el.value) || 1;
-    else if (field === "rest") ex.rest = Number(el.value) || 0;
-    else if (field === "effort") ex.effort = el.value;
-  }
-  paintSaveBar();
-});
-
-/* Enter ends a single-line field rather than starting a second line in it. */
-screen.addEventListener("keydown", (e) => {
-  const el = e.target.closest?.("[data-edit]");
-  if (!el) return;
-  if (e.key === "Enter" && el.dataset.multiline !== "1") { e.preventDefault(); el.blur(); }
-  if (e.key === "Escape") el.blur();
-});
-
-async function saveWeek() {
-  const next = clone(draft);
-  // A row somebody added and never named is a blank line, not an exercise.
-  for (const d of next.days) d.exercises = d.exercises.filter((ex) => String(ex.name || "").trim());
-  try {
-    const res = await store.savePlan(next);
-    editing = false;
-    draft = null;
-    render();
-    toast(res.note || (res.storage === "server" ? "Saved. It is live on every device." : "Saved on this device."),
-      res.storage === "server" ? "good" : "");
-  } catch (err) {
-    toast(err.message || "Could not save.", "bad");
-  }
-}
-
-/* ---------- adding a picture or a video ---------- */
-
-/**
- * The picture and the video are two different things and the sheet says so.
- *
- * The picture is what it looks like — the thumbnail on the day list, the
- * poster on the stage. It is there the moment the screen paints.
- *
- * The video is what plays when she starts the exercise.
- *
- * They are independent. An exercise can have a picture and no video, which is
- * often all a familiar movement needs; it can have a video and no picture, and
- * the stage is simply black until it loads; or it can have both, which is the
- * best of it — the picture stands in until the video is ready.
- *
- * `i` of null means the sheet is for the DAY rather than an exercise, and a
- * day has a picture but no video: it is a workout, not a movement.
- */
-function mediaSheet(key, i) {
-  const day = draftDay(key);
-  const forDay = i === null || i === undefined || i === "";
-  const target = forDay ? day : day.exercises[Number(i)];
-  if (!target) return;
-  const idx = forDay ? "" : String(i);
-  const v = videoSource(target.video || "");
-
-  openSheet(forDay ? (day.title || DAY_NAMES[key]) : (target.name || "This exercise"), `
-    <p class="eyebrow">Picture</p>
-    <p class="small muted" style="margin-bottom:.75rem">${forDay
-      ? "Shown on the week board and at the top of the day."
-      : "The thumbnail in the list, and what the stage shows before the video plays."}</p>
-    <div class="media-now media-now--small">
-      ${target.image ? `<img src="${esc(target.image)}" alt="">` : `<div class="media-now__note dimmer">No picture</div>`}
-    </div>
-    <input type="file" id="m-image" accept="image/*" hidden>
-    <div class="btn-row">
-      <button class="btn" data-action="media-choose" data-target="m-image">${target.image ? "Change the picture" : "Add a picture"}</button>
-      ${target.image ? `<button class="btn btn--ghost" data-action="media-drop" data-what="image" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
-    </div>
-
-    ${forDay ? "" : `
-      <hr style="border:0;border-top:1px solid var(--line);margin:1.5rem 0">
-
-      <p class="eyebrow">Video</p>
-      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise. A YouTube link,
-        chosen from the library or pasted in fresh &mdash; no upload, so no re-encoding and no 4&nbsp;MB limit
-        to work around.</p>
-      <div class="media-now media-now--small">
-        ${v.kind === "file" ? `<video src="${esc(v.src)}" muted playsinline controls preload="metadata"></video>`
-          : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
-          : v.kind === "link" ? `<div class="media-now__note">A link &mdash; it will not play in the app</div>`
-          : `<div class="media-now__note dimmer">No video</div>`}
-      </div>
-
-      <p class="eyebrow" style="margin-top:1rem">From the library</p>
-      <div id="m-lib"><p class="small muted">Loading&hellip;</p></div>
-
-      <label class="field field--hint" style="margin-top:1rem"><span>Or paste a new link</span>
-        <input type="url" id="m-url" value="${esc(target.video)}" placeholder="https://youtu.be/…" maxlength="2000">
-        <small id="m-hint">${videoHint(target.video)}</small></label>
-      <div class="btn-row">
-        <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${idx}">Use this link</button>
-      </div>
-
-      <div class="btn-row" style="margin-top:.5rem">
-        <button class="btn btn--ghost" data-action="media-save-lib" data-day="${key}" data-i="${idx}"
-          ${target.video ? "" : "disabled"}>Save this video to the library</button>
-        ${target.video ? `<button class="btn btn--ghost" data-action="media-drop" data-what="video" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
-      </div>
-    `}
-  `, (root) => {
-    const url = root.querySelector("#m-url");
-    url?.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
-
-    const input = root.querySelector("#m-image");
-    input?.addEventListener("change", async () => {
-      const chosen = input.files?.[0];
-      if (!chosen) return;
-      toast("Sending…");
-      try {
-        const out = await upload(chosen);
-        const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
-        t.image = out.url;
-        closeSheet();
-        render();
-        toast("Picture added.", "good");
-      } catch (err) {
-        toast(err.message, "bad");
-      }
-    });
-
-    if (!forDay) {
-      library.list().then((res) => {
-        if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
-        const box = root.querySelector("#m-lib");
-        if (!box) return;
-        if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
-        if (!res.videos.length) {
-          box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; use a link below, then
-            "Save this video to the library" to add it.</p>`;
-          return;
-        }
-        box.innerHTML = `<div class="video-lib">
-          ${res.videos.map((vid) => `<button type="button" class="video-lib__item"
-              data-action="media-pick-lib" data-day="${key}" data-i="${idx}" data-url="${esc(vid.url)}">
-              ${esc(vid.label)}</button>`).join("")}
-        </div>`;
-      });
-    }
-  });
-}
-
 function videoHint(url) {
   const v = videoSource(url);
   if (v.kind === "none") return "YouTube, Vimeo or Google Drive &mdash; or leave it and use a picture instead.";
@@ -748,38 +420,94 @@ function videoHint(url) {
    this sheet and the admin roster screen. */
 let poolCache = [];
 
-/** "From the pool" on a day being edited — pick a saved exercise and it is
- * added to this day exactly as it was saved, with a fresh id of its own so it
- * never shares one with the pool entry or another exercise already on the
- * day. */
-function exercisePoolSheet(key) {
-  const day = draftDay(key);
-  if (!day) return;
+/* Whichever workout list was loaded last — the roster screen and the detail
+   screen both read it, same reasoning as poolCache above. */
+let workoutCache = [];
+
+/** "From the pool" on a workout being built — pick a saved exercise and its
+ * id is appended to the workout's own list. Saved immediately; there is no
+ * draft to publish separately. */
+function workoutPoolSheet(workoutId) {
+  const w = workoutCache.find((x) => x.id === workoutId);
+  if (!w) return;
 
   openSheet("From the pool", `
-    <p class="small muted" style="margin-bottom:.75rem">Pick a saved exercise to add it to ${esc(DAY_NAMES[key])}
-      &mdash; sets, reps, rest, video and all.</p>
-    <div id="pool-list"><p class="small muted">Loading&hellip;</p></div>
+    <p class="small muted" style="margin-bottom:.75rem">Pick a saved exercise to add it to
+      ${esc(w.title || "this workout")}.</p>
+    <div id="wk-pool-list"><p class="small muted">Loading&hellip;</p></div>
   `, (root) => {
     exerciseLibrary.list().then((res) => {
       if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
-      const box = root.querySelector("#pool-list");
+      const box = root.querySelector("#wk-pool-list");
       if (!box) return;
       if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
       poolCache = res.exercises;
       if (!poolCache.length) {
-        box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; open an exercise and use
-          "Save to the pool" to add one.</p>`;
+        box.innerHTML = `<p class="small muted">Nothing in the pool yet &mdash; add an exercise on the
+          Exercise pool screen first.</p>`;
         return;
       }
       box.innerHTML = `<div class="video-lib">
         ${poolCache.map((ex) => `<button type="button" class="video-lib__item"
-            data-action="pool-pick" data-day="${key}" data-id="${esc(ex.id)}">
+            data-action="wk-pool-pick" data-id="${esc(workoutId)}" data-exid="${esc(ex.id)}">
             <strong>${esc(ex.name)}</strong>
             <span class="dimmer small" style="display:block;margin-top:.15rem">${ex.sets} &times;
               ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}</span>
           </button>`).join("")}
       </div>`;
+    });
+  });
+}
+
+/** The workout's own title, picture, description and minutes estimate —
+ * separate from its exercise list, which is edited on the detail screen
+ * itself with its own immediate add/remove/reorder actions. */
+function workoutMetaSheet(id) {
+  const w = workoutCache.find((x) => x.id === id);
+  if (!w) return;
+
+  openSheet(w.title || "Workout details", `
+    <label class="field"><span>Title</span>
+      <input type="text" id="wk-title" value="${esc(w.title)}" maxlength="120" placeholder="Push day"></label>
+
+    <label class="field" style="margin-top:1rem"><span>Description</span>
+      <textarea id="wk-description" rows="3" maxlength="1200"
+        placeholder="What it is for, and anything she should know before starting.">${esc(w.description)}</textarea></label>
+
+    <p class="eyebrow" style="margin-top:1.25rem">Picture</p>
+    <div class="media-now media-now--small" id="wk-image-preview">
+      ${w.image ? `<img src="${esc(w.image)}" alt="">` : `<div class="media-now__note dimmer">No picture</div>`}
+    </div>
+    <input type="hidden" id="wk-image-url" value="${esc(w.image)}">
+    <input type="file" id="wk-image" accept="image/*" hidden>
+    <div class="btn-row">
+      <button type="button" class="btn" data-action="wk-choose-image">${w.image ? "Change the picture" : "Add a picture"}</button>
+      ${w.image ? `<button type="button" class="btn btn--ghost" data-action="wk-drop-image">Remove</button>` : ""}
+    </div>
+
+    <p class="edit-inline" style="margin-top:1.25rem">
+      About <input type="number" id="wk-minutes" value="${w.minutes || ""}" min="0" max="600" step="5"
+        placeholder="worked out from the exercises"> minutes
+      <span class="dimmer small">&mdash; leave it empty and the app works it out</span>
+    </p>
+
+    <div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn btn--go" data-action="workout-save-meta" data-id="${esc(id)}">Save</button>
+    </div>
+  `, (root) => {
+    const input = root.querySelector("#wk-image");
+    input?.addEventListener("change", async () => {
+      const chosen = input.files?.[0];
+      if (!chosen) return;
+      toast("Sending…");
+      try {
+        const out = await upload(chosen);
+        root.querySelector("#wk-image-url").value = out.url;
+        root.querySelector("#wk-image-preview").innerHTML = `<img src="${esc(out.url)}" alt="">`;
+        toast("Picture added.", "good");
+      } catch (err) {
+        toast(err.message, "bad");
+      }
     });
   });
 }
@@ -818,13 +546,19 @@ function askFirst({ title, body, yes, danger = true, onYes }) {
 let tickTimer = null;
 let wakeLock = null;
 
-function newLive(key) {
-  const day = store.dayPlan(key);
+/** `assignmentId` is one of this account's own — see store.findAssignment.
+ * The exercises are copied in at this moment, not read again later, so a
+ * pool edit mid-workout cannot change what she is partway through. */
+function newLive(assignmentId) {
+  const a = store.findAssignment(assignmentId);
+  const w = a?.workout;
   const now = Date.now();
   return {
     id: store.uid("s"),
-    day: key,
-    title: day.title || DAY_NAMES[key],
+    assignmentId,
+    workoutId: w?.id || "",
+    day: a?.day || "",
+    title: w?.title || "Workout",
     startedAt: new Date(now).toISOString(),
     startedMs: now,
     pausedTotal: 0,
@@ -833,7 +567,7 @@ function newLive(key) {
     setStart: now,
     restEnds: null,
     staleOk: false,
-    exercises: day.exercises.map((ex) => ({
+    exercises: (w?.exercises || []).map((ex) => ({
       id: ex.id, name: ex.name, video: ex.video, image: ex.image || "", effort: ex.effort,
       reps: ex.reps, rest: ex.rest, notes: ex.notes,
       setsPlanned: ex.sets, done: [], activeSec: 0,
@@ -860,10 +594,11 @@ const SET_CAP_SEC = 240;
    whether the hash starts with #/go/. */
 let playerPainted = false;
 
+/** `key` is an assignment id — see store.findAssignment. */
 function renderPlayer(key) {
   /* Opened cold on a workout URL — a bookmark, a reload mid-session, the app
-     restored by the phone. The plan is not in memory yet, and without this the
-     day looks like a rest day and the app bounces to the day screen. Wait for
+     restored by the phone. The schedule is not in memory yet, and without
+     this it looks like a bad link and the app bounces to the week. Wait for
      the store; it re-renders the moment it has answered. */
   if (!store.get().loaded) {
     screen.innerHTML = `<p class="muted">Loading the workout…</p>`;
@@ -874,27 +609,27 @@ function renderPlayer(key) {
   let live = store.loadLive();
 
   /* A workout in progress is offered rather than resumed silently when it is
-     not obviously the one she meant: a different day (she tapped Tuesday by
-     mistake), or one that has been running for hours (the phone went in a
-     pocket and the workout never ended).
+     not obviously the one she meant: a different assignment (she tapped
+     Tuesday's by mistake), or one that has been running for hours (the phone
+     went in a pocket and the workout never ended).
 
-     The two combined — a different day AND hours old — is not "confirm
-     before I lose something": there is nothing left on a session that stale
-     to protect, so asking about it every single time another day is opened
-     is the interruption that never goes away on its own. That combination
-     clears it on the spot instead of asking. Stale on the SAME day still
-     asks — that one really is "still running, or start over?" — and a
-     different day that is NOT stale still asks too, because that one might
-     be real progress worth not losing. */
-  if (live && live.day !== key) {
+     The two combined — a different assignment AND hours old — is not
+     "confirm before I lose something": there is nothing left on a session
+     that stale to protect, so asking about it every single time another one
+     is opened is the interruption that never goes away on its own. That
+     combination clears it on the spot instead of asking. Stale on the SAME
+     one still asks — that one really is "still running, or start over?" —
+     and a different one that is NOT stale still asks too, because that one
+     might be real progress worth not losing. */
+  if (live && live.assignmentId !== key) {
     if (isStale(live)) { store.clearLive(); live = null; }
     else return askCarryOn(live, key);
   } else if (live && isStale(live)) {
     return askCarryOn(live, key);
   }
   if (!live) {
-    const day = store.dayPlan(key);
-    if (isRest(day)) { go(`#/day/${key}`); return; }
+    const a = store.findAssignment(key);
+    if (!a || !a.workout || !a.workout.exercises.length) { go("#/"); return; }
     live = newLive(key);
     store.saveLive(live);
   }
@@ -914,31 +649,33 @@ function renderPlayer(key) {
 const STALE_MS = 6 * 60 * 60 * 1000;
 const isStale = (live) => !live.staleOk && Date.now() - (live.startedMs || 0) > STALE_MS;
 
+/** `wantedKey` is the assignment id she just tapped — possibly the same one
+ * `live` already belongs to, possibly a different day's. */
 function askCarryOn(live, wantedKey) {
   const stale = isStale(live);
-  const sameDay = live.day === wantedKey;
+  const liveDayName = DAY_NAMES[live.day] || "workout";
 
   screen.innerHTML = `
     <p class="eyebrow">${stale ? "Still running" : "Unfinished"}</p>
     <h2 class="h-display">${esc(live.title)}</h2>
     <p class="muted">${stale
-      ? `This ${DAY_NAMES[live.day]} workout has been going for ${duration(liveElapsed(live))}, which
+      ? `This ${liveDayName} workout has been going for ${duration(liveElapsed(live))}, which
          usually means the timer was left running rather than the workout. ${plural(liveSetsDone(live), "set")}
          were done. Carrying on keeps counting from then; starting again begins from nought.`
-      : `There is a ${DAY_NAMES[live.day]} workout still going &mdash;
+      : `There is a ${liveDayName} workout still going &mdash;
          ${plural(liveSetsDone(live), "set")} done, ${duration(liveElapsed(live))} in.`}</p>
     <div class="btn-row" style="margin-top:1.5rem">
       ${stale
-        /* Not a data-go. Getting here means the hash is ALREADY #/go/<day>, and
+        /* Not a data-go. Getting here means the hash is ALREADY #/go/<id>, and
            assigning a hash its current value fires no hashchange at all — which
            is precisely why this button did nothing. */
-        ? `<button class="btn btn--go btn--big" data-action="discard-live" data-day="${wantedKey}">Start ${DAY_NAMES[wantedKey]} fresh</button>
+        ? `<button class="btn btn--go btn--big" data-action="discard-live" data-id="${wantedKey}">Start this one fresh</button>
            <button class="btn" data-action="resume-live">Carry on the old one anyway</button>`
-        : `<button class="btn btn--go btn--big" data-go="#/go/${live.day}">Carry on with ${DAY_NAMES[live.day]}</button>
-           <button class="btn" data-action="discard-live" data-day="${wantedKey}">Throw it away and start ${DAY_NAMES[wantedKey]}</button>`}
+        : `<button class="btn btn--go btn--big" data-go="#/go/${live.assignmentId}">Carry on with ${liveDayName}</button>
+           <button class="btn" data-action="discard-live" data-id="${wantedKey}">Throw it away and start this one</button>`}
     </div>
     ${footer()}`;
-  setTitle(stale ? "Still running" : "Unfinished", sameDay ? "Pick one" : "Pick one");
+  setTitle(stale ? "Still running" : "Unfinished", "Pick one");
   bar.hidden = true;
 }
 
@@ -1260,6 +997,8 @@ async function finishWorkout(live) {
   const session = {
     id: live.id,
     day: live.day,
+    workoutId: live.workoutId,
+    assignmentId: live.assignmentId,
     title: live.title,
     date: todayKey(),
     startedAt: live.startedAt,
@@ -1860,19 +1599,18 @@ function settingsSheet() {
     ${adminOn() ? `
     <section class="set-group">
       <h3 class="set-group__h">Edit the week</h3>
-      <p class="set-group__note">Pick a day to open it with the pencil already down.</p>
-      <div class="week">
-        ${DAY_KEYS.map((k) => `<button class="day" data-action="edit-day" data-day="${k}">
-          <span class="day__name">${DAY_SHORT[k]}</span>
-          <span class="day__title">${esc(store.dayPlan(k).title || "Rest")}</span></button>`).join("")}
-      </div>
+      <p class="set-group__note">Exercises, workouts and who they are assigned to each live on their own screen —
+        every change there saves immediately.</p>
       <p class="set-group__note" style="margin-top:.9rem">The editor is unlocked on this device and locks itself
         again twelve hours after you unlocked it.</p>
       <div class="btn-row">
         <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
         <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
         <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
+        <button class="btn btn--ghost" data-action="go-admin-videos">Video library</button>
         <button class="btn btn--ghost" data-action="go-admin-exercises">Exercise pool</button>
+        <button class="btn btn--ghost" data-action="go-admin-workouts">Workouts</button>
+        <button class="btn btn--ghost" data-action="go-admin-assign">Assign workouts</button>
       </div>
     </section>` : ""}
 
@@ -2037,6 +1775,45 @@ function renderAdminPeople() {
   });
 }
 
+/* Whichever video list was loaded last, so an edit prompt can pre-fill with
+   the current label and url rather than asking the admin to retype them. */
+let videoCache = [];
+
+/** Admin only — every saved YouTube (or other) link, on its own screen. Until
+ * now the library was only reachable from inside an exercise's media sheet;
+ * this is somewhere to see and tidy the whole thing at once. */
+function renderAdminVideos() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Video library", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">The video library</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  library.list().then((res) => {
+    if (location.hash !== "#/admin/videos") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    videoCache = res.videos;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${res.videos.length
+        ? `${plural(res.videos.length, "video")} saved. Pick one from "From the library" on any exercise's video.`
+        : `Nothing saved yet. "Save this video to the library" on any exercise adds one.`}</p>
+      ${res.videos.length ? res.videos.map((vid) => `
+        <div class="admin-person">
+          <div class="admin-person__who">
+            <strong>${esc(vid.label)}</strong>
+            <span class="dimmer small" style="overflow-wrap:anywhere">${esc(vid.url)}</span>
+          </div>
+          <div class="admin-person__row">
+            <button class="btn btn--ghost" data-action="video-edit" data-id="${esc(vid.id)}">Edit</button>
+            <button class="btn btn--ghost" data-action="video-remove" data-id="${esc(vid.id)}">Remove</button>
+          </div>
+        </div>`).join("") : ""}
+    `);
+  });
+}
+
 /** Admin only — the saved exercises a day can be built from instead of
  * retyping the same sets, reps, rest and video every time it recurs. Viewing
  * and picking are both admin-only, same as the video library. */
@@ -2054,10 +1831,13 @@ function renderAdminExercises() {
 
     poolCache = res.exercises;
     screen.innerHTML = shell(`
-      <p class="muted" style="margin-bottom:1.25rem">${res.exercises.length
-        ? `${plural(res.exercises.length, "exercise")} saved. Build a day from any of them with
-           "From the pool" in the editor.`
-        : `Nothing saved yet. Open a day in the editor and use "Save to the pool" on an exercise.`}</p>
+      <p class="muted" style="margin-bottom:1rem">${res.exercises.length
+        ? `${plural(res.exercises.length, "exercise")} saved. Everything a workout is built from lives here —
+           edit one and it changes everywhere it is used.`
+        : `Nothing saved yet. Add the first one below.`}</p>
+      <div class="btn-row" style="margin-bottom:1.25rem">
+        <button class="btn btn--go" data-action="pool-new">+ New exercise</button>
+      </div>
       ${res.exercises.length ? res.exercises.map((ex) => `
         <div class="admin-person">
           <div class="admin-person__who">
@@ -2066,11 +1846,296 @@ function renderAdminExercises() {
               &middot; ${esc(effortLabel(ex.effort))}${ex.video ? " &middot; has a video" : ""}${ex.image ? " &middot; has a picture" : ""}</span>
           </div>
           <div class="admin-person__row">
+            <button class="btn btn--ghost" data-action="pool-edit" data-id="${esc(ex.id)}">Edit</button>
             <button class="btn btn--ghost" data-action="pool-remove" data-id="${esc(ex.id)}">Remove</button>
           </div>
         </div>`).join("") : ""}
     `);
   });
+}
+
+/** New or existing — the one place an exercise's fields are ever set. Saves
+ * immediately on "Save", not to a draft; there is nothing to publish later. */
+function exerciseEditSheet(id) {
+  const current = id ? poolCache.find((e) => e.id === id) : null;
+  if (id && !current) return;
+  const ex = current || { id: "", name: "", video: "", image: "", sets: 3, reps: "12", rest: 60, effort: "strength", notes: "" };
+  const v = videoSource(ex.video);
+
+  openSheet(id ? (ex.name || "Edit exercise") : "New exercise", `
+    <label class="field"><span>Name</span>
+      <input type="text" id="pe-name" value="${esc(ex.name)}" maxlength="120" placeholder="Squats"></label>
+
+    <p class="eyebrow" style="margin-top:1.25rem">Picture</p>
+    <div class="media-now media-now--small" id="pe-image-preview">
+      ${ex.image ? `<img src="${esc(ex.image)}" alt="">` : `<div class="media-now__note dimmer">No picture</div>`}
+    </div>
+    <input type="hidden" id="pe-image-url" value="${esc(ex.image)}">
+    <input type="file" id="pe-image" accept="image/*" hidden>
+    <div class="btn-row">
+      <button type="button" class="btn" data-action="pe-choose-image">${ex.image ? "Change the picture" : "Add a picture"}</button>
+      ${ex.image ? `<button type="button" class="btn btn--ghost" data-action="pe-drop-image">Remove</button>` : ""}
+    </div>
+
+    <p class="eyebrow" style="margin-top:1.25rem">Video</p>
+    <div class="media-now media-now--small">
+      ${v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
+        : v.kind === "link" ? `<div class="media-now__note">A link &mdash; it will not play in the app</div>`
+        : `<div class="media-now__note dimmer">No video</div>`}
+    </div>
+    <p class="eyebrow" style="margin-top:1rem">From the library</p>
+    <div id="pe-lib"><p class="small muted">Loading&hellip;</p></div>
+    <label class="field field--hint" style="margin-top:1rem"><span>Or paste a link</span>
+      <input type="url" id="pe-url" value="${esc(ex.video)}" placeholder="https://youtu.be/&hellip;" maxlength="2000">
+      <small id="pe-hint">${videoHint(ex.video)}</small></label>
+
+    <p class="eyebrow" style="margin-top:1.25rem">Sets and rest</p>
+    <p class="edit-inline">
+      <select id="pe-sets" class="edit-sel" aria-label="Sets">
+        ${Array.from({ length: 10 }, (_, n) => `<option value="${n + 1}" ${ex.sets === n + 1 ? "selected" : ""}>${n + 1}</option>`).join("")}
+      </select>
+      sets of
+      <input type="text" id="pe-reps" value="${esc(ex.reps)}" placeholder="12" style="width:5rem">
+      &middot;
+      <input type="number" id="pe-rest" value="${ex.rest}" min="0" max="900" step="15" aria-label="Rest in seconds" style="width:5rem">s rest
+    </p>
+
+    <label class="field"><span>Effort</span>
+      <select id="pe-effort">${EFFORTS.map((e) => `<option value="${e.key}" ${ex.effort === e.key ? "selected" : ""}>${esc(e.label)}</option>`).join("")}</select></label>
+
+    <label class="field"><span>Notes</span>
+      <textarea id="pe-notes" rows="3" maxlength="600" placeholder="Shown while she does it">${esc(ex.notes)}</textarea></label>
+
+    <div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn btn--go" data-action="pool-save" data-id="${esc(ex.id)}">Save</button>
+    </div>
+  `, (root) => {
+    const url = root.querySelector("#pe-url");
+    url?.addEventListener("input", () => { root.querySelector("#pe-hint").innerHTML = videoHint(url.value); });
+
+    const input = root.querySelector("#pe-image");
+    input?.addEventListener("change", async () => {
+      const chosen = input.files?.[0];
+      if (!chosen) return;
+      toast("Sending…");
+      try {
+        const out = await upload(chosen);
+        root.querySelector("#pe-image-url").value = out.url;
+        root.querySelector("#pe-image-preview").innerHTML = `<img src="${esc(out.url)}" alt="">`;
+        toast("Picture added.", "good");
+      } catch (err) {
+        toast(err.message, "bad");
+      }
+    });
+
+    library.list().then((res) => {
+      if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
+      const box = root.querySelector("#pe-lib");
+      if (!box) return;
+      if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+      if (!res.videos.length) {
+        box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; paste a link below, then use the
+          Video library screen to save it for next time.</p>`;
+        return;
+      }
+      box.innerHTML = `<div class="video-lib">
+        ${res.videos.map((vid) => `<button type="button" class="video-lib__item" data-action="pe-pick-lib" data-url="${esc(vid.url)}">
+            ${esc(vid.label)}</button>`).join("")}
+      </div>`;
+    });
+  });
+}
+
+/** Admin only — every saved workout: a title, a picture, and the exercises
+ * it is built from. Not tied to a day; "Assign workouts" is the separate
+ * step that puts one on an actual account's actual weekday. */
+function renderAdminWorkouts() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Workouts", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">The workout library</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  workoutLibrary.list().then((res) => {
+    if (location.hash !== "#/admin/workouts") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    workoutCache = res.workouts;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1rem">${res.workouts.length
+        ? `${plural(res.workouts.length, "workout")} saved. "Assign workouts" puts one on someone's week.`
+        : `Nothing saved yet. Add the first one below.`}</p>
+      <div class="btn-row" style="margin-bottom:1.25rem">
+        <button class="btn btn--go" data-action="workout-new">+ New workout</button>
+      </div>
+      ${res.workouts.length ? res.workouts.map((w) => `
+        <div class="admin-person">
+          <div class="admin-person__who">
+            <strong>${esc(w.title)}</strong>
+            <span class="dimmer small">${plural(w.exerciseIds.length, "exercise")}</span>
+          </div>
+          <div class="admin-person__row">
+            <button class="btn btn--ghost" data-go="#/admin/workout/${esc(w.id)}">Open</button>
+            <button class="btn btn--ghost" data-action="workout-remove" data-id="${esc(w.id)}">Remove</button>
+          </div>
+        </div>`).join("") : ""}
+    `);
+  });
+}
+
+/** Admin only — one workout's own screen: its details, and the ordered list
+ * of exercises it is built from. Every add, remove and reorder here saves
+ * immediately — there is no draft, and nothing to publish separately. */
+function renderAdminWorkoutEdit(id) {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Workout", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  Promise.all([workoutLibrary.list(), exerciseLibrary.list()]).then(([wRes, eRes]) => {
+    if (location.hash !== `#/admin/workout/${id}`) return;    // moved on before this answered
+    if (!wRes.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(wRes.error)}</p>`); return; }
+    if (!eRes.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(eRes.error)}</p>`); return; }
+
+    workoutCache = wRes.workouts;
+    poolCache = eRes.exercises;
+    const w = workoutCache.find((x) => x.id === id);
+    if (!w) { screen.innerHTML = shell(`<p class="note note--warn">That workout no longer exists.</p>`); return; }
+
+    const byId = Object.fromEntries(poolCache.map((ex) => [ex.id, ex]));
+    const exercises = w.exerciseIds.map((exId) => byId[exId] || null);
+
+    screen.innerHTML = shell(`
+      <h2 class="h-display">${esc(w.title)}</h2>
+      ${w.description ? `<p class="muted" style="white-space:pre-wrap">${esc(w.description)}</p>` : ""}
+      <div class="btn-row" style="margin:1rem 0 1.5rem">
+        <button class="btn" data-action="workout-edit-meta" data-id="${esc(w.id)}">Edit details</button>
+      </div>
+
+      <h2 class="h-section">Exercises</h2>
+      ${exercises.length ? `<ol class="ex-list">
+        ${exercises.map((ex, i) => ex ? `<li class="ex">
+            ${thumb(ex)}
+            <span class="ex__body">
+              <span class="ex__name">${esc(ex.name)}</span>
+              <span class="ex__meta">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}</span>
+            </span>
+            <span class="admin-person__row">
+              <button type="button" class="mini" data-action="workout-move-up" data-id="${esc(w.id)}" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">&uarr;</button>
+              <button type="button" class="mini" data-action="workout-move-down" data-id="${esc(w.id)}" data-i="${i}" ${i === exercises.length - 1 ? "disabled" : ""} aria-label="Move down">&darr;</button>
+              <button type="button" class="mini" data-action="workout-remove-exercise" data-id="${esc(w.id)}" data-i="${i}" aria-label="Remove">&times;</button>
+            </span>
+          </li>` : `<li class="ex"><span class="ex__body"><span class="ex__name muted">Removed from the pool</span></span>
+            <button type="button" class="mini" data-action="workout-remove-exercise" data-id="${esc(w.id)}" data-i="${i}" aria-label="Remove">&times;</button></li>`).join("")}
+      </ol>` : `<p class="muted">No exercises yet.</p>`}
+
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn" data-action="open-workout-pool" data-id="${esc(w.id)}">+ From the pool</button>
+      </div>`);
+  });
+}
+
+/** "6:00am", from a stored "06:00". Kept separate from plainHour below,
+ * which only ever deals in whole hours. */
+function plainClock(hhmm) {
+  const [h, m] = String(hhmm || "08:00").split(":").map(Number);
+  const suffix = h < 12 ? "am" : "pm";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m || 0).padStart(2, "0")}${suffix}`;
+}
+
+/* This person's resolved assignments, as last loaded — read by the sheet
+   that adds one and the screen that lists them. */
+let assignCache = [];
+
+/** Admin only — pick who to set a week for. */
+function renderAdminAssign() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Assign workouts", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">Assign workouts</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  store.listPeople().then((res) => {
+    if (location.hash !== "#/admin/assign") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1rem">Pick who to set a week for.</p>
+      ${res.people.length ? `<ul class="tally">
+        ${res.people.map((p) => `<li>
+          <button type="button" data-go="#/admin/assign/${esc(p.id)}"
+            style="all:unset;display:flex;justify-content:space-between;width:100%;cursor:pointer;gap:1rem">
+            <span style="font-weight:600">${esc(p.name)}</span>
+            <span class="dimmer small">${esc(p.email)}</span>
+          </button>
+        </li>`).join("")}
+      </ul>` : `<p class="muted">Nobody has signed up yet.</p>`}
+    `);
+  });
+}
+
+/** Admin only — one person's whole week: what is assigned on each day, each
+ * at its own time, with an add and a remove for every day. Every change
+ * saves immediately. */
+function renderAdminAssignUser(userId) {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Assign workouts", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  Promise.all([assignments.forUser(userId), store.listPeople(), workoutLibrary.list()]).then(([aRes, pRes, wRes]) => {
+    if (location.hash !== `#/admin/assign/${userId}`) return;    // moved on before this answered
+    if (!aRes.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(aRes.error)}</p>`); return; }
+
+    const person = pRes.ok ? pRes.people.find((p) => p.id === userId) : null;
+    assignCache = aRes.assignments;
+    if (wRes.ok) workoutCache = wRes.workouts;
+
+    screen.innerHTML = shell(`
+      <h2 class="h-display">${esc(person ? person.name : "Their week")}</h2>
+      ${person ? `<p class="muted" style="margin-bottom:1.25rem">${esc(person.email)}</p>` : ""}
+      ${!workoutCache.length ? `<p class="note note--warn" style="margin-bottom:1.25rem">No workouts saved yet
+        &mdash; add one on the Workouts screen first.</p>` : ""}
+      ${DAY_KEYS.map((k) => {
+        const items = assignCache.filter((a) => a.day === k);
+        return `<section class="set-group">
+          <h3 class="set-group__h">${DAY_NAMES[k]}</h3>
+          ${items.length ? items.map((a) => `
+            <div class="admin-person__row" style="justify-content:space-between">
+              <span>${plainClock(a.time)} &middot; ${a.workout ? esc(a.workout.title) : "A removed workout"}</span>
+              <button class="btn btn--ghost" data-action="assign-remove" data-user="${esc(userId)}" data-id="${esc(a.id)}">Remove</button>
+            </div>`).join("") : `<p class="dimmer small">Nothing scheduled.</p>`}
+          <div class="btn-row" style="margin-top:.6rem">
+            <button class="btn btn--ghost" data-action="assign-add" data-user="${esc(userId)}" data-day="${k}"
+              ${workoutCache.length ? "" : "disabled"}>+ Add a workout</button>
+          </div>
+        </section>`;
+      }).join("")}
+    `);
+  });
+}
+
+/** Pick a workout and a time, for one day of one person's week. */
+function assignPickSheet(userId, day) {
+  if (!workoutCache.length) return;
+  openSheet(`Add to ${DAY_NAMES[day]}`, `
+    <label class="field"><span>Workout</span>
+      <select id="as-workout">
+        ${workoutCache.map((w) => `<option value="${esc(w.id)}">${esc(w.title)}</option>`).join("")}
+      </select></label>
+    <label class="field" style="margin-top:1rem"><span>Time</span>
+      <input type="time" id="as-time" value="08:00"></label>
+    <div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn btn--go" data-action="assign-save" data-user="${esc(userId)}" data-day="${day}">Add</button>
+    </div>
+  `);
 }
 
 const plainHour = (h) => `${h === 0 ? 12 : h > 12 ? h - 12 : h}${h < 12 ? "am" : "pm"}`;
@@ -2191,17 +2256,7 @@ function footer() {
 function setTitle(main, sub) {
   $("#title").innerHTML = `${esc(main)}<span class="topbar__sub">${sub}</span>`;
   $("#back").hidden = location.hash === "" || location.hash === "#/";
-
-  /* The pencil shows only where it means something: signed in, and not in the
-     middle of a workout. */
-  const pencil = $("#edit-btn");
-  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset", "#/admin/"]
-    .some((h) => location.hash.startsWith(h));
-  pencil.hidden = !canEdit;
-  pencil.classList.toggle("is-on", editing);
-  pencil.setAttribute("aria-pressed", editing ? "true" : "false");
-  pencil.setAttribute("aria-label", editing ? "Stop editing" : "Edit");
-  document.body.classList.toggle("is-editing", editing);
+  document.body.classList.toggle("is-admin", adminOn());
 }
 
 function render() {
@@ -2209,7 +2264,7 @@ function render() {
   // Split the query off first — #/reset?token=… would otherwise glue
   // "reset?token=…" together as one unrecognisable route name.
   const [path, query] = hash.split("?");
-  const [, route, arg] = path.split("/");
+  const [, route, arg, sub] = path.split("/");
 
   if (route !== "go") {
     stopTicking();
@@ -2218,27 +2273,28 @@ function render() {
     mountedMedia = null;
   }
 
-  /* Editing is a mode, not a screen, so the draft survives moving between
-     days. It is dropped only when a workout starts — she is not editing the
-     week with a dumbbell in her hand — and when Save or Discard is pressed. */
-  if (route === "go" && editing) { editing = false; draft = null; }
-
-  // #/edit/mon was the old form editor. It is now the day itself, with the
-  // pencil already pressed — the URL stays valid because it may be bookmarked.
+  // #/edit/mon was the old in-place day editor's URL. There is no such
+  // thing any more — editing lives entirely in the admin screens — so this
+  // just lands on the day itself, kept only because the URL may be
+  // bookmarked somewhere.
   if (route === "edit" && DAY_KEYS.includes(arg)) {
-    if (store.get().signedIn) { if (!draft) { draft = clone(store.plan()); } editing = true; }
     location.replace(`#/day/${arg}`);
     return renderDay(arg);
   }
 
   if (route === "day" && DAY_KEYS.includes(arg)) return renderDay(arg);
-  if (route === "go" && DAY_KEYS.includes(arg)) return renderPlayer(arg);
+  if (route === "go" && arg) return renderPlayer(arg);
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
   if (route === "remind") return renderRemind();
   if (route === "admin" && arg === "people") return renderAdminPeople();
   if (route === "admin" && arg === "reminders") return renderAdminReminders();
+  if (route === "admin" && arg === "videos") return renderAdminVideos();
   if (route === "admin" && arg === "exercises") return renderAdminExercises();
+  if (route === "admin" && arg === "workouts") return renderAdminWorkouts();
+  if (route === "admin" && arg === "workout" && sub) return renderAdminWorkoutEdit(sub);
+  if (route === "admin" && arg === "assign" && !sub) return renderAdminAssign();
+  if (route === "admin" && arg === "assign" && sub) return renderAdminAssignUser(sub);
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
@@ -2251,11 +2307,6 @@ window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); }
 
 $("#back").addEventListener("click", () => {
   if (history.length > 1) history.back(); else go("#/");
-});
-$("#edit-btn").addEventListener("click", () => {
-  if (!adminOn()) { unlockAdmin(); return; }
-  if (!editing) { startEditing(); return; }
-  if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing();
 });
 $("#history-btn").addEventListener("click", () => go("#/history"));
 $("#settings-btn").addEventListener("click", settingsSheet);
@@ -2317,16 +2368,16 @@ document.addEventListener("click", (e) => {
       if (!l) { render(); break; }
       l.staleOk = true;                 // asked and answered; do not ask again
       store.saveLive(l);
-      if (location.hash === `#/go/${l.day}`) render();
-      else go(`#/go/${l.day}`);
+      if (location.hash === `#/go/${l.assignmentId}`) render();
+      else go(`#/go/${l.assignmentId}`);
       break;
     }
     case "discard-live":
       store.clearLive();
-      // Same day means the hash is already right and would not fire a change,
-      // so the render is done here rather than left to the router.
-      if (location.hash === `#/go/${day}`) render();
-      else go(`#/go/${day}`);
+      // Same assignment means the hash is already right and would not fire a
+      // change, so the render is done here rather than left to the router.
+      if (location.hash === `#/go/${id}`) render();
+      else go(`#/go/${id}`);
       break;
 
     case "toggle-log":
@@ -2340,109 +2391,6 @@ document.addEventListener("click", (e) => {
       break;
     case "export": exportHistory(); break;
 
-    /* ---- editing ---- */
-    case "edit-here": startEditing(); break;
-    case "save-week": saveWeek(); break;
-    case "done-editing": stopEditing(); break;
-    case "discard-week":
-      if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing();
-      break;
-
-    case "add-exercise": {
-      draftDay(day).exercises.push({
-        id: store.uid("ex"), name: "", video: "", image: "", sets: 3, reps: "12",
-        rest: 60, effort: "strength", notes: "",
-      });
-      render();
-      const added = document.querySelector('.edit-ex:last-of-type [data-edit="ex-name"]');
-      added?.focus();
-      break;
-    }
-    case "remove-exercise":
-      draftDay(day).exercises.splice(Number(i), 1);
-      render();
-      break;
-    case "move-up":
-      swap(draftDay(day).exercises, Number(i), Number(i) - 1);
-      render();
-      break;
-    case "move-down":
-      swap(draftDay(day).exercises, Number(i), Number(i) + 1);
-      render();
-      break;
-    case "clear-day":
-      if (confirm("Clear every exercise and make this a rest day?")) {
-        draftDay(day).exercises = [];
-        render();
-      }
-      break;
-
-    /* ---- the exercise pool ---- */
-    case "open-pool": exercisePoolSheet(day); break;
-    case "pool-pick": {
-      const entry = poolCache.find((e) => e.id === id);
-      if (!entry) break;
-      draftDay(day).exercises.push({ ...entry, id: store.uid("ex") });
-      closeSheet();
-      render();
-      toast("Added from the pool.", "good");
-      break;
-    }
-    case "save-to-pool": {
-      const target = draftDay(day).exercises[Number(i)];
-      if (!target?.name) { toast("Name it first.", "bad"); break; }
-      exerciseLibrary.add(target).then((res) => {
-        toast(res.ok ? "Saved to the pool." : res.error, res.ok ? "good" : "bad");
-      });
-      break;
-    }
-
-    /* ---- a picture or a video ---- */
-    case "pick-media": mediaSheet(day, i === "" ? null : i); break;
-    case "media-choose": document.getElementById(el.dataset.target)?.click(); break;
-    case "media-link": {
-      const value = document.getElementById("m-url")?.value || "";
-      draftDay(day).exercises[Number(i)].video = value.trim();
-      closeSheet();
-      render();
-      toast(value.trim() ? "Link added." : "Link removed.");
-      break;
-    }
-    case "media-drop": {
-      const d = draftDay(day);
-      const t = i === "" ? d : d.exercises[Number(i)];
-      if (t) t[el.dataset.what] = "";
-      closeSheet();
-      render();
-      toast("Removed.");
-      break;
-    }
-    case "media-pick-lib": {
-      const target = draftDay(day).exercises[Number(i)];
-      if (target) target.video = el.dataset.url;
-      closeSheet();
-      render();
-      toast("Video set from the library.", "good");
-      break;
-    }
-    case "media-save-lib": {
-      const target = draftDay(day).exercises[Number(i)];
-      if (!target?.video) break;
-      const label = prompt("Save this video to the library as:", target.name || "");
-      if (label === null) break;         // cancelled
-      library.add(label, target.video).then((res) => {
-        toast(res.ok ? "Saved to the library." : res.error, res.ok ? "good" : "bad");
-      });
-      break;
-    }
-
-    case "edit-day":
-      settingsDraft = null;
-      closeSheet(true);
-      if (!editing) startEditing();
-      go(`#/day/${day}`);
-      render();
-      break;
     /* ---- reminders ---- */
     case "remind-on":
       push.enable()
@@ -2484,9 +2432,10 @@ document.addEventListener("click", (e) => {
     case "admin-pill":
       settingsDraft = null;
       closeSheet(true);
-      if (!adminOn()) { unlockAdmin(); break; }
-      if (editing) { if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing(); }
-      else startEditing();
+      // Not admin yet: unlock. Already admin: Settings is where every admin
+      // screen lives now — there is no separate "editing mode" to toggle.
+      if (!adminOn()) unlockAdmin();
+      else settingsSheet();
       break;
     case "save-settings":
       store.saveSettings({ ...settingsDraft }).then((r) => {
@@ -2505,15 +2454,190 @@ document.addEventListener("click", (e) => {
     case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
     case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
     case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
+    case "go-admin-videos": settingsDraft = null; closeSheet(true); go("#/admin/videos"); break;
     case "go-admin-exercises": settingsDraft = null; closeSheet(true); go("#/admin/exercises"); break;
+    case "video-edit": {
+      const current = videoCache.find((v) => v.id === id);
+      if (!current) break;
+      const label = prompt("Name:", current.label);
+      if (label === null) break;
+      const url = prompt("Video link:", current.url);
+      if (url === null) break;
+      library.update(id, label, url).then((res) => {
+        toast(res.ok ? "Saved." : res.error, res.ok ? "good" : "bad");
+        if (res.ok) renderAdminVideos();
+      });
+      break;
+    }
+    case "video-remove":
+      if (confirm("Remove this from the library? Any exercise already using this link keeps it.")) {
+        library.remove(id).then((res) => {
+          toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
+          if (res.ok) renderAdminVideos();
+        });
+      }
+      break;
     case "pool-remove":
-      if (confirm("Remove this from the pool? It stays on any day it is already used on.")) {
+      if (confirm("Remove this from the pool? It stays on any workout that already uses it.")) {
         exerciseLibrary.remove(id).then((res) => {
           toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
           if (res.ok) renderAdminExercises();
         });
       }
       break;
+    case "pool-new": exerciseEditSheet(null); break;
+    case "pool-edit": exerciseEditSheet(id); break;
+    case "pool-save": {
+      const ex = {
+        name: document.getElementById("pe-name")?.value || "",
+        image: document.getElementById("pe-image-url")?.value || "",
+        video: document.getElementById("pe-url")?.value || "",
+        sets: Number(document.getElementById("pe-sets")?.value) || 3,
+        reps: document.getElementById("pe-reps")?.value || "",
+        rest: Number(document.getElementById("pe-rest")?.value) || 0,
+        effort: document.getElementById("pe-effort")?.value || "strength",
+        notes: document.getElementById("pe-notes")?.value || "",
+      };
+      const save = id ? exerciseLibrary.update(id, ex) : exerciseLibrary.add(ex);
+      save.then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        closeSheet();
+        toast("Saved.", "good");
+        if (location.hash === "#/admin/exercises") renderAdminExercises();
+      });
+      break;
+    }
+    case "pe-choose-image": document.getElementById("pe-image")?.click(); break;
+    case "pe-drop-image": {
+      document.getElementById("pe-image-url").value = "";
+      const preview = document.getElementById("pe-image-preview");
+      if (preview) preview.innerHTML = `<div class="media-now__note dimmer">No picture</div>`;
+      toast("Removed.");
+      break;
+    }
+    case "pe-pick-lib": {
+      const urlInput = document.getElementById("pe-url");
+      if (urlInput) {
+        urlInput.value = el.dataset.url;
+        const hint = document.getElementById("pe-hint");
+        if (hint) hint.innerHTML = videoHint(el.dataset.url);
+      }
+      toast("Video set from the library.", "good");
+      break;
+    }
+
+    /* ---- the workout library ---- */
+    case "go-admin-workouts": settingsDraft = null; closeSheet(true); go("#/admin/workouts"); break;
+    case "workout-new": {
+      const title = prompt("Title:");
+      if (!title || !title.trim()) break;
+      workoutLibrary.add({ title: title.trim(), description: "", image: "", minutes: 0, exerciseIds: [] }).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        // The server always prepends a freshly added entry, so it is the first.
+        go(`#/admin/workout/${res.workouts[0].id}`);
+      });
+      break;
+    }
+    case "workout-remove":
+      if (confirm("Remove this workout? Anyone it is assigned to loses it from their week.")) {
+        workoutLibrary.remove(id).then((res) => {
+          toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
+          if (res.ok) renderAdminWorkouts();
+        });
+      }
+      break;
+    case "workout-edit-meta": workoutMetaSheet(id); break;
+    case "workout-save-meta": {
+      const w = workoutCache.find((x) => x.id === id);
+      if (!w) break;
+      const patch = {
+        ...w,
+        title: document.getElementById("wk-title")?.value || "",
+        description: document.getElementById("wk-description")?.value || "",
+        image: document.getElementById("wk-image-url")?.value || "",
+        minutes: Number(document.getElementById("wk-minutes")?.value) || 0,
+      };
+      workoutLibrary.update(id, patch).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        closeSheet();
+        toast("Saved.", "good");
+        if (location.hash === `#/admin/workout/${id}`) renderAdminWorkoutEdit(id);
+      });
+      break;
+    }
+    case "wk-choose-image": document.getElementById("wk-image")?.click(); break;
+    case "wk-drop-image": {
+      document.getElementById("wk-image-url").value = "";
+      const preview = document.getElementById("wk-image-preview");
+      if (preview) preview.innerHTML = `<div class="media-now__note dimmer">No picture</div>`;
+      toast("Removed.");
+      break;
+    }
+    case "open-workout-pool": workoutPoolSheet(id); break;
+    case "wk-pool-pick": {
+      const w = workoutCache.find((x) => x.id === id);
+      if (!w) break;
+      const exId = el.dataset.exid;
+      workoutLibrary.update(id, { ...w, exerciseIds: [...w.exerciseIds, exId] }).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        closeSheet();
+        toast("Added from the pool.", "good");
+        if (location.hash === `#/admin/workout/${id}`) renderAdminWorkoutEdit(id);
+      });
+      break;
+    }
+    case "workout-move-up":
+    case "workout-move-down": {
+      const w = workoutCache.find((x) => x.id === id);
+      if (!w) break;
+      const from = Number(i);
+      const to = action === "workout-move-up" ? from - 1 : from + 1;
+      if (to < 0 || to >= w.exerciseIds.length) break;
+      const ids = [...w.exerciseIds];
+      [ids[from], ids[to]] = [ids[to], ids[from]];
+      workoutLibrary.update(id, { ...w, exerciseIds: ids }).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        if (location.hash === `#/admin/workout/${id}`) renderAdminWorkoutEdit(id);
+      });
+      break;
+    }
+    case "workout-remove-exercise": {
+      const w = workoutCache.find((x) => x.id === id);
+      if (!w) break;
+      const ids = w.exerciseIds.filter((_, idx) => idx !== Number(i));
+      workoutLibrary.update(id, { ...w, exerciseIds: ids }).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        if (location.hash === `#/admin/workout/${id}`) renderAdminWorkoutEdit(id);
+      });
+      break;
+    }
+
+    /* ---- assigning workouts to a person's week ---- */
+    case "go-admin-assign": settingsDraft = null; closeSheet(true); go("#/admin/assign"); break;
+    case "assign-add": assignPickSheet(el.dataset.user, day); break;
+    case "assign-save": {
+      const userId = el.dataset.user;
+      const workoutId = document.getElementById("as-workout")?.value;
+      const time = document.getElementById("as-time")?.value;
+      if (!workoutId) break;
+      assignments.add(userId, { day, time, workoutId }).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        closeSheet();
+        toast("Added.", "good");
+        if (location.hash === `#/admin/assign/${userId}`) renderAdminAssignUser(userId);
+      });
+      break;
+    }
+    case "assign-remove": {
+      const userId = el.dataset.user;
+      if (!confirm("Remove this from their week?")) break;
+      assignments.remove(userId, id).then((res) => {
+        if (!res.ok) { toast(res.error, "bad"); return; }
+        toast("Removed.");
+        if (location.hash === `#/admin/assign/${userId}`) renderAdminAssignUser(userId);
+      });
+      break;
+    }
 
     case "rd-save": {
       const enabled = document.getElementById("rd-enabled")?.checked;
@@ -2577,18 +2701,12 @@ document.addEventListener("click", (e) => {
       settingsDraft = null;
       closeSheet(true);
       setAdmin(false);
-      editing = false; draft = null;
       toast("Editor locked.");
       render();
       break;
     default: break;
   }
 });
-
-function swap(arr, a, b) {
-  if (b < 0 || b >= arr.length) return;
-  [arr[a], arr[b]] = [arr[b], arr[a]];
-}
 
 /* A workout in progress must survive the app being closed, so the live state
    is written on the way out as well as on every set. */
@@ -2614,8 +2732,6 @@ store.subscribe(() => {
   // screen looks after itself. One that has not been painted yet — a cold
   // start straight onto a workout URL — still needs this to draw it.
   if (location.hash.startsWith("#/go/") && playerPainted) return;
-  // And never repaint the field somebody is typing in.
-  if (editing && document.activeElement?.hasAttribute?.("data-edit")) return;
   render();
 });
 

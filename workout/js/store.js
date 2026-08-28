@@ -1,24 +1,27 @@
 /* ==========================================================================
-   The store — the plan, the record, and which copy is in charge.
+   The store — the schedule, the record, and which copy is in charge.
 
-   There are three copies of everything, and the whole sync story is about
+   Rebuilt 28 Aug 2026 around personal schedules instead of one shared week.
+   There is no more public plan: what used to be "the week" is now each
+   account's own assignments — which workout, on which day, at which time —
+   set by the admin and read here as SCHEDULE, resolved (each assignment
+   with its workout, each workout with its exercises) so the rest of the app
+   never has to join anything itself.
+
+   There are three copies of the schedule, and the whole sync story is about
    which one wins:
 
-   1. THE SERVER — /api/plan and /api/history, two Netlify Blobs belonging to
-      this site alone. When the site is deployed with WORKOUT_PASSWORD set,
-      this is the truth. A workout logged on a phone is on the iPad a minute
-      later.
-   2. THE COMMITTED FILE — data/plan.json. The floor under everything. If the
-      store has never been written or cannot be reached, the app still knows
-      the week.
-   3. THIS BROWSER — localStorage. With a server it is a cache, so an installed
-      copy works in a gym with no signal. Without a server it IS the working
-      copy, and the app says so on screen rather than pretending a save went
-      somewhere.
-
-   Nothing above this layer has to know which mode is in force. Every write
-   returns having succeeded locally, whatever the network did; anything that
-   could not be sent is queued and goes out on the next successful call.
+   1. THE SERVER — /api/assignments (this account's own, resolved) and
+      /api/history, both Netlify Blobs belonging to this site alone. A
+      workout logged on a phone is on the iPad a minute later.
+   2. THIS BROWSER, last time it heard from the server — localStorage,
+      cached per account. Not a floor under a brand new phone the way the
+      committed plan.json used to be: a schedule is personal now, so there
+      is nothing to show before an account has signed in and been fetched
+      at least once. It IS the working copy in a gym with no signal, and the
+      app says so on screen rather than pretending a save went somewhere.
+   3. NOTHING, signed out. There is no shared week to fall back to any more
+      — see the "sign in to see your week" state on the week screen.
 
    THE PASSWORD IS NEVER STORED HERE. Signing in posts it once to /api/auth,
    which sets an HttpOnly cookie the page cannot read. Every later request
@@ -28,34 +31,34 @@
    "Signing in" above, and `signedIn` below, is the app's one shared admin
    password — it gates the editor and nothing else. An account (see
    js/account.js and `state.account` below) is a real person's own email and
-   password, or Google, and it is what a training record is attached to and
-   what makes it sync. The two are unrelated locks; having one says nothing
-   about the other.
+   password, or Google, and it is what a training record — and now a
+   schedule — is attached to and what makes it sync. The two are unrelated
+   locks; having one says nothing about the other.
    ========================================================================== */
 
-import { sessionCalories, todayKey, DAY_KEYS, startOfDay } from "./catalog.js";
+import { sessionCalories, todayKey, dayKeyOf, DAY_KEYS, startOfDay } from "./catalog.js";
 import { computeInsights } from "./insights.js";
 import * as account from "./account.js";
+import * as assignmentsApi from "./assignments.js";
 
 const API = {
   auth: "/api/auth",
-  plan: "/api/plan",
   history: "/api/history",
 };
-const SOURCE = "data/plan.json";
 
 const KEYS = {
-  plan: "fg-workout-plan",
+  schedule: "fg-workout-schedule",  // this account's own resolved assignments
   history: "fg-workout-history",   // used only when nobody is signed into an account
   pending: "fg-workout-pending",
   live: "fg-workout-live",       // a workout in progress, so closing the app loses nothing
 };
 
-/* A signed-in account's history and queue are cached under their own key, so
-   two different people signing into the same account system on the same
-   phone never see a flash of the wrong person's workouts before the server's
-   answer arrives. Signed out, the app falls back to the plain shared key —
-   the local-only record it always had. */
+/* A signed-in account's schedule, history and queue are cached under their
+   own key, so two different people signing into the same account system on
+   the same phone never see a flash of the wrong person's data before the
+   server's answer arrives. There is no unscoped fallback for the schedule —
+   signed out, there is no schedule at all. */
+const scheduleKey = () => `${KEYS.schedule}:${state.account?.id}`;
 const historyKey = () => (state.account ? `${KEYS.history}:${state.account.id}` : KEYS.history);
 const pendingKey = () => (state.account ? `${KEYS.pending}:${state.account.id}` : KEYS.pending);
 
@@ -82,24 +85,22 @@ function write(key, value) {
 
 /* ---------- shape ---------- */
 
-export const emptyDay = (day) => ({ day, title: "", description: "", minutes: 0, exercises: [] });
-export const emptyPlan = () => ({ version: 1, updated: "", days: DAY_KEYS.map(emptyDay) });
 export const emptyHistory = () => ({ version: 1, updated: "", settings: { weightLb: 150, countRest: true }, sessions: [] });
 
-/** Seven days in order, whatever arrived. The app never has to check. */
-function shapePlan(raw) {
-  const byKey = {};
-  const days = Array.isArray(raw?.days) ? raw.days : [];
-  for (const d of days) if (d && DAY_KEYS.includes(d.day)) byKey[d.day] = d;
-  if (!Array.isArray(raw?.days) && raw?.days && typeof raw.days === "object") {
-    for (const k of DAY_KEYS) if (raw.days[k]) byKey[k] = { ...raw.days[k], day: k };
-  }
-  return {
-    version: 1,
-    updated: raw?.updated || "",
-    days: DAY_KEYS.map((k) => ({ ...emptyDay(k), ...(byKey[k] || {}), day: k,
-      exercises: Array.isArray(byKey[k]?.exercises) ? byKey[k].exercises : [] })),
-  };
+/** Whatever the server sent back, defensively — an array of resolved
+ * assignments, each `{ id, day, time, workoutId, workout }`, `workout` null
+ * if it has since been removed from the library. Never throws on junk; an
+ * empty schedule is always a safe answer. */
+function shapeSchedule(raw) {
+  return (Array.isArray(raw) ? raw : [])
+    .filter((a) => a && DAY_KEYS.includes(a.day))
+    .map((a) => ({
+      id: String(a.id || ""), day: a.day, time: String(a.time || "08:00"),
+      workoutId: String(a.workoutId || ""),
+      workout: a.workout && typeof a.workout === "object"
+        ? { ...a.workout, exercises: Array.isArray(a.workout.exercises) ? a.workout.exercises : [] }
+        : null,
+    }));
 }
 
 function shapeHistory(raw) {
@@ -118,9 +119,9 @@ export const uid = (prefix) =>
 /* ---------- state ---------- */
 
 const state = {
-  plan: emptyPlan(),
+  schedule: [],          // this account's own resolved assignments, or [] signed out
   history: emptyHistory(),
-  mode: "local",        // "server" once /api/plan has answered
+  mode: "local",        // "server" once the server has answered at least once
   signedIn: false,       // the admin password — gates the editor only
   hasPassword: true,    // assumed until the server says otherwise
   note: "",             // why the mode is what it is, in plain English
@@ -137,10 +138,24 @@ export const subscribe = (fn) => { listeners.add(fn); return () => listeners.del
 const emit = () => { for (const fn of [...listeners]) { try { fn(state); } catch (e) { console.error(e); } } };
 
 export const get = () => state;
-export const plan = () => state.plan;
 export const history = () => state.history;
 export const settings = () => state.history.settings;
-export const dayPlan = (key) => state.plan.days.find((d) => d.day === key) || emptyDay(key);
+
+/** This account's schedule, grouped by weekday and sorted by time within
+ * each — the shape every screen actually wants. Empty arrays for a day with
+ * nothing assigned, never undefined, so `weekSchedule()[key]` always works. */
+export function weekSchedule() {
+  const out = Object.fromEntries(DAY_KEYS.map((k) => [k, []]));
+  for (const a of state.schedule) out[a.day].push(a);
+  for (const k of DAY_KEYS) out[k].sort((x, y) => (x.time < y.time ? -1 : x.time > y.time ? 1 : 0));
+  return out;
+}
+
+export const todaySchedule = () => weekSchedule()[dayKeyOf()] || [];
+
+/** One assignment by id, wherever it falls in the week — what the player
+ * resolves a workout from when a session starts. */
+export const findAssignment = (id) => state.schedule.find((a) => a.id === id) || null;
 
 /* ---------- talking to the server ---------- */
 
@@ -172,24 +187,31 @@ async function call(url, options = {}) {
  * spinner.
  */
 export async function load() {
-  state.plan = shapePlan(read(KEYS.plan, null) || emptyPlan());
-  // state.account is not known yet, so this reads the plain, unscoped key —
-  // correct for "nobody signed in" and replaced below the moment an account
-  // status comes back, so a second person's phone never shows a flash of it.
+  // state.account is not known yet, so this reads the plain, unscoped
+  // history key — correct for "nobody signed in" and replaced below the
+  // moment an account status comes back, so a second person's phone never
+  // shows a flash of it. There is no unscoped schedule to read: signed out,
+  // there is nothing to show.
   state.history = shapeHistory(read(historyKey(), null) || emptyHistory());
-  if (state.plan.days.some((d) => d.exercises.length)) { state.loaded = true; emit(); }
 
-  let served = null;
   let acctStatus = null;
+  let authStatus = null;
   try {
-    const [planResult, acctResult] = await Promise.all([
-      call(API.plan).catch(() => null),
+    [acctStatus, authStatus] = await Promise.all([
       account.status().catch(() => null),
+      call(API.auth).catch(() => null),
     ]);
-    if (planResult?.res.ok && planResult.body.plan) served = planResult.body;
-    acctStatus = acctResult;
-  } catch {
-    served = null;                                    // no signal: the cache stands
+  } catch { /* no signal: everything below falls back to "local" */ }
+
+  if (authStatus?.res.ok) {
+    state.mode = "server";
+    state.signedIn = !!authStatus.body.signedIn;
+    state.hasPassword = !!authStatus.body.configured;
+    state.note = state.hasPassword ? "" : "No password is set on this site, so nothing can be saved to it.";
+  } else {
+    state.mode = "local";
+    state.signedIn = false;
+    state.note = "Could not reach the app's server.";
   }
 
   if (acctStatus?.ok) {
@@ -199,31 +221,14 @@ export async function load() {
     };
     if (acctStatus.signedIn && acctStatus.account) {
       state.account = acctStatus.account;
-      // Re-read from this account's own cache — the first read above used the
-      // generic key because nobody was known to be signed in yet.
+      // Re-read from this account's own cache — the reads above used the
+      // generic/absent key because nobody was known to be signed in yet.
       state.history = shapeHistory(read(historyKey(), null) || emptyHistory());
-    }
-  }
-
-  if (served) {
-    state.mode = "server";
-    state.signedIn = !!served.signedIn;
-    state.hasPassword = served.editable !== false;
-    state.note = state.hasPassword ? "" : "No password is set on this site, so nothing can be saved to it.";
-    state.plan = shapePlan(served.plan);
-    write(KEYS.plan, state.plan);
-    if (state.account) await pullHistory();
-  } else {
-    state.mode = "local";
-    state.signedIn = false;
-    state.note = "";
-    // No server, and nothing cached: fall back to the committed plan so the
-    // week is never blank on a fresh phone.
-    if (!state.plan.days.some((d) => d.exercises.length)) {
-      try {
-        const res = await fetch(SOURCE, { cache: "no-store" });
-        if (res.ok) { state.plan = shapePlan(await res.json()); write(KEYS.plan, state.plan); }
-      } catch { /* the empty week stands */ }
+      state.schedule = shapeSchedule(read(scheduleKey(), null) || []);
+      // Paint the cached schedule now, before the network round trip below —
+      // the same reasoning as the cached plan used to get on screen first.
+      if (state.schedule.length) { state.loaded = true; emit(); }
+      await Promise.all([pullHistory(), pullSchedule()]);
     }
   }
 
@@ -240,6 +245,18 @@ async function pullHistory() {
     if (!res.ok || !body.history) return false;
     state.history = mergeLocalInto(shapeHistory(body.history));
     write(historyKey(), state.history);
+    return true;
+  } catch { return false; }
+}
+
+/** This account's own schedule, resolved server-side against the workout and
+ * exercise pools — nothing here has to join anything itself. */
+async function pullSchedule() {
+  try {
+    const res = await assignmentsApi.mine();
+    if (!res.ok) return false;
+    state.schedule = shapeSchedule(res.assignments);
+    write(scheduleKey(), state.schedule);
     return true;
   } catch { return false; }
 }
@@ -275,9 +292,10 @@ export async function signIn(password) {
     return { ok: false, error: body.error || "That password isn't right." };
   }
 
-  // The admin password. It has nothing to do with anyone's training record —
-  // that is an account's business (see accountLogIn et al below) — so there
-  // is no history to pull here, only the plan becoming editable.
+  // The admin password. It has nothing to do with anyone's training record
+  // or schedule — that is an account's business (see accountLogIn et al
+  // below) — so there is nothing to pull here, only the admin screens
+  // becoming reachable.
   state.signedIn = true;
   state.mode = "server";
   emit();
@@ -310,9 +328,10 @@ async function afterAccountSignIn(result) {
     ? { ...ownCache, sessions: [...ownCache.sessions, ...carried].sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : -1)) }
     : ownCache;
   write(historyKey(), state.history);
+  state.schedule = shapeSchedule(read(scheduleKey(), null) || []);
 
   emit();
-  await pullHistory();
+  await Promise.all([pullHistory(), pullSchedule()]);
   emit();
   flush();
   return { ok: true };
@@ -329,6 +348,7 @@ export async function accountLogOut() {
   await account.logOut();
   state.account = null;
   state.history = emptyHistory();
+  state.schedule = [];
   emit();
 }
 
@@ -336,32 +356,6 @@ export async function accountLogOut() {
 export const listPeople = () => account.listPeople();
 
 /* ---------- writing ---------- */
-
-/**
- * Save the week.
- *
- * The whole plan is sent and the whole plan is replaced: there is one editor
- * and one week, so there is nothing to merge and no way for two devices to
- * half-overwrite each other.
- */
-export async function savePlan(next) {
-  state.plan = shapePlan(next);
-  write(KEYS.plan, state.plan);
-  emit();
-
-  if (state.mode !== "server" || !state.signedIn) {
-    return { ok: true, storage: "local",
-      note: "Saved on this device. Sign in to share it with the other ones." };
-  }
-
-  const { res, body } = await call(API.plan, { method: "PUT", body: JSON.stringify({ plan: state.plan }) });
-  if (!res.ok) {
-    if (res.status === 401) { state.signedIn = false; emit(); }
-    throw new Error(body.error || `The server said ${res.status}.`);
-  }
-  if (body.plan) { state.plan = shapePlan(body.plan); write(KEYS.plan, state.plan); emit(); }
-  return { ok: true, storage: "server" };
-}
 
 /**
  * Log a finished — or abandoned — workout.

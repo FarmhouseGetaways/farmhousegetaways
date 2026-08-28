@@ -26,7 +26,6 @@
 import { getStore } from "@netlify/blobs";
 import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
 
-export const PLAN = () => getStore("workout-plan");
 export const HISTORY = () => getStore("workout-history");
 export const LOCKOUT = () => getStore("workout-lockout");
 /* Pictures and short clips added from the editor, keyed by a hash of their
@@ -38,12 +37,16 @@ export const SUBS = () => getStore("workout-subs");
    pasted in fresh every time — see video-library.mjs. */
 export const LIBRARY = () => getStore("workout-video-library");
 export const LIBRARY_KEY = "list";
-/* Saved exercises — a pool to build a day from instead of retyping the same
-   sets/reps/rest/video every time it recurs — see exercise-library.mjs. */
+/* Saved exercises — the ONE place an exercise's fields are set, referenced by
+   id from a workout rather than copied — see exercise-library.mjs. */
 export const EXERCISE_LIBRARY = () => getStore("workout-exercise-library");
 export const EXERCISE_LIBRARY_KEY = "list";
+/* Saved workouts — a title, a picture, and an ordered list of exercise ids
+   from the pool above. Not tied to a day; assigned to accounts instead — see
+   workout-library.mjs and assignments.mjs. */
+export const WORKOUT_LIBRARY = () => getStore("workout-workout-library");
+export const WORKOUT_LIBRARY_KEY = "list";
 
-export const PLAN_KEY = "plan";
 /* The shared record, from before accounts existed. Kept only as the seed the
    very first account is copied from — see account.mjs's migrateLegacyHistory
    — never read from again after that. */

@@ -1,13 +1,13 @@
 /* ==========================================================================
-   The exercise pool — talking to /api/exercise-library.
+   The workout library — talking to /api/workout-library.
 
-   Admin only. This is the ONLY place an exercise is created or edited — a
-   saved exercise is name, video, image, sets, reps, rest, effort and notes,
-   the whole thing, and a workout only ever references one by id. Editing it
-   here is what changes it everywhere it is used.
+   Admin only. A workout is a title, a picture, and an ordered list of
+   exercise ids from the exercise pool — never a copy of the exercises
+   themselves. Assigning it to an account is a separate step; see
+   assignments.js.
    ========================================================================== */
 
-const API = "/api/exercise-library";
+const API = "/api/workout-library";
 
 async function call(options = {}) {
   let res, body;
@@ -28,24 +28,22 @@ async function call(options = {}) {
 
 export const list = () => call();
 
-/** A fresh pool entry. Never pass an id in `ex` — the server mints one. */
-export const add = (ex) => call({
+/** A fresh workout. Never pass an id in `w` — the server mints one. */
+export const add = (w) => call({
   method: "POST",
   body: JSON.stringify({
     intent: "add",
-    name: ex.name, video: ex.video, image: ex.image,
-    sets: ex.sets, reps: ex.reps, rest: ex.rest, effort: ex.effort, notes: ex.notes,
+    title: w.title, description: w.description, image: w.image,
+    minutes: w.minutes, exerciseIds: w.exerciseIds,
   }),
 });
 
-/** Edit an existing pool entry in place — this is what makes the change
- * reach every workout that already references it. */
-export const update = (id, ex) => call({
+export const update = (id, w) => call({
   method: "POST",
   body: JSON.stringify({
     intent: "update", id,
-    name: ex.name, video: ex.video, image: ex.image,
-    sets: ex.sets, reps: ex.reps, rest: ex.rest, effort: ex.effort, notes: ex.notes,
+    title: w.title, description: w.description, image: w.image,
+    minutes: w.minutes, exerciseIds: w.exerciseIds,
   }),
 });
 

@@ -1,8 +1,8 @@
 # Carissa's workout tracker
 
-An installable web app: seven days of the week, a workout on each, a video for
-every exercise, a big button for finishing a set, and a record of everything
-ever done.
+An installable web app: a personal weekly schedule for each of up to five
+people, a video for every exercise, a big button for finishing a set, and a
+record of everything ever done.
 
 **It is its own site, not part of the Farmhouse Getaways website.** The folder
 lives in this repository, but the root `netlify.toml` deliberately 404s
@@ -10,22 +10,28 @@ lives in this repository, but the root `netlify.toml` deliberately 404s
 site pointed at the same repository with the base directory set to `workout`.
 See *Deploying*, below.
 
-Plain HTML, CSS and three JavaScript modules, with three small Netlify
-functions behind them. No framework and no build step; the one dependency,
-`@netlify/blobs`, is used by the functions and never reaches the browser.
+Plain HTML, CSS and JavaScript modules, with small Netlify functions behind
+them. No framework and no build step; the one dependency, `@netlify/blobs`, is
+used by the functions and never reaches the browser.
 
     cd workout && python3 -m http.server 8099
     # then http://127.0.0.1:8099/
 
-Opened that way there is no server, so the app runs from the committed plan and
-this browser — which is the same thing that happens to a phone in a gym with no
-signal, and worth seeing.
+Opened that way there is no server, so nobody can sign in and the app shows
+"sign in to see your week" — a schedule is personal now, and there is no
+public one to fall back to. Signed in with a server reachable, that person's
+own last-synced schedule is what's cached in this browser and served from
+there when there is no signal — the same thing that happens to a phone in a
+gym with no bars, and worth seeing once an account has actually signed in
+here at least once.
 
 ## What it does
 
-**The week.** Seven day cards. Today's is the big one at the top, with the
-title, how long it should take, and a button that starts it. A day with no
-exercises reads as a rest day rather than as an empty card.
+**The week.** Seven day cards, each showing what has been assigned to the
+signed-in account that day — nothing, one workout, or several, each with its
+own time. Today's is the big one at the top: one card if there is one workout,
+a stack of them if there is more than one, each with a button that starts it.
+A day with nothing assigned reads as a rest day rather than as an empty card.
 
 **The workout.** One exercise at a time. The video plays at the top; the name,
 the reps and any notes sit under it; the sets are laid out as pills — done ones
@@ -51,9 +57,15 @@ rather than once an hour. If now is not the moment, the *Later today* button
 opens a scrolling hour picker: choose five, and at five it comes back and says
 it is time. See below.
 
-**Editing, in admin mode.** The pencil in the top bar turns the page into the
-editor — click a title, a name, the notes, and type. Pictures and clips go on
-by pressing the square beside an exercise. See below.
+**Editing, in admin mode.** There is no pencil any more and nothing on the
+week or day screen is editable in place. Building the week is three
+repositories and an assignment screen, all reached from Settings → Edit the
+week, and every change on them saves the moment it is made — see *Exercises,
+workouts and schedules*, below.
+
+**Signed in as admin, the background tints red** — a deliberate, unmissable
+difference on every screen, not just the admin ones, so there is never a
+moment of wondering which mode is active.
 
 **The record.** Every finished workout with its date, time, sets, per-exercise
 breakdown and a calorie estimate. A day streak, a week strip, totals, and a CSV
@@ -96,6 +108,77 @@ exercise's own effort level, rest at a standing-about rate, and anything
 unaccounted for at nothing. Set the body weight in Settings. It is stored with
 each workout, so changing it does not rewrite the past. It is an estimate and
 the app says so on screen.
+
+## Exercises, workouts and schedules — the whole week, rebuilt 28 Aug 2026
+
+The week used to be one shared plan: seven days, each with its own exercises
+typed straight into it. It no longer is. The owner asked for the ability to
+build a workout once and assign it to whichever of her (up to five) people
+needed it, on whichever day, at whichever time — multiple workouts on the
+same day allowed — so the whole thing is now three linked repositories
+instead of one shared document:
+
+1. **The exercise pool** (`/api/exercise-library`) — every exercise that
+   exists, full stop: name, video, picture, sets, reps, rest, effort, notes.
+   This is the ONLY place any of those fields is ever set. Settings → Edit
+   the week (admin) → Exercise pool lists them all, each with Edit (a sheet
+   with every field, image upload and "from the library"/paste-a-link video,
+   same as before) and Remove.
+2. **The workout library** (`/api/workout-library`) — a named, reusable
+   workout: a title, a picture, a description, and an ORDERED LIST OF
+   EXERCISE IDS from the pool above — never a copy of the exercises
+   themselves. Settings → Edit the week (admin) → Workouts is the roster;
+   opening one shows its exercises with move-up/down/remove and a "From the
+   pool" picker to add more, plus an "Edit details" sheet for the title,
+   picture, description and an optional minutes override. Not tied to any
+   day — the same workout can be assigned to any number of people on any
+   number of days.
+3. **Assignments** (`/api/assignments`) — which workout(s) one account does
+   on a given weekday, each at its own time. Stored on the account itself
+   (`assignments` in `_lib/users.mjs`, mirroring how a reminder override
+   already worked), not in a store of its own. Settings → Edit the week
+   (admin) → Assign workouts: pick a person, see their whole week — every
+   day, what's on it and at what time, with an Add and a Remove for each —
+   matching the owner's own description of the flow exactly: "select a
+   user, then a day, then a workout(s), assigned to a specific time."
+
+**Referencing, not copying, is what makes an edit reach everywhere it is
+used.** Because a workout stores exercise IDS and an assignment stores a
+workout ID — never a frozen copy of the fields — editing an exercise in the
+pool changes it in every workout that uses it, immediately, for everyone it
+is assigned to. This was explicit: "if I want to add an exercise to a
+workout and the exercise doesn't exist, I must first go to the repository,
+create the exercise, and then it will be available when I go back to
+finishing the creation of my workout." Sets, reps, rest and effort are part
+of that same fixed definition — not a per-workout override — so the same
+exercise looks identical everywhere it appears; a different rep scheme for
+the same movement is a second pool entry.
+
+**A "day" is still a repeating weekday, Monday through Sunday, the same
+every week — not a dated calendar.** Simpler, and it's what the app already
+was; assignments just moved from being shared by everyone to being personal
+to whoever they're assigned to.
+
+**Nothing about an old shared week carried over.** Every account starts
+blank; the admin builds each person's schedule by hand from the
+repositories above. There is also no more public, signed-out plan — the
+week is personal now, so **a visitor has to sign in before seeing
+anything**, and `data/plan.json` (the old committed floor under a public
+plan) is gone along with it. What is still true: everything works with no
+server at all — see *What it does*, above — it's just that the fallback is
+now that account's own last-synced schedule, cached per account in this
+browser, rather than a static committed file.
+
+**Resolving happens on the server, not the client.** `/api/assignments`
+(self-service, for the signed-in account's own schedule; admin-only with
+`?user=<id>` for anyone else's) joins that account's raw assignments against
+the workout and exercise pools and hands back the whole thing ready to
+render or play — `resolveAssignments` in `_lib/data.mjs`, pure and tested.
+A regular account can never reach the raw `/api/exercise-library` or
+`/api/workout-library` endpoints (both stay admin-only, same as before) —
+only the resolved shape their own assignments produce.
+
+    node --test workout/netlify/functions/_lib/data.test.mjs
 
 ## Accounts — up to five, for the beta
 
@@ -146,50 +229,53 @@ copied once into whoever created the very first account, so nothing already
 logged was lost; every account after that starts with a clean training log of
 its own. See the storage table below for exactly who can read what.
 
-## Editing the week — click the thing and type
+## Editing — admin screens, not the week itself
 
-The editor is a completely separate thing from any of the above: the app's own
-shared password, known to whoever is trusted to write the week, not tied to
-any one account. It is behind a deliberate gesture, the same one the farmhouse
-app uses for its own admin screen: **press and hold the title at the top of
-any screen for three quarters of a second.** There is no button, because a
-button is something you press by accident. On a laptop, `/#/admin` does the
-same. Either way it asks for `WORKOUT_PASSWORD` if it has not already been
-typed on this device.
+Rebuilt 28 Aug 2026, alongside the repositories described above. There used
+to be a pencil that turned whatever page you were looking at into an
+in-place editor, with a draft of the whole week and a save bar. There is no
+longer anything to edit in place: an exercise's fields, a workout's
+exercises, and who a workout is assigned to are each their own screen,
+reached from Settings, and every change on them saves the moment it is
+made — no draft, nothing to publish separately.
 
-It is held for the session only: closing the app locks the editor again, and
-**Settings → Lock the editor** does it on the spot. Nobody wants to hand over
-their phone with the week one tap from being rewritten.
+**The lock is unchanged.** The admin password is a completely separate
+thing from any account above: the app's own shared password, known to
+whoever is trusted to build the week, not tied to any one person. It is
+behind a deliberate gesture, the same one the farmhouse app uses for its own
+admin screen: **press and hold the title at the top of any screen for three
+quarters of a second.** There is no button, because a button is something
+you press by accident. On a laptop, `/#/admin` does the same. Either way it
+asks for `WORKOUT_PASSWORD` if it has not already been typed on this
+device, and the unlock lasts **twelve hours** from then — long enough to
+build a week in one sitting, short enough that a phone left about tomorrow
+is locked again. **Settings → Lock the editor** ends it on the spot.
 
-Once unlocked, a pencil appears in the top bar. Press it and the page you are
-already looking at becomes the editor. Nothing moves; the things you can change
-simply grow a dotted underline. It works the same with a mouse as with a
-finger, so the week can be written at a desk or on a phone.
+**Signed in as admin, the background tints red** on every screen, not just
+the admin ones — an unmissable answer to "which mode am I in".
 
-- **On the week board** — the seven day names are typeable where they sit.
-- **Inside a day** — the title, the description, the estimated time, and for
-  every exercise: its name, the sets, the reps, the rest, the effort and the
-  notes. Each exercise reads as a sentence — *5 sets of 12 · 75s rest* — with
-  the numbers themselves being the controls.
-- **Order and removal** — the arrows and the × on each exercise.
-- **+ Add an exercise** drops a blank one in and puts the cursor in its name.
-- **Make it a rest day** clears one.
+Once unlocked, **Settings → Edit the week** lists every admin screen:
 
-Everything edits into a single draft of the whole week, so moving from Monday
-to Thursday keeps the changes. The bar at the bottom counts them —
-*Save — 2 days changed* — and nothing leaves the browser until it is pressed.
-The arrow beside it throws the draft away.
+- **Exercise pool** — every exercise, with Edit (a sheet: name, picture,
+  video, sets, reps, rest, effort, notes) and Remove.
+- **Workouts** — every saved workout; open one to see its exercises
+  (move-up/down/remove, and "From the pool" to add more) and its own
+  details (title, picture, description, an optional minutes override).
+- **Assign workouts** — pick a person, see their whole week, add or remove
+  a workout on any day at any time.
+- **Video library**, **Reminder schedule**, **Who has an account** —
+  unchanged from before.
 
 Saving writes to the store and is live on every device on their next load. No
 committing, no deploy.
 
 ## Pictures and videos — two different things
 
-Press the square beside an exercise and the sheet has two halves, because they
-do two different jobs.
+An exercise's Edit sheet, on the Exercise pool screen, has two halves for its
+media, because they do two different jobs.
 
-**The picture** is what it looks like: the thumbnail in the day list, and what
-the stage shows before anything plays. It is there the moment the screen
+**The picture** is what it looks like: the thumbnail in the exercise list, and
+what the stage shows before anything plays. It is there the moment the screen
 paints.
 
 **The video** is what plays when she starts that exercise.
@@ -199,9 +285,9 @@ often all a familiar movement needs. It can have a video and no picture. Or it
 can have both, which is the best of it — the picture is the video's poster, so
 the stage shows the movement rather than a black rectangle while it loads.
 
-**A day has a picture too**, and no video: a workout is not a movement. Press
-the square beside the title in the editor. It shows on the week board, at the
-top of the day, and on today's card.
+**A workout has a picture too**, and no video: a workout is not a movement.
+Settings → Edit the week (admin) → Workouts → open one → Edit details. It
+shows on the week board, at the top of the day, and on today's card.
 
 **The picture** is uploaded from the phone — shrunk in the browser first, so a
 five-megabyte photo lands at two or three hundred kilobytes and looks
@@ -235,35 +321,41 @@ Entries are validated the same way an exercise's own video field is —
 scheme the app would refuse to embed anyway. Capped at 200, far more than a
 home gym's worth of moves.
 
-### The exercise pool — a whole exercise saved, not just its video
+**Settings → Edit the week (admin) → Video library** is its own screen —
+every saved link at once, with Edit and Remove, rather than only being
+reachable from inside one exercise's media sheet. Editing a saved link's
+name or url here updates the library entry itself; it does not reach back
+into exercises that already copied the old url in — picking from the
+library copies the link at that moment, it is not a live reference.
 
-Added 27 Aug 2026, at the owner's request: a place to see every exercise
-built so far and pick one to build a day from, rather than retyping the same
-name, sets, reps, rest, video and notes each time a movement recurs across
-the week. Admin only — viewing and picking are both gated the same way the
-video library is, since this is part of building the week, not something a
+### The exercise pool — the ONLY place an exercise is created or edited
+
+Added 27 Aug 2026 as a place to build workouts from instead of retyping the
+same exercise each time it recurred. Rebuilt 28 Aug 2026 into what it is
+now: not a convenience alongside day-by-day editing, but the sole place an
+exercise's fields exist at all. **Settings → Edit the week (admin) →
+Exercise pool** is the roster — every saved exercise with its sets/reps/rest
+and effort at a glance, **+ New exercise**, and Edit/Remove on each. Edit
+opens the same full sheet a new exercise gets: name, picture, video (paste a
+link or pick "From the library"), sets, reps, rest, effort, notes.
+
+**A workout references an exercise by id, never a copy of its fields** — see
+*Exercises, workouts and schedules*, above. That is what makes an edit here
+reach every workout that uses it, immediately: build the exercise once, and
+"From the pool" on a workout's own screen is how it gets used, as many times
+as it is needed, in as many workouts as it is needed in. Removing a pool
+entry does not touch a workout it is already part of — a workout's own list
+of exercise ids simply stops resolving that one, shown as "removed from the
+pool" rather than crashing.
+
+Admin only — viewing and picking are both gated the same way the video
+library is, since this is part of building the week, not something a
 signed-in account needs.
 
-Open a day in the editor and **"From the pool"**, next to "+ Add an
-exercise", lists everything saved so far — press one and it is added to that
-day exactly as it was saved, with a fresh id of its own so it never collides
-with the pool entry or another exercise already on the day.
-
-**Turning an exercise you already built into a pool entry** is a button on
-the exercise itself, "Save to the pool", right where "Save this video to the
-library" sits for video. The whole exercise is copied — name, picture,
-video, sets, reps, rest, effort and notes — and nothing about the exercise it
-came from changes.
-
-**Settings → Edit the week (admin) → Exercise pool** is the roster: every
-saved exercise with its sets/reps/rest and effort at a glance, and a Remove
-button. Removing one from the pool does not touch any day it is already used
-on — a pool entry is copied in, not linked.
-
-Server-side it is `/api/exercise-library`, and it reuses the exact same
-`normaliseExercise` a day's own exercises are validated through — a pool
-entry can never carry something the day editor itself would have refused.
-Capped at 300.
+Server-side it is `/api/exercise-library`, and both add and update run
+through the exact same `normaliseExercise` every exercise is validated
+through — an edit can never carry something a brand new exercise would have
+been refused. Capped at 300.
 
 ## Reminders
 
@@ -301,6 +393,16 @@ an hour after the workout was finished, teaches somebody to ignore reminders —
 and once they are ignored they are worse than nothing, because they are still
 interrupting.
 
+**"Today" is that account's own assignments now, resolved server-side each
+sweep** — `_lib/tick.mjs` fetches the workout and exercise pools once per
+sweep, then that device's own account (cached per account within the sweep,
+so two devices signed into the same one do not fetch it twice) and works out
+which weekday "today" is in that device's own zone before asking `dueNow` in
+`_lib/remind.mjs` whether to speak. Two or more workouts on the same day say
+how many and name them, rather than picking one to feature; the link always
+opens the day (`/#/day/<weekday>`), never a specific workout, since there
+may be more than one waiting.
+
 **Later today.** The notification carries two buttons: *Start it*, which opens
 the workout, and *Later today*, which opens the hour picker. Choose five and it
 comes back once, at five, saying it is time. A snooze only counts on the day it
@@ -333,23 +435,26 @@ Netlify Blobs belonging to this site alone. Not files in this repository —
 
 | | Read | Write |
 |---|---|---|
-| **The week** (`/api/plan`) | anyone — it is a list of exercises, and the app has to show the week before anybody signs in | the admin password |
+| **This account's own schedule** (`/api/assignments`) | that account, signed in — or the admin password, for anyone's | the admin password only — assigning a workout is the admin's job |
 | **An account's own record** (`/api/history`) | that account, signed in | that account, signed in |
 | **Accounts** (email, name, a password hash — never the password itself) | the admin password, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
 | **Reminder schedule & messages** | the admin password | the admin password |
 | **The video library** | the admin password | the admin password |
 | **The exercise pool** | the admin password | the admin password |
+| **The workout library** | the admin password | the admin password |
 
-Two separate locks, two separate cookies: the admin password gates the week
-and nothing else; an account gates one person's own record and nothing
-else — not another account's record, and not the week. Knowing the admin
+Two separate locks, two separate cookies: the admin password gates every
+repository and every schedule; an account gates one person's own record —
+and reading their own schedule — and nothing else, not another account's
+record or schedule, and no write access to any of it. Knowing the admin
 password does not let anyone read a training record; being signed into an
-account does not let anyone edit the week.
+account does not let anyone edit anything.
 
-`data/plan.json` stays committed as the floor underneath the plan: if the
-store has never been written, or is wiped, the app falls back to it rather
-than to a blank week. It is imported by the function rather than fetched, so
-there is no network call to fail silently in production.
+There is no committed floor under the schedule the way `data/plan.json` used
+to be — a schedule is personal, so there is nothing safe to show a phone
+that has never signed in. Signed in at least once, this browser caches that
+account's own last-synced schedule, which is what a gym with no signal
+falls back to.
 
 **How the admin password works.** It lives in a Netlify environment variable
 and is compared on the server. Typing it sets an `HttpOnly` session cookie —
@@ -468,14 +573,15 @@ again.
     css/workout.css           all of the styling
     js/catalog.js             effort levels, the calorie maths, video links, formatting
     js/insights.js            the intelligence in the record — trends, bests, milestones
-    js/store.js               the week and the record: load, save, sync, the numbers
+    js/store.js               the schedule and the record: load, save, sync, the numbers
     js/account.js             talking to /api/account and the admin endpoints
     js/media.js               shrinking a picture and sending it
-    js/library.js             the video library: list, add, remove — admin only
-    js/exercise-library.js    the exercise pool: list, add, remove — admin only
+    js/library.js             the video library: list, add, update, remove — admin only
+    js/exercise-library.js    the exercise pool: list, add, update, remove — admin only
+    js/workout-library.js     the workout library: list, add, update, remove — admin only
+    js/assignments.js         a schedule: my own, or (admin) anyone's — read; admin-only to write
     js/push.js                asking to be reminded, and what to do if it cannot
-    js/app.js                 the screens, the editor, and the one click handler
-    data/plan.json            the committed week — the floor under the live one
+    js/app.js                 the screens, the admin editors, and the one click handler
     icons/                    app icons, generated from icons/favicon.svg
     manifest.webmanifest      makes it installable
     sw.js                     the offline cache — bump VERSION when the file list changes
@@ -486,9 +592,10 @@ again.
     netlify/functions/account.mjs    accounts: sign up, sign in, Google, reset, change password
     netlify/functions/admin-people.mjs   admin-only: the account roster, read-only
     netlify/functions/admin-reminders.mjs   admin-only: the schedule, the messages, per-person overrides
-    netlify/functions/video-library.mjs     admin-only: saved videos — list, add, remove
-    netlify/functions/exercise-library.mjs  admin-only: saved exercises — list, add, remove
-    netlify/functions/plan.mjs       the week: public to read, admin password to write
+    netlify/functions/video-library.mjs     admin-only: saved videos — list, add, update, remove
+    netlify/functions/exercise-library.mjs  admin-only: saved exercises — list, add, update, remove
+    netlify/functions/workout-library.mjs   admin-only: saved workouts — list, add, update, remove
+    netlify/functions/assignments.mjs   a schedule: self-service to read your own; admin for anyone's, and every write
     netlify/functions/history.mjs    an account's own record: that account only, to read or write
     netlify/functions/media.mjs      pictures: public to read, password to add — no video, see above
     netlify/functions/reminders.mjs  which device wants nudging, and when — an account, signed in
@@ -497,13 +604,13 @@ again.
     netlify/functions/_lib/reminder-shape.mjs the admin schedule's arithmetic — pure, and tested
     netlify/functions/_lib/reminder-config.mjs  the schedule's store, and pushing it onto devices
     netlify/functions/_lib/push.mjs          sending one, and pruning dead devices
-    netlify/functions/_lib/tick.mjs          the sweep itself, so it can also be run on demand
+    netlify/functions/_lib/tick.mjs          the sweep itself, resolving each account's own schedule
     netlify/functions/_lib/auth.mjs          the admin password, its cookie, the stores, the shared session seed
-    netlify/functions/_lib/users.mjs         the account store, its sessions, password resets
+    netlify/functions/_lib/users.mjs         the account store, its sessions, password resets, its assignments
     netlify/functions/_lib/credentials.mjs   password hashing and email validation — pure, and tested
     netlify/functions/_lib/google.mjs        verifying a Google sign-in — pure claim checks, and tested
     netlify/functions/_lib/mail.mjs          sending the reset-link email, via Resend
-    netlify/functions/_lib/data.mjs          the shape of the plan and the record, and every clamp
+    netlify/functions/_lib/data.mjs          the shape of every repository and the record, and every clamp
 
 Run the tests after touching anything under `_lib/`, or `js/catalog.js` /
 `js/insights.js`:
