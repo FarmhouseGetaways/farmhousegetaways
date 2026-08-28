@@ -479,6 +479,16 @@ that has never signed in. Signed in at least once, this browser caches that
 account's own last-synced schedule, which is what a gym with no signal
 falls back to.
 
+**The record screen signs out the same way, fixed 28 Aug 2026 — it did not
+before.** `renderWeek()` and `renderDay()` already refused to show anything
+signed out; `renderHistory()` did not, and read whatever was cached under
+this browser's unscoped, pre-account `history` key regardless — real data on
+a device that had ever logged a workout locally. The **History** icon in the
+topbar is never hidden (unlike Settings and the admin toggle, which are),
+so that leftover local record was one tap away for anyone holding the phone,
+signed in or not. `renderHistory()` now shows the same sign-in gate the week
+does when `!store.get().account`, before touching `store.history()` at all.
+
 **How admin works, since 28 Aug 2026.** Every admin-only endpoint calls
 `isAdminRequest` (`_lib/users.mjs`), which is true for either of two proofs:
 signed in with an account whose email is in `_lib/admin-emails.mjs`, or —
