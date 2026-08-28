@@ -16,8 +16,8 @@
  * has never granted permission — but once it is subscribed, the HOUR it
  * fires at is this endpoint's decision, not that device's.
  */
-import { signedIn, configured, json } from "./_lib/auth.mjs";
-import { listAccounts, findById, setReminderOverride } from "./_lib/users.mjs";
+import { configured, json } from "./_lib/auth.mjs";
+import { listAccounts, findById, setReminderOverride, isAdminRequest } from "./_lib/users.mjs";
 import { allSubs } from "./_lib/push.mjs";
 import {
   getConfig, saveDefault, saveMessage, resetMessages, applyToAccount,
@@ -28,7 +28,7 @@ export const config = { path: "/api/admin/reminders" };
 
 export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
-  if (!signedIn(req)) return json({ ok: false, error: "Admin only." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   if (req.method === "GET") {
     const [cfg, people, subs] = await Promise.all([getConfig(), listAccounts(), allSubs()]);

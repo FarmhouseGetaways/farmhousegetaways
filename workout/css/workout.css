@@ -157,6 +157,24 @@ a { color: var(--blush); }
 .icon-btn:hover { background: var(--card-2); border-color: var(--line-2); }
 .icon-btn--back { font-size: 1.3rem; }
 
+/* Only ever shown to a signed-in admin account — see canAdmin() in app.js.
+   Deliberately a real, visible control rather than a hidden gesture: unlike
+   the old password-unlock this replaced, an admin account already proved who
+   they are just by signing in, so there is nothing left to hide. */
+.admin-toggle {
+  flex: 0 0 auto;
+  padding: .4rem .8rem; min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--card); color: var(--dim);
+  font-size: .74rem; font-weight: 700; letter-spacing: .01em;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.admin-toggle:hover { background: var(--card-2); color: var(--text); }
+.admin-toggle.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
+.admin-toggle.is-on:hover { background: #FC6033; }
+
 main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bottom)); }
 
 /* ---------- type ---------- */
@@ -190,6 +208,18 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .btn--wide { width: 100%; }
 .btn--big { min-height: 60px; font-size: 1.05rem; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* A plain inline text button — no border, no background, no minimum tap
+   target — for an option that should read as a footnote next to a real
+   button, not compete with it. "Create an account" next to Sign In is the
+   first use: one of the two is what almost everyone here presses. */
+.btn--link {
+  display: inline; padding: 0; min-height: 0; border: 0; background: none;
+  color: var(--text); font: inherit; font-size: inherit; font-weight: 600;
+  text-decoration: underline; text-underline-offset: .15em;
+  cursor: pointer;
+}
+.btn--link:hover { color: var(--blush); }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: .6rem; }
 .btn-row > .btn { flex: 1 1 auto; }
@@ -680,7 +710,6 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 }
 
 .foot { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: .82rem; color: var(--dimmer); }
-.foot a { color: var(--dim); }
 
 /* Everything in a grid track gets this: without it a long word or a nowrap
    value grows the track and takes the whole layout off the side of a phone.
@@ -824,35 +853,6 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
   font-size: .88rem; cursor: pointer;
 }
 .video-lib__item:hover { background: var(--card-2); border-color: var(--line-2); }
-
-/* ==========================================================================
-   The footer pills
-
-   The way in, in the place people look for it. The long press and /#/admin
-   still work and always will, but a hidden gesture is a puzzle for the person
-   who owns the thing — and it was being solved four times an evening.
-
-   They are small and quiet on purpose: reachable when wanted, not competing
-   with the button that starts the workout.
-   ========================================================================== */
-
-.pills { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .85rem; }
-
-.pill {
-  display: inline-flex; align-items: center; gap: .35rem;
-  padding: .4rem .85rem; min-height: 36px;
-  border-radius: 999px;
-  border: 1px solid var(--line-2);
-  background: var(--card); color: var(--dim);
-  font-size: .8rem; font-weight: 600;
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
-}
-.pill:hover { background: var(--card-2); color: var(--text); border-color: var(--line-2); }
-.pill--go { border-color: rgba(251, 56, 0, .5); color: var(--blush); }
-.pill--go:hover { background: rgba(251, 56, 0, .12); color: var(--blush); }
-.pill.is-on { background: var(--blush); border-color: var(--blush); color: #2A1216; }
-.pill.is-on:hover { background: #FC6033; color: #2A1216; }
 
 /* ==========================================================================
    Settings

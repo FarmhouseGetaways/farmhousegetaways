@@ -16,7 +16,8 @@
  * so a pool entry can never carry something the day editor itself would
  * have refused.
  */
-import { EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY, signedIn, configured, json } from "./_lib/auth.mjs";
+import { EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY, configured, json } from "./_lib/auth.mjs";
+import { isAdminRequest } from "./_lib/users.mjs";
 import { normaliseExerciseLibrary, normaliseExercise } from "./_lib/data.mjs";
 
 export const config = { path: "/api/exercise-library" };
@@ -31,7 +32,7 @@ const read = async () => {
 
 export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
-  if (!signedIn(req)) return json({ ok: false, error: "Admin only." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   if (req.method === "GET") {
     const list = await read();

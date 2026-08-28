@@ -21,7 +21,8 @@
  * to show them before anybody signs in, and the ids are unguessable hashes.
  * Uploading is not: it needs the session cookie, like every other write.
  */
-import { MEDIA, signedIn, json } from "./_lib/auth.mjs";
+import { MEDIA, json } from "./_lib/auth.mjs";
+import { isAdminRequest } from "./_lib/users.mjs";
 import { createHash } from "node:crypto";
 
 export const config = { path: ["/api/media", "/media/:id"] };
@@ -74,7 +75,7 @@ export default async (req) => {
   }
 
   if (req.method !== "POST") return json({ ok: false }, 405);
-  if (!signedIn(req)) return json({ ok: false, error: "Not signed in." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   const type = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   if (!TYPES[type]) {

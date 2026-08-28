@@ -31,10 +31,14 @@
  */
 import { getStore } from "@netlify/blobs";
 import { createHmac, createHash, timingSafeEqual, randomUUID, randomBytes } from "node:crypto";
-import { sessionSeed, readCookie } from "./auth.mjs";
+import { sessionSeed, readCookie, signedIn as adminPasswordSignedIn } from "./auth.mjs";
 import { hashPassword, verifyPassword, passwordStrongEnough, normaliseEmail, validEmail } from "./credentials.mjs";
+import { isAdminEmail } from "./admin-emails.mjs";
 
-export { hashPassword, verifyPassword, passwordStrongEnough, normaliseEmail, validEmail };
+export { hashPassword, verifyPassword, passwordStrongEnough, normaliseEmail, validEmail, isAdminEmail };
+
+/** Is this account one of the designated admin addresses? See admin-emails.mjs. */
+export const isAdmin = (user) => !!user && isAdminEmail(user.email);
 
 const USERS = () => getStore("workout-users");
 const INDEX_KEY = "index";          // lowercased email -> user id
@@ -50,6 +54,7 @@ const RESET_MINUTES = 60;
 export const publicUser = (u) => u && ({
   id: u.id, email: u.email, name: u.name,
   hasPassword: !!u.passwordHash, hasGoogle: !!u.googleSub,
+  isAdmin: isAdmin(u),
 });
 
 /* ---------- the index and the store ---------- */
@@ -323,4 +328,16 @@ export async function currentAccount(req) {
   if (!user) return null;
   if (String(user.tokenVersion || 1) !== version) return null;
   return user;
+}
+
+/** Every admin-only endpoint's one gate: signed in as a designated admin
+ * account, checked from the account cookie alone — no separate password or
+ * gesture any more (see admin-emails.mjs). The old WORKOUT_PASSWORD cookie
+ * (_lib/auth.mjs's signedIn) still passes too, since nothing in the UI sets
+ * it any more but a few other things (sessionSeed) still depend on the
+ * password being configured, and there is no reason to make that cookie
+ * stop working for whoever still holds one. */
+export async function isAdminRequest(req) {
+  if (adminPasswordSignedIn(req)) return true;
+  return isAdmin(await currentAccount(req));
 }

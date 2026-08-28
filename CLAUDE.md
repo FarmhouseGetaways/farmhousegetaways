@@ -749,36 +749,51 @@ makes Netlify read `workout/netlify.toml` instead of the root one — exactly ho
 forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
 farmhouse domain by accident. **Do not "fix" that 404.**
 
-**The editor is admin-only, behind a long press, and unrelated to accounts.**
-Added 23 Aug 2026: real accounts (below) now handle who a training record
-belongs to, and editing the week is a completely separate lock — the app's
-one shared admin password, `WORKOUT_PASSWORD`, same as it always was.
-Signing into an account never opens any admin screen on its own:
-**press and hold the title for 750ms**, the same gesture the farmhouse app
-uses for its own admin screen, or open `/#/admin` on a laptop, and either way
-it asks for `WORKOUT_PASSWORD`. **The unlock lapses after twelve hours** and
-is stored in `localStorage` — it was `sessionStorage` for one evening, which
-relocked on every new browser tab and drove the owner mad within the hour.
-Twelve hours is long enough to write a week in one sitting and short enough
-that a phone left about tomorrow is locked. Do not "fix" this by making any
-admin screen reachable to an account that is merely signed in. (There is no
-pencil to show any more since the 28 Aug 2026 rebuild — see below — but the
-principle still applies to every admin screen that replaced it.)
+**The editor is admin-only, and since 28 Aug 2026 admin is a property of the
+account, not a password.** Added 23 Aug 2026 as a long-press gesture behind
+the app's one shared password, `WORKOUT_PASSWORD` — the paragraph below is
+what replaced that, at the owner's explicit request: *"for an admin, let's
+designate certain emails to be admins automatically... once the admin is
+logged in, their default view is workout view as a normal user... at the
+top of their page they'll have an option to toggle to admin view."* Three
+things changed in one sitting:
+
+1. **Admin is now a short list of email addresses**, checked against
+   whoever is signed in — `netlify/functions/_lib/admin-emails.mjs`,
+   `corydzbinski@gmail.com` only today. Sign in as one of those and the app
+   already knows; nobody else, signed in or not, ever sees an admin control.
+2. **The long press and the `/#/admin` password prompt are gone from the
+   UI.** They still work server-side — every admin-only endpoint accepts
+   either the account-email proof above OR the old password cookie, via
+   `_lib/users.mjs`'s `isAdminRequest` — because `WORKOUT_PASSWORD` cannot
+   be retired outright: it still signs every session token on the site
+   (`_lib/auth.mjs`'s `sessionSeed`). It is just not reachable by typing
+   anything any more.
+3. **An admin's default view is their own week**, same as anyone else's —
+   they are a person doing workouts too. A toggle at the top of the page,
+   visible only to a signed-in admin account, switches to the admin view
+   (the repositories, the roster, assigning workouts) and back. It is a view
+   preference in `localStorage`, not a second lock, because the account
+   sign-in already is one. **Do not build a second unlock step on top of
+   this** — that was the old design, and the owner explicitly replaced it.
+
+**Signed in as admin, the background still tints red** on every screen —
+carried over unchanged, still the unmissable answer to "which mode am I in".
 
 **Accounts — up to five, for the beta.** Added 23 Aug 2026, at the owner's
-request: "we need accounts/users and also one admin login for editing." So
-there are now two unrelated locks rather than one doing both jobs. An
+request: "we need accounts/users and also one admin login for editing." An
 account is a real person's own email and password, or Google, created or
-signed into from the **Sign in** pill or `/#/login`; it is what a training
-record is attached to and what makes it sync. It has nothing to do with
-`WORKOUT_PASSWORD` and cannot open the editor. Capped at five while this
-stays a small beta rather than real multi-tenant infrastructure — raising
-`MAX_USERS` in `netlify/functions/_lib/users.mjs` is a one-line change
-whenever that conversation happens. The old, single shared record from
-before accounts existed was copied once into whoever created the very first
-account, so nothing already logged was lost. **Google sign-in** and
-**password-reset emails (via Resend)** are both optional and both fail
-quiet: unset `GOOGLE_CLIENT_ID` and the Google button simply does not
+signed into from the **Sign In** button a signed-out visitor sees (a small,
+deliberately less prominent "Create an account" link sits under it) or
+`/#/login`; it is what a training record is attached to and what makes it
+sync. Capped at five while this stays a small beta rather than real
+multi-tenant infrastructure — raising `MAX_USERS` in
+`netlify/functions/_lib/users.mjs` is a one-line change whenever that
+conversation happens. The old, single shared record from before accounts
+existed was copied once into whoever created the very first account, so
+nothing already logged was lost. **Google sign-in** and **password-reset
+emails (via Resend)** are both optional and both fail quiet: unset
+`GOOGLE_CLIENT_ID` and the Google button simply does not
 appear; unset `RESEND_API_KEY`/`RESEND_FROM` and "forgot your password"
 says it cannot send an email rather than pretending to. Passwords are
 hashed with scrypt, never stored or logged in the clear. `workout/README.md`
@@ -926,23 +941,30 @@ Three more things a future session needs to know:
 site — not this site's `ADMIN_PASSWORD`, and nothing to do with `GITHUB_TOKEN`
 or the November token renewal. The week, the record and the accounts all live
 in Netlify Blobs belonging to that site, never in this repository, because
-this repository is public and a training log is not. `data/plan.json` stays
-committed as the floor under the live week and nothing else does.
+this repository is public and a training log is not. There is no committed
+floor file any more — `data/plan.json` was deleted in the 28 Aug 2026
+rebuild along with the shared week it backed; a schedule is personal now, so
+there is nothing generic to fall back to (see below).
 
-**Two cookies, not one.** The admin password goes to `/api/auth` once; an
-account's email and password (or Google credential) goes to `/api/account`.
-Either way what the browser keeps is an HttpOnly, signed, expiring token, not
-the secret itself, and each cookie only ever opens its own door — the admin
-one cannot read a training record, an account cannot edit the week. With
-`WORKOUT_PASSWORD` unset neither system works at all: nobody can sign in as
-admin, nobody can create or use an account, and no record can be read. It
-fails closed.
+**Two cookies, not one.** The account's email and password (or Google
+credential) goes to `/api/account`; the old admin password still goes to
+`/api/auth` and still works, but nothing in the app's own UI sends it any
+more — see *The editor is admin-only* above for what replaced it (a signed-in
+account's own email, checked against a short list). Either way what the
+browser keeps is an HttpOnly, signed, expiring token, not the secret itself,
+and each cookie only ever opens its own door — admin cannot read a training
+record, an account cannot edit the week on its own. With `WORKOUT_PASSWORD`
+unset neither system works at all: nobody can sign in as admin, nobody can
+create or use an account, and no record can be read. It fails closed.
 
-**Everything works with no server at all.** If the functions cannot be reached
-the app falls back to the committed `workout/data/plan.json` and the browser,
-says so at the top of the week, and keeps working — including a whole workout
-done in a gym with no signal, which goes up on its own afterwards. That
-fallback is the normal state of a phone in a garage, so keep it working.
+**Everything works with no server at all.** If the functions cannot be
+reached the app falls back to this account's own last-synced schedule,
+cached in this browser the last time it did reach the server, says so at the
+top of the week, and keeps working — including a whole workout done in a
+gym with no signal, which goes up on its own afterwards. Signed out, or on a
+browser that has never synced this account, there is nothing to fall back
+to and the week says to sign in. That fallback is the normal state of a
+phone in a garage, so keep it working.
 
 The shape of the data and every clamp is in
 `workout/netlify/functions/_lib/data.mjs`, guarded by `data.test.mjs`:

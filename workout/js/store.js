@@ -122,7 +122,6 @@ const state = {
   schedule: [],          // this account's own resolved assignments, or [] signed out
   history: emptyHistory(),
   mode: "local",        // "server" once the server has answered at least once
-  signedIn: false,       // the admin password — gates the editor only
   hasPassword: true,    // assumed until the server says otherwise
   note: "",             // why the mode is what it is, in plain English
   loaded: false,
@@ -205,12 +204,10 @@ export async function load() {
 
   if (authStatus?.res.ok) {
     state.mode = "server";
-    state.signedIn = !!authStatus.body.signedIn;
     state.hasPassword = !!authStatus.body.configured;
     state.note = state.hasPassword ? "" : "No password is set on this site, so nothing can be saved to it.";
   } else {
     state.mode = "local";
-    state.signedIn = false;
     state.note = "Could not reach the app's server.";
   }
 
@@ -271,42 +268,6 @@ function mergeLocalInto(serverHistory) {
   };
 }
 
-/* ---------- signing in ---------- */
-
-/**
- * The password goes to the server once and is not kept anywhere in the
- * browser. What comes back is an HttpOnly cookie the page cannot read.
- */
-export async function signIn(password) {
-  const trimmed = String(password || "").trim();
-  if (!trimmed) return { ok: false, error: "Type the password first." };
-
-  let res, body;
-  try {
-    ({ res, body } = await call(API.auth, { method: "POST", body: JSON.stringify({ password: trimmed }) }));
-  } catch {
-    return { ok: false, error: "Could not reach the app's server. Check the connection and try again." };
-  }
-
-  if (!res.ok || !body.ok) {
-    return { ok: false, error: body.error || "That password isn't right." };
-  }
-
-  // The admin password. It has nothing to do with anyone's training record
-  // or schedule — that is an account's business (see accountLogIn et al
-  // below) — so there is nothing to pull here, only the admin screens
-  // becoming reachable.
-  state.signedIn = true;
-  state.mode = "server";
-  emit();
-  return { ok: true };
-}
-
-export async function signOut() {
-  try { await call(API.auth, { method: "DELETE" }); } catch { /* the cookie expires anyway */ }
-  state.signedIn = false;
-  emit();
-}
 
 /* ---------- accounts ---------- */
 

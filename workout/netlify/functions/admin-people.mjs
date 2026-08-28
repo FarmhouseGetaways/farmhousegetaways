@@ -13,8 +13,8 @@
  * as someone else — see _lib/users.mjs's listAccounts, which already leaves
  * those out before this file ever sees the data.
  */
-import { HISTORY, historyKeyFor, signedIn, configured, json } from "./_lib/auth.mjs";
-import { listAccounts, MAX_USERS } from "./_lib/users.mjs";
+import { HISTORY, historyKeyFor, configured, json } from "./_lib/auth.mjs";
+import { listAccounts, MAX_USERS, isAdminRequest } from "./_lib/users.mjs";
 import { normaliseHistory } from "./_lib/data.mjs";
 
 export const config = { path: "/api/admin/people" };
@@ -22,7 +22,7 @@ export const config = { path: "/api/admin/people" };
 export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
   if (req.method !== "GET") return json({ ok: false }, 405);
-  if (!signedIn(req)) return json({ ok: false, error: "Admin only." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   const people = await listAccounts();
   const withCounts = await Promise.all(people.map(async (p) => {

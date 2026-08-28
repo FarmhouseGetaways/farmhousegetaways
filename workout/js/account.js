@@ -1,10 +1,11 @@
 /* ==========================================================================
    Talking to /api/account.
 
-   Separate from signing in as admin (see store.js's signIn/signOut, still the
-   app's own shared password, still gating the editor and nothing else). This
-   is a real account — email and password, or Google — and it is what a
-   personal training record is attached to.
+   Separate from admin status, which is not a password any more but a
+   property of the account itself — see canAdmin() in app.js and
+   admin-emails.mjs on the server. This is a real account — email and
+   password, or Google — and it is what a personal training record is
+   attached to.
 
    Every function here returns { ok, ... } rather than throwing, the same
    convention store.js uses, so a caller never needs a try/catch just to show

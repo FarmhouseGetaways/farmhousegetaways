@@ -3,6 +3,15 @@
  * specifically. See _lib/users.mjs for the separate, unrelated account
  * system this file's sessionSeed also signs.
  *
+ * NO LONGER THE ONLY WAY IN
+ * Since 28 Aug 2026 admin access is normally granted by account email (see
+ * admin-emails.mjs and users.mjs's isAdminRequest) rather than this
+ * password — nothing in the app's own UI calls signedIn/passwordOk any more.
+ * They still work, and every admin-only endpoint still accepts either path,
+ * because WORKOUT_PASSWORD keeps a job regardless: sessionSeed below signs
+ * both the admin cookie AND every account's session and reset tokens, so it
+ * cannot be retired just because the UI stopped asking for it directly.
+ *
  * THE IDEA
  * The app is a folder of static files. Exactly two things need a server: the
  * plan, so it can be written on one device and followed on another, and the

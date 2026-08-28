@@ -16,8 +16,8 @@
  * (that is how the app shows her what to do today), but never anyone
  * else's.
  */
-import { signedIn, configured, json, WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY } from "./_lib/auth.mjs";
-import { currentAccount, findById, setAssignments } from "./_lib/users.mjs";
+import { configured, json, WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY } from "./_lib/auth.mjs";
+import { currentAccount, findById, setAssignments, isAdminRequest } from "./_lib/users.mjs";
 import {
   normaliseAssignment, normaliseAssignments, resolveAssignments,
   normaliseWorkoutLibrary, normaliseExerciseLibrary,
@@ -37,7 +37,7 @@ export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
 
   const url = new URL(req.url);
-  const admin = signedIn(req);
+  const admin = await isAdminRequest(req);
 
   if (req.method === "GET") {
     let user;

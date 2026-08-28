@@ -13,7 +13,8 @@
  * Not tied to any day. See assignments.mjs for what puts a workout on an
  * actual account's actual weekday.
  */
-import { WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, signedIn, configured, json } from "./_lib/auth.mjs";
+import { WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, configured, json } from "./_lib/auth.mjs";
+import { isAdminRequest } from "./_lib/users.mjs";
 import { normaliseWorkoutLibrary, normaliseWorkout } from "./_lib/data.mjs";
 
 export const config = { path: "/api/workout-library" };
@@ -28,7 +29,7 @@ const read = async () => {
 
 export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
-  if (!signedIn(req)) return json({ ok: false, error: "Admin only." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   if (req.method === "GET") {
     const list = await read();
