@@ -292,7 +292,7 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 /* Everything else sits above it and lets taps fall through — except the real
    buttons, which take theirs back. */
 .today > *:not(.today__hit) { position: relative; z-index: 2; pointer-events: none; }
-.today .btn-row, .today .btn-row * { pointer-events: auto; }
+.today .btn-row, .today .btn-row *, .today .btn--link { pointer-events: auto; }
 
 .today__badge {
   display: inline-flex; align-items: center;
