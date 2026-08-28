@@ -558,6 +558,74 @@ is the safe way to be wrong.
 A skipped build appears greyed out in the Netlify deploy list. That is not a
 failure, it is the line above doing its job.
 
+## Branding — the "CW" mark, and the orange, added 28 Aug 2026
+
+The owner asked for a real logo ("let's use 'CW' for Carissa's Workout"), that
+same mark on the iPhone home-screen icon, and "a proper splash, with anything I
+may be forgetting a splash page needs." Then, once the mark existed, asked to
+recolor the whole app to match it rather than keep the old blush pink next to
+a new orange mark.
+
+**The mark is a vector trace of the owner's own artwork, not a hand-drawn
+guess.** The owner supplied a reference logo (an orange swoosh "C" over a
+white angular "W") only as a 494×284 PNG pasted into chat — genuinely the
+best resolution they had. A first attempt redrew it freehand and got the
+proportions wrong (reported back as "wrong shape overall"). The fix was to
+stop guessing: `potrace` traced the actual reference PNG's pixels directly
+— the orange and white regions separated by color threshold into two masks,
+each traced to a clean vector path, then cropped to their shared bounding
+box — so `icons/favicon.svg`'s paths are the real logo's outline, not an
+approximation of it. Every icon and splash size is rendered from that one
+SVG through Playwright/Chromium (`omitBackground: true` for a transparent
+master) and composited onto the ink background with Pillow. Regenerate
+every size from `icons/favicon.svg` if the mark ever needs to change — do
+not hand-edit any of the PNGs in `icons/`, and if the source artwork
+changes, retrace it with `potrace` rather than redrawing by eye.
+
+**The accent color is now `#FB3800`**, sampled directly from the reference
+logo's orange rather than eyeballed, replacing the old blush pink
+(`#E79AA6`/`#C4707F`) everywhere — the `--blush`/`--blush-2` custom properties
+in `css/workout.css` keep their names (renaming them would have touched many
+call sites for no behavioural gain) but now hold orange. That covers the
+`:root` variables, 17 places that hardcoded the old pink as `rgba(...)` for
+opacity effects rather than referencing the variable, and the lighter hover
+tint (`#F0AAB5` → `#FC6033`). Sage green (`--sage`, "done/complete") was left
+alone — it is still the right semantic contrast against orange-as-primary.
+
+**The icon set**: `icons/icon-192.png`, `icons/icon-512.png`,
+`icons/apple-touch-icon.png` (180×180), and `icons/maskable-512.png` (mark
+kept inside the safe ~80% circle so a round or squircle mask never clips it).
+`manifest.webmanifest` and `index.html`'s `<link rel="apple-touch-icon">`
+already pointed at these filenames, so no reference needed to change — only
+the pixels underneath them did, which is why `sw.js`'s `VERSION` had to bump
+(`workouts-v22`): the shell precache otherwise keeps serving an already-
+installed phone the old pink icon file for ever.
+
+**The splash**: `#boot-splash` in `index.html` is an inline SVG of the mark,
+shown full-viewport over the ink background from the very first paint,
+CSS-animated with a slow pulse (`@keyframes boot-pulse`, respecting
+`prefers-reduced-motion`), and faded out by `hideBootSplash()` in `js/app.js`
+once the first real screen has rendered — called from inside the `ready.then`
+block, after `render()`, so it never disappears onto a still-loading screen.
+A `<noscript>` rule hides it outright if JavaScript never runs, so it can
+never permanently cover the "needs JavaScript" notice.
+
+iOS shows nothing of its own between the home-screen tap and first paint
+unless told what to — that is what the six `apple-touch-startup-image` links
+in `index.html`'s `<head>` are for, one per exact `device-width`/
+`device-height`/`-webkit-device-pixel-ratio`/`orientation` combination Safari
+matches on (it does not scale a close-enough image; an unlisted device just
+gets a plain ink screen for that first instant instead of the branded one).
+The PNGs themselves live in `icons/` alongside the app icons.
+
+**The sign-in gate lost its explanatory copy and gained real buttons.** Per
+feedback that the first draft ("Your week is on your account now...") "sounds
+dumb," the signed-out `renderWeek()` screen is now a plain "Sign in to see
+your week" heading with a one-line description and two ordinary buttons —
+**Sign In** and **Create Account** — rather than one combined button trying to
+explain the account model. The header's signed-out subtitle was also dropped
+(it read "Carissa / sign in", which repeated the buttons right below it).
+
 ## On a phone
 
 It is installable. iPhone: Share, then **Add to Home Screen**. Android: the
