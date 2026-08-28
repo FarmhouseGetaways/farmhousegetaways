@@ -8,19 +8,18 @@
  * then, so a whole workout can be done and logged with the phone in aeroplane
  * mode; it goes up to the server on its own the next time there is a signal.
  *
- * Three rules, and the second and third are the ones that matter:
+ * Two rules, and the second is the one that matters:
  *
  *   the shell        cache first, refreshed quietly in the background
- *   data/*.json      network first — a stale plan would hide a change made
- *                    this morning, and the cached copy is only the fallback
  *   /api/*           never cached, in either direction. One of those requests
- *                    carries a password and the others are the live record.
+ *                    carries a password and the others are the live record
+ *                    and the signed-in account's own schedule.
  *
  * BUMP `VERSION` WHENEVER THE FILE LIST BELOW CHANGES. Without it a phone
  * that already installed the app keeps serving yesterday's copy for ever.
  */
 
-const VERSION = "workouts-v20";
+const VERSION = "workouts-v21";
 
 const SHELL = [
   "./",
@@ -32,6 +31,8 @@ const SHELL = [
   "js/insights.js",
   "js/library.js",
   "js/exercise-library.js",
+  "js/workout-library.js",
+  "js/assignments.js",
   "js/catalog.js",
   "js/media.js",
   "js/push.js",
@@ -68,20 +69,6 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;          // videos and fonts go to the network
   if (url.pathname.startsWith("/api/")) return;        // never cached, never served from cache
-
-  // The plan: fresh if we can get it, cached if we cannot.
-  if (url.pathname.includes("/data/")) {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req)),
-    );
-    return;
-  }
 
   /* The code itself — the page, the scripts, the stylesheet — is fetched fresh
      when there is a network, and served from the cache when there is not.

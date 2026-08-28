@@ -5,12 +5,22 @@
  * Kept apart from the scheduled function itself so the same code can be run
  * on demand from a browser during setup — proving the whole chain works
  * without waiting an hour to find out it does not.
+ *
+ * Each device belongs to an account now, and what it is owed depends on
+ * THAT account's own assignments — the workout and exercise pools are
+ * fetched once per sweep and shared, but each account's schedule and record
+ * are resolved and read separately, cached per account so two devices
+ * signed into the same one do not do the work twice in a single sweep.
  */
-import { PLAN, PLAN_KEY, HISTORY, HISTORY_KEY } from "./auth.mjs";
-import { normalisePlan, normaliseHistory, normaliseReminder } from "./data.mjs";
-import { dueNow } from "./remind.mjs";
+import { HISTORY, historyKeyFor, WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY } from "./auth.mjs";
+import {
+  normaliseHistory, normaliseReminder, normaliseAssignments,
+  normaliseWorkoutLibrary, normaliseExerciseLibrary, resolveAssignments,
+} from "./data.mjs";
+import { dueNow, localNow } from "./remind.mjs";
 import { allSubs, putSub, sendTo, configured } from "./push.mjs";
 import { getConfig } from "./reminder-config.mjs";
+import { findById } from "./users.mjs";
 
 async function readJson(store, key, fallback) {
   try { return (await store().get(key, { type: "json" })) || fallback; }
@@ -28,21 +38,45 @@ export async function runReminders({ at = Date.now(), force = false } = {}) {
     return report;
   }
 
-  const [planRaw, historyRaw, subs, reminderConfig] = await Promise.all([
-    readJson(PLAN, PLAN_KEY, null),
-    readJson(HISTORY, HISTORY_KEY, null),
+  const [workoutsRaw, exercisesRaw, subs, reminderConfig] = await Promise.all([
+    readJson(WORKOUT_LIBRARY, WORKOUT_LIBRARY_KEY, null),
+    readJson(EXERCISE_LIBRARY, EXERCISE_LIBRARY_KEY, null),
     allSubs(),
     getConfig(),
   ]);
+  const workouts = normaliseWorkoutLibrary(workoutsRaw);
+  const exercises = normaliseExerciseLibrary(exercisesRaw);
 
-  const plan = normalisePlan(planRaw);
-  const history = normaliseHistory(historyRaw);
   report.devices = subs.length;
   if (!subs.length) report.why.push("No device has asked to be reminded yet.");
 
+  const accountCache = new Map();
+  async function accountData(accountId) {
+    if (accountCache.has(accountId)) return accountCache.get(accountId);
+    const [user, historyRaw] = await Promise.all([
+      findById(accountId),
+      readJson(HISTORY, historyKeyFor(accountId), null),
+    ]);
+    const resolved = user ? resolveAssignments(normaliseAssignments(user.assignments), workouts, exercises) : [];
+    const week = {};
+    for (const a of resolved) (week[a.day] ||= []).push(a);
+    const data = { week, sessions: normaliseHistory(historyRaw).sessions };
+    accountCache.set(accountId, data);
+    return data;
+  }
+
   for (const sub of subs) {
     const reminder = normaliseReminder(sub.reminder);
-    const due = dueNow({ ...sub, reminder }, plan, history, at, reminderConfig.messages);
+
+    // A device subscribed before accounts existed has no accountId and
+    // cannot be matched to a schedule — see reminders.mjs's own note about
+    // this. Nothing to send; leave it alone rather than guessing.
+    if (!sub.accountId) { report.skipped++; continue; }
+
+    const data = await accountData(sub.accountId);
+    const now = localNow(reminder.tz, at);
+    const todays = data.week[now.day] || [];
+    const due = dueNow({ ...sub, reminder }, todays, data.sessions, at, reminderConfig.messages);
 
     // A snooze whose day has passed is cleared rather than left to rot.
     if (due?.kind === "expired-snooze") {

@@ -15,14 +15,23 @@ import { localNow, dueNow, nextLocalHour } from "./remind.mjs";
 
 const LA = "America/Los_Angeles";
 
-const plan = {
-  days: [
-    { day: "mon", title: "Upper body", minutes: 40, exercises: [{ name: "Push-ups", sets: 3, rest: 60 }] },
-    { day: "tue", title: "", exercises: [] },                       // rest day
-    { day: "wed", title: "Legs", exercises: [{ name: "Squat", sets: 4, rest: 75 }] },
-    { day: "thu", exercises: [] }, { day: "fri", title: "Circuit", exercises: [{ name: "Swing", sets: 4, rest: 60 }] },
-    { day: "sat", exercises: [] }, { day: "sun", exercises: [] },
-  ],
+/* A resolved workout per weekday, or null for a rest day — the shape
+ * _lib/tick.mjs hands dueNow after joining assignments against the pools. */
+const workoutsByDay = {
+  mon: { title: "Upper body", minutes: 40, exercises: [{ name: "Push-ups", sets: 3, rest: 60 }] },
+  tue: null,
+  wed: { title: "Legs", exercises: [{ name: "Squat", sets: 4, rest: 75 }] },
+  thu: null,
+  fri: { title: "Circuit", exercises: [{ name: "Swing", sets: 4, rest: 60 }] },
+  sat: null,
+  sun: null,
+};
+
+/** What dueNow's second argument looks like for a given weekday — a single
+ * resolved assignment, or an empty array on a rest day. */
+const todaysFor = (day) => {
+  const w = workoutsByDay[day];
+  return w ? [{ id: "asn_1", day, time: "08:00", workout: w }] : [];
 };
 
 const sub = (over = {}) => ({
@@ -55,36 +64,47 @@ test("the hour is right on both sides of a daylight-saving change", () => {
 /* ---------- when to speak ---------- */
 
 test("the daily reminder fires on the hour it was set to", () => {
-  const due = dueNow(sub(), plan, { sessions: [] }, FRI_8AM);
+  const due = dueNow(sub(), todaysFor("fri"), [], FRI_8AM);
   assert.equal(due.kind, "daily");
   assert.match(due.body, /Circuit/);
   assert.equal(due.sentDate, "2026-08-21");
 });
 
 test("and says nothing on any other hour", () => {
-  assert.equal(dueNow(sub(), plan, { sessions: [] }, FRI_9AM), null);
+  assert.equal(dueNow(sub(), todaysFor("fri"), [], FRI_9AM), null);
 });
 
 test("a rest day is part of the plan, not something to be nagged about", () => {
-  assert.equal(dueNow(sub(), plan, { sessions: [] }, TUE_8AM), null);
+  assert.equal(dueNow(sub(), todaysFor("tue"), [], TUE_8AM), null);
 });
 
 test("nothing is said once the workout is done", () => {
-  const history = { sessions: [{ id: "s1", date: "2026-08-21" }] };
-  assert.equal(dueNow(sub(), plan, history, FRI_8AM), null);
+  const sessions = [{ id: "s1", date: "2026-08-21" }];
+  assert.equal(dueNow(sub(), todaysFor("fri"), sessions, FRI_8AM), null);
 });
 
 test("it speaks once a day, not once an hour", () => {
   const already = sub({ lastSentDate: "2026-08-21" });
-  assert.equal(dueNow(already, plan, { sessions: [] }, FRI_8AM), null);
+  assert.equal(dueNow(already, todaysFor("fri"), [], FRI_8AM), null);
   // ...but tomorrow is a new day.
   const nextFriday = Date.UTC(2026, 7, 28, 15, 0, 0);
-  assert.equal(dueNow(already, plan, { sessions: [] }, nextFriday).kind, "daily");
+  assert.equal(dueNow(already, todaysFor("fri"), [], nextFriday).kind, "daily");
 });
 
 test("turned off means silent", () => {
-  assert.equal(dueNow(sub({ enabled: false }), plan, { sessions: [] }, FRI_8AM), null);
-  assert.equal(dueNow({ endpoint: "x" }, plan, { sessions: [] }, FRI_8AM), null);
+  assert.equal(dueNow(sub({ enabled: false }), todaysFor("fri"), [], FRI_8AM), null);
+  assert.equal(dueNow({ endpoint: "x" }, todaysFor("fri"), [], FRI_8AM), null);
+});
+
+test("more than one workout the same day says how many, and names them", () => {
+  const two = [
+    { id: "asn_1", day: "fri", time: "06:00", workout: { title: "Circuit", exercises: [{ sets: 4, rest: 60 }] } },
+    { id: "asn_2", day: "fri", time: "18:00", workout: { title: "Mobility", exercises: [{ sets: 2, rest: 30 }] } },
+  ];
+  const due = dueNow(sub(), two, [], FRI_8AM);
+  assert.match(due.body, /2 workouts today/);
+  assert.match(due.body, /Circuit/);
+  assert.match(due.body, /Mobility/);
 });
 
 /* ---------- snoozing ---------- */
@@ -92,29 +112,29 @@ test("turned off means silent", () => {
 test("a snooze speaks at the hour she chose, even though the daily one already went", () => {
   const s = sub({ lastSentDate: "2026-08-21", snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0) }); // 5pm LA
   const fivePm = Date.UTC(2026, 7, 22, 0, 0, 0);
-  const due = dueNow(s, plan, { sessions: [] }, fivePm);
+  const due = dueNow(s, todaysFor("fri"), [], fivePm);
   assert.equal(due.kind, "snooze");
   assert.equal(due.title, "Don't forget to do your workout today!");   // the default message, with no config passed
-  assert.match(due.url, /#\/go\/fri$/);      // straight into the workout
+  assert.match(due.url, /#\/day\/fri$/);
 });
 
 test("a snooze's message comes from the hour it was snoozed TO, admin-configurable same as the daily one", () => {
   const s = sub({ lastSentDate: "2026-08-21", snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0) }); // 5pm LA
   const fivePm = Date.UTC(2026, 7, 22, 0, 0, 0);
   const messages = { 17: "One more push before dinner!" };
-  const due = dueNow(s, plan, { sessions: [] }, fivePm, messages);
+  const due = dueNow(s, todaysFor("fri"), [], fivePm, messages);
   assert.equal(due.title, "One more push before dinner!");
 });
 
 test("a snooze does not speak before its time", () => {
   const s = sub({ lastSentDate: "2026-08-21", snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0) });
-  assert.equal(dueNow(s, plan, { sessions: [] }, FRI_9AM), null);
+  assert.equal(dueNow(s, todaysFor("fri"), [], FRI_9AM), null);
 });
 
 test("a snooze slept through is not a reason to be woken tomorrow", () => {
   const s = sub({ lastSentDate: "2026-08-21", snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0) });
   const nextDay = Date.UTC(2026, 7, 23, 15, 0, 0);     // Saturday morning LA
-  const due = dueNow(s, plan, { sessions: [] }, nextDay);
+  const due = dueNow(s, todaysFor("sat"), [], nextDay);
   // Saturday is a rest day here, so the only possible answer is silence —
   // but the point is that the stale snooze did not resurrect itself.
   assert.equal(due, null);
@@ -123,7 +143,7 @@ test("a snooze slept through is not a reason to be woken tomorrow", () => {
 test("a stale snooze is reported so it can be cleared, not left to rot", () => {
   const monday = Date.UTC(2026, 7, 24, 15, 0, 0);      // Monday 8am LA, a training day
   const s = sub({ snoozeUntil: Date.UTC(2026, 7, 22, 0, 0, 0), hour: 23 });
-  assert.equal(dueNow(s, plan, { sessions: [] }, monday).kind, "expired-snooze");
+  assert.equal(dueNow(s, todaysFor("mon"), [], monday).kind, "expired-snooze");
 });
 
 /* ---------- choosing an hour ---------- */
