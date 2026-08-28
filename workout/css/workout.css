@@ -145,6 +145,11 @@ a { color: var(--blush); }
 }
 .topbar__sub { display: block; font-family: var(--sans); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--dimmer); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* The CW mark, standing in for the word "Carissa" on the week screen only —
+   see setTitle() in app.js. Sized to roughly the cap-height of the text it
+   replaces so the topbar's rhythm does not shift between screens. */
+.topbar__logo { display: block; height: 28px; width: auto; }
+
 .icon-btn {
   flex: 0 0 auto;
   width: 42px; height: 42px;
@@ -255,8 +260,13 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
     radial-gradient(120% 90% at 12% 0%, rgba(251, 56, 0, .20), transparent 62%),
     linear-gradient(168deg, rgba(251, 56, 0, .10), rgba(251, 56, 0, .02) 55%),
     var(--card);
-  box-shadow: 0 12px 30px -24px rgba(251, 56, 0, .5);
-  overflow: hidden;
+  /* The orange glow this card always had, plus a soft green one behind it —
+     today, specifically, gets its own quiet "this one is live" signal. Not
+     overflow:hidden any more — that clipped the glow along with whatever it
+     was guarding against, and nothing here actually needs it (the image has
+     its own border-radius, and the background already clips to this box's
+     own rounded corners by default). */
+  box-shadow: 0 12px 30px -24px rgba(251, 56, 0, .5), 0 0 34px -8px rgba(157, 194, 168, .5);
 }
 
 /* A hairline of light along the top edge — the thing that makes a dark card
@@ -272,7 +282,7 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .today--go:hover {
   transform: translateY(-2px);
   border-color: rgba(251, 56, 0, .6);
-  box-shadow: 0 18px 38px -22px rgba(251, 56, 0, .62);
+  box-shadow: 0 18px 38px -22px rgba(251, 56, 0, .62), 0 0 34px -8px rgba(157, 194, 168, .5);
 }
 .today--go:active { transform: translateY(0); }
 .today--go:has(.today__hit:focus-visible) { outline: 2px solid var(--blush); outline-offset: 3px; }
@@ -343,7 +353,9 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .today--rest {
   border-color: var(--line);
   background: linear-gradient(168deg, rgba(255, 255, 255, .045), transparent 60%), var(--card);
-  box-shadow: none;
+  /* Quieter than a day with a workout on it — no orange glow, since there is
+     nothing to press — but still today, so the green stays. */
+  box-shadow: 0 0 34px -8px rgba(157, 194, 168, .5);
 }
 .today--rest .today__badge { background: rgba(255, 255, 255, .05); border-color: var(--line-2); color: var(--dimmer); }
 .today--rest .today__title { color: var(--dim); }
@@ -373,7 +385,10 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 }
 .day__title { display: block; font-family: var(--display); font-size: 1.15rem; line-height: 1.2; margin: 0 0 .3rem; overflow-wrap: anywhere; }
 .day__meta { display: block; font-size: .8rem; color: var(--dim); }
-.day.is-today { border-color: rgba(251, 56, 0, .45); }
+.day.is-today {
+  border-color: rgba(251, 56, 0, .45);
+  box-shadow: 0 0 18px -4px rgba(157, 194, 168, .55);
+}
 .day.is-today .day__name { color: var(--blush); }
 
 /* A day with training in it and a day off should not look like the same card

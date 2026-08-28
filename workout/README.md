@@ -711,6 +711,29 @@ your week" heading with a one-line description and two ordinary buttons —
 explain the account model. The header's signed-out subtitle was also dropped
 (it read "Carissa / sign in", which repeated the buttons right below it).
 
+**The topbar wears the mark instead of spelling out "Carissa," on the week
+screen only.** `LOGO_MARK_SVG` in `js/app.js` is the same potrace-traced
+paths as the boot splash, inlined so it never costs a request and stays
+crisp at any size — `setTitle()` swaps it in only when `main === "Carissa"`,
+so a day, the record, Settings, or any admin screen still spells its own
+name out in the topbar the way a back button and page context should.
+
+**Today's card, and today's cell in the week grid, get a soft green glow
+alongside whatever orange they already had** — a quiet second signal for
+"this one is today," independent of whether there is a workout on it.
+Requested directly, and it took a second pass: the first attempt added the
+glow to `.today` (the hero card) as a `box-shadow`, and it rendered on a
+`--go` day but not on a rest day, because `.today--rest` explicitly reset
+`box-shadow: none` to keep a rest day visually quieter — same specificity,
+later in the file, so it always won. It also did not render AT ALL until
+`.today`'s own `overflow: hidden` was removed, which had been clipping the
+shadow along with whatever it was originally added to guard (nothing
+still on this card actually needs it: the thumbnail has its own
+border-radius, and a background already clips to its box's rounded corners
+without help). Both fixed — `.today--rest` keeps the green while dropping
+the orange, matching the "quieter, nothing to press" reasoning it already
+had.
+
 ## On a phone
 
 It is installable. iPhone: Share, then **Add to Home Screen**. Android: the
