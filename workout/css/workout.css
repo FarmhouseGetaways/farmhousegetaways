@@ -13,6 +13,7 @@
 :root {
   --ink:      #131013;   /* warm near-black, not blue-black */
   --ink-2:    #1B171B;
+  --ink-admin: #2B0F11;  /* signed in as admin — a clear, unmistakable tint */
   --card:     rgba(255, 255, 255, 0.045);
   --card-2:   rgba(255, 255, 255, 0.075);
   --line:     rgba(255, 255, 255, 0.10);
@@ -57,7 +58,12 @@ body {
      the screen must not be able to scroll the page sideways. */
   overflow-x: hidden;
   overscroll-behavior-y: contain;
+  transition: background .2s ease;
 }
+
+/* Signed in as admin — every screen gets a visibly different background so
+   there is no doubt which mode she is in, not just while a draft is open. */
+body.is-admin { background: var(--ink-admin); }
 
 img, video, iframe { display: block; max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }
