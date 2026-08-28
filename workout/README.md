@@ -266,17 +266,31 @@ nothing.
 **An admin's default view is their own week, same as anyone else's — they
 are a person doing workouts too.** What is new is a toggle at the top of the
 page, next to History and Settings, shown ONLY to a signed-in admin account:
-press **Admin view** to switch to the repositories and the roster, **My
-view** to switch back. It is a view preference, not a second lock — the
-account sign-in already is one — so it needs no password of its own and is
-simply remembered in this browser's `localStorage`.
+press **Admin view** to switch, **User view** to switch back. It is a view
+preference, not a second lock — the account sign-in already is one — so it
+needs no password of its own and is simply remembered in this browser's
+`localStorage`.
 
 **In admin view, the background tints red** on every screen, not just the
 admin ones — an unmissable answer to "which mode am I in", carried over
 unchanged from the old design.
 
-Switch to admin view — or press **Settings → Edit the week (admin)** once
-already there — for every admin screen:
+**Admin view has none of a user's own data on it, fixed 28 Aug 2026 — it did
+at first.** The first version just tinted whatever the week or day screen
+would already show — today's card, the seven-day grid, the streak and
+calorie stats, "See the whole record", the History icon — and left the
+actual admin screens one tap further away, behind Settings. Reported back
+plainly: *"This is admin not user. Go through and remove all user items
+from admin mode. I also don't see my repositories or a way to make
+workouts."* Both `renderWeek()` and `renderDay()` now hand off to
+`renderAdminHome()` instead of rendering their own content whenever
+`adminOn()` is true, and the History icon hides in admin view the same way
+it already hides signed out (`setTitle()`, `$("#history-btn").hidden`).
+`renderAdminHome()` is a plain list of the six admin screens — nothing else
+— and is genuinely the first thing admin view shows, not a stop on the way
+to Settings.
+
+Switch to admin view — you land straight on it — for every admin screen:
 
 - **Exercise pool** — every exercise, with Edit (a sheet: name, picture,
   video, sets, reps, rest, effort, notes) and Remove.

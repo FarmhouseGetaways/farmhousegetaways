@@ -261,6 +261,42 @@ function renderWeek() {
 }
 
 /* ==========================================================================
+   Admin's own front door
+
+   Reached instead of the week the moment admin view is switched on — not a
+   red tint on the same screen a signed-in user sees, with the actual admin
+   screens buried in Settings. Nothing here is a user's own data: no today
+   card, no week of days, no stats, no "how it is going". Just the six
+   places that build the week for everyone else.
+   ========================================================================== */
+
+function renderAdminHome() {
+  bar.hidden = true;
+
+  const items = [
+    ["#/admin/exercises", "Exercise pool", "Name, video, sets, reps, rest, effort — the only place an exercise is created or edited."],
+    ["#/admin/workouts", "Workouts", "Build a workout from exercises already in the pool, and reorder or remove them."],
+    ["#/admin/assign", "Assign workouts", "Pick a person, then a day, then a time, then a workout for them to do."],
+    ["#/admin/videos", "Video library", "Saved YouTube links, so a video is picked once rather than pasted in every time."],
+    ["#/admin/reminders", "Reminder schedule", "The default hour, a message per hour, and any account's own override."],
+    ["#/admin/people", "Who has an account", "A read-only roster — name, email, when they joined, when they last signed in."],
+  ];
+
+  screen.innerHTML = `
+    <p class="eyebrow">Admin</p>
+    <h2 class="h-display">Build the week</h2>
+    <p class="muted" style="margin:.5rem 0 1.5rem">Exercises, workouts and who they are assigned to each live on
+      their own screen below. Every change saves the moment it is made — there is nothing to publish separately.</p>
+    <ul class="log">
+      ${items.map(([href, title, desc]) => `<li><button type="button" class="log__row" data-go="${href}">
+        <span><span class="log__title">${title}</span><span class="log__when">${desc}</span></span>
+      </button></li>`).join("")}
+    </ul>`;
+
+  setTitle("Admin", "build the week");
+}
+
+/* ==========================================================================
    One day
    ========================================================================== */
 
@@ -1545,22 +1581,6 @@ function settingsSheet() {
         ? `<p class="set-group__note" style="margin-top:.7rem">Signed in with Google — no separate password to change here.</p>` : ""}
     </section>
 
-    ${adminOn() ? `
-    <section class="set-group">
-      <h3 class="set-group__h">Edit the week</h3>
-      <p class="set-group__note">Exercises, workouts and who they are assigned to each live on their own screen —
-        every change there saves immediately.</p>
-      <div class="btn-row">
-        <button class="btn btn--ghost" data-action="admin-toggle">Back to my view</button>
-        <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
-        <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
-        <button class="btn btn--ghost" data-action="go-admin-videos">Video library</button>
-        <button class="btn btn--ghost" data-action="go-admin-exercises">Exercise pool</button>
-        <button class="btn btn--ghost" data-action="go-admin-workouts">Workouts</button>
-        <button class="btn btn--ghost" data-action="go-admin-assign">Assign workouts</button>
-      </div>
-    </section>` : ""}
-
     <section class="set-group set-group--last">
       <h3 class="set-group__h">Put it on the home screen</h3>
       <p class="set-group__note">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu,
@@ -2175,7 +2195,7 @@ function setTitle(main, sub) {
   const toggle = $("#admin-toggle");
   toggle.hidden = !canAdmin();
   if (!toggle.hidden) {
-    toggle.textContent = adminOn() ? "My view" : "Admin view";
+    toggle.textContent = adminOn() ? "User view" : "Admin view";
     toggle.classList.toggle("is-on", adminOn());
   }
 
@@ -2185,8 +2205,9 @@ function setTitle(main, sub) {
 
   // The record is per-account too (see renderHistory's own gate) — showing
   // the icon signed out just leads to the same "sign in" screen the week
-  // already shows, one tap for nothing.
-  $("#history-btn").hidden = !store.get().account;
+  // already shows, one tap for nothing. Hidden in admin view as well: it is
+  // the admin's own history, a user item, and admin view shows none of those.
+  $("#history-btn").hidden = !store.get().account || adminOn();
 }
 
 function render() {
@@ -2203,16 +2224,23 @@ function render() {
     mountedMedia = null;
   }
 
+  // The week and a single day are both a signed-in user's own data — in
+  // admin view there is no "own data" to show, so both land on the admin
+  // home instead. Every other route (the player, a finished workout, the
+  // record, an admin screen by name) is unaffected.
+  const weekOrAdminHome = () => (adminOn() ? renderAdminHome() : renderWeek());
+  const dayOrAdminHome = (key) => (adminOn() ? renderAdminHome() : renderDay(key));
+
   // #/edit/mon was the old in-place day editor's URL. There is no such
   // thing any more — editing lives entirely in the admin screens — so this
   // just lands on the day itself, kept only because the URL may be
   // bookmarked somewhere.
   if (route === "edit" && DAY_KEYS.includes(arg)) {
     location.replace(`#/day/${arg}`);
-    return renderDay(arg);
+    return dayOrAdminHome(arg);
   }
 
-  if (route === "day" && DAY_KEYS.includes(arg)) return renderDay(arg);
+  if (route === "day" && DAY_KEYS.includes(arg)) return dayOrAdminHome(arg);
   if (route === "go" && arg) return renderPlayer(arg);
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
@@ -2230,13 +2258,13 @@ function render() {
     // account is allowed one at all; otherwise it is simply not a route.
     if (canAdmin()) setAdminView(true);
     location.replace("#/");
-    return renderWeek();
+    return weekOrAdminHome();
   }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
   if (route === "forgot") return renderAccountScreen("forgot");
   if (route === "reset") return renderAccountScreen("reset", new URLSearchParams(query || "").get("token") || "");
-  return renderWeek();
+  return weekOrAdminHome();
 }
 
 window.addEventListener("hashchange", () => { window.scrollTo(0, 0); render(); });
@@ -2366,15 +2394,13 @@ document.addEventListener("click", (e) => {
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "admin-toggle": {
-      const next = !adminOn();
-      setAdminView(next);
+      setAdminView(!adminOn());
       settingsDraft = null;
       closeSheet(true);
+      // render() itself decides what "#/" means for the mode just switched
+      // to — the week, or the admin home — so nothing further to pick here.
       location.hash = "#/";
       render();
-      // Switching into admin view: land straight on the repositories and
-      // roster it unlocks, same as pressing Settings would once there.
-      if (next) settingsSheet();
       break;
     }
     case "save-settings":
@@ -2392,10 +2418,6 @@ document.addEventListener("click", (e) => {
     case "go-remind": settingsDraft = null; closeSheet(true); go("#/remind"); break;
     case "go-login": settingsDraft = null; closeSheet(true); go("#/login"); break;
     case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
-    case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
-    case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
-    case "go-admin-videos": settingsDraft = null; closeSheet(true); go("#/admin/videos"); break;
-    case "go-admin-exercises": settingsDraft = null; closeSheet(true); go("#/admin/exercises"); break;
     case "video-edit": {
       const current = videoCache.find((v) => v.id === id);
       if (!current) break;
@@ -2467,7 +2489,6 @@ document.addEventListener("click", (e) => {
     }
 
     /* ---- the workout library ---- */
-    case "go-admin-workouts": settingsDraft = null; closeSheet(true); go("#/admin/workouts"); break;
     case "workout-new": {
       const title = prompt("Title:");
       if (!title || !title.trim()) break;
@@ -2553,7 +2574,6 @@ document.addEventListener("click", (e) => {
     }
 
     /* ---- assigning workouts to a person's week ---- */
-    case "go-admin-assign": settingsDraft = null; closeSheet(true); go("#/admin/assign"); break;
     case "assign-add": assignPickSheet(el.dataset.user, day); break;
     case "assign-save": {
       const userId = el.dataset.user;
