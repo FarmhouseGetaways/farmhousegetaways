@@ -283,15 +283,24 @@ main { flex: 1 1 auto; padding: 1.25rem 0 calc(2.5rem + env(safe-area-inset-bott
 .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; }
 
 .day {
+  position: relative;
   display: block; width: 100%; text-align: left;
   background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius-s); padding: .85rem .9rem;
+  border-radius: var(--radius-s); padding: 2rem .9rem .85rem;
   cursor: pointer; min-width: 0;
   transition: background .15s ease, border-color .15s ease;
 }
 .day:hover { background: var(--card-2); border-color: var(--line-2); }
-.day__name { display: flex; justify-content: space-between; align-items: center; gap: .4rem; font-size: .7rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--dimmer); }
-.day__title { display: block; font-family: var(--display); font-size: 1.15rem; line-height: 1.2; margin: .35rem 0 .3rem; overflow-wrap: anywhere; }
+/* Pinned to the card's own corner rather than sitting in the flow, so it
+   lines up across every card in the row regardless of how tall that card's
+   title makes it — a short Tuesday no longer reads shorter than a wrapped
+   Monday. */
+.day__name {
+  position: absolute; top: .8rem; right: .9rem;
+  display: flex; align-items: center; gap: .3rem;
+  font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--dimmer);
+}
+.day__title { display: block; font-family: var(--display); font-size: 1.15rem; line-height: 1.2; margin: 0 0 .3rem; overflow-wrap: anywhere; }
 .day__meta { display: block; font-size: .8rem; color: var(--dim); }
 .day.is-today { border-color: rgba(231, 154, 166, .45); }
 .day.is-today .day__name { color: var(--blush); }
