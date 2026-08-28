@@ -19,7 +19,7 @@
  * that already installed the app keeps serving yesterday's copy for ever.
  */
 
-const VERSION = "workouts-v29";
+const VERSION = "workouts-v30";
 
 const SHELL = [
   "./",
