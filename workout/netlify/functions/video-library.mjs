@@ -1,7 +1,8 @@
 /**
- * GET  /api/video-library                              → every saved video
- * POST /api/video-library { intent: "add", label, url } → save one
- * POST /api/video-library { intent: "remove", id }      → drop one
+ * GET  /api/video-library                                     → every saved video
+ * POST /api/video-library { intent: "add", label, url }       → save one
+ * POST /api/video-library { intent: "update", id, label, url } → edit one in place
+ * POST /api/video-library { intent: "remove", id }             → drop one
  *
  * Admin-only, the same shared password that gates the editor — this is
  * part of building the week, not something any signed-in account needs.
@@ -50,6 +51,14 @@ export default async (req) => {
       return json({ ok: false, error: "That link is already saved." }, 400);
     }
     next = [entry, ...list].slice(0, 200);
+  } else if (intent === "update") {
+    const entry = normaliseLibraryEntry({ id: body.id, label: body.label, url: body.url });
+    if (!entry) return json({ ok: false, error: "Give it a name and a video link." }, 400);
+    if (!list.some((e) => e.id === entry.id)) return json({ ok: false, error: "That video is not saved here." }, 404);
+    if (list.some((e) => e.url === entry.url && e.id !== entry.id)) {
+      return json({ ok: false, error: "That link is already saved." }, 400);
+    }
+    next = list.map((e) => (e.id === entry.id ? entry : e));
   } else if (intent === "remove") {
     next = list.filter((e) => e.id !== body.id);
   } else {

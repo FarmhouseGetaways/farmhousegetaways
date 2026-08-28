@@ -235,6 +235,13 @@ Entries are validated the same way an exercise's own video field is —
 scheme the app would refuse to embed anyway. Capped at 200, far more than a
 home gym's worth of moves.
 
+**Settings → Edit the week (admin) → Video library** is its own screen —
+every saved link at once, with Edit and Remove, rather than only being
+reachable from inside one exercise's media sheet. Editing a saved link's
+name or url here updates the library entry itself; it does not reach back
+into exercises that already copied the old url in — picking from the
+library copies the link at that moment, it is not a live reference.
+
 ### The exercise pool — a whole exercise saved, not just its video
 
 Added 27 Aug 2026, at the owner's request: a place to see every exercise

@@ -27,4 +27,5 @@ async function call(options = {}) {
 
 export const list = () => call();
 export const add = (label, url) => call({ method: "POST", body: JSON.stringify({ intent: "add", label, url }) });
+export const update = (id, label, url) => call({ method: "POST", body: JSON.stringify({ intent: "update", id, label, url }) });
 export const remove = (id) => call({ method: "POST", body: JSON.stringify({ intent: "remove", id }) });

@@ -1872,6 +1872,7 @@ function settingsSheet() {
         <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
         <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
         <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
+        <button class="btn btn--ghost" data-action="go-admin-videos">Video library</button>
         <button class="btn btn--ghost" data-action="go-admin-exercises">Exercise pool</button>
       </div>
     </section>` : ""}
@@ -2033,6 +2034,45 @@ function renderAdminPeople() {
           <b>${plural(p.workouts, "workout")}</b>
         </li>`).join("")}
       </ul>` : `<p class="muted">Nobody has signed up yet.</p>`}
+    `);
+  });
+}
+
+/* Whichever video list was loaded last, so an edit prompt can pre-fill with
+   the current label and url rather than asking the admin to retype them. */
+let videoCache = [];
+
+/** Admin only — every saved YouTube (or other) link, on its own screen. Until
+ * now the library was only reachable from inside an exercise's media sheet;
+ * this is somewhere to see and tidy the whole thing at once. */
+function renderAdminVideos() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Video library", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">The video library</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  library.list().then((res) => {
+    if (location.hash !== "#/admin/videos") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    videoCache = res.videos;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${res.videos.length
+        ? `${plural(res.videos.length, "video")} saved. Pick one from "From the library" on any exercise's video.`
+        : `Nothing saved yet. "Save this video to the library" on any exercise adds one.`}</p>
+      ${res.videos.length ? res.videos.map((vid) => `
+        <div class="admin-person">
+          <div class="admin-person__who">
+            <strong>${esc(vid.label)}</strong>
+            <span class="dimmer small" style="overflow-wrap:anywhere">${esc(vid.url)}</span>
+          </div>
+          <div class="admin-person__row">
+            <button class="btn btn--ghost" data-action="video-edit" data-id="${esc(vid.id)}">Edit</button>
+            <button class="btn btn--ghost" data-action="video-remove" data-id="${esc(vid.id)}">Remove</button>
+          </div>
+        </div>`).join("") : ""}
     `);
   });
 }
@@ -2239,6 +2279,7 @@ function render() {
   if (route === "remind") return renderRemind();
   if (route === "admin" && arg === "people") return renderAdminPeople();
   if (route === "admin" && arg === "reminders") return renderAdminReminders();
+  if (route === "admin" && arg === "videos") return renderAdminVideos();
   if (route === "admin" && arg === "exercises") return renderAdminExercises();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
   if (route === "login") return renderAccountScreen("login");
@@ -2506,7 +2547,29 @@ document.addEventListener("click", (e) => {
     case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
     case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
     case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
+    case "go-admin-videos": settingsDraft = null; closeSheet(true); go("#/admin/videos"); break;
     case "go-admin-exercises": settingsDraft = null; closeSheet(true); go("#/admin/exercises"); break;
+    case "video-edit": {
+      const current = videoCache.find((v) => v.id === id);
+      if (!current) break;
+      const label = prompt("Name:", current.label);
+      if (label === null) break;
+      const url = prompt("Video link:", current.url);
+      if (url === null) break;
+      library.update(id, label, url).then((res) => {
+        toast(res.ok ? "Saved." : res.error, res.ok ? "good" : "bad");
+        if (res.ok) renderAdminVideos();
+      });
+      break;
+    }
+    case "video-remove":
+      if (confirm("Remove this from the library? Any exercise already using this link keeps it.")) {
+        library.remove(id).then((res) => {
+          toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
+          if (res.ok) renderAdminVideos();
+        });
+      }
+      break;
     case "pool-remove":
       if (confirm("Remove this from the pool? It stays on any day it is already used on.")) {
         exerciseLibrary.remove(id).then((res) => {
