@@ -2725,6 +2725,16 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+/* Fades out the boot splash once the first real screen has painted. Guarded
+   so a slow font load or a second call (there is only one today, but it's
+   cheap insurance) never throws on an element already gone. */
+function hideBootSplash() {
+  const el = document.getElementById("boot-splash");
+  if (!el) return;
+  el.classList.add("is-hidden");
+  el.addEventListener("transitionend", () => el.remove(), { once: true });
+}
+
 armAdminGesture();
 
 store.subscribe(() => {
@@ -2741,6 +2751,7 @@ ready = store.load();
 
 ready.then(() => {
   render();
+  hideBootSplash();
   const live = store.loadLive();
   // A genuinely recent session is worth surfacing on cold start. A stale one
   // (hours old — see isStale) is not: without this check it said so on
