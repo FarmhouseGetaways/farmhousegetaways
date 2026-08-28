@@ -191,7 +191,7 @@ function renderWeek() {
     ? `<div class="today today--rest today--go">
          <button class="today__hit" data-go="#/day/${today}" aria-label="Open ${DAY_NAMES[today]}"></button>
          <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="today__title">Off</h2>
+         <h2 class="today__title">No workout today</h2>
          <p class="today__desc">Nothing scheduled. Rest is part of the plan.</p>
        </div>`
     : todays.map((item) => {
@@ -237,7 +237,7 @@ function renderWeek() {
         return `<button class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}" data-go="#/day/${key}">
           <span class="day__name">${DAY_SHORT[key]}${doneWeek[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
           ${first?.image ? `<img class="day__shot" src="${esc(first.image)}" alt="" loading="lazy">` : ""}
-          <span class="day__title">${rest ? "Off" : esc(label)}</span>
+          <span class="day__title">${rest ? "No workout" : esc(label)}</span>
           <span class="day__meta">${rest ? "Rest day" : plural(items.length, "workout")}</span>
         </button>`;
       }).join("")}
