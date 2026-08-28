@@ -652,12 +652,25 @@ the same policy meant a browser (or a Safari tab, or an already-open PWA)
 that had fetched the old icon kept it for up to seven days after the new one
 shipped, with no way to tell. `netlify.toml` now gives `/icons/*` the same
 `public, max-age=0, must-revalidate` policy as `css/js/data` — always
-revalidated, never silently stale. **This cannot fix an icon already pinned
-to an iPhone home screen**, though: iOS snapshots that once, at "Add to Home
-Screen", and never re-fetches it regardless of any HTTP header. The only way
-to see a changed one there is to remove it from the home screen and add it
-again — tell the owner this rather than looking for a code fix if it comes
-up a second time.
+revalidated, never silently stale.
+
+**A header change alone did not fix it, because it cannot** — a header only
+governs a fetch that has not happened yet. A phone that had already cached
+`icons/apple-touch-icon.png` under the *old* week-long policy keeps serving
+those bytes from its own local cache for up to seven days from whenever it
+first fetched them, no matter what the server's headers say now; removing
+the icon from the home screen and adding it again still requests the exact
+same URL, so it can still be answered from that stale local cache without a
+network round trip at all. The owner reported exactly this: reinstalling the
+home-screen icon did not update it.
+
+**The actual fix is the same one `css/site.css?v=XXXXXXXX` uses on the main
+farmhousegetaways site: change the URL.** Every icon reference —
+`index.html`'s `<link>` tags, `manifest.webmanifest`'s `icons` array, and
+`sw.js`'s `SHELL` precache list — now carries `?v=cw2`. A different URL can
+never be answered from a cache keyed on the old one, on any device, no
+matter what it cached or when. Bump the tag (`cw3`, and so on) any time the
+icon files change again; there is no build step to do this automatically.
 
 **The splash**: `#boot-splash` in `index.html` is an inline SVG of the mark,
 shown full-viewport over the ink background from the very first paint,

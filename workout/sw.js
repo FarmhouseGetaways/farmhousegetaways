@@ -19,7 +19,7 @@
  * that already installed the app keeps serving yesterday's copy for ever.
  */
 
-const VERSION = "workouts-v26";
+const VERSION = "workouts-v27";
 
 const SHELL = [
   "./",
@@ -37,10 +37,10 @@ const SHELL = [
   "js/media.js",
   "js/push.js",
   "manifest.webmanifest",
-  "icons/favicon.svg",
-  "icons/icon-192.png",
-  "icons/icon-512.png",
-  "icons/apple-touch-icon.png",
+  "icons/favicon.svg?v=cw2",
+  "icons/icon-192.png?v=cw2",
+  "icons/icon-512.png?v=cw2",
+  "icons/apple-touch-icon.png?v=cw2",
 ];
 
 self.addEventListener("install", (event) => {
