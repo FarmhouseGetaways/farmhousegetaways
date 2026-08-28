@@ -1093,6 +1093,25 @@ function badgeRow(insights) {
 }
 
 function renderHistory() {
+  if (!store.get().account) {
+    screen.innerHTML = `
+      ${storageNotice()}
+      <div class="today today--rest">
+        <h2 class="today__title">Sign in to see your record</h2>
+        <p class="today__desc">Your workouts, streaks and personal bests are kept against your account —
+          nobody else's, and not visible to anyone signed out.</p>
+        <div class="btn-row" style="margin-top:1.1rem">
+          <button class="btn btn--go btn--big btn--wide" data-go="#/login">Sign In</button>
+        </div>
+        <p class="small dimmer" style="margin-top:.85rem">New here?
+          <button type="button" class="btn--link" data-go="#/signup">Create an account</button></p>
+      </div>
+      ${footer()}`;
+    setTitle("Record", "");
+    bar.hidden = true;
+    return;
+  }
+
   const h = store.history();
   const stats = store.stats();
   const insights = store.insights();
