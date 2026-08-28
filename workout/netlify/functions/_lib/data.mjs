@@ -1,21 +1,31 @@
 /**
  * The shape of the data, and the rules about it.
  *
- * Two things are stored:
+ * Rebuilt 28 Aug 2026 around three repositories instead of one shared week:
  *
- *   the plan       the seven days and what is in each of them. Public to read
- *                  — it is a list of exercises — and written by whoever holds
- *                  the password.
- *   the history    every workout finished, plus the couple of settings the
- *                  calorie estimate needs. Private: it is a record of one
- *                  person's body and what it did every day, and reading it
- *                  needs the password as much as writing it does.
+ *   the exercise pool   every exercise that exists, full stop — name, video,
+ *                       picture, sets, reps, rest, effort, notes. Admin-only
+ *                       to create or edit. A workout never carries its own
+ *                       copy of these fields — it references an exercise by
+ *                       id, so editing one here changes it everywhere it is
+ *                       used, instead of a workout freezing a copy in time.
+ *   the workout library a named, reusable workout — a title, a picture, and
+ *                       an ordered list of exercise ids from the pool above.
+ *                       Not tied to any day; the same workout can be assigned
+ *                       to any number of people on any number of days.
+ *   assignments         which workout(s) a given account does on a given
+ *                       weekday, each at its own time of day. Stored on the
+ *                       account itself (see _lib/users.mjs) — personal, not
+ *                       shared, and multiple can land on the same day.
+ *
+ * The history is unchanged in spirit: every workout finished, plus the couple
+ * of settings the calorie estimate needs. Private — it is a record of one
+ * person's body and what it did, and reading it needs an account signed in.
  *
  * Both live in Netlify Blobs, which is why this file exists: anything arriving
  * from a browser is a suggestion, not truth. Everything is clamped, trimmed,
  * capped and given an id here before it is allowed near the store — a phone
- * with a stuck finger must not be able to write a hundred megabytes, and a
- * hand-edited plan.json must not be able to take the app down.
+ * with a stuck finger must not be able to write a hundred megabytes.
  *
  * Plain module, no dependencies, so it can be tested with nothing installed:
  *
@@ -48,8 +58,8 @@ const MAX = {
   notes: 600,
   url: 2000,
   effort: 40,
-  exercises: 40,          // per day
-  minutes: 600,           // ten hours, for an estimate on a day card
+  exercises: 40,          // per workout
+  minutes: 600,           // ten hours, for an estimate on a workout card
   sets: 10,               // the owner asked for one to ten, and means it
   rest: 900,              // fifteen minutes between sets is already generous
   sessions: 2000,         // roughly five years of training, kept in full
@@ -57,6 +67,8 @@ const MAX = {
   seconds: 60 * 60 * 24,  // a single session cannot claim more than a day
   library: 200,           // saved videos — far more than a home gym needs
   exerciseLibrary: 300,   // saved exercises — same reasoning, a bit more room
+  workoutLibrary: 200,    // saved workouts, built from the exercises above
+  assignments: 60,        // one account's whole schedule — plenty for 7 days
 };
 
 const clampNum = (value, lo, hi, fallback) => {
@@ -116,61 +128,6 @@ export function normaliseExercise(raw) {
   };
 }
 
-function normaliseDay(raw, key) {
-  const src = raw && typeof raw === "object" ? raw : {};
-  const exercises = (Array.isArray(src.exercises) ? src.exercises : [])
-    .map(normaliseExercise)
-    .filter(Boolean)
-    .slice(0, MAX.exercises);
-
-  return {
-    day: key,
-    title: text(src.title, MAX.title),
-    description: block(src.description, MAX.description),
-    // A picture for the workout itself — what it looks like, or simply
-    // something to recognise it by on the week board. Nothing to do with the
-    // videos inside it.
-    image: safeUrl(src.image),
-    // Nought means "no estimate given", which the app shows as the sum of the
-    // exercises instead of an empty space.
-    minutes: clampNum(src.minutes, 0, MAX.minutes, 0),
-    exercises,
-  };
-}
-
-/** An empty week — seven rest days. What a brand new site starts from. */
-export function emptyPlan() {
-  return {
-    version: 1,
-    updated: new Date().toISOString(),
-    days: DAY_KEYS.map((key) => normaliseDay(null, key)),
-  };
-}
-
-/**
- * Take whatever arrived and return a plan with exactly seven days in the right
- * order, whether the input was an array, an object keyed by day, or nonsense.
- */
-export function normalisePlan(raw) {
-  const src = raw && typeof raw === "object" ? raw : {};
-  const byKey = {};
-
-  if (Array.isArray(src.days)) {
-    for (const d of src.days) {
-      const key = text(d?.day, 8).toLowerCase();
-      if (DAY_KEYS.includes(key)) byKey[key] = d;
-    }
-  } else if (src.days && typeof src.days === "object") {
-    for (const key of DAY_KEYS) if (src.days[key]) byKey[key] = src.days[key];
-  }
-
-  return {
-    version: 1,
-    updated: new Date().toISOString(),
-    days: DAY_KEYS.map((key) => normaliseDay(byKey[key], key)),
-  };
-}
-
 /* ---------- history ---------- */
 
 const isoDate = (value) => {
@@ -218,6 +175,12 @@ export function normaliseSession(raw) {
   return {
     id: text(raw.id, 60) || uid("s"),
     day: DAY_KEYS.includes(day) ? day : "",
+    // Which workout this was, and which of possibly several assignments that
+    // day it came from — both optional, since a session logged before this
+    // existed (or the workout it names has since been removed) still has to
+    // read fine on the history screen from its own title/exercises alone.
+    workoutId: text(raw.workoutId, 40),
+    assignmentId: text(raw.assignmentId, 40),
     title: text(raw.title, MAX.title) || "Workout",
     date: isoDate(raw.date),
     startedAt: isoStamp(raw.startedAt),
@@ -386,6 +349,109 @@ export function normaliseLibrary(raw) {
 export function normaliseExerciseLibrary(raw) {
   const list = Array.isArray(raw) ? raw : Array.isArray(raw?.exercises) ? raw.exercises : [];
   return list.map(normaliseExercise).filter(Boolean).slice(0, MAX.exerciseLibrary);
+}
+
+/* --------------------------------------------------------------------------
+   The workout library
+
+   A named, reusable workout: a title, a picture, and an ORDERED LIST OF
+   EXERCISE IDS from the pool above — never a copy of the exercises
+   themselves. That is what makes editing an exercise in the pool change it
+   everywhere it is used: there is only ever one copy of it, referenced by
+   id, not five slightly different ones that happened to start out the same.
+   See workout-library.mjs.
+   -------------------------------------------------------------------------- */
+
+export function normaliseWorkout(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const title = text(raw.title, MAX.title);
+  if (!title) return null;                       // a workout with no name is a blank row
+  const exerciseIds = (Array.isArray(raw.exerciseIds) ? raw.exerciseIds : [])
+    .map((id) => text(id, 40))
+    .filter(Boolean)
+    .slice(0, MAX.exercises);
+  return {
+    id: text(raw.id, 40) || uid("wk"),
+    title,
+    description: block(raw.description, MAX.description),
+    image: safeUrl(raw.image),
+    // Nought means "no estimate given", which the app shows as the sum of the
+    // exercises instead of an empty space.
+    minutes: clampNum(raw.minutes, 0, MAX.minutes, 0),
+    exerciseIds,
+  };
+}
+
+export function normaliseWorkoutLibrary(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.workouts) ? raw.workouts : [];
+  return list.map(normaliseWorkout).filter(Boolean).slice(0, MAX.workoutLibrary);
+}
+
+/* --------------------------------------------------------------------------
+   Assignments
+
+   Which workout(s) one account does on a given weekday, each at its own time
+   — stored on the account itself (see _lib/users.mjs's `assignments` field),
+   not in a store of its own, the same reasoning as a reminder override:
+   there are at most five accounts, so a small array on each one is simpler
+   than a second index. Multiple assignments can share a day; nothing here
+   assumes one workout per day the way the old plan did.
+   -------------------------------------------------------------------------- */
+
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** "HH:MM", 24-hour, or a fallback. Not validated against Intl — a time of day
+ * has no zone of its own here; it is read against whichever zone a reminder
+ * or the person themself is in when they look at it. */
+export function clockTime(value, fallback = "08:00") {
+  const s = text(value, 5);
+  return TIME_RE.test(s) ? s : fallback;
+}
+
+export function normaliseAssignment(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const day = text(raw.day, 8).toLowerCase();
+  const workoutId = text(raw.workoutId, 40);
+  if (!DAY_KEYS.includes(day) || !workoutId) return null;   // both required — an assignment is nothing without them
+  return {
+    id: text(raw.id, 40) || uid("asn"),
+    day,
+    time: clockTime(raw.time),
+    workoutId,
+  };
+}
+
+/** Sorted Monday-first, then by time within a day — the order the app always
+ * wants this in, so nothing downstream has to sort it again. */
+export function normaliseAssignments(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.assignments) ? raw.assignments : [];
+  return list.map(normaliseAssignment).filter(Boolean)
+    .sort((a, b) => (a.day === b.day
+      ? (a.time < b.time ? -1 : a.time > b.time ? 1 : 0)
+      : DAY_KEYS.indexOf(a.day) - DAY_KEYS.indexOf(b.day)))
+    .slice(0, MAX.assignments);
+}
+
+/**
+ * Join one account's assignments against the workout and exercise pools into
+ * something the app can render or play directly — each assignment with its
+ * workout, and each workout with its exercises, resolved live rather than
+ * frozen at the moment the assignment was made.
+ *
+ * A workout removed from the library since, or an exercise removed from a
+ * workout's list, comes back as `workout: null` / a shorter `exercises`
+ * array rather than throwing — a dangling assignment should read as
+ * "something to fix", never crash the screen that would let it be fixed.
+ */
+export function resolveAssignments(assignments, workouts, exercises) {
+  const workoutsById = Object.fromEntries((workouts || []).map((w) => [w.id, w]));
+  const exercisesById = Object.fromEntries((exercises || []).map((e) => [e.id, e]));
+  return (assignments || []).map((a) => {
+    const workout = workoutsById[a.workoutId];
+    if (!workout) return { ...a, workout: null };
+    const resolvedExercises = workout.exerciseIds.map((id) => exercisesById[id]).filter(Boolean);
+    return { ...a, workout: { ...workout, exercises: resolvedExercises } };
+  });
 }
 
 export const LIMITS = MAX;

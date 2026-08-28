@@ -1,10 +1,14 @@
 /**
- * GET  /api/exercise-library                    → every saved exercise
- * POST /api/exercise-library { intent: "add", ...exercise fields }  → save one
- * POST /api/exercise-library { intent: "remove", id }               → drop one
+ * GET  /api/exercise-library                                   → every saved exercise
+ * POST /api/exercise-library { intent: "add", ...exercise fields }    → save one
+ * POST /api/exercise-library { intent: "update", id, ...exercise fields } → edit one in place
+ * POST /api/exercise-library { intent: "remove", id }                     → drop one
  *
- * Admin-only, same as the video library and the editor itself — this is
- * part of building the week, not something any signed-in account needs.
+ * Admin-only, same as the video library and the editor itself. This is now
+ * the ONLY place an exercise's name, video, picture, sets, reps, rest,
+ * effort or notes are ever set — a workout only ever references an exercise
+ * by id (see workout-library.mjs), so editing one here changes it
+ * everywhere it is used, immediately, rather than freezing a copy in time.
  *
  * A saved exercise is exactly the shape one already has inside a day —
  * name, video, image, sets, reps, rest, effort, notes — normalised and
@@ -49,6 +53,11 @@ export default async (req) => {
     const entry = normaliseExercise(body);
     if (!entry) return json({ ok: false, error: "Give it a name first." }, 400);
     next = [entry, ...list].slice(0, 300);
+  } else if (intent === "update") {
+    const entry = normaliseExercise({ ...body, id: body.id });
+    if (!entry) return json({ ok: false, error: "Give it a name first." }, 400);
+    if (!list.some((e) => e.id === entry.id)) return json({ ok: false, error: "That exercise is not in the pool." }, 404);
+    next = list.map((e) => (e.id === entry.id ? entry : e));
   } else if (intent === "remove") {
     next = list.filter((e) => e.id !== body.id);
   } else {

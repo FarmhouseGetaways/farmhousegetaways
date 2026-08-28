@@ -86,8 +86,13 @@
   status = 200
 
 [[redirects]]
-  from = "/api/plan"
-  to = "/.netlify/functions/plan"
+  from = "/api/workout-library"
+  to = "/.netlify/functions/workout-library"
+  status = 200
+
+[[redirects]]
+  from = "/api/assignments"
+  to = "/.netlify/functions/assignments"
   status = 200
 
 [[redirects]]

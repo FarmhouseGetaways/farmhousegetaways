@@ -12,40 +12,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
+  normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
   normaliseReminder, timezone, normaliseLibraryEntry, normaliseLibrary,
   normaliseExercise, normaliseExerciseLibrary,
+  normaliseWorkout, normaliseWorkoutLibrary,
+  clockTime, normaliseAssignment, normaliseAssignments, resolveAssignments,
 } from "./data.mjs";
-
-/* ---------- the week ---------- */
-
-test("a plan always comes back as seven days, Monday first", () => {
-  const p = normalisePlan({ days: [{ day: "wed", title: "Legs" }] });
-  assert.equal(p.days.length, 7);
-  assert.deepEqual(p.days.map((d) => d.day), ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
-  assert.equal(p.days[2].title, "Legs");
-  assert.equal(p.days[0].title, "");
-});
-
-test("a plan keyed by day object, not an array, still reads", () => {
-  const p = normalisePlan({ days: { sat: { title: "Long walk", minutes: 90 } } });
-  assert.equal(p.days[5].title, "Long walk");
-  assert.equal(p.days[5].minutes, 90);
-});
-
-test("nonsense in gives an empty week out, never a crash", () => {
-  for (const junk of [null, undefined, 42, "plan", [], { days: "nope" }]) {
-    const p = normalisePlan(junk);
-    assert.equal(p.days.length, 7);
-  }
-  assert.equal(emptyPlan().days.length, DAYS.length);
-});
 
 /* ---------- exercises ---------- */
 
 test("sets are clamped to the one-to-ten the owner asked for", () => {
-  const of = (sets) => normalisePlan({ days: [{ day: "mon", exercises: [{ name: "Squat", sets }] }] }).days[0].exercises[0].sets;
+  const of = (sets) => normaliseExercise({ name: "Squat", sets }).sets;
   assert.equal(of(0), 1);
   assert.equal(of(-5), 1);
   assert.equal(of(11), 10);
@@ -56,24 +34,21 @@ test("sets are clamped to the one-to-ten the owner asked for", () => {
 });
 
 test("an exercise with no name is dropped rather than stored blank", () => {
-  const day = normalisePlan({
-    days: [{ day: "mon", exercises: [{ name: "Push-ups" }, { name: "   " }, { sets: 3 }, null] }],
-  }).days[0];
-  assert.equal(day.exercises.length, 1);
-  assert.equal(day.exercises[0].name, "Push-ups");
+  const pool = normaliseExerciseLibrary([{ name: "Push-ups" }, { name: "   " }, { sets: 3 }, null]);
+  assert.equal(pool.length, 1);
+  assert.equal(pool[0].name, "Push-ups");
 });
 
 test("every exercise gets an id, and a given one is kept", () => {
-  const day = normalisePlan({
-    days: [{ day: "mon", exercises: [{ name: "A" }, { id: "ex_keepme", name: "B" }] }],
-  }).days[0];
-  assert.match(day.exercises[0].id, /^ex_/);
-  assert.equal(day.exercises[1].id, "ex_keepme");
-  assert.notEqual(day.exercises[0].id, day.exercises[1].id);
+  const a = normaliseExercise({ name: "A" });
+  const b = normaliseExercise({ id: "ex_keepme", name: "B" });
+  assert.match(a.id, /^ex_/);
+  assert.equal(b.id, "ex_keepme");
+  assert.notEqual(a.id, b.id);
 });
 
 test("reps stay free text — 'to failure' is a real answer", () => {
-  const ex = normalisePlan({ days: [{ day: "mon", exercises: [{ name: "Plank", reps: "45 seconds" }] }] }).days[0].exercises[0];
+  const ex = normaliseExercise({ name: "Plank", reps: "45 seconds" });
   assert.equal(ex.reps, "45 seconds");
 });
 
@@ -90,39 +65,25 @@ test("only http(s) and same-folder paths survive", () => {
 });
 
 test("an exercise can carry a still as well as a video", () => {
-  const ex = normalisePlan({
-    days: [{ day: "mon", exercises: [{ name: "Squat", video: "https://youtu.be/abc", image: "/media/deadbeef.jpg" }] }],
-  }).days[0].exercises[0];
+  const ex = normaliseExercise({ name: "Squat", video: "https://youtu.be/abc", image: "/media/deadbeef.jpg" });
   assert.equal(ex.video, "https://youtu.be/abc");
   assert.equal(ex.image, "/media/deadbeef.jpg");
 });
 
 test("an exercise with neither video nor image still stores both as empty strings", () => {
-  const ex = normalisePlan({ days: [{ day: "mon", exercises: [{ name: "Squat" }] }] }).days[0].exercises[0];
+  const ex = normaliseExercise({ name: "Squat" });
   assert.equal(ex.video, "");
   assert.equal(ex.image, "");
 });
 
 test("a hostile image URL is dropped like a hostile video one", () => {
-  const ex = normalisePlan({
-    days: [{ day: "mon", exercises: [{ name: "Squat", image: "javascript:alert(1)" }] }],
-  }).days[0].exercises[0];
+  const ex = normaliseExercise({ name: "Squat", image: "javascript:alert(1)" });
   assert.equal(ex.image, "");
 });
 
 test("an uploaded media path survives", () => {
   assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.jpg"), "/media/0123456789abcdef0123456789abcdef.jpg");
   assert.equal(safeUrl("/media/0123456789abcdef0123456789abcdef.mp4"), "/media/0123456789abcdef0123456789abcdef.mp4");
-});
-
-test("a day carries a picture of its own, separate from any exercise", () => {
-  const d = normalisePlan({
-    days: [{ day: "mon", title: "Push", image: "/media/abc.jpg",
-             exercises: [{ name: "Push-ups", image: "/media/def.jpg", video: "https://youtu.be/x" }] }],
-  }).days[0];
-  assert.equal(d.image, "/media/abc.jpg");
-  assert.equal(d.exercises[0].image, "/media/def.jpg");
-  assert.equal(d.exercises[0].video, "https://youtu.be/x");
 });
 
 /* ---------- reminders ---------- */
@@ -273,4 +234,88 @@ test("the pool survives junk without throwing, and drops blank entries", () => {
 test("the pool is capped rather than allowed to grow without bound", () => {
   const many = Array.from({ length: 350 }, (_, n) => ({ name: `Exercise ${n}` }));
   assert.equal(normaliseExerciseLibrary(many).length, 300);
+});
+
+/* ---------- the workout library ---------- */
+
+test("a workout needs a title, and carries exercise ids, not exercises", () => {
+  assert.equal(normaliseWorkout({ title: "" }), null);
+  assert.equal(normaliseWorkout(null), null);
+  const w = normaliseWorkout({ title: "Push day", exerciseIds: ["ex_a", "ex_b", "", "ex_a"] });
+  assert.equal(w.title, "Push day");
+  // ids are kept as given, including a duplicate — that is a workout that
+  // uses the same exercise twice on purpose (e.g. warm-up and finisher). A
+  // blank one is dropped; anything that does not match a real exercise once
+  // resolved reads as missing rather than being filtered here (see resolving
+  // tests below) — this function only cleans up the shape.
+  assert.deepEqual(w.exerciseIds, ["ex_a", "ex_b", "ex_a"]);
+});
+
+test("a workout keeps a given id, or gets one", () => {
+  const withId = normaliseWorkout({ id: "wk_fixed", title: "Legs" });
+  assert.equal(withId.id, "wk_fixed");
+  const withoutId = normaliseWorkout({ title: "Legs" });
+  assert.ok(withoutId.id.startsWith("wk_"));
+});
+
+test("the workout library survives junk and is capped", () => {
+  const lib = normaliseWorkoutLibrary([{ title: "Real one" }, null, {}, { title: "" }]);
+  assert.equal(lib.length, 1);
+  assert.equal(normaliseWorkoutLibrary(null).length, 0);
+  const many = Array.from({ length: 250 }, (_, n) => ({ title: `Workout ${n}` }));
+  assert.equal(normaliseWorkoutLibrary(many).length, 200);
+});
+
+/* ---------- assignments ---------- */
+
+test("a clock time must be HH:MM, 24-hour, or it falls back", () => {
+  assert.equal(clockTime("07:30"), "07:30");
+  assert.equal(clockTime("23:59"), "23:59");
+  assert.equal(clockTime("7:30"), "08:00");     // not zero-padded — rejected, not guessed at
+  assert.equal(clockTime("24:00"), "08:00");
+  assert.equal(clockTime("noon"), "08:00");
+  assert.equal(clockTime("", "18:00"), "18:00");
+});
+
+test("an assignment needs a real day and a workout id", () => {
+  assert.equal(normaliseAssignment({ day: "mon" }), null);          // no workout
+  assert.equal(normaliseAssignment({ workoutId: "wk_a" }), null);   // no day
+  assert.equal(normaliseAssignment({ day: "someday", workoutId: "wk_a" }), null);
+  const a = normaliseAssignment({ day: "MON", workoutId: "wk_a", time: "06:15" });
+  assert.equal(a.day, "mon");
+  assert.equal(a.time, "06:15");
+  assert.equal(a.workoutId, "wk_a");
+  assert.match(a.id, /^asn_/);
+});
+
+test("assignments come back sorted by day, then by time within a day", () => {
+  const list = normaliseAssignments([
+    { day: "wed", time: "07:00", workoutId: "wk_a" },
+    { day: "mon", time: "18:00", workoutId: "wk_b" },
+    { day: "mon", time: "06:00", workoutId: "wk_c" },
+  ]);
+  assert.deepEqual(list.map((a) => `${a.day} ${a.time}`), ["mon 06:00", "mon 18:00", "wed 07:00"]);
+});
+
+test("assignments are capped rather than allowed to grow without bound", () => {
+  const many = Array.from({ length: 90 }, (_, n) => ({ day: "mon", time: "06:00", workoutId: `wk_${n}` }));
+  assert.equal(normaliseAssignments(many).length, 60);
+});
+
+test("resolving joins an assignment to its workout and the workout to its exercises", () => {
+  const workouts = [{ id: "wk_a", title: "Push day", exerciseIds: ["ex_1", "ex_2"] }];
+  const exercises = [{ id: "ex_1", name: "Push-ups" }, { id: "ex_2", name: "Dips" }];
+  const [resolved] = resolveAssignments([{ id: "asn_1", day: "mon", time: "06:00", workoutId: "wk_a" }], workouts, exercises);
+  assert.equal(resolved.workout.title, "Push day");
+  assert.deepEqual(resolved.workout.exercises.map((e) => e.name), ["Push-ups", "Dips"]);
+});
+
+test("resolving a dangling reference reads as missing rather than throwing", () => {
+  const [gone] = resolveAssignments([{ id: "asn_1", day: "mon", time: "06:00", workoutId: "wk_missing" }], [], []);
+  assert.equal(gone.workout, null);
+
+  const workouts = [{ id: "wk_a", title: "Push day", exerciseIds: ["ex_1", "ex_gone"] }];
+  const exercises = [{ id: "ex_1", name: "Push-ups" }];
+  const [partial] = resolveAssignments([{ id: "asn_2", day: "mon", time: "06:00", workoutId: "wk_a" }], workouts, exercises);
+  assert.equal(partial.workout.exercises.length, 1);
 });

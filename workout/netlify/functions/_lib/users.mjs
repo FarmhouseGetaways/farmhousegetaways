@@ -117,6 +117,10 @@ export async function createUser({ email, password, name, googleSub }) {
     // site-wide default", set means this account has its own. See
     // _lib/reminder-config.mjs.
     reminderOverride: null,
+    // This account's own schedule — which workout(s), on which weekday, at
+    // which time. Set entirely by the admin (see assignments.mjs); an
+    // account can read its own but never write here.
+    assignments: [],
   };
 
   await USERS().setJSON(record.id, record);
@@ -195,6 +199,18 @@ export async function listAccounts() {
       reminderOverride: u.reminderOverride || null,
     }))
     .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+}
+
+/** This account's own schedule — a straight replacement, the same reasoning
+ * as savePlan used to have: there is one editor (the admin) and one
+ * schedule per person, so there is nothing to merge. See assignments.mjs,
+ * which validates the shape before this is ever called. */
+export async function setAssignments(userId, assignments) {
+  const user = await findById(userId);
+  if (!user) return false;
+  user.assignments = Array.isArray(assignments) ? assignments : [];
+  await USERS().setJSON(userId, user);
+  return true;
 }
 
 /* ---------- password reset ----------

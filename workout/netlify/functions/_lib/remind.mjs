@@ -16,8 +16,10 @@
  *   already done today        →  say nothing. She knows.
  *   already said today        →  say nothing more, unless a snooze is due.
  *
- * Everything here is a pure function of the time, the plan and the record, so
- * it can be tested without a clock, a phone or a push service.
+ * Everything here is a pure function of the time, that account's own
+ * assignments for the day and their own record, so it can be tested without
+ * a clock, a phone, a push service or a Blobs store — see _lib/tick.mjs for
+ * the impure half that fetches the pools and resolves them.
  */
 
 import { DAYS } from "./data.mjs";
@@ -53,27 +55,34 @@ export function localNow(tz, at = Date.now()) {
 /**
  * Should this device hear from us right now, and what should it say?
  *
+ * `todays` is that account's own resolved assignments for whatever weekday
+ * `now.day` turns out to be in this device's own zone — see
+ * `resolveAssignments` in data.mjs and _lib/tick.mjs, which does the
+ * fetching and hands this function only what it needs.
+ *
  * Returns null for "no", or the notification to send. Called once an hour per
  * device, so "no" is by far the commonest answer and it has to be cheap and
  * certain.
  */
-export function dueNow(sub, plan, history, at = Date.now(), messages = null) {
+export function dueNow(sub, todays, historySessions, at = Date.now(), messages = null) {
   const r = sub?.reminder;
   if (!r || !r.enabled) return null;
 
   const now = localNow(r.tz, at);
-  const day = (plan?.days || []).find((d) => d.day === now.day);
 
   // A rest day is part of the plan, not a thing to be nagged about.
-  if (!day || !day.exercises?.length) return null;
+  if (!todays || !todays.length) return null;
 
   // Already done. Nothing is more likely to get an app deleted than being told
   // to do the thing you have just finished.
-  const doneToday = (history?.sessions || []).some((s) => s.date === now.date);
+  const doneToday = (historySessions || []).some((s) => s.date === now.date);
   if (doneToday) return null;
 
-  const title = day.title || "Today's workout";
-  const teaser = `${plural(day.exercises.length, "exercise")}, about ${minutesFor(day)} minutes.`;
+  const single = todays.length === 1 ? todays[0].workout : null;
+  const title = single ? (single.title || "Today's workout") : `${todays.length} workouts today`;
+  const teaser = single
+    ? `${plural(single.exercises.length, "exercise")}, about ${minutesFor(single)} minutes.`
+    : todays.map((a) => a.workout?.title).filter(Boolean).join(", ") || "See the day for what is scheduled.";
 
   // A snooze is the one thing allowed to speak twice in a day, because she
   // asked it to. It only counts on the day it was set — a snooze slept through
@@ -87,7 +96,7 @@ export function dueNow(sub, plan, history, at = Date.now(), messages = null) {
         title: messageFor(messages, set.hour),
         body: `${title} — ${teaser}`,
         tag: "workout-snooze",
-        url: `/#/go/${now.day}`,
+        url: `/#/day/${now.day}`,
       };
     }
     return { kind: "expired-snooze" };      // clear it, send nothing
@@ -108,10 +117,12 @@ export function dueNow(sub, plan, history, at = Date.now(), messages = null) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** What the day card says, so the notification and the app agree. */
-function minutesFor(day) {
-  if (day.minutes) return day.minutes;
-  const seconds = (day.exercises || []).reduce((n, ex) => n + (ex.sets || 0) * (45 + (ex.rest || 0)), 0);
+/** What the day says, so the notification and the app agree. `workout` is a
+ * resolved one — `{ minutes, exercises: [{ sets, rest }] }` — the same shape
+ * whether it came from an assignment or, in a test, was made up by hand. */
+function minutesFor(workout) {
+  if (workout.minutes) return workout.minutes;
+  const seconds = (workout.exercises || []).reduce((n, ex) => n + (ex.sets || 0) * (45 + (ex.rest || 0)), 0);
   return Math.max(1, Math.round(seconds / 60));
 }
 

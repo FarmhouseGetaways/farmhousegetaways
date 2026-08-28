@@ -745,16 +745,18 @@ farmhouse domain by accident. **Do not "fix" that 404.**
 **The editor is admin-only, behind a long press, and unrelated to accounts.**
 Added 23 Aug 2026: real accounts (below) now handle who a training record
 belongs to, and editing the week is a completely separate lock — the app's
-one shared admin password, `WORKOUT_PASSWORD`, same as it always was. The
-pencil does not appear just because somebody has signed into an account:
+one shared admin password, `WORKOUT_PASSWORD`, same as it always was.
+Signing into an account never opens any admin screen on its own:
 **press and hold the title for 750ms**, the same gesture the farmhouse app
 uses for its own admin screen, or open `/#/admin` on a laptop, and either way
 it asks for `WORKOUT_PASSWORD`. **The unlock lapses after twelve hours** and
 is stored in `localStorage` — it was `sessionStorage` for one evening, which
 relocked on every new browser tab and drove the owner mad within the hour.
 Twelve hours is long enough to write a week in one sitting and short enough
-that a phone left about tomorrow is locked. Do not "fix" this by showing the
-pencil to anyone signed into an account.
+that a phone left about tomorrow is locked. Do not "fix" this by making any
+admin screen reachable to an account that is merely signed in. (There is no
+pencil to show any more since the 28 Aug 2026 rebuild — see below — but the
+principle still applies to every admin screen that replaced it.)
 
 **Accounts — up to five, for the beta.** Added 23 Aug 2026, at the owner's
 request: "we need accounts/users and also one admin login for editing." So
@@ -836,44 +838,80 @@ in fresh. Any exercise's media sheet has "Save this video to the library",
 which works on an OLD exercise's video just as well as a new one — that is
 the answer to "I already built workouts before there was a library."
 
-**The exercise pool, added 27 Aug 2026.** The owner then asked for the same
-treatment on a whole exercise, not just its video: "I need to be able to see
-the pool of exercises that I have created as an admin. A user or admin should
-then be able to select from this pool of exercises to create workouts" —
-scoped to admin-only for both viewing and picking, matching the video
-library's access model exactly, per the owner's follow-up answers. Any day
-being edited gets a "From the pool" button beside "+ Add an exercise"; any
-exercise gets "Save to the pool" beside its fields. Picking one copies the
-whole thing — name, picture, video, sets, reps, rest, effort, notes — onto
-the day with a fresh id, so it never shares one with the pool entry or
-collides with another exercise already there. Settings → Edit the week
-(admin) → Exercise pool is the roster, with Remove; removing a pool entry
-never touches a day it is already used on, because it was copied in, not
-linked. Server-side it is `/api/exercise-library`, reusing the exact same
-`normaliseExercise` a day's own exercises go through, so a pool entry can
-never carry something the day editor itself would have refused. Capped at
-300.
+**The exercise pool, added 27 Aug 2026, then rebuilt 28 Aug 2026 into the
+whole architecture below.** It started as a copy-in convenience alongside
+day-by-day editing — "From the pool" copied a saved exercise onto a day,
+"Save to the pool" copied one back. That copy-based version is gone. See the
+next entry for what replaced it.
+
+**The whole week was rebuilt around three linked repositories, 28 Aug
+2026 — this is the one to read before touching anything under `workout/`.**
+The owner, in one sitting, asked for five things that turned out to be one
+redesign: (1) an unmissable visual difference for admin mode ("maybe make
+the background red"); (2) a standalone screen to view the video repository,
+plus every exercise field editable ONLY in a repository, so a workout can
+only ever pick an existing exercise, never invent one inline; (3) workouts
+created once and then assigned to a specific user and day, several per
+day allowed; (4) a workout repository to match the video/exercise ones —
+build an exercise, build a workout from exercises, then assign workouts to
+a user by picking a user, a day, and a time; (5) no more "Edit this day"
+gate — admin mode should make everything immediately available to edit.
+Four follow-up questions settled the ambiguous parts, answered by the
+owner: an exercise's sets/reps/rest are now fixed in the pool (no
+per-workout override — the same exercise looks identical everywhere it is
+used); a "day" stays a repeating weekday, not a dated calendar; every
+existing account starts with a **blank** schedule (the old shared week was
+not migrated); and a signed-out visitor now sees "sign in to see your
+week" rather than any shared plan.
+
+The result: the exercise pool (`/api/exercise-library`) is the only place
+an exercise's fields are ever set — Settings → Edit the week (admin) →
+Exercise pool, with +New and Edit as well as Remove now. The workout
+library (`/api/workout-library`, new) is a title, a picture, and an
+ORDERED LIST OF EXERCISE IDS from the pool — never a copy of the exercises
+— built and reordered on its own screen, Settings → Edit the week (admin)
+→ Workouts. Assignments (`/api/assignments`, new; stored as an
+`assignments` array right on the account record in `_lib/users.mjs`,
+mirroring how a reminder override already worked) are which workout(s) an
+account does on which weekday, at which time, multiple allowed per day —
+Settings → Edit the week (admin) → Assign workouts, pick a person, see and
+edit their whole week. Referencing rather than copying is what makes
+editing an exercise in the pool reach every workout that uses it,
+everywhere, immediately.
+
+**The old day-by-day editor is gone completely** — no more pencil, no more
+draft of the whole week, no more save bar, no more `/api/plan`,
+`data/plan.json`, or `netlify/functions/plan.mjs` (all deleted). The week
+and day screens are now read-only, showing the signed-in account's own
+resolved schedule; all editing happens on the admin screens above,
+immediately, with nothing to publish separately. Reminders now resolve
+"today" from that account's own assignments (`_lib/tick.mjs`, per-account,
+cached within a sweep so two devices on one account do not fetch it
+twice) instead of the old shared plan. Read `workout/README.md`'s
+*Exercises, workouts and schedules* section for the full shape of it before
+changing any of this.
 
 **A picture and a video are different things.** An exercise has both fields and
 they are independent: the picture is the thumbnail and the video's poster, the
 video is what plays when she starts. A day has a picture and no video. Do not
 collapse them back into one field.
 
-**Editing is in place, not a form.** Once unlocked, the pencil turns the page
-into the editor — the same rule `/edit.html` follows on the website.
-Titles, exercise names, reps and notes are `contenteditable` written straight
-into one draft of the whole week; a picture or a clip goes on by pressing the
-square beside an exercise. There is no separate editor screen, and `#/edit/mon`
-now just opens the day with the pencil already pressed. Two things to keep
-right if you touch it: **never repaint an element that has focus** (the caret
-goes back to the start), and **non-breaking spaces are flattened on the way
-in** — browsers scatter them through a `contenteditable` and one stops a line
-wrapping, which is the bug that took the website's own editor down once.
+**Editing used to be in place; since the 28 Aug 2026 rebuild it is a form,
+on its own admin screen.** The pencil, the contenteditable fields and the
+draft-of-the-whole-week are all gone — see the entry above. An exercise or
+a workout is edited through a sheet (`exerciseEditSheet`/`workoutMetaSheet`
+in `js/app.js`) with plain inputs, saved on one explicit Save press, no
+draft to publish separately. `#/edit/mon`, the old bookmarked URL for
+opening a day with the pencil already pressed, now just opens the day —
+there is nothing left to pre-press. **Non-breaking spaces are still
+flattened on the way in** for anything typed into a field here — browsers
+scatter them through form inputs same as they used to through a
+`contenteditable`, and one stops a line wrapping, which is the bug that
+took the website's own editor down once.
 
 Uploads go to `/api/media` and are content-addressed by a hash of their bytes.
-A picture is shrunk to 1600px in the browser first; a clip is not, so it has to
-be under 4 MB — that is what one request can carry, and the message points at
-YouTube rather than just refusing.
+A picture is shrunk to 1600px in the browser first. There is no video
+upload any more — see "The video library" below — only a link.
 
 Three more things a future session needs to know:
 
