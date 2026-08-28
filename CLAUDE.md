@@ -773,6 +773,26 @@ things changed in one sitting:
 **Signed in as admin, the background still tints red** on every screen —
 carried over unchanged, still the unmissable answer to "which mode am I in".
 
+**Admin view showed the wrong screen at first, fixed the same day.** Point 3
+above was under-built: the toggle flipped the tint on but left the WEEK or
+DAY screen rendering its own normal content underneath — today's card, the
+seven-day grid, the streak and calorie stats, a "See the whole record"
+button, the History icon — with the actual admin screens still buried a tap
+further in behind Settings. The owner caught this immediately: *"This is
+admin not user. Go through and remove all user items from admin mode. I
+also don't see my repositories or a way to make workouts."* Also asked for
+in the same message: the toggle should read **User view**, not "My view",
+for the button that leaves admin mode.
+
+Fixed by giving admin view its own front door, `renderAdminHome()` in
+`js/app.js` — a plain list of the six admin screens and nothing else.
+`renderWeek()`/`renderDay()` hand off to it instead of rendering when
+`adminOn()` is true (see `weekOrAdminHome()`/`dayOrAdminHome()` in `render()`
+itself), and the History icon now hides in admin view the same way it
+already hides signed out. Pressing **Admin view** lands straight on the
+repositories; there is no longer a "Settings → Edit the week" detour to
+find them through.
+
 **Accounts — up to five, for the beta.** Added 23 Aug 2026, at the owner's
 request: "we need accounts/users and also one admin login for editing." An
 account is a real person's own email and password, or Google, created or
