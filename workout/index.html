@@ -112,6 +112,11 @@ fill="#FFFFFF" stroke="none">
         Carissa
         <span class="topbar__sub" id="subtitle">The week</span>
       </h1>
+      <!-- Only ever shown to a signed-in admin account (see canAdmin() in
+           app.js) — nobody else sees it, signed in or not. Toggles between
+           this account's own week and the admin view: the repositories, the
+           roster, assigning workouts. -->
+      <button type="button" class="admin-toggle" id="admin-toggle" hidden data-action="admin-toggle">Admin view</button>
       <button type="button" class="icon-btn" id="history-btn" aria-label="History" title="History">&#9202;</button>
       <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">&#9881;</button>
     </div>

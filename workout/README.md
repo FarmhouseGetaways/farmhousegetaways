@@ -187,12 +187,14 @@ email and password, or Google — is a real person's own, and it is what their
 training record is attached to and what makes it sync between their phone and
 their iPad. It has nothing to do with editing the week.
 
-**Create one, sign in, or reset a forgotten password** from the **Sign in**
-pill at the bottom of every screen, or `/#/login`. Five accounts, while this
-stays a small beta rather than something built out with real multi-tenant
-infrastructure — invoices, roles, self-service account deletion — before it
-is known whether any of that is needed. Raising the number later is a
-one-line change in `_lib/users.mjs`.
+**Create one, sign in, or reset a forgotten password** from the **Sign In**
+button a signed-out visitor sees on the week screen (a small "Create an
+account" link sits under it, deliberately less prominent — signing in is
+what almost everyone here is doing), or `/#/login` directly. Five accounts,
+while this stays a small beta rather than something built out with real
+multi-tenant infrastructure — invoices, roles, self-service account
+deletion — before it is known whether any of that is needed. Raising the
+number later is a one-line change in `_lib/users.mjs`.
 
 **Signed in, Settings → Change password** sets a new one without needing an
 email round trip — the current password proves it is really her, the same as
@@ -202,13 +204,17 @@ change. A Google-only account has no password to change and Settings says so
 rather than offering a form that would only fail.
 
 **Admin gets a read-only roster, not a management screen.** Settings → Edit
-the week (admin only) → *Who has an account* lists everyone who has signed
-up — email, name, Google or password, when they joined, when they last
-signed in, and how many workouts they have logged — so the operator can tell
-at a glance whether the beta is full and who is actually using it. It cannot
+the week (admin) → *Who has an account* lists everyone who has signed up —
+email, name, Google or password, when they joined, when they last signed in,
+and how many workouts they have logged — so the operator can tell at a
+glance whether the beta is full and who is actually using it. It cannot
 change or remove anyone; for five people, "ask them to email you" covers the
 rare case that needs it, and it is not worth a delete button that could be
 mis-tapped.
+
+**Admin is a property of the account, not a separate password — see the next
+section.** `corydzbinski@gmail.com` signing in already IS signing in as
+admin; there is nothing further to unlock.
 
 **Google is optional.** If `GOOGLE_CLIENT_ID` is set (see *Deploying*) a
 "Sign in with Google" button appears on the sign-in screen; without it, it
@@ -223,8 +229,8 @@ it just cannot send that email, and says so. The reply is identical whether or
 not the address typed in has an account — telling the two apart would let the
 box be used to find out who has signed up here.
 
-**Each account's own record, and nobody else's — the admin password
-included.** The old, single shared record from before accounts existed was
+**Each account's own record, and nobody else's — admin included.** The old,
+single shared record from before accounts existed was
 copied once into whoever created the very first account, so nothing already
 logged was lost; every account after that starts with a clean training log of
 its own. See the storage table below for exactly who can read what.
@@ -239,22 +245,38 @@ exercises, and who a workout is assigned to are each their own screen,
 reached from Settings, and every change on them saves the moment it is
 made — no draft, nothing to publish separately.
 
-**The lock is unchanged.** The admin password is a completely separate
-thing from any account above: the app's own shared password, known to
-whoever is trusted to build the week, not tied to any one person. It is
-behind a deliberate gesture, the same one the farmhouse app uses for its own
-admin screen: **press and hold the title at the top of any screen for three
-quarters of a second.** There is no button, because a button is something
-you press by accident. On a laptop, `/#/admin` does the same. Either way it
-asks for `WORKOUT_PASSWORD` if it has not already been typed on this
-device, and the unlock lasts **twelve hours** from then — long enough to
-build a week in one sitting, short enough that a phone left about tomorrow
-is locked again. **Settings → Lock the editor** ends it on the spot.
+**The lock is the account itself, changed again on 28 Aug 2026.** The admin
+password and its long-press gesture are gone from the app's own UI. Admin is
+now a short, explicit list of email addresses — `_lib/admin-emails.mjs`,
+`corydzbinski@gmail.com` only today — checked against whoever is signed in.
+Sign in as one of those addresses and the app already knows; sign in as
+anyone else, or nobody, and no admin control is ever shown at all, not even
+as a locked or greyed-out one. Asked for by the owner directly: *"for an
+admin, let's designate certain emails to be admins automatically."*
 
-**Signed in as admin, the background tints red** on every screen, not just
-the admin ones — an unmissable answer to "which mode am I in".
+The old `WORKOUT_PASSWORD`-and-gesture path still works underneath — every
+admin-only endpoint accepts either proof, see `_lib/users.mjs`'s
+`isAdminRequest` — because `WORKOUT_PASSWORD` still signs every session
+token on the site (see `_lib/auth.mjs`'s `sessionSeed`) and cannot be
+retired on that account. It is simply not reachable from the UI any more:
+there is no long-press and no `/#/admin` password prompt — that URL now
+just turns admin view on for whoever is already allowed one, or does
+nothing.
 
-Once unlocked, **Settings → Edit the week** lists every admin screen:
+**An admin's default view is their own week, same as anyone else's — they
+are a person doing workouts too.** What is new is a toggle at the top of the
+page, next to History and Settings, shown ONLY to a signed-in admin account:
+press **Admin view** to switch to the repositories and the roster, **My
+view** to switch back. It is a view preference, not a second lock — the
+account sign-in already is one — so it needs no password of its own and is
+simply remembered in this browser's `localStorage`.
+
+**In admin view, the background tints red** on every screen, not just the
+admin ones — an unmissable answer to "which mode am I in", carried over
+unchanged from the old design.
+
+Switch to admin view — or press **Settings → Edit the week (admin)** once
+already there — for every admin screen:
 
 - **Exercise pool** — every exercise, with Edit (a sheet: name, picture,
   video, sets, reps, rest, effort, notes) and Remove.
@@ -435,20 +457,21 @@ Netlify Blobs belonging to this site alone. Not files in this repository —
 
 | | Read | Write |
 |---|---|---|
-| **This account's own schedule** (`/api/assignments`) | that account, signed in — or the admin password, for anyone's | the admin password only — assigning a workout is the admin's job |
+| **This account's own schedule** (`/api/assignments`) | that account, signed in — or admin, for anyone's | admin only — assigning a workout is the admin's job |
 | **An account's own record** (`/api/history`) | that account, signed in | that account, signed in |
-| **Accounts** (email, name, a password hash — never the password itself) | the admin password, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
-| **Reminder schedule & messages** | the admin password | the admin password |
-| **The video library** | the admin password | the admin password |
-| **The exercise pool** | the admin password | the admin password |
-| **The workout library** | the admin password | the admin password |
+| **Accounts** (email, name, a password hash — never the password itself) | admin, sanitised — email, name, join date, nothing that could sign in as them | signing up, or Google, once; a signed-in account can change its own password |
+| **Reminder schedule & messages** | admin | admin |
+| **The video library** | admin | admin |
+| **The exercise pool** | admin | admin |
+| **The workout library** | admin | admin |
 
-Two separate locks, two separate cookies: the admin password gates every
-repository and every schedule; an account gates one person's own record —
-and reading their own schedule — and nothing else, not another account's
-record or schedule, and no write access to any of it. Knowing the admin
-password does not let anyone read a training record; being signed into an
-account does not let anyone edit anything.
+Two separate locks, two separate cookies: admin — see *Editing*, above, for
+what that means since 28 Aug 2026 — gates every repository and every
+schedule; an account gates one person's own record — and reading their own
+schedule — and nothing else, not another account's record or schedule, and
+no write access to any of it. Being an admin does not let anyone read a
+training record; being signed into an account does not let anyone edit
+anything.
 
 There is no committed floor under the schedule the way `data/plan.json` used
 to be — a schedule is personal, so there is nothing safe to show a phone
@@ -456,13 +479,17 @@ that has never signed in. Signed in at least once, this browser caches that
 account's own last-synced schedule, which is what a gym with no signal
 falls back to.
 
-**How the admin password works.** It lives in a Netlify environment variable
-and is compared on the server. Typing it sets an `HttpOnly` session cookie —
-the page's own JavaScript cannot read it, and nor can anything else that ends
-up running on the page — which is a signed, expiring token, not the password
-itself. Every write of the week checks that cookie server-side, so a visitor
-editing the page in dev tools changes what *they* see and nothing else. Ten
-wrong guesses from one address inside fifteen minutes and that address waits.
+**How admin works, since 28 Aug 2026.** Every admin-only endpoint calls
+`isAdminRequest` (`_lib/users.mjs`), which is true for either of two proofs:
+signed in with an account whose email is in `_lib/admin-emails.mjs`, or —
+kept only because `WORKOUT_PASSWORD` cannot be retired outright, see
+*Editing* above — the old admin-password session cookie, which nothing in
+the app's own UI sets any more. Either way what actually authorises a write
+is a server-side check, so a visitor editing the page in dev tools changes
+what *they* see and nothing else. `WORKOUT_PASSWORD` itself is still
+compared on the server if the old `/api/auth` path is ever used directly;
+ten wrong guesses from one address inside fifteen minutes and that address
+waits, same as always.
 
 **How an account works.** A password, hashed with scrypt and a random salt per
 person (`_lib/credentials.mjs`), or a Google sign-in verified against Google's
@@ -493,10 +520,14 @@ repository root:
 4. **Publish directory:** `workout`
 5. **Environment variables** → add:
 
-       WORKOUT_PASSWORD = whatever you want to type to edit the week
+       WORKOUT_PASSWORD = any long random string
 
-   Everything else — accounts, reminders — needs this one set to work at all,
-   fails closed without it, and is otherwise all optional:
+   Nothing in the app's own UI asks for this directly any more — see
+   *Editing*, above — but everything else, accounts included, needs it set
+   to work at all (it signs every session token on the site) and fails
+   closed without it. Who is actually admin is a separate, short list of
+   email addresses in `netlify/functions/_lib/admin-emails.mjs`, edited and
+   deployed like any other code change. Everything below is optional:
 
    Optionally `WORKOUT_SESSION_SECRET` (any long random string). Without it the
    signing key is derived from the password, which means changing the password

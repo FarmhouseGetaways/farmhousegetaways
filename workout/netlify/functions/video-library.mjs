@@ -11,7 +11,8 @@
  * (safeUrl, in _lib/data.mjs): http(s) only, so a library entry can never be
  * a scheme the app would refuse to embed anyway.
  */
-import { LIBRARY, LIBRARY_KEY, signedIn, configured, json } from "./_lib/auth.mjs";
+import { LIBRARY, LIBRARY_KEY, configured, json } from "./_lib/auth.mjs";
+import { isAdminRequest } from "./_lib/users.mjs";
 import { normaliseLibrary, normaliseLibraryEntry } from "./_lib/data.mjs";
 
 export const config = { path: "/api/video-library" };
@@ -26,7 +27,7 @@ const read = async () => {
 
 export default async (req) => {
   if (!configured()) return json({ ok: false, error: "This app is not set up yet." }, 503);
-  if (!signedIn(req)) return json({ ok: false, error: "Admin only." }, 401);
+  if (!(await isAdminRequest(req))) return json({ ok: false, error: "Admin only." }, 401);
 
   if (req.method === "GET") {
     const list = await read();

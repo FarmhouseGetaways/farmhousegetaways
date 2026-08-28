@@ -68,116 +68,45 @@ function estimateMinutes(day) {
 /* ==========================================================================
    Admin
 
-   Signing in is Carissa's — it is what syncs her record between the phone and
-   the iPad. Editing the week is not hers, and it should not be one mis-tap
-   away while she is halfway through a set.
+   Rebuilt 28 Aug 2026 (again) so admin-ness is a property of the ACCOUNT, not
+   a password anyone who knew it could unlock in any browser. A short list of
+   admin email addresses lives server-side (_lib/admin-emails.mjs — one
+   address today, Cory's); sign in as one of those and the app already knows,
+   from the same /api/account response that says who you are. Nobody else —
+   not another signed-in account, not a signed-out visitor — ever sees an
+   admin control at all.
 
-   So the editor is behind a second, deliberate gesture, the same one the
-   farmhouse app uses for its own admin screen: PRESS AND HOLD THE TITLE at
-   the top of any screen for three quarters of a second. There is no button,
-   because a button is something you press by accident. /#/admin does the same
-   thing for a laptop.
-
-   The unlock LAPSES rather than lasting for ever. It was sessionStorage at
-   first, which relocks when the app closes — correct on a phone, where there
-   is one window, and miserable on a desktop, where sessionStorage is per TAB:
-   opening a second tab locked the editor again, every time. So it is stored
-   with a timestamp and expires after twelve hours. Long enough to write a
-   week's training in one evening across as many tabs as you like; short
-   enough that a phone left on a kitchen table tomorrow is locked again.
-
-   It still requires being signed in as well, so a lapsed timestamp is the
-   second lock, not the only one. "Lock the editor" in Settings drops it on
-   the spot.
+   An admin's DEFAULT view is still just their own week, same as anyone else's
+   — they are a person doing workouts too. What changes is a toggle at the top
+   of the page (see the topbar admin button), switching between that and the
+   admin view: the repositories, the roster, assigning workouts. The toggle is
+   only ever a view preference, remembered in localStorage so it survives a
+   reload — it is not a second lock, because the account sign-in already is
+   one.
    ========================================================================== */
 
-const ADMIN_KEY = "fg-workout-admin";
-const ADMIN_HOURS = 12;
+const ADMIN_VIEW_KEY = "fg-workout-admin-view";
 
+/** Is the signed-in account one of the designated admin addresses? */
+const canAdmin = () => !!store.get().account?.isAdmin;
+
+/** Is the admin VIEW currently the one on screen? Always false for anyone
+ * canAdmin() does not already allow — flipping this on for someone who is
+ * not an admin account should be impossible, not just hidden. */
 const adminOn = () => {
-  if (!store.get().signedIn) return false;
-  try {
-    const raw = localStorage.getItem(ADMIN_KEY);
-    if (!raw) return false;
-    const at = Number(JSON.parse(raw)?.at) || 0;
-    return Date.now() - at < ADMIN_HOURS * 3600000;
-  } catch { return false; }
+  if (!canAdmin()) return false;
+  try { return localStorage.getItem(ADMIN_VIEW_KEY) === "1"; } catch { return false; }
 };
 
-const setAdmin = (on) => {
+const setAdminView = (on) => {
   try {
-    if (on) localStorage.setItem(ADMIN_KEY, JSON.stringify({ at: Date.now() }));
-    else localStorage.removeItem(ADMIN_KEY);
-    // Anything left over from when this was per-tab.
-    sessionStorage.removeItem(ADMIN_KEY);
-  } catch { /* a browser that refuses storage simply stays locked */ }
+    if (on) localStorage.setItem(ADMIN_VIEW_KEY, "1");
+    else localStorage.removeItem(ADMIN_VIEW_KEY);
+  } catch { /* a browser that refuses storage simply stays on the normal view */ }
 };
-
-/**
- * The long press. Works with a finger and with a mouse, so a laptop can too.
- *
- * The movement tolerance is the whole trick, and leaving it out made the
- * gesture impossible with a mouse: holding a button still emits pointermove
- * from a pixel of hand tremor, so cancelling on any movement at all cancelled
- * every single press. A finger drifts further than a mouse does, so the same
- * tolerance is what makes it reliable on a phone too. Only a real drag — more
- * than about a thumb's width — means "I did not mean to hold this".
- */
-function armAdminGesture() {
-  const title = $("#title");
-  const SLOP = 14;                      // pixels of drift that are still a press
-  let timer = null;
-  let from = null;
-
-  const cancel = () => { clearTimeout(timer); timer = null; from = null; };
-
-  const start = (e) => {
-    cancel();
-    from = { x: e.clientX, y: e.clientY };
-    timer = setTimeout(() => {
-      timer = null;
-      if (navigator.vibrate) navigator.vibrate(30);
-      unlockAdmin();
-    }, 750);
-  };
-
-  const drifted = (e) => {
-    if (!timer || !from) return;
-    if (Math.hypot(e.clientX - from.x, e.clientY - from.y) > SLOP) cancel();
-  };
-
-  title.addEventListener("pointerdown", start);
-  title.addEventListener("pointermove", drifted);
-  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
-    title.addEventListener(ev, cancel);
-  }
-  // A long press on a phone otherwise offers to select the text or share it.
-  title.addEventListener("contextmenu", (e) => e.preventDefault());
-  title.style.userSelect = "none";
-  title.style.webkitUserSelect = "none";
-}
 
 /* Set at startup to the promise of the first load. */
 let ready = null;
-
-function unlockAdmin() {
-  if (adminOn()) { toast("The editor is already unlocked."); return; }
-
-  /* Opened cold on /#/admin — a typed URL, a bookmark, a hard refresh. The
-     store has not answered yet, so "are you signed in?" is still false by
-     default rather than by fact, and asking for a password here would demand
-     one from somebody who is already signed in. Wait for the real answer. */
-  if (!store.get().loaded && ready) {
-    toast("One moment…");
-    ready.then(() => unlockAdmin());
-    return;
-  }
-
-  if (!store.get().signedIn) { askAdminPassword(); return; }
-  setAdmin(true);
-  toast("Editor unlocked. The pencil is at the top.", "good");
-  render();
-}
 
 let toastTimer = null;
 function toast(message, kind = "") {
@@ -234,9 +163,10 @@ function renderWeek() {
         <h2 class="today__title">Sign in to see your week</h2>
         <p class="today__desc">See what's on your schedule and get moving.</p>
         <div class="btn-row" style="margin-top:1.1rem">
-          <button class="btn btn--go btn--big" data-go="#/login">Sign In</button>
-          <button class="btn btn--big" data-go="#/signup">Create Account</button>
+          <button class="btn btn--go btn--big btn--wide" data-go="#/login">Sign In</button>
         </div>
+        <p class="small dimmer" style="margin-top:.85rem">New here?
+          <button type="button" class="btn--link" data-go="#/signup">Create an account</button></p>
       </div>
       ${footer()}`;
     setTitle("Carissa", "");
@@ -1385,9 +1315,9 @@ async function renderRemind() {
 /* ==========================================================================
    Accounts — signing in, signing up, and getting a forgotten password back.
 
-   Separate from the admin password (askAdminPassword, above) in every way
-   that matters: this is a real person's own email, and what their training
-   record is attached to. Four modes share one screen because they share
+   Separate from admin status (see the Admin block, above) in every way that
+   matters: this is a real person's own email, and what their training record
+   is attached to. Four modes share one screen because they share
    almost everything about it — the same shell, the same handful of fields,
    the same "something went wrong" box above the button.
    ========================================================================== */
@@ -1601,10 +1531,8 @@ function settingsSheet() {
       <h3 class="set-group__h">Edit the week</h3>
       <p class="set-group__note">Exercises, workouts and who they are assigned to each live on their own screen —
         every change there saves immediately.</p>
-      <p class="set-group__note" style="margin-top:.9rem">The editor is unlocked on this device and locks itself
-        again twelve hours after you unlocked it.</p>
       <div class="btn-row">
-        <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
+        <button class="btn btn--ghost" data-action="admin-toggle">Back to my view</button>
         <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
         <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
         <button class="btn btn--ghost" data-action="go-admin-videos">Video library</button>
@@ -1669,34 +1597,6 @@ function unsavedSettingsPanel() {
     </div>`;
 }
 
-/** The app's one shared admin password — unrelated to anyone's account, see
- * store.js's header note. This is the only door it opens: the editor. */
-function askAdminPassword() {
-  openSheet("Unlock the editor", `
-    <p class="small muted" style="margin-bottom:1rem">Type the password and the pencil appears in the bar at
-      the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures
-      and videos.</p>
-    <label class="field"><span>Password</span>
-      <input type="password" id="s-key" autocomplete="current-password" enterkeyhint="go"></label>
-    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-admin-sign-in">Unlock</button></div>
-    <p class="small dimmer" style="margin-top:1rem">The editor stays unlocked on this device for twelve hours,
-      across every tab. Settings &rarr; Lock the editor ends it sooner.</p>
-  `, (root) => {
-    const input = root.querySelector("#s-key");
-    const submit = async () => {
-      const res = await store.signIn(input.value);
-      if (!res.ok) { toast(res.error, "bad"); return; }
-      closeSheet();
-      setAdmin(true);
-      toast("Editor unlocked. The pencil is at the top.", "good");
-      render();
-    };
-    root.querySelector('[data-action="do-admin-sign-in"]').addEventListener("click", submit);
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
-    setTimeout(() => input.focus(), 50);
-  });
-}
-
 /** The account's own password — separate from the admin one above. Proving
  * the current password before setting a new one, the same way any account
  * settings screen would, even though the session cookie already proves who
@@ -1745,7 +1645,7 @@ function changePasswordSheet() {
  * beta this size, where "ask them to email you" is a perfectly good way to
  * handle the rare case it comes up. */
 function renderAdminPeople() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Accounts", "who has one");
 
@@ -1783,7 +1683,7 @@ let videoCache = [];
  * now the library was only reachable from inside an exercise's media sheet;
  * this is somewhere to see and tidy the whole thing at once. */
 function renderAdminVideos() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Video library", "admin");
 
@@ -1818,7 +1718,7 @@ function renderAdminVideos() {
  * retyping the same sets, reps, rest and video every time it recurs. Viewing
  * and picking are both admin-only, same as the video library. */
 function renderAdminExercises() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Exercise pool", "admin");
 
@@ -1950,7 +1850,7 @@ function exerciseEditSheet(id) {
  * it is built from. Not tied to a day; "Assign workouts" is the separate
  * step that puts one on an actual account's actual weekday. */
 function renderAdminWorkouts() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Workouts", "admin");
 
@@ -1988,7 +1888,7 @@ function renderAdminWorkouts() {
  * of exercises it is built from. Every add, remove and reorder here saves
  * immediately — there is no draft, and nothing to publish separately. */
 function renderAdminWorkoutEdit(id) {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Workout", "admin");
 
@@ -2053,7 +1953,7 @@ let assignCache = [];
 
 /** Admin only — pick who to set a week for. */
 function renderAdminAssign() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Assign workouts", "admin");
 
@@ -2083,7 +1983,7 @@ function renderAdminAssign() {
  * at its own time, with an add and a remove for every day. Every change
  * saves immediately. */
 function renderAdminAssignUser(userId) {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Assign workouts", "admin");
 
@@ -2149,7 +2049,7 @@ const hourOptions = (selected) =>
  * happens once one has, or already is.
  */
 function renderAdminReminders() {
-  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  if (!adminOn()) { go("#/"); return; }
   bar.hidden = true;
   setTitle("Reminders", "admin");
 
@@ -2235,13 +2135,6 @@ function storageNotice() {
 function footer() {
   const s = store.get();
   return `<div class="foot">
-    <div class="pills">
-      <button type="button" class="pill ${s.account ? "is-on" : "pill--go"}" data-action="${s.account ? "open-settings" : "go-login"}">
-        ${s.account ? esc(s.account.name || s.account.email) : "Sign in"}</button>
-      <button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
-        ${adminOn() ? "&#9998; Admin" : "Admin"}</button>
-      <button type="button" class="pill" data-action="open-settings">Settings</button>
-    </div>
     <p>${s.mode === "server"
         ? (s.account ? "Signed in &middot; your record syncs" : "Not signed in &middot; the record stays on this phone")
         : "This browser only"}</p>
@@ -2257,6 +2150,19 @@ function setTitle(main, sub) {
   $("#title").innerHTML = `${esc(main)}<span class="topbar__sub">${sub}</span>`;
   $("#back").hidden = location.hash === "" || location.hash === "#/";
   document.body.classList.toggle("is-admin", adminOn());
+
+  // Only ever shown to a designated admin account — everyone else, signed in
+  // or not, never sees it at all.
+  const toggle = $("#admin-toggle");
+  toggle.hidden = !canAdmin();
+  if (!toggle.hidden) {
+    toggle.textContent = adminOn() ? "My view" : "Admin view";
+    toggle.classList.toggle("is-on", adminOn());
+  }
+
+  // Settings is per-account (the calorie estimate, reminders, the admin
+  // tools above) — a signed-out visitor has no account for it to belong to.
+  $("#settings-btn").hidden = !store.get().account;
 }
 
 function render() {
@@ -2295,7 +2201,13 @@ function render() {
   if (route === "admin" && arg === "workout" && sub) return renderAdminWorkoutEdit(sub);
   if (route === "admin" && arg === "assign" && !sub) return renderAdminAssign();
   if (route === "admin" && arg === "assign" && sub) return renderAdminAssignUser(sub);
-  if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
+  if (route === "admin") {
+    // A bookmarked or typed /#/admin — turn the admin view on if this
+    // account is allowed one at all; otherwise it is simply not a route.
+    if (canAdmin()) setAdminView(true);
+    location.replace("#/");
+    return renderWeek();
+  }
   if (route === "login") return renderAccountScreen("login");
   if (route === "signup") return renderAccountScreen("signup");
   if (route === "forgot") return renderAccountScreen("forgot");
@@ -2429,14 +2341,18 @@ document.addEventListener("click", (e) => {
     case "confirm-no": pendingConfirm = null; closeSheet(); break;
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
-    case "admin-pill":
+    case "admin-toggle": {
+      const next = !adminOn();
+      setAdminView(next);
       settingsDraft = null;
       closeSheet(true);
-      // Not admin yet: unlock. Already admin: Settings is where every admin
-      // screen lives now — there is no separate "editing mode" to toggle.
-      if (!adminOn()) unlockAdmin();
-      else settingsSheet();
+      location.hash = "#/";
+      render();
+      // Switching into admin view: land straight on the repositories and
+      // roster it unlocks, same as pressing Settings would once there.
+      if (next) settingsSheet();
       break;
+    }
     case "save-settings":
       store.saveSettings({ ...settingsDraft }).then((r) => {
         settingsDraft = null;
@@ -2697,13 +2613,6 @@ document.addEventListener("click", (e) => {
       closeSheet(true);
       store.accountLogOut().then(() => { toast("Signed out."); render(); });
       break;
-    case "lock-admin":
-      settingsDraft = null;
-      closeSheet(true);
-      setAdmin(false);
-      toast("Editor locked.");
-      render();
-      break;
     default: break;
   }
 });
@@ -2734,8 +2643,6 @@ function hideBootSplash() {
   el.classList.add("is-hidden");
   el.addEventListener("transitionend", () => el.remove(), { once: true });
 }
-
-armAdminGesture();
 
 store.subscribe(() => {
   // A repaint mid-workout would restart the video, so a player already on
