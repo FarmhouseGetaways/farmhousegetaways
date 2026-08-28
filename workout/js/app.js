@@ -2202,6 +2202,7 @@ function setTitle(main, sub) {
   pencil.setAttribute("aria-pressed", editing ? "true" : "false");
   pencil.setAttribute("aria-label", editing ? "Stop editing" : "Edit");
   document.body.classList.toggle("is-editing", editing);
+  document.body.classList.toggle("is-admin", adminOn());
 }
 
 function render() {
