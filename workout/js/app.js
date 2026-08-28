@@ -231,16 +231,15 @@ function renderWeek() {
     screen.innerHTML = `
       ${storageNotice()}
       <div class="today today--rest">
-        <p class="today__badge">Sign in to see your week</p>
-        <h2 class="today__title">Your week is on your account now</h2>
-        <p class="today__desc">Each person's schedule is their own — sign in, or create an account, to see what
-          has been assigned to you.</p>
+        <h2 class="today__title">Sign in to see your week</h2>
+        <p class="today__desc">See what's on your schedule and get moving.</p>
         <div class="btn-row" style="margin-top:1.1rem">
-          <button class="btn btn--go btn--big" data-action="go-login">Sign in or create an account</button>
+          <button class="btn btn--go btn--big" data-go="#/login">Sign In</button>
+          <button class="btn btn--big" data-go="#/signup">Create Account</button>
         </div>
       </div>
       ${footer()}`;
-    setTitle("Carissa", "sign in");
+    setTitle("Carissa", "");
     bar.hidden = true;
     return;
   }
