@@ -32,8 +32,15 @@ cannot be read back once replaced.
 
 **It was replaced on the Farmhouse Getaways site on 22 Aug 2026** by a browser
 agent following instructions from this session that were wrong. The old value is
-gone. Ask Cory for the current one; it is not written down in this repository
-and must not be — `publish = "."` serves every file here, this one included.
+gone, but **the owner set a new one on 27 Aug 2026 and it works** — confirmed by
+a real Publish from `/edit.html` (commit `2ec9a4f`, built and live). It is not
+written down in this repository and must not be — `publish = "."` serves every
+file here, this one included.
+
+One step is easy to miss when resetting it: **a saved environment variable does
+nothing until the next deploy.** The function keeps running on the old value
+until something rebuilds it — **Deploys → Trigger deploy**, even with no code
+changed. This tripped up the 27 Aug reset before the redeploy was done.
 
 The blast radius turned out to be narrower than this section used to claim, and
 it is worth knowing exactly what it is. On **this website** `ADMIN_PASSWORD` is
