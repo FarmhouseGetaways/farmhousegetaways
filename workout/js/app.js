@@ -30,8 +30,12 @@
    ========================================================================== */
 
 import * as store from "./store.js";
+import * as account from "./account.js";
 import { upload, previewUrl } from "./media.js";
+import * as library from "./library.js";
+import * as exerciseLibrary from "./exercise-library.js";
 import * as push from "./push.js";
+import { computeInsights, newlyEarned } from "./insights.js";
 import {
   EFFORTS, effortLabel, sessionCalories, videoSource,
   clock, duration, plural, niceDate, todayKey, dayKeyOf,
@@ -183,7 +187,7 @@ function unlockAdmin() {
     return;
   }
 
-  if (!store.get().signedIn) { askSignIn(null, true); return; }
+  if (!store.get().signedIn) { askAdminPassword(); return; }
   setAdmin(true);
   toast("Editor unlocked. The pencil is at the top.", "good");
   render();
@@ -212,13 +216,21 @@ function openSheet(title, html, wire) {
   document.body.style.overflow = "hidden";
   if (wire) wire($("#sheet-body"));
 }
-function closeSheet() {
+/* A sheet may refuse to close. Settings sets one of these so that pressing the
+   X, tapping the backdrop or hitting Escape with unsaved changes asks rather
+   than throwing away what was typed. Returning false blocks the close; the
+   guard is responsible for showing something useful when it does. */
+let sheetGuard = null;
+
+function closeSheet(force = false) {
+  if (!force && sheetGuard && sheetGuard() === false) return;
+  sheetGuard = null;
   pendingConfirm = null;
   $("#sheet").hidden = true;
   $("#sheet-body").innerHTML = "";
   document.body.style.overflow = "";
 }
-$("#sheet-close").addEventListener("click", closeSheet);
+$("#sheet-close").addEventListener("click", () => closeSheet());
 $("#sheet").addEventListener("click", (e) => { if (e.target.id === "sheet") closeSheet(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#sheet").hidden) closeSheet(); });
 
@@ -236,22 +248,37 @@ function renderWeek() {
 
   const doneToday = week[today]?.done;
 
+  /* The card is pressed by a real <button> stretched across it, not by a click
+     listener on the div. A div only receives taps because of a CSS cursor and a
+     delegated listener, which is fragile on a phone; a button is a button
+     everywhere, gets the keyboard for free, and tells a screen reader what it
+     does. The content above it does not take pointer events, so a tap anywhere
+     lands on the button — except the real buttons, which put theirs back. */
   const hero = isRest(day)
-    ? `<div class="today ${doneToday ? "is-done" : ""}">
-         <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="h-display">${day.title ? esc(day.title) : "Rest day"}</h2>
-         <p class="muted">${day.description ? esc(day.description) : "Nothing scheduled. Rest is part of the plan."}</p>
+    /* An off day says Off, exactly like its card on the board below. It used to
+       show whatever the day was called before it was cleared, so today read
+       "Long walk" while the Saturday card two inches lower read "OFF". And it
+       was not pressable at all, because only the training branch carried a
+       destination — so the biggest thing on the screen was stale AND inert. */
+    ? `<div class="today today--rest today--go">
+         <button class="today__hit" data-go="#/day/${today}"
+           aria-label="Open ${DAY_NAMES[today]}"></button>
+         <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
+         <h2 class="today__title">Off</h2>
+         <p class="today__desc">Nothing scheduled. Rest is part of the plan.</p>
          ${adminOn() ? `<div class="btn-row" style="margin-top:1.1rem"><button class="btn" data-action="edit-here">Add a workout for today</button></div>` : ""}
        </div>`
-    : `<div class="today ${doneToday ? "is-done" : ""}">
-         <p class="eyebrow">Today &middot; ${DAY_NAMES[today]}</p>
-         <h2 class="h-display">${esc(day.title || "Workout")}</h2>
+    : `<div class="today today--go ${doneToday ? "is-done" : ""}">
+         <button class="today__hit" data-go="#/go/${today}"
+           aria-label="${doneToday ? "Do" : "Start"} ${esc(day.title || "today's workout")} again"></button>
+         <p class="today__badge">Today &middot; ${DAY_NAMES[today]}</p>
+         <h2 class="today__title">${esc(day.title || "Workout")}</h2>
          ${day.image ? `<img class="today__shot" src="${esc(day.image)}" alt="">` : ""}
-         ${day.description ? `<p class="muted">${esc(day.description)}</p>` : ""}
+         ${day.description ? `<p class="today__desc">${esc(day.description)}</p>` : ""}
          <p class="today__meta">
-           <span>${plural(day.exercises.length, "exercise")}</span>
-           <span>${plural(plannedSets(day), "set")}</span>
-           <span>about ${estimateMinutes(day)} min</span>
+           <span class="chip">${plural(day.exercises.length, "exercise")}</span>
+           <span class="chip">${plural(plannedSets(day), "set")}</span>
+           <span class="chip">${estimateMinutes(day)} min</span>
          </p>
          <div class="btn-row">
            <button class="btn btn--go btn--big" data-go="#/go/${today}">
@@ -259,7 +286,7 @@ function renderWeek() {
            </button>
            <button class="btn" data-go="#/day/${today}">See the exercises</button>
          </div>
-         ${doneToday ? `<p class="small" style="margin:.9rem 0 0;color:var(--sage)">&#10003; Done today &mdash; ${plural(week[today].sessions.length, "workout")} logged.</p>` : ""}
+         ${doneToday ? `<p class="today__done">&#10003; Done today &mdash; ${plural(week[today].sessions.length, "workout")} logged.</p>` : ""}
        </div>`;
 
   screen.innerHTML = `
@@ -276,13 +303,18 @@ function renderWeek() {
         const title = editing
           ? `<span class="day__title edit-text ${d.title ? "" : "is-empty"}" contenteditable="plaintext-only"
                data-edit="title" data-day="${key}" data-placeholder="Name it">${esc(d.title)}</span>`
-          : `<span class="day__title">${rest ? (d.title ? esc(d.title) : "Rest") : esc(d.title || "Workout")}</span>`;
+          /* A day with no exercises is off, and it says "Off" — not whatever it
+             used to be called. Clearing a day left its old title on the board,
+             so a Wednesday turned into a rest day still read "Lower body
+             strength" with a dash under it. The stored title is left alone so
+             that putting exercises back restores the name. */
+          : `<span class="day__title">${rest ? "Off" : esc(d.title || "Workout")}</span>`;
         return `<${editing ? "div" : "button"} class="day ${key === today ? "is-today" : ""} ${rest ? "is-rest" : ""}"
             ${editing ? "" : `data-go="#/day/${key}"`}>
           <span class="day__name">${DAY_SHORT[key]}${week[key]?.done ? `<span class="day__tick">&#10003;</span>` : ""}</span>
           ${d.image ? `<img class="day__shot" src="${esc(d.image)}" alt="" loading="lazy">` : ""}
           ${title}
-          <span class="day__meta">${rest && !editing ? "&mdash;" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
+          <span class="day__meta">${rest && !editing ? "Rest day" : `${plural(d.exercises.length, "exercise")}${editing ? "" : ` &middot; ${estimateMinutes(d)} min`}`}
             ${editing ? `<button class="day__open" data-go="#/day/${key}">open &rarr;</button>` : ""}</span>
         </${editing ? "div" : "button"}>`;
       }).join("")}
@@ -315,10 +347,14 @@ function renderDay(key) {
   const rest = isRest(day);
 
   screen.innerHTML = editing ? editableDay(key, day) : `
-    ${day.image ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
+    ${day.image && !rest ? `<img class="day-hero" src="${esc(day.image)}" alt="" width="1600" height="900">` : ""}
     <p class="eyebrow">${DAY_NAMES[key]}</p>
-    <h2 class="h-display">${esc(day.title || (rest ? "Rest day" : "Workout"))}</h2>
-    ${day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
+    <!-- An off day is called Off wherever it is read, so the board, today's
+         card and this page never disagree about what a day is. The name it had
+         before it was cleared is still stored, and still shown in the editor,
+         which is the one place it is any use. -->
+    <h2 class="h-display">${rest ? "Off" : esc(day.title || "Workout")}</h2>
+    ${!rest && day.description ? `<p class="muted" style="white-space:pre-wrap">${esc(day.description)}</p>` : ""}
 
     ${rest ? `<p class="note" style="margin-top:1.25rem">Nothing is scheduled for ${DAY_NAMES[key]}.
         ${adminOn() ? "Press the pencil at the top to add some exercises." : ""}</p>`
@@ -344,7 +380,7 @@ function renderDay(key) {
     </div>
     ${footer()}`;
 
-  setTitle(DAY_NAMES[key], editing ? "editing" : (day.title || (rest ? "Rest day" : "Workout")));
+  setTitle(DAY_NAMES[key], editing ? "editing" : (rest ? "Off" : (day.title || "Workout")));
   if (editing) paintSaveBar(); else bar.hidden = true;
 }
 
@@ -445,6 +481,7 @@ function editableDay(key, day) {
 
     <div class="btn-row" style="margin-top:.75rem">
       <button class="btn" data-action="add-exercise" data-day="${key}">+ Add an exercise</button>
+      <button class="btn btn--ghost" data-action="open-pool" data-day="${key}">From the pool</button>
       ${day.exercises.length ? `<button class="btn btn--danger" data-action="clear-day" data-day="${key}">Make it a rest day</button>` : ""}
     </div>
 
@@ -502,6 +539,10 @@ function editableExercise(ex, i, key, total) {
     <p class="edit-text edit-text--notes" contenteditable="plaintext-only" spellcheck="true"
        data-edit="ex-notes" data-day="${key}" data-i="${i}" data-multiline="1"
        data-placeholder="Notes for her, shown while she does it">${esc(ex.notes)}</p>
+
+    <div class="btn-row" style="margin-top:.5rem">
+      <button type="button" class="btn btn--ghost" data-action="save-to-pool" data-day="${key}" data-i="${i}">Save to the pool</button>
+    </div>
   </div>`;
 }
 
@@ -626,7 +667,9 @@ function mediaSheet(key, i) {
       <hr style="border:0;border-top:1px solid var(--line);margin:1.5rem 0">
 
       <p class="eyebrow">Video</p>
-      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise.</p>
+      <p class="small muted" style="margin-bottom:.75rem">Plays when she starts this exercise. A YouTube link,
+        chosen from the library or pasted in fresh &mdash; no upload, so no re-encoding and no 4&nbsp;MB limit
+        to work around.</p>
       <div class="media-now media-now--small">
         ${v.kind === "file" ? `<video src="${esc(v.src)}" muted playsinline controls preload="metadata"></video>`
           : v.kind === "embed" ? `<div class="media-now__note">${esc(v.provider)} video</div>`
@@ -634,48 +677,59 @@ function mediaSheet(key, i) {
           : `<div class="media-now__note dimmer">No video</div>`}
       </div>
 
-      <label class="field field--hint"><span>Paste a link</span>
+      <p class="eyebrow" style="margin-top:1rem">From the library</p>
+      <div id="m-lib"><p class="small muted">Loading&hellip;</p></div>
+
+      <label class="field field--hint" style="margin-top:1rem"><span>Or paste a new link</span>
         <input type="url" id="m-url" value="${esc(target.video)}" placeholder="https://youtu.be/…" maxlength="2000">
         <small id="m-hint">${videoHint(target.video)}</small></label>
-      <div class="btn-row" style="margin-bottom:1rem">
+      <div class="btn-row">
         <button class="btn btn--go" data-action="media-link" data-day="${key}" data-i="${idx}">Use this link</button>
       </div>
 
-      <input type="file" id="m-video" accept="video/*" hidden>
-      <div class="btn-row">
-        <button class="btn" data-action="media-choose" data-target="m-video">Or take a clip on this phone</button>
+      <div class="btn-row" style="margin-top:.5rem">
+        <button class="btn btn--ghost" data-action="media-save-lib" data-day="${key}" data-i="${idx}"
+          ${target.video ? "" : "disabled"}>Save this video to the library</button>
         ${target.video ? `<button class="btn btn--ghost" data-action="media-drop" data-what="video" data-day="${key}" data-i="${idx}">Remove</button>` : ""}
       </div>
-      <p class="small dimmer" style="margin-top:.6rem">A clip has to be under 4&nbsp;MB &mdash; that is as much as one
-        upload can carry. Anything longer belongs on YouTube as an unlisted video, pasted in above.</p>
     `}
   `, (root) => {
     const url = root.querySelector("#m-url");
     url?.addEventListener("input", () => { root.querySelector("#m-hint").innerHTML = videoHint(url.value); });
 
-    for (const [id, field] of [["m-image", "image"], ["m-video", "video"]]) {
-      const input = root.querySelector("#" + id);
-      if (!input) continue;
-      input.addEventListener("change", async () => {
-        const chosen = input.files?.[0];
-        if (!chosen) return;
-        toast("Sending…");
-        try {
-          const out = await upload(chosen);
-          // Trust what the server says it stored, not what the input was
-          // labelled: a phone hands back a .mov from the photo picker either
-          // way, and putting a video in the picture slot would be silent and
-          // baffling.
-          const slot = out.kind === "video" ? "video" : "image";
-          if (slot !== field) toast(`That is a ${slot}, so it went in the ${slot} slot.`);
-          const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
-          t[slot] = out.url;
-          closeSheet();
-          render();
-          toast(slot === "video" ? "Video added." : "Picture added.", "good");
-        } catch (err) {
-          toast(err.message, "bad");
+    const input = root.querySelector("#m-image");
+    input?.addEventListener("change", async () => {
+      const chosen = input.files?.[0];
+      if (!chosen) return;
+      toast("Sending…");
+      try {
+        const out = await upload(chosen);
+        const t = forDay ? draftDay(key) : draftDay(key).exercises[Number(i)];
+        t.image = out.url;
+        closeSheet();
+        render();
+        toast("Picture added.", "good");
+      } catch (err) {
+        toast(err.message, "bad");
+      }
+    });
+
+    if (!forDay) {
+      library.list().then((res) => {
+        if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
+        const box = root.querySelector("#m-lib");
+        if (!box) return;
+        if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+        if (!res.videos.length) {
+          box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; use a link below, then
+            "Save this video to the library" to add it.</p>`;
+          return;
         }
+        box.innerHTML = `<div class="video-lib">
+          ${res.videos.map((vid) => `<button type="button" class="video-lib__item"
+              data-action="media-pick-lib" data-day="${key}" data-i="${idx}" data-url="${esc(vid.url)}">
+              ${esc(vid.label)}</button>`).join("")}
+        </div>`;
       });
     }
   });
@@ -687,6 +741,47 @@ function videoHint(url) {
   if (v.kind === "embed") return `${v.provider} &mdash; plays in the app.`;
   if (v.kind === "file") return "A video file &mdash; plays in the app, and works with no signal once seen.";
   return "Not a video this can play. It would show as a link instead.";
+}
+
+/* Whichever pool list was loaded last, kept so a tap on one of its buttons can
+   look the exercise up by id without asking the server again. Read by both
+   this sheet and the admin roster screen. */
+let poolCache = [];
+
+/** "From the pool" on a day being edited — pick a saved exercise and it is
+ * added to this day exactly as it was saved, with a fresh id of its own so it
+ * never shares one with the pool entry or another exercise already on the
+ * day. */
+function exercisePoolSheet(key) {
+  const day = draftDay(key);
+  if (!day) return;
+
+  openSheet("From the pool", `
+    <p class="small muted" style="margin-bottom:.75rem">Pick a saved exercise to add it to ${esc(DAY_NAMES[key])}
+      &mdash; sets, reps, rest, video and all.</p>
+    <div id="pool-list"><p class="small muted">Loading&hellip;</p></div>
+  `, (root) => {
+    exerciseLibrary.list().then((res) => {
+      if (!document.body.contains(root)) return;      // the sheet closed while this was in flight
+      const box = root.querySelector("#pool-list");
+      if (!box) return;
+      if (!res.ok) { box.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+      poolCache = res.exercises;
+      if (!poolCache.length) {
+        box.innerHTML = `<p class="small muted">Nothing saved yet &mdash; open an exercise and use
+          "Save to the pool" to add one.</p>`;
+        return;
+      }
+      box.innerHTML = `<div class="video-lib">
+        ${poolCache.map((ex) => `<button type="button" class="video-lib__item"
+            data-action="pool-pick" data-day="${key}" data-id="${esc(ex.id)}">
+            <strong>${esc(ex.name)}</strong>
+            <span class="dimmer small" style="display:block;margin-top:.15rem">${ex.sets} &times;
+              ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}</span>
+          </button>`).join("")}
+      </div>`;
+    });
+  });
 }
 
 /**
@@ -737,6 +832,7 @@ function newLive(key) {
     i: 0,
     setStart: now,
     restEnds: null,
+    staleOk: false,
     exercises: day.exercises.map((ex) => ({
       id: ex.id, name: ex.name, video: ex.video, image: ex.image || "", effort: ex.effort,
       reps: ex.reps, rest: ex.rest, notes: ex.notes,
@@ -780,9 +876,22 @@ function renderPlayer(key) {
   /* A workout in progress is offered rather than resumed silently when it is
      not obviously the one she meant: a different day (she tapped Tuesday by
      mistake), or one that has been running for hours (the phone went in a
-     pocket and the workout never ended). The second is the one that used to
-     quietly log a nine-hour session. */
-  if (live && (live.day !== key || isStale(live))) return askCarryOn(live, key);
+     pocket and the workout never ended).
+
+     The two combined — a different day AND hours old — is not "confirm
+     before I lose something": there is nothing left on a session that stale
+     to protect, so asking about it every single time another day is opened
+     is the interruption that never goes away on its own. That combination
+     clears it on the spot instead of asking. Stale on the SAME day still
+     asks — that one really is "still running, or start over?" — and a
+     different day that is NOT stale still asks too, because that one might
+     be real progress worth not losing. */
+  if (live && live.day !== key) {
+    if (isStale(live)) { store.clearLive(); live = null; }
+    else return askCarryOn(live, key);
+  } else if (live && isStale(live)) {
+    return askCarryOn(live, key);
+  }
   if (!live) {
     const day = store.dayPlan(key);
     if (isRest(day)) { go(`#/day/${key}`); return; }
@@ -796,9 +905,14 @@ function renderPlayer(key) {
 }
 
 /* Six hours. Nobody trains for six hours, so past that the timer was forgotten
-   rather than running. */
+   rather than running.
+
+   `staleOk` is set when somebody looks at that question and says carry on. It
+   has to exist: without it, choosing to carry on re-rendered the very screen
+   that was asking, over and over, because the workout is still just as old as
+   it was a second ago. */
 const STALE_MS = 6 * 60 * 60 * 1000;
-const isStale = (live) => Date.now() - (live.startedMs || 0) > STALE_MS;
+const isStale = (live) => !live.staleOk && Date.now() - (live.startedMs || 0) > STALE_MS;
 
 function askCarryOn(live, wantedKey) {
   const stale = isStale(live);
@@ -815,8 +929,11 @@ function askCarryOn(live, wantedKey) {
          ${plural(liveSetsDone(live), "set")} done, ${duration(liveElapsed(live))} in.`}</p>
     <div class="btn-row" style="margin-top:1.5rem">
       ${stale
+        /* Not a data-go. Getting here means the hash is ALREADY #/go/<day>, and
+           assigning a hash its current value fires no hashchange at all — which
+           is precisely why this button did nothing. */
         ? `<button class="btn btn--go btn--big" data-action="discard-live" data-day="${wantedKey}">Start ${DAY_NAMES[wantedKey]} fresh</button>
-           <button class="btn" data-go="#/go/${live.day}">Carry on the old one anyway</button>`
+           <button class="btn" data-action="resume-live">Carry on the old one anyway</button>`
         : `<button class="btn btn--go btn--big" data-go="#/go/${live.day}">Carry on with ${DAY_NAMES[live.day]}</button>
            <button class="btn" data-action="discard-live" data-day="${wantedKey}">Throw it away and start ${DAY_NAMES[wantedKey]}</button>`}
     </div>
@@ -880,12 +997,16 @@ function paintPlayer(live) {
         ${v.kind === "link" ? `<p class="small" style="margin:.6rem 0 0"><a href="${esc(v.src)}" target="_blank" rel="noopener">Open the video &rarr;</a></p>` : ""}
       </div>
 
-      <ul class="sets" id="sets">
+      <!-- Every box the same size, whatever it says inside it. Seven or more
+           on one row stops trying to fit a time in and shows a tick instead,
+           because a squashed "0:45" is worse than a mark that means done. -->
+      <ul class="sets ${ex.setsPlanned >= 7 ? "sets--tight" : ""}" id="sets">
         ${Array.from({ length: ex.setsPlanned }, (_, n) => {
-          const state = n < ex.done.length ? "is-done" : n === ex.done.length ? "is-now" : "";
-          const label = n < ex.done.length ? clock(ex.done[n].sec)
-            : n === ex.done.length ? (resting ? "resting" : "now") : "queued";
-          return `<li class="set ${state}"><b>${n + 1}</b>${label}</li>`;
+          const done = n < ex.done.length;
+          const state = done ? "is-done" : n === ex.done.length ? "is-now" : "";
+          const label = done ? clock(ex.done[n].sec)
+            : n === ex.done.length ? (resting ? "Rest" : "Now") : "";
+          return `<li class="set ${state}"><b>${n + 1}</b><i>${label}</i><u aria-hidden="true">&#10003;</u></li>`;
         }).join("")}
       </ul>
 
@@ -1176,12 +1297,20 @@ function renderSummary(id) {
   const session = store.history().sessions.find((s) => s.id === id);
   if (!session) { go("#/"); return; }
   const stats = store.stats();
+  const earned = newlyEarned(store.history().sessions, id);   // see insights.js — chronological, tested
 
   screen.innerHTML = `
     <p class="eyebrow">Workout complete</p>
     <h2 class="h-display">${esc(session.title)}</h2>
     <p class="summary__big">${session.calories} <span style="font-size:1.2rem;color:var(--dim)">calories</span></p>
     <p class="muted small">An estimate, from ${session.weightLb} lb, the effort of each exercise and how long it actually took.</p>
+
+    ${earned.length ? `<div class="milestone-banner">
+      <p class="milestone-banner__eyebrow">${plural(earned.length, "new milestone")}</p>
+      <div class="badges">
+        ${earned.map((b) => `<span class="badge"><span class="badge__dot"></span>${esc(b.label)}</span>`).join("")}
+      </div>
+    </div>` : ""}
 
     <ul class="tally">
       <li><span>Time</span><b>${duration(session.elapsedSec)}</b></li>
@@ -1215,9 +1344,89 @@ function renderSummary(id) {
 
 let openRow = null;
 
+/** "3 more than last week", "the same as last week", never a bare number
+ * with no feel for whether that is good — a trend means nothing without
+ * something to compare it to. */
+function trendLine(insights) {
+  const { thisWeekCount, lastWeekCount, trend } = insights;
+  if (lastWeekCount === 0 && thisWeekCount === 0) return "";
+  if (trend > 0) return `<p class="trend trend--up">&#9650; <b>${plural(trend, "workout")} more</b> than last week</p>`;
+  if (trend < 0) return `<p class="trend trend--down">&#9660; ${plural(-trend, "workout")} fewer than last week</p>`;
+  return `<p class="trend">&#8212; the same as last week</p>`;
+}
+
+/** The handful of things a plain total cannot say — worth showing only once
+ * there is enough of a record for them to mean anything. */
+function insightCards(insights) {
+  const cards = [];
+
+  cards.push(`<div class="insight-card">
+    <div class="ring" style="--pct:${insights.consistency30}"></div>
+    <div class="insight-card__body">
+      <span class="insight-card__label">Last 30 days</span>
+      <span class="insight-card__value">${insights.consistency30}%</span>
+      <span class="insight-card__note">of days had a workout</span>
+    </div>
+  </div>`);
+
+  if (insights.favorite) {
+    cards.push(`<div class="insight-card">
+      <div class="insight-card__body">
+        <span class="insight-card__label">Favorite exercise</span>
+        <span class="insight-card__value">${esc(insights.favorite.name)}</span>
+        <span class="insight-card__note">in ${plural(insights.favorite.count, "workout")}</span>
+      </div>
+    </div>`);
+  }
+
+  if (insights.bestDay) {
+    cards.push(`<div class="insight-card">
+      <div class="insight-card__body">
+        <span class="insight-card__label">Shows up most on</span>
+        <span class="insight-card__value">${insights.bestDay.name}</span>
+        <span class="insight-card__note">${plural(insights.bestDay.count, "workout")} logged</span>
+      </div>
+    </div>`);
+  }
+
+  cards.push(`<div class="insight-card">
+    <div class="insight-card__body">
+      <span class="insight-card__label">Best run ever</span>
+      <span class="insight-card__value">${plural(insights.longestStreak, "day")}</span>
+      <span class="insight-card__note">back to back</span>
+    </div>
+  </div>`);
+
+  return `<div class="insight-grid">${cards.join("")}</div>`;
+}
+
+/** Three personal records, only the ones a real session set — a longest
+ * workout of nought seconds is not a record, it is an empty record. */
+function recordCards(insights) {
+  const rows = [
+    insights.biggestBurn && { label: "Biggest burn", value: `${insights.biggestBurn.calories} cal`, when: insights.biggestBurn.date },
+    insights.longestWorkout && { label: "Longest workout", value: duration(insights.longestWorkout.elapsedSec), when: insights.longestWorkout.date },
+    insights.mostSets && { label: "Most sets in one workout", value: plural(insights.mostSets.setsDone, "set"), when: insights.mostSets.date },
+  ].filter(Boolean);
+  if (!rows.length) return "";
+  return `<h2 class="h-section">Personal bests</h2>
+    <ul class="tally">
+      ${rows.map((r) => `<li><span>${esc(r.label)} &middot; <span class="dimmer">${niceDate(r.when)}</span></span><b>${esc(r.value)}</b></li>`).join("")}
+    </ul>`;
+}
+
+function badgeRow(insights) {
+  if (!insights.badges.length) return "";
+  return `<h2 class="h-section">Milestones</h2>
+    <div class="badges">
+      ${insights.badges.map((b) => `<span class="badge"><span class="badge__dot"></span>${esc(b.label)}</span>`).join("")}
+    </div>`;
+}
+
 function renderHistory() {
   const h = store.history();
   const stats = store.stats();
+  const insights = store.insights();
   const week = store.weekOf();
   const today = dayKeyOf();
   const pending = store.pendingCount();
@@ -1236,10 +1445,15 @@ function renderHistory() {
     </div>
 
     <h2 class="h-section">This week</h2>
+    ${trendLine(insights)}
     <div class="weekstrip">
       ${DAY_KEYS.map((k) => `<div class="${week[k].done ? "is-done" : ""} ${k === today ? "is-today" : ""}">
         ${DAY_SHORT[k]}<b>${week[k].done ? "&#10003;" : "&middot;"}</b></div>`).join("")}
     </div>
+
+    ${!insights.empty ? `<h2 class="h-section">Worth knowing</h2>${insightCards(insights)}` : ""}
+    ${recordCards(insights)}
+    ${badgeRow(insights)}
 
     <h2 class="h-section">${h.sessions.length ? plural(h.sessions.length, "workout") + " logged" : "Nothing logged yet"}</h2>
     ${h.sessions.length ? `<ul class="log">
@@ -1366,11 +1580,15 @@ async function renderRemind() {
 
   reminderState = await push.status().catch((err) => ({ ok: false, supported: true, why: err.message }));
   const st = reminderState;
-  if (!store.get().signedIn) {
-    st.why = "Sign in first — a reminder is attached to this device on the server, and that needs the password.";
+  if (!store.get().account) {
+    st.why = "Sign in first — a reminder is attached to this device on the server, and that needs an account.";
   }
   const on = st.subscribed && st.reminder?.enabled;
-  const hour = st.reminder?.hour ?? 8;
+  // Before subscribing, this is what WILL apply the moment "Remind me" is
+  // pressed; after, it is what actually is set. Either way it is the admin's
+  // decision now, not a picker on this screen — see admin-people.js's reminders
+  // panel, reached from Settings when signed in as admin.
+  const hour = on ? (st.reminder?.hour ?? 8) : (st.effective?.hour ?? 8);
   const snoozed = st.reminder?.snoozeUntil > Date.now();
 
   screen.innerHTML = `
@@ -1382,18 +1600,21 @@ async function renderRemind() {
           st.permission === "denied"
             ? "Notifications are blocked for this app in the browser's settings. Allow them there, then come back."
             : st.why || "Reminders are not available here.")}</p>
-         ${!store.get().signedIn ? `<div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>` : ""}`
+         ${!store.get().account ? `<div class="btn-row"><button class="btn btn--go" data-action="go-login">Sign in</button></div>` : ""}`
       : ""}
 
     <p class="muted">A nudge on the morning of a day that has a workout in it &mdash; never on a rest day, and never
       once it is already done.</p>
 
-    <h2 class="h-section">Every day at</h2>
-    ${hourPicker("daily-hour", hour)}
+    <div class="card">
+      <p class="eyebrow">${on ? "Set for" : "Will be set for"}</p>
+      <p class="h-display" style="margin:0">${hourLabel(hour)}</p>
+      <p class="muted small" style="margin-top:.4rem">Set by the admin, for this account &mdash; not a choice made
+        here. Ask them if it should move.</p>
+    </div>
     <div class="btn-row" style="margin-top:1rem">
       ${on
-        ? `<button class="btn btn--go" data-action="remind-save">Save this time</button>
-           <button class="btn btn--ghost" data-action="remind-off">Turn off</button>`
+        ? `<button class="btn btn--ghost" data-action="remind-off">Turn off</button>`
         : `<button class="btn btn--go btn--big" data-action="remind-on" ${st.supported && st.ready ? "" : "disabled"}>Remind me</button>`}
     </div>
 
@@ -1419,111 +1640,521 @@ async function renderRemind() {
 
     ${footer()}`;
 
-  wireHourPicker(screen, "daily-hour");
   wireHourPicker(screen, "snooze-hour");
+}
+
+/* ==========================================================================
+   Accounts — signing in, signing up, and getting a forgotten password back.
+
+   Separate from the admin password (askAdminPassword, above) in every way
+   that matters: this is a real person's own email, and what their training
+   record is attached to. Four modes share one screen because they share
+   almost everything about it — the same shell, the same handful of fields,
+   the same "something went wrong" box above the button.
+   ========================================================================== */
+
+function renderAccountScreen(mode, token = "") {
+  const s = store.get();
+
+  // Already signed in, and not here to use a reset link someone forwarded —
+  // there is nothing for this screen to do.
+  if (mode !== "reset" && s.account) { go("#/"); return renderWeek(); }
+
+  bar.hidden = true;
+  const cfg = s.accountConfig;
+
+  const COPY = {
+    login: { bar: "Sign in", eyebrow: "Sign in", title: "Welcome back", sub: "Your workouts and your record follow you here.",
+      submit: "Sign in" },
+    signup: { bar: "Sign up", eyebrow: "New here", title: "Create an account", sub: "So your workouts follow you between devices, and stay yours.",
+      submit: "Create account" },
+    forgot: { bar: "Reset", eyebrow: "Account", title: "Forgot your password?", sub: "We'll email a link to set a new one.",
+      submit: "Send the link" },
+    reset: { bar: "Reset", eyebrow: "Account", title: "Set a new password", sub: "This link works once, for one hour.",
+      submit: "Set the new password" },
+  }[mode];
+  setTitle(COPY.bar, "account");
+
+  const full = mode === "signup" && cfg.full;
+
+  screen.innerHTML = `
+    <p class="eyebrow">${esc(COPY.eyebrow)}</p>
+    <h2 class="h-display">${esc(COPY.title)}</h2>
+    <p class="muted" style="margin-bottom:1.25rem">${esc(COPY.sub)}</p>
+
+    <div id="acct-error"></div>
+
+    ${full ? `<p class="note note--warn">This app is in a small beta and already has its ${cfg.maxUsers} accounts.
+        Ask to be added, or <a href="#/login">sign in</a> if you already have one.</p>` : `
+    <form id="acct-form" novalidate>
+      ${mode !== "reset" ? `<label class="field"><span>Email</span>
+        <input type="email" id="a-email" autocomplete="email" enterkeyhint="next"
+          autocapitalize="off" autocorrect="off" spellcheck="false" required></label>` : ""}
+      ${mode === "signup" ? `<label class="field field--hint"><span>Your name</span>
+        <input type="text" id="a-name" autocomplete="name">
+        <small>Just for the app to greet you by &mdash; optional.</small></label>` : ""}
+      ${mode === "login" || mode === "signup" || mode === "reset" ? `<label class="field field--hint">
+        <span>${mode === "reset" ? "New password" : "Password"}</span>
+        <input type="password" id="a-password"
+          autocomplete="${mode === "signup" || mode === "reset" ? "new-password" : "current-password"}"
+          enterkeyhint="${mode === "signup" || mode === "reset" ? "next" : "go"}" required>
+        ${mode === "signup" || mode === "reset" ? `<small>At least 8 characters.</small>` : ""}</label>` : ""}
+      ${mode === "signup" || mode === "reset" ? `<label class="field">
+        <span>Type it again</span>
+        <input type="password" id="a-password-2" autocomplete="new-password" enterkeyhint="go" required></label>` : ""}
+      <div class="btn-row" style="margin-top:1rem">
+        <button class="btn btn--go btn--wide btn--big" type="submit">${esc(COPY.submit)}</button>
+      </div>
+    </form>
+
+    ${mode === "login" && cfg.google
+      ? `<p class="muted small" style="text-align:center;margin:1rem 0">or</p>
+         <div id="google-btn" style="display:flex;justify-content:center;min-height:44px"></div>`
+      : ""}
+
+    ${mode === "forgot" && !cfg.mailConfigured
+      ? `<p class="note note--warn" style="margin-top:1rem">Email is not set up on this site yet, so a reset
+           link cannot be sent. Ask whoever runs the site to add it.</p>` : ""}
+
+    <p class="small dimmer" style="margin-top:1.5rem;text-align:center">
+      ${mode === "login" ? `<a href="#/forgot">Forgot your password?</a><br>
+          New here? <a href="#/signup">Create an account</a>` : ""}
+      ${mode === "signup" ? `Already have an account? <a href="#/login">Sign in</a>` : ""}
+      ${mode === "forgot" || mode === "reset" ? `<a href="#/login">Back to sign in</a>` : ""}
+    </p>`}
+
+    ${footer()}`;
+
+  const errorBox = () => document.getElementById("acct-error");
+  const showError = (message) => {
+    const box = errorBox();
+    if (box) box.innerHTML = `<p class="note note--warn">${esc(message)}</p>`;
+  };
+
+  document.getElementById("acct-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("a-email")?.value.trim() || "";
+    const name = document.getElementById("a-name")?.value.trim() || "";
+    const password = document.getElementById("a-password")?.value || "";
+    const password2 = document.getElementById("a-password-2")?.value ?? password;
+    errorBox().innerHTML = "";
+
+    // Caught here rather than waiting on the server: a mistyped confirmation
+    // is the single most common reason a brand new account can never sign
+    // back in, and there is no reason to make a round trip to say so.
+    if ((mode === "signup" || mode === "reset") && password !== password2) {
+      showError("Those two don't match.");
+      document.getElementById("a-password-2")?.focus();
+      return;
+    }
+
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+
+    let res;
+    if (mode === "login") res = await store.accountLogIn({ email, password });
+    else if (mode === "signup") res = await store.accountSignUp({ email, password, name });
+    else if (mode === "forgot") res = await store.accountRequestReset(email);
+    else res = await store.accountResetPassword({ token, password });
+
+    submitBtn.disabled = false;
+    if (!res.ok) { showError(res.error); return; }
+
+    if (mode === "forgot") {
+      toast(res.note || "If that email has an account, a link is on its way.", "good");
+      go("#/login");
+      return;
+    }
+    toast(mode === "reset" ? "Password set — you're signed in." : "Signed in.", "good");
+    go("#/");
+  });
+
+  if (mode === "login" && cfg.google) {
+    const el = document.getElementById("google-btn");
+    account.renderGoogleButton(el, cfg.google.clientId, async (credential) => {
+      const res = await store.accountWithGoogle(credential);
+      if (!res.ok) { showError(res.error); return; }
+      toast("Signed in.", "good");
+      go("#/");
+    }).catch(() => { if (el) el.remove(); });        // the button just does not appear
+  }
 }
 
 /* ==========================================================================
    Settings, signing in, and the notices
    ========================================================================== */
 
+/* What Settings is holding that has not been saved. Kept out here so the
+   "you have unsaved changes" panel can put the person back where they were
+   with everything they typed still in place. */
+let settingsDraft = null;
+
+const settingsDirty = () => {
+  if (!settingsDraft) return false;
+  const now = store.settings();
+  return settingsDraft.weightLb !== now.weightLb || settingsDraft.countRest !== now.countRest;
+};
+
 function settingsSheet() {
   const s = store.get();
-  const set = store.settings();
+  if (!settingsDraft) settingsDraft = { ...store.settings() };
+  const d = settingsDraft;
+
+  const where = s.mode !== "server"
+    ? `<p class="note note--warn">Working offline &mdash; this browser only.${s.note ? " " + esc(s.note) : ""}
+         Anything logged now goes up on its own when the app can reach its server again.</p>`
+    : s.account
+      ? `<p class="note note--good"><strong>Signed in as ${esc(s.account.email)}.</strong> Your workouts save
+           to the server and follow you to any device you sign into. Nobody else &mdash; including
+           the admin password &mdash; can read your record.</p>`
+      : s.hasPassword
+        ? `<p class="note">Not signed in. The week is readable, and workouts done now are kept on this phone
+             until you sign in. Signing in is what keeps your record safe if you lose the phone, and shares
+             it with another device.</p>`
+        : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it.
+             Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`;
 
   openSheet("Settings", `
-    <label class="field field--hint"><span>Body weight, in pounds</span>
-      <input type="number" id="s-weight" value="${set.weightLb}" min="40" max="700" step="1">
-      <small>Only used for the calorie estimate. It is stored with each workout, so changing it does not rewrite the past.</small></label>
+    <p class="sheet__lede">Everything about how this app behaves on this device.</p>
 
-    <label class="field field--hint" style="display:flex;gap:.7rem;align-items:flex-start">
-      <input type="checkbox" id="s-rest" ${set.countRest ? "checked" : ""} style="width:22px;height:22px;min-height:0;margin-top:.15rem;flex:0 0 auto">
-      <span style="text-transform:none;letter-spacing:0;font-size:.92rem;font-weight:400;color:var(--dim)">
-        Count the rest between sets. She is on her feet for it, so it counts by default.</span></label>
+    <section class="set-group">
+      <h3 class="set-group__h">The calorie estimate</h3>
+      <p class="set-group__note">Two things feed it. Neither changes anything already logged &mdash; each workout
+        keeps the numbers it was recorded with.</p>
 
-    <div class="btn-row" style="margin-bottom:1.25rem">
-      <button class="btn btn--go" data-action="save-settings">Save</button>
-    </div>
+      <label class="field field--hint"><span>Body weight, in pounds</span>
+        <input type="number" id="s-weight" value="${d.weightLb}" min="40" max="700" step="1" inputmode="numeric">
+        <small>The estimate scales with this. A pound or two either way barely moves it.</small></label>
 
-    <hr style="border:0;border-top:1px solid var(--line);margin:1.25rem 0">
+      <label class="switch">
+        <input type="checkbox" id="s-rest" ${d.countRest ? "checked" : ""}>
+        <span class="switch__body">
+          <strong>Count the rest between sets</strong>
+          <small>She is on her feet between sets, so it counts by default. Turn it off to count only the
+            working time. Rest is credited at most three minutes a set either way, so a forgotten timer
+            cannot invent a day's calories.</small>
+        </span>
+      </label>
+    </section>
 
-    <p class="eyebrow">Where this is saved</p>
-    ${s.mode === "server"
-      ? (s.signedIn
-        ? `<p class="note note--good">Signed in. The week and the record both save here and show up on every device.
-             The record is private &mdash; reading it needs this password.</p>
-           <div class="btn-row"><button class="btn btn--ghost" data-action="sign-out">Sign out</button></div>`
-        : (s.hasPassword
-          ? `<p class="note">The week is coming from the server. Sign in to see the record, log workouts to it, and edit the week.</p>
-             <div class="btn-row"><button class="btn btn--go" data-action="sign-in">Sign in</button></div>`
-          : `<p class="note note--warn">No password is set on this site yet, so nothing can be saved to it and
-               the record stays on this phone. Add <strong>WORKOUT_PASSWORD</strong> in Netlify and redeploy.</p>`))
-      : `<p class="note note--warn">Saving to this browser only.${s.note ? " " + esc(s.note) : ""}</p>
-         ${s.signedIn
-           ? `<p class="small muted">Editing is unlocked on this device. Changes stay here until the server is reachable.</p>
-              <div class="btn-row"><button class="btn btn--ghost" data-action="sign-out">Lock editing</button></div>`
-           : `<p class="small muted">The week can still be edited on this device with the password.</p>
-              <div class="btn-row"><button class="btn" data-action="sign-in">Sign in to edit</button></div>`}`}
+    <section class="set-group">
+      <h3 class="set-group__h">Reminders</h3>
+      <p class="set-group__note">A push notification on the morning of a day that has a workout in it &mdash;
+        never on a rest day, and never once it is already done.</p>
+      <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
+    </section>
 
-    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Edit the week</p>
+    <section class="set-group">
+      <h3 class="set-group__h">Where this is saved</h3>
+      ${where}
+      <div class="btn-row">
+        ${s.account
+          ? `<button class="btn btn--ghost" data-action="account-sign-out">Sign out</button>`
+          : `<button class="btn btn--go" data-action="go-login">Sign in or create an account</button>`}
+        ${s.account?.hasPassword ? `<button class="btn btn--ghost" data-action="go-change-password">Change password</button>` : ""}
+      </div>
+      ${s.account && !s.account.hasPassword && s.account.hasGoogle
+        ? `<p class="set-group__note" style="margin-top:.7rem">Signed in with Google — no separate password to change here.</p>` : ""}
+    </section>
+
+    ${adminOn() ? `
+    <section class="set-group">
+      <h3 class="set-group__h">Edit the week</h3>
+      <p class="set-group__note">Pick a day to open it with the pencil already down.</p>
       <div class="week">
         ${DAY_KEYS.map((k) => `<button class="day" data-action="edit-day" data-day="${k}">
           <span class="day__name">${DAY_SHORT[k]}</span>
           <span class="day__title">${esc(store.dayPlan(k).title || "Rest")}</span></button>`).join("")}
-      </div>` : ""}
+      </div>
+      <p class="set-group__note" style="margin-top:.9rem">The editor is unlocked on this device and locks itself
+        again twelve hours after you unlocked it.</p>
+      <div class="btn-row">
+        <button class="btn btn--ghost" data-action="lock-admin">Lock the editor now</button>
+        <button class="btn btn--ghost" data-action="go-admin-people">Who has an account</button>
+        <button class="btn btn--ghost" data-action="go-admin-reminders">Reminder schedule</button>
+        <button class="btn btn--ghost" data-action="go-admin-exercises">Exercise pool</button>
+      </div>
+    </section>` : ""}
 
-    <p class="eyebrow" style="margin-top:1.5rem">Reminders</p>
-    <p class="small muted">A nudge on the morning of a day that has a workout in it.</p>
-    <div class="btn-row"><button class="btn" data-action="go-remind">Set a reminder</button></div>
+    <section class="set-group set-group--last">
+      <h3 class="set-group__h">Put it on the home screen</h3>
+      <p class="set-group__note">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu,
+        then <strong>Install app</strong>. It then opens without browser chrome, keeps the screen awake during a
+        workout, and works in a gym with no signal. On an iPhone, reminders only work from the home-screen copy.</p>
+    </section>
 
-    ${adminOn() ? `<p class="eyebrow" style="margin-top:1.5rem">Editor</p>
-      <p class="small muted">Unlocked on this device. It locks itself again twelve hours after you unlocked it,
-        or right now if you press the button.</p>
-      <div class="btn-row"><button class="btn btn--ghost" data-action="lock-admin">Lock the editor</button></div>` : ""}
-
-    <p class="eyebrow" style="margin-top:1.5rem">Put it on the home screen</p>
-    <p class="small muted">On an iPhone: Share, then <strong>Add to Home Screen</strong>. On Android: the menu, then
-      <strong>Install app</strong>. It then opens without browser chrome and works in a gym with no signal.</p>
+    <div class="sheet__actions">
+      <button class="btn btn--go btn--big" data-action="save-settings" id="s-save">Save changes</button>
+      <button class="btn btn--big" data-action="cancel-settings">Cancel</button>
+    </div>
   `, (root) => {
-    root.querySelector('[data-action="save-settings"]')?.addEventListener("click", async () => {
-      await store.saveSettings({
-        weightLb: Number(root.querySelector("#s-weight").value) || 150,
-        countRest: root.querySelector("#s-rest").checked,
-      });
-      closeSheet();
-      toast("Saved.", "good");
-      render();
+    const mark = () => {
+      root.querySelector("#s-save")?.classList.toggle("is-waiting", settingsDirty());
+    };
+    root.querySelector("#s-weight")?.addEventListener("input", (e) => {
+      settingsDraft.weightLb = Number(e.target.value) || store.settings().weightLb;
+      mark();
     });
+    root.querySelector("#s-rest")?.addEventListener("change", (e) => {
+      settingsDraft.countRest = e.target.checked;
+      mark();
+    });
+    mark();
   });
+
+  /* Closing with something unsaved asks instead of silently dropping it. */
+  sheetGuard = () => {
+    if (!settingsDirty()) { settingsDraft = null; return true; }
+    unsavedSettingsPanel();
+    return false;
+  };
 }
 
-function askSignIn(returnTo, thenUnlockAdmin = false) {
-  /* The same sheet does two jobs and has to say which one it is doing. Reached
-     from the long press or /#/admin it is the way into the editor, and calling
-     it "Sign in" told somebody standing in front of it nothing at all. */
-  openSheet(thenUnlockAdmin ? "Unlock the editor" : "Sign in", `
-    <p class="small muted" style="margin-bottom:1rem">${thenUnlockAdmin
-      ? "Type the password and the pencil appears in the bar at the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures and videos."
-      : "The app's own password. It syncs the record between devices, and it is what keeps the record private: nobody can read it without this."}</p>
+/** Shown in place of the settings body when a close would lose changes. */
+function unsavedSettingsPanel() {
+  const now = store.settings();
+  const changes = [];
+  if (settingsDraft.weightLb !== now.weightLb) changes.push(`body weight ${now.weightLb} &rarr; ${settingsDraft.weightLb} lb`);
+  if (settingsDraft.countRest !== now.countRest) changes.push(`rest between sets ${settingsDraft.countRest ? "counted" : "not counted"}`);
+
+  $("#sheet-title").textContent = "Unsaved changes";
+  $("#sheet-body").innerHTML = `
+    <p class="muted" style="margin-bottom:1rem">You changed ${changes.length === 1 ? "one thing" : "a couple of things"}
+      and have not saved:</p>
+    <ul class="tally" style="margin-top:0">
+      ${changes.map((c) => `<li><span>${c}</span></li>`).join("")}
+    </ul>
+    <div class="sheet__actions" style="margin-top:1.5rem">
+      <button class="btn btn--go btn--big" data-action="save-settings">Save and close</button>
+      <button class="btn btn--big" data-action="back-to-settings">Back to settings</button>
+      <button class="btn btn--danger btn--big" data-action="discard-settings">Discard them</button>
+    </div>`;
+}
+
+/** The app's one shared admin password — unrelated to anyone's account, see
+ * store.js's header note. This is the only door it opens: the editor. */
+function askAdminPassword() {
+  openSheet("Unlock the editor", `
+    <p class="small muted" style="margin-bottom:1rem">Type the password and the pencil appears in the bar at
+      the top. Press it and the page you are looking at becomes editable &mdash; titles, exercises, pictures
+      and videos.</p>
     <label class="field"><span>Password</span>
       <input type="password" id="s-key" autocomplete="current-password" enterkeyhint="go"></label>
-    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-sign-in">Sign in</button></div>
-    <p class="small dimmer" style="margin-top:1rem">${thenUnlockAdmin
-      ? "The editor stays unlocked on this device for twelve hours, across every tab. Settings &rarr; Lock the editor ends it sooner."
-      : "The week can be followed without signing in, and workouts done that way are kept on this phone and go up when you next sign in. Signing in is what shares them between devices."}</p>
+    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-admin-sign-in">Unlock</button></div>
+    <p class="small dimmer" style="margin-top:1rem">The editor stays unlocked on this device for twelve hours,
+      across every tab. Settings &rarr; Lock the editor ends it sooner.</p>
   `, (root) => {
     const input = root.querySelector("#s-key");
     const submit = async () => {
       const res = await store.signIn(input.value);
       if (!res.ok) { toast(res.error, "bad"); return; }
       closeSheet();
-      if (thenUnlockAdmin) { setAdmin(true); toast("Editor unlocked. The pencil is at the top.", "good"); }
-      else toast("Signed in.", "good");
-      if (returnTo) go(returnTo); else render();
+      setAdmin(true);
+      toast("Editor unlocked. The pencil is at the top.", "good");
+      render();
     };
-    root.querySelector('[data-action="do-sign-in"]').addEventListener("click", submit);
+    root.querySelector('[data-action="do-admin-sign-in"]').addEventListener("click", submit);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
     setTimeout(() => input.focus(), 50);
+  });
+}
+
+/** The account's own password — separate from the admin one above. Proving
+ * the current password before setting a new one, the same way any account
+ * settings screen would, even though the session cookie already proves who
+ * this is: it is the difference between "you are signed in" and "you meant
+ * to do this", which matters more for a password than almost anything else
+ * this app does. */
+function changePasswordSheet() {
+  openSheet("Change your password", `
+    <p class="small muted" style="margin-bottom:1rem">Changing it signs every other device out — anywhere
+      else this account is signed in will need the new one.</p>
+    <div id="cp-error"></div>
+    <label class="field"><span>Current password</span>
+      <input type="password" id="cp-current" autocomplete="current-password"></label>
+    <label class="field field--hint"><span>New password</span>
+      <input type="password" id="cp-new" autocomplete="new-password">
+      <small>At least 8 characters.</small></label>
+    <label class="field"><span>Type it again</span>
+      <input type="password" id="cp-new-2" autocomplete="new-password"></label>
+    <div class="btn-row"><button class="btn btn--go btn--wide" data-action="do-change-password">Change it</button></div>
+  `, (root) => {
+    const errBox = root.querySelector("#cp-error");
+    const submit = async () => {
+      errBox.innerHTML = "";
+      const currentPassword = root.querySelector("#cp-current").value;
+      const password = root.querySelector("#cp-new").value;
+      const password2 = root.querySelector("#cp-new-2").value;
+      if (password !== password2) {
+        errBox.innerHTML = `<p class="note note--warn">Those two don't match.</p>`;
+        root.querySelector("#cp-new-2")?.focus();
+        return;
+      }
+      const res = await store.accountChangePassword({ currentPassword, password });
+      if (!res.ok) { errBox.innerHTML = `<p class="note note--warn">${esc(res.error)}</p>`; return; }
+      closeSheet();
+      toast("Password changed.", "good");
+      render();
+    };
+    root.querySelector('[data-action="do-change-password"]').addEventListener("click", submit);
+    root.querySelectorAll("input").forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); }));
+    setTimeout(() => root.querySelector("#cp-current")?.focus(), 50);
+  });
+}
+
+/** Admin only — a read-only roster, not a management screen. Nothing here
+ * can change or remove an account; that is deliberately not built yet for a
+ * beta this size, where "ask them to email you" is a perfectly good way to
+ * handle the rare case it comes up. */
+function renderAdminPeople() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Accounts", "who has one");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">Who has an account</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  store.listPeople().then((res) => {
+    if (location.hash !== "#/admin/people") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    const { people, maxUsers } = res;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${people.length} of ${maxUsers} beta ${plural(maxUsers, "spot")} used.</p>
+      ${people.length ? `<ul class="tally">
+        ${people.map((p) => `<li>
+          <span>
+            <span style="display:block;font-weight:600">${esc(p.name)}</span>
+            <span class="dimmer small" style="display:block;margin-top:.15rem">${esc(p.email)}
+              &middot; ${p.google ? "Google" : "Password"}
+              &middot; joined ${niceDate(p.createdAt.slice(0, 10))}
+              &middot; last signed in ${niceDate(p.lastSeenAt.slice(0, 10))}</span>
+          </span>
+          <b>${plural(p.workouts, "workout")}</b>
+        </li>`).join("")}
+      </ul>` : `<p class="muted">Nobody has signed up yet.</p>`}
+    `);
+  });
+}
+
+/** Admin only — the saved exercises a day can be built from instead of
+ * retyping the same sets, reps, rest and video every time it recurs. Viewing
+ * and picking are both admin-only, same as the video library. */
+function renderAdminExercises() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Exercise pool", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">The exercise pool</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  exerciseLibrary.list().then((res) => {
+    if (location.hash !== "#/admin/exercises") return;    // moved on before this answered
+    if (!res.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(res.error)}</p>`); return; }
+
+    poolCache = res.exercises;
+    screen.innerHTML = shell(`
+      <p class="muted" style="margin-bottom:1.25rem">${res.exercises.length
+        ? `${plural(res.exercises.length, "exercise")} saved. Build a day from any of them with
+           "From the pool" in the editor.`
+        : `Nothing saved yet. Open a day in the editor and use "Save to the pool" on an exercise.`}</p>
+      ${res.exercises.length ? res.exercises.map((ex) => `
+        <div class="admin-person">
+          <div class="admin-person__who">
+            <strong>${esc(ex.name)}</strong>
+            <span class="dimmer small">${ex.sets} &times; ${esc(ex.reps || "reps")}${ex.rest ? ` &middot; ${ex.rest}s rest` : ""}
+              &middot; ${esc(effortLabel(ex.effort))}${ex.video ? " &middot; has a video" : ""}${ex.image ? " &middot; has a picture" : ""}</span>
+          </div>
+          <div class="admin-person__row">
+            <button class="btn btn--ghost" data-action="pool-remove" data-id="${esc(ex.id)}">Remove</button>
+          </div>
+        </div>`).join("") : ""}
+    `);
+  });
+}
+
+const plainHour = (h) => `${h === 0 ? 12 : h > 12 ? h - 12 : h}${h < 12 ? "am" : "pm"}`;
+const hourOptions = (selected) =>
+  Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === selected ? "selected" : ""}>${plainHour(h)}</option>`).join("");
+
+/**
+ * Admin only — the schedule every "Remind me" press and every reminder's
+ * wording actually come from. Nothing here can subscribe a device that has
+ * never opened the app and granted permission; what it controls is what
+ * happens once one has, or already is.
+ */
+function renderAdminReminders() {
+  if (!adminOn()) { unlockAdmin(); go("#/"); return; }
+  bar.hidden = true;
+  setTitle("Reminders", "admin");
+
+  const shell = (body) => `<p class="eyebrow">Admin</p><h2 class="h-display">Reminder schedule</h2>${body}${footer()}`;
+  screen.innerHTML = shell(`<p class="muted">Loading&hellip;</p>`);
+
+  account.reminderConfig().then((s) => {
+    if (location.hash !== "#/admin/reminders") return;
+    if (!s.ok) { screen.innerHTML = shell(`<p class="note note--warn">${esc(s.error)}</p>`); return; }
+
+    screen.innerHTML = shell(`
+      <section class="set-group">
+        <h3 class="set-group__h">Default, for anyone without their own</h3>
+        <p class="set-group__note">What a new "Remind me" press sets up, and what anyone not given their own
+          schedule already follows.</p>
+        <label class="switch">
+          <input type="checkbox" id="rd-enabled" ${s.default.enabled ? "checked" : ""}>
+          <span class="switch__body"><strong>Reminders on by default</strong></span>
+        </label>
+        <label class="field" style="margin-top:.9rem"><span>At</span>
+          <select id="rd-hour">${hourOptions(s.default.hour)}</select></label>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn btn--go" data-action="rd-save">Save the default</button>
+          <button class="btn btn--ghost" data-action="rd-apply-all">Set this for everyone now</button>
+        </div>
+      </section>
+
+      <section class="set-group">
+        <h3 class="set-group__h">What it says, by the hour</h3>
+        <p class="set-group__note">"${esc(s.defaultMessage)}" unless a different message is written in for that
+          hour. Whichever hour someone's reminder is set to, this is what it says.</p>
+        <div class="hour-messages">
+          ${Array.from({ length: 24 }, (_, h) => `
+            <label class="field field--hour"><span>${plainHour(h)}</span>
+              <input type="text" data-hour-message="${h}" value="${esc(s.messages[h] || "")}"
+                placeholder="${esc(s.defaultMessage)}" maxlength="200"></label>`).join("")}
+        </div>
+        <div class="btn-row" style="margin-top:.9rem">
+          <button class="btn btn--ghost" data-action="rd-reset-messages">Reset every message to default</button>
+        </div>
+      </section>
+
+      <section class="set-group set-group--last">
+        <h3 class="set-group__h">Each person</h3>
+        ${s.people.length ? s.people.map((p) => `
+          <div class="admin-person">
+            <div class="admin-person__who">
+              <strong>${esc(p.name)}</strong>
+              <span class="dimmer small">${esc(p.email)} &middot; ${p.subscribed ? "has a device set up" : "no device yet"}</span>
+            </div>
+            <div class="admin-person__row">
+              <input type="checkbox" data-person-enabled="${esc(p.id)}" ${p.effective.enabled ? "checked" : ""}>
+              <select data-person-hour="${esc(p.id)}">${hourOptions(p.effective.hour)}</select>
+              <button class="btn btn--ghost" data-action="rd-save-user" data-user="${esc(p.id)}">Save</button>
+              ${p.override
+                ? `<button class="btn btn--ghost" data-action="rd-reset-user" data-user="${esc(p.id)}">Return to default schedule</button>`
+                : `<span class="dimmer small">Following the default</span>`}
+            </div>
+          </div>`).join("") : `<p class="muted">Nobody has an account yet.</p>`}
+      </section>
+    `);
+
+    // Saved on blur, not with a per-row button — twenty-four buttons on one
+    // screen is clutter, and there is nothing destructive about a wording.
+    document.querySelectorAll("[data-hour-message]").forEach((el) => {
+      el.addEventListener("change", () => {
+        account.saveHourMessage(Number(el.dataset.hourMessage), el.value)
+          .then((r) => toast(r.ok ? "Saved." : r.error, r.ok ? "good" : "bad"));
+      });
+    });
   });
 }
 
@@ -1540,15 +2171,14 @@ function footer() {
   const s = store.get();
   return `<div class="foot">
     <div class="pills">
-      ${s.signedIn
-        ? `<button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
-             ${adminOn() ? "&#9998; Admin" : "Admin"}</button>`
-        : `<button type="button" class="pill pill--go" data-action="sign-in">Sign in</button>
-           <button type="button" class="pill" data-action="admin-pill">Admin</button>`}
+      <button type="button" class="pill ${s.account ? "is-on" : "pill--go"}" data-action="${s.account ? "open-settings" : "go-login"}">
+        ${s.account ? esc(s.account.name || s.account.email) : "Sign in"}</button>
+      <button type="button" class="pill ${adminOn() ? "is-on" : ""}" data-action="admin-pill">
+        ${adminOn() ? "&#9998; Admin" : "Admin"}</button>
       <button type="button" class="pill" data-action="open-settings">Settings</button>
     </div>
     <p>${s.mode === "server"
-        ? (s.signedIn ? "Signed in &middot; everything syncs" : "Reading the week from the server")
+        ? (s.account ? "Signed in &middot; your record syncs" : "Not signed in &middot; the record stays on this phone")
         : "This browser only"}</p>
     <p class="dimmer">Calories are an estimate from body weight, the effort of each exercise and how long it took. Treat them as a guide.</p>
   </div>`;
@@ -1565,7 +2195,8 @@ function setTitle(main, sub) {
   /* The pencil shows only where it means something: signed in, and not in the
      middle of a workout. */
   const pencil = $("#edit-btn");
-  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind"].some((h) => location.hash.startsWith(h));
+  const canEdit = adminOn() && !["#/go/", "#/history", "#/done/", "#/remind", "#/login", "#/signup", "#/forgot", "#/reset", "#/admin/"]
+    .some((h) => location.hash.startsWith(h));
   pencil.hidden = !canEdit;
   pencil.classList.toggle("is-on", editing);
   pencil.setAttribute("aria-pressed", editing ? "true" : "false");
@@ -1575,7 +2206,10 @@ function setTitle(main, sub) {
 
 function render() {
   const hash = location.hash || "#/";
-  const [, route, arg] = hash.split("/");
+  // Split the query off first — #/reset?token=… would otherwise glue
+  // "reset?token=…" together as one unrecognisable route name.
+  const [path, query] = hash.split("?");
+  const [, route, arg] = path.split("/");
 
   if (route !== "go") {
     stopTicking();
@@ -1602,7 +2236,14 @@ function render() {
   if (route === "done" && arg) return renderSummary(arg);
   if (route === "history") return renderHistory();
   if (route === "remind") return renderRemind();
+  if (route === "admin" && arg === "people") return renderAdminPeople();
+  if (route === "admin" && arg === "reminders") return renderAdminReminders();
+  if (route === "admin" && arg === "exercises") return renderAdminExercises();
   if (route === "admin") { unlockAdmin(); location.replace("#/"); return renderWeek(); }
+  if (route === "login") return renderAccountScreen("login");
+  if (route === "signup") return renderAccountScreen("signup");
+  if (route === "forgot") return renderAccountScreen("forgot");
+  if (route === "reset") return renderAccountScreen("reset", new URLSearchParams(query || "").get("token") || "");
   return renderWeek();
 }
 
@@ -1622,11 +2263,15 @@ $("#settings-btn").addEventListener("click", settingsSheet);
 /* One listener for the whole app. Everything that can be pressed says what it
    does in a data attribute, so a repaint never leaves a dead button behind. */
 document.addEventListener("click", (e) => {
-  const goTo = e.target.closest("[data-go]");
-  if (goTo) { e.preventDefault(); go(goTo.dataset.go); return; }
-
+  /* Actions are looked for first. Today's card is itself a destination, and it
+     contains buttons that do something else — without this order the card's
+     destination would swallow "Add a workout for today" pressed inside it. */
   const el = e.target.closest("[data-action]");
-  if (!el) return;
+  if (!el) {
+    const goTo = e.target.closest("[data-go]");
+    if (goTo) { e.preventDefault(); go(goTo.dataset.go); }
+    return;
+  }
   const { action, id, i, day } = el.dataset;
 
   switch (action) {
@@ -1665,6 +2310,15 @@ document.addEventListener("click", (e) => {
         yes: done ? `Finish with ${plural(done, "set")}` : "End it, log nothing",
         onYes: () => { const l = store.loadLive(); if (l) finishWorkout(l); },
       });
+      break;
+    }
+    case "resume-live": {
+      const l = store.loadLive();
+      if (!l) { render(); break; }
+      l.staleOk = true;                 // asked and answered; do not ask again
+      store.saveLive(l);
+      if (location.hash === `#/go/${l.day}`) render();
+      else go(`#/go/${l.day}`);
       break;
     }
     case "discard-live":
@@ -1723,6 +2377,26 @@ document.addEventListener("click", (e) => {
       }
       break;
 
+    /* ---- the exercise pool ---- */
+    case "open-pool": exercisePoolSheet(day); break;
+    case "pool-pick": {
+      const entry = poolCache.find((e) => e.id === id);
+      if (!entry) break;
+      draftDay(day).exercises.push({ ...entry, id: store.uid("ex") });
+      closeSheet();
+      render();
+      toast("Added from the pool.", "good");
+      break;
+    }
+    case "save-to-pool": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (!target?.name) { toast("Name it first.", "bad"); break; }
+      exerciseLibrary.add(target).then((res) => {
+        toast(res.ok ? "Saved to the pool." : res.error, res.ok ? "good" : "bad");
+      });
+      break;
+    }
+
     /* ---- a picture or a video ---- */
     case "pick-media": mediaSheet(day, i === "" ? null : i); break;
     case "media-choose": document.getElementById(el.dataset.target)?.click(); break;
@@ -1743,22 +2417,36 @@ document.addEventListener("click", (e) => {
       toast("Removed.");
       break;
     }
+    case "media-pick-lib": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (target) target.video = el.dataset.url;
+      closeSheet();
+      render();
+      toast("Video set from the library.", "good");
+      break;
+    }
+    case "media-save-lib": {
+      const target = draftDay(day).exercises[Number(i)];
+      if (!target?.video) break;
+      const label = prompt("Save this video to the library as:", target.name || "");
+      if (label === null) break;         // cancelled
+      library.add(label, target.video).then((res) => {
+        toast(res.ok ? "Saved to the library." : res.error, res.ok ? "good" : "bad");
+      });
+      break;
+    }
 
     case "edit-day":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       if (!editing) startEditing();
       go(`#/day/${day}`);
       render();
       break;
     /* ---- reminders ---- */
     case "remind-on":
-      push.enable({ hour: pickedHour("daily-hour") })
+      push.enable()
         .then(() => { toast("Reminders on.", "good"); renderRemind(); })
-        .catch((err) => toast(err.message, "bad"));
-      break;
-    case "remind-save":
-      push.update({ reminder: { enabled: true, hour: pickedHour("daily-hour") } })
-        .then(() => { toast("Saved.", "good"); renderRemind(); })
         .catch((err) => toast(err.message, "bad"));
       break;
     case "remind-off":
@@ -1794,21 +2482,100 @@ document.addEventListener("click", (e) => {
 
     case "open-settings": e.preventDefault(); settingsSheet(); break;
     case "admin-pill":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       if (!adminOn()) { unlockAdmin(); break; }
       if (editing) { if (!dirty() || confirm("Throw away the changes you have made?")) stopEditing(); }
       else startEditing();
       break;
-    case "go-remind": closeSheet(); go("#/remind"); break;
-    case "sign-in": closeSheet(); askSignIn(null); break;
-    case "sign-out":
-      closeSheet();
-      setAdmin(false);
-      editing = false; draft = null;
-      store.signOut().then(() => { toast("Signed out."); render(); });
+    case "save-settings":
+      store.saveSettings({ ...settingsDraft }).then((r) => {
+        settingsDraft = null;
+        closeSheet(true);
+        toast(r.ok === false ? (r.error || "Could not save.") : "Saved.", r.ok === false ? "bad" : "good");
+        render();
+      });
+      break;
+    case "cancel-settings": closeSheet(); break;
+    case "back-to-settings": settingsSheet(); break;
+    case "discard-settings": settingsDraft = null; closeSheet(true); toast("Changes discarded."); break;
+
+    case "go-remind": settingsDraft = null; closeSheet(true); go("#/remind"); break;
+    case "go-login": settingsDraft = null; closeSheet(true); go("#/login"); break;
+    case "go-change-password": settingsDraft = null; closeSheet(true); changePasswordSheet(); break;
+    case "go-admin-people": settingsDraft = null; closeSheet(true); go("#/admin/people"); break;
+    case "go-admin-reminders": settingsDraft = null; closeSheet(true); go("#/admin/reminders"); break;
+    case "go-admin-exercises": settingsDraft = null; closeSheet(true); go("#/admin/exercises"); break;
+    case "pool-remove":
+      if (confirm("Remove this from the pool? It stays on any day it is already used on.")) {
+        exerciseLibrary.remove(id).then((res) => {
+          toast(res.ok ? "Removed." : res.error, res.ok ? "good" : "bad");
+          if (res.ok) renderAdminExercises();
+        });
+      }
+      break;
+
+    case "rd-save": {
+      const enabled = document.getElementById("rd-enabled")?.checked;
+      const hour = Number(document.getElementById("rd-hour")?.value);
+      account.saveDefaultSchedule({ enabled, hour }).then((r) => {
+        if (!r.ok) { toast(r.error, "bad"); return; }
+        toast("Default schedule saved.", "good");
+        renderAdminReminders();
+      });
+      break;
+    }
+    case "rd-apply-all": {
+      const enabled = document.getElementById("rd-enabled")?.checked;
+      const hour = Number(document.getElementById("rd-hour")?.value);
+      askFirst({
+        title: "Set this for everyone?",
+        body: `Every account's reminder becomes ${plainHour(hour)}, ${enabled ? "on" : "off"} — including anyone
+          who currently has their own, different schedule. That is cleared.`,
+        yes: "Set it for everyone",
+        onYes: () => account.applyScheduleToAll({ enabled, hour }).then((r) => {
+          toast(r.ok ? "Applied to everyone." : r.error, r.ok ? "good" : "bad");
+          if (r.ok) renderAdminReminders();
+        }),
+      });
+      break;
+    }
+    case "rd-reset-messages":
+      askFirst({
+        title: "Reset every message?",
+        body: "All twenty-four go back to the one default wording. This cannot be undone.",
+        yes: "Reset them all",
+        danger: false,
+        onYes: () => account.resetHourMessages().then((r) => {
+          toast(r.ok ? "Reset." : r.error, r.ok ? "good" : "bad");
+          if (r.ok) renderAdminReminders();
+        }),
+      });
+      break;
+    case "rd-save-user": {
+      const uid = el.dataset.user;
+      const enabled = document.querySelector(`[data-person-enabled="${uid}"]`)?.checked;
+      const hour = Number(document.querySelector(`[data-person-hour="${uid}"]`)?.value);
+      account.saveUserSchedule(uid, { enabled, hour }).then((r) => {
+        toast(r.ok ? "Saved." : r.error, r.ok ? "good" : "bad");
+        if (r.ok) renderAdminReminders();
+      });
+      break;
+    }
+    case "rd-reset-user":
+      account.resetUserSchedule(el.dataset.user).then((r) => {
+        toast(r.ok ? "Back to the default." : r.error, r.ok ? "good" : "bad");
+        if (r.ok) renderAdminReminders();
+      });
+      break;
+    case "account-sign-out":
+      settingsDraft = null;
+      closeSheet(true);
+      store.accountLogOut().then(() => { toast("Signed out."); render(); });
       break;
     case "lock-admin":
-      closeSheet();
+      settingsDraft = null;
+      closeSheet(true);
       setAdmin(false);
       editing = false; draft = null;
       toast("Editor locked.");
@@ -1859,7 +2626,11 @@ ready = store.load();
 ready.then(() => {
   render();
   const live = store.loadLive();
-  if (live && !location.hash.startsWith("#/go/")) {
+  // A genuinely recent session is worth surfacing on cold start. A stale one
+  // (hours old — see isStale) is not: without this check it said so on
+  // EVERY single app open, for ever, until she happened to open that exact
+  // day and was asked what to do with it. That is the "perpetual run".
+  if (live && !isStale(live) && !location.hash.startsWith("#/go/")) {
     toast(`${live.title} is still in progress — tap to carry on.`);
   }
 });

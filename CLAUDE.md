@@ -220,6 +220,44 @@ build command, so files ship exactly as they are here.
 
 Live at **https://farmhousegetaways.netlify.app**.
 
+### Two sites watch this one repo, so a build is skipped when it is not owed
+
+Added 23 Aug 2026, because every push was costing two builds. `carissa-workouts`
+and `farmhousegetaways` are both pointed at `main` on this repository — the
+workout tracker with its base directory set to `workout`, this site with the
+root — so a commit to either one used to build **both**, and the bill was double
+what the work was.
+
+Both `netlify.toml` files now carry an `ignore` line in `[build]`:
+
+| Site | `ignore` | Builds when |
+|---|---|---|
+| Farmhouse Getaways | `git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout'` | anything outside `workout/` changed |
+| Carissa's workouts | `git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- .` | anything in `workout/` changed |
+
+Three things to know before touching either line:
+
+- **Exit 0 means skip.** `ignore` is a shell command, and the sense is
+  inverted from what most people expect — a *successful* exit cancels the
+  build. `git diff --quiet` exits 0 when nothing differs, which is exactly
+  right, but it does read backwards.
+- **Netlify runs it from the base directory.** For the workout site that is
+  `workout/`, which is why its pathspec is a bare `.` and not `workout`.
+  Copying this site's line into that file would compare the wrong thing.
+- **It fails towards building.** An empty `$CACHED_COMMIT_REF` — a first
+  build, a cleared cache, a manual deploy — makes `git diff` error, which is a
+  non-zero exit, which builds. An extra build is the safe way to be wrong; a
+  skipped one would leave a change stuck in the repo looking live. Do not wrap
+  this in anything cleverer that could swallow that error.
+
+Both lines were checked against real commit ranges from this repo's history
+before shipping — workout-only, website-only, both, and an empty cached ref —
+and all eight answers were right.
+
+**A skipped build reads as a failure in the Netlify UI and is not one.** The
+deploy list shows it greyed out, and the log says the build was cancelled
+because the ignore command returned 0. That is the feature working.
+
 ### The one rule: never drag files onto Netlify
 
 Do not drag a folder or zip onto the Netlify drop area, and do not upload files
@@ -711,16 +749,62 @@ makes Netlify read `workout/netlify.toml` instead of the root one — exactly ho
 forced 404 on `/workout/*` so `publish = "."` cannot serve the app on the
 farmhouse domain by accident. **Do not "fix" that 404.**
 
-**The editor is admin-only, behind a long press.** Signing in is Carissa's —
-it syncs her record. Editing the week is not, so the pencil does not appear
-just because somebody is signed in: **press and hold the title for 750ms**,
-the same gesture the farmhouse app uses for its own admin screen, or open
-`/#/admin` on a laptop. **The unlock lapses after twelve hours** and is stored
-in `localStorage` — it was `sessionStorage` for one evening, which relocked on
-every new browser tab and drove the owner mad within the hour. Twelve hours is
-long enough to write a week in one sitting and short enough that a phone left
-about tomorrow is locked. Do not "fix" this by showing the pencil to anyone
-signed in.
+**The editor is admin-only, behind a long press, and unrelated to accounts.**
+Added 23 Aug 2026: real accounts (below) now handle who a training record
+belongs to, and editing the week is a completely separate lock — the app's
+one shared admin password, `WORKOUT_PASSWORD`, same as it always was. The
+pencil does not appear just because somebody has signed into an account:
+**press and hold the title for 750ms**, the same gesture the farmhouse app
+uses for its own admin screen, or open `/#/admin` on a laptop, and either way
+it asks for `WORKOUT_PASSWORD`. **The unlock lapses after twelve hours** and
+is stored in `localStorage` — it was `sessionStorage` for one evening, which
+relocked on every new browser tab and drove the owner mad within the hour.
+Twelve hours is long enough to write a week in one sitting and short enough
+that a phone left about tomorrow is locked. Do not "fix" this by showing the
+pencil to anyone signed into an account.
+
+**Accounts — up to five, for the beta.** Added 23 Aug 2026, at the owner's
+request: "we need accounts/users and also one admin login for editing." So
+there are now two unrelated locks rather than one doing both jobs. An
+account is a real person's own email and password, or Google, created or
+signed into from the **Sign in** pill or `/#/login`; it is what a training
+record is attached to and what makes it sync. It has nothing to do with
+`WORKOUT_PASSWORD` and cannot open the editor. Capped at five while this
+stays a small beta rather than real multi-tenant infrastructure — raising
+`MAX_USERS` in `netlify/functions/_lib/users.mjs` is a one-line change
+whenever that conversation happens. The old, single shared record from
+before accounts existed was copied once into whoever created the very first
+account, so nothing already logged was lost. **Google sign-in** and
+**password-reset emails (via Resend)** are both optional and both fail
+quiet: unset `GOOGLE_CLIENT_ID` and the Google button simply does not
+appear; unset `RESEND_API_KEY`/`RESEND_FROM` and "forgot your password"
+says it cannot send an email rather than pretending to. Passwords are
+hashed with scrypt, never stored or logged in the clear. `workout/README.md`
+has the full shape of it, including exactly who can read what.
+
+**The record grew real intelligence, and a self-serve/admin layer, on 23 Aug
+2026.** Beyond `_lib/users.mjs`, three more pieces:
+
+- **`js/insights.js`** turns the plain list of finished workouts into things
+  a raw total can't say — this week versus last week, which day she actually
+  shows up, the longest run ever (not just the current streak, which forgets
+  a broken one), personal bests, and a short, deliberately small set of
+  milestones. The history screen leads with these now. **A milestone is
+  announced once, on the summary screen right when it's earned** — get this
+  wrong and it either never fires or re-fires on every old workout revisited;
+  the first version compared "with this session" to "without it" and
+  announced the same milestone on all five sessions once there were exactly
+  five, including the first one a year later. The fix compares insights from
+  just before a workout's own finish time to just after — pure, and tested
+  (`insights.test.js`, including that exact regression).
+- **Settings → Change password**, signed in, no email round trip — proves
+  the current password first and bumps the account's session generation,
+  which is what actually signs every other device out.
+- **Settings → Edit the week (admin) → Who has an account** — a read-only
+  roster (`netlify/functions/admin-people.mjs`), gated by the admin
+  password, never a password hash or Google id. No delete or edit button on
+  purpose: five people is small enough that "ask them to email you" beats a
+  button that could be mis-tapped.
 
 **Reminders are push, and the restraint is the design.** `reminder-tick.mjs`
 runs hourly on Netlify's schedule and decides per device, in that device's own
@@ -731,6 +815,51 @@ offset is refused even though `Intl` accepts it, because it would be wrong
 twice a year. All of that is pure and tested in `_lib/remind.test.mjs`; it
 needs `VAPID_PUBLIC` and `VAPID_PRIVATE`, and without them the app is exactly
 as it was and says reminders are off.
+
+**The hour is admin-controlled, added 26 Aug 2026.** The owner asked for
+central control over who gets reminded and when: "as an admin, I need to be
+able to set push notifications for individual or all clients/users." Settings
+→ Edit the week (admin) → Reminder schedule sets a site-wide default (on,
+8am, "Don't forget to do your workout today!") and can give any one account
+its own instead, or set every account at once — `_lib/reminder-shape.mjs`
+(pure, tested) decides which wins, `_lib/reminder-config.mjs` stores it and
+pushes it onto whatever that account has subscribed. The Reminders screen
+itself no longer has an hour picker; a person still has to press **Remind
+me** and grant the browser's permission on their own device — nothing can
+subscribe a phone that never opened the app — but the hour it fires at is
+the admin's decision from then on. What a reminder SAYS is also
+admin-configurable, one message per hour of the day, looked up by whichever
+hour a person's reminder is set to — so changing hour 8's wording updates
+everyone at 8am with nothing to touch per person.
+
+**The video library, added 26 Aug 2026.** The owner asked to stop re-pasting
+the same YouTube link into every workout that reuses an exercise: "let's
+remove any option to upload from phone" for video — "photos only" — "I also
+need a repository of videos... so I don't have to rename and choose a
+YouTube link every time." `/api/media` no longer accepts a video upload (it
+still serves one from before this changed, so nothing already built goes
+dark); a video is a link only, chosen from `/api/video-library` or pasted
+in fresh. Any exercise's media sheet has "Save this video to the library",
+which works on an OLD exercise's video just as well as a new one — that is
+the answer to "I already built workouts before there was a library."
+
+**The exercise pool, added 27 Aug 2026.** The owner then asked for the same
+treatment on a whole exercise, not just its video: "I need to be able to see
+the pool of exercises that I have created as an admin. A user or admin should
+then be able to select from this pool of exercises to create workouts" —
+scoped to admin-only for both viewing and picking, matching the video
+library's access model exactly, per the owner's follow-up answers. Any day
+being edited gets a "From the pool" button beside "+ Add an exercise"; any
+exercise gets "Save to the pool" beside its fields. Picking one copies the
+whole thing — name, picture, video, sets, reps, rest, effort, notes — onto
+the day with a fresh id, so it never shares one with the pool entry or
+collides with another exercise already there. Settings → Edit the week
+(admin) → Exercise pool is the roster, with Remove; removing a pool entry
+never touches a day it is already used on, because it was copied in, not
+linked. Server-side it is `/api/exercise-library`, reusing the exact same
+`normaliseExercise` a day's own exercises go through, so a pool entry can
+never carry something the day editor itself would have refused. Capped at
+300.
 
 **A picture and a video are different things.** An exercise has both fields and
 they are independent: the picture is the thumbnail and the video's poster, the
@@ -757,15 +886,19 @@ Three more things a future session needs to know:
 
 **It has its own password and its own store.** `WORKOUT_PASSWORD` on its own
 site — not this site's `ADMIN_PASSWORD`, and nothing to do with `GITHUB_TOKEN`
-or the November token renewal. The week and the record live in Netlify Blobs
-belonging to that site, never in this repository, because this repository is
-public and a training log is not. `data/plan.json` stays committed as the floor
-under the live week and nothing else does.
+or the November token renewal. The week, the record and the accounts all live
+in Netlify Blobs belonging to that site, never in this repository, because
+this repository is public and a training log is not. `data/plan.json` stays
+committed as the floor under the live week and nothing else does.
 
-**Signing in is a cookie, not a stored password.** The password goes to
-`/api/auth` once; what the browser keeps is an HttpOnly, signed, expiring
-token. Reading the record needs it as much as writing does. With the variable
-unset nobody can write and the record cannot be read — it fails closed.
+**Two cookies, not one.** The admin password goes to `/api/auth` once; an
+account's email and password (or Google credential) goes to `/api/account`.
+Either way what the browser keeps is an HttpOnly, signed, expiring token, not
+the secret itself, and each cookie only ever opens its own door — the admin
+one cannot read a training record, an account cannot edit the week. With
+`WORKOUT_PASSWORD` unset neither system works at all: nobody can sign in as
+admin, nobody can create or use an account, and no record can be read. It
+fails closed.
 
 **Everything works with no server at all.** If the functions cannot be reached
 the app falls back to the committed `workout/data/plan.json` and the browser,

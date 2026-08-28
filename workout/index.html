@@ -77,10 +77,31 @@
 <script type="module" src="js/app.js"></script>
 <script>
   /* Offline first. Registered here rather than in the module so a failure to
-     register can never stop the app itself from starting. */
+     register can never stop the app itself from starting.
+
+     It also says so when a newer version takes over. Without that the app can
+     be sitting on yesterday's code with no way for the person holding it to
+     know — which is exactly how a fixed bug gets reported twice. It offers a
+     reload rather than doing one: reloading underneath somebody mid-workout
+     would be worse than the staleness. */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
+      var hadOne = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.register("sw.js").catch(function () { /* nothing to do */ });
+
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (!hadOne) return;            // first ever install: nothing was stale
+        if (document.getElementById("update-bar")) return;
+        var bar = document.createElement("div");
+        bar.id = "update-bar";
+        bar.className = "update-bar";
+        bar.innerHTML = '<span>A newer version is ready.</span>' +
+                        '<button type="button">Reload</button>';
+        bar.querySelector("button").addEventListener("click", function () {
+          location.reload();
+        });
+        document.body.appendChild(bar);
+      });
     });
   }
 </script>

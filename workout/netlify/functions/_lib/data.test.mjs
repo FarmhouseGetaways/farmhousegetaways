@@ -14,7 +14,8 @@ import assert from "node:assert/strict";
 import {
   DAYS, emptyPlan, normalisePlan, normaliseHistory, normaliseSession,
   mergeHistory, dropSessions, normaliseSettings, safeUrl,
-  normaliseReminder, timezone,
+  normaliseReminder, timezone, normaliseLibraryEntry, normaliseLibrary,
+  normaliseExercise, normaliseExerciseLibrary,
 } from "./data.mjs";
 
 /* ---------- the week ---------- */
@@ -213,4 +214,63 @@ test("history survives junk without throwing", () => {
     const h = normaliseHistory(junk);
     assert.ok(Array.isArray(h.sessions));
   }
+});
+
+/* ---------- the video library ---------- */
+
+test("a library entry needs both a label and a valid url", () => {
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "https://youtu.be/abc" }).label, "Squat form");
+  assert.equal(normaliseLibraryEntry({ label: "", url: "https://youtu.be/abc" }), null);
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "" }), null);
+  assert.equal(normaliseLibraryEntry({ label: "Squat form", url: "javascript:alert(1)" }), null);
+});
+
+test("a library entry keeps a given id, or gets one", () => {
+  const withId = normaliseLibraryEntry({ id: "vid_fixed", label: "Push-ups", url: "https://youtu.be/x" });
+  assert.equal(withId.id, "vid_fixed");
+  const withoutId = normaliseLibraryEntry({ label: "Push-ups", url: "https://youtu.be/x" });
+  assert.ok(withoutId.id.startsWith("vid_"));
+});
+
+test("a library survives junk without throwing, and drops blank entries", () => {
+  const lib = normaliseLibrary([{ label: "Real one", url: "https://youtu.be/x" }, null, {}, { label: "", url: "" }]);
+  assert.equal(lib.length, 1);
+  assert.equal(normaliseLibrary(null).length, 0);
+  assert.equal(normaliseLibrary("nonsense").length, 0);
+});
+
+test("a library is capped rather than allowed to grow without bound", () => {
+  const many = Array.from({ length: 250 }, (_, n) => ({ label: `Video ${n}`, url: `https://youtu.be/v${n}` }));
+  assert.equal(normaliseLibrary(many).length, 200);
+});
+
+/* ---------- the exercise pool ---------- */
+
+test("a pool exercise needs a name, and gets the same clamps as a day's own", () => {
+  assert.equal(normaliseExercise({ name: "" }), null);
+  assert.equal(normaliseExercise(null), null);
+  const ex = normaliseExercise({ name: "Squats", sets: 99, reps: "12", rest: -5, video: "javascript:alert(1)" });
+  assert.equal(ex.name, "Squats");
+  assert.equal(ex.sets, 10);         // clamped to MAX.sets, not the junk 99 given
+  assert.equal(ex.rest, 0);          // clamped up from a negative
+  assert.equal(ex.video, "");        // an unsafe url is dropped, not carried
+});
+
+test("a pool exercise keeps a given id, or gets one", () => {
+  const withId = normaliseExercise({ id: "ex_fixed", name: "Push-ups" });
+  assert.equal(withId.id, "ex_fixed");
+  const withoutId = normaliseExercise({ name: "Push-ups" });
+  assert.ok(withoutId.id.startsWith("ex_"));
+});
+
+test("the pool survives junk without throwing, and drops blank entries", () => {
+  const pool = normaliseExerciseLibrary([{ name: "Real one" }, null, {}, { name: "" }]);
+  assert.equal(pool.length, 1);
+  assert.equal(normaliseExerciseLibrary(null).length, 0);
+  assert.equal(normaliseExerciseLibrary("nonsense").length, 0);
+});
+
+test("the pool is capped rather than allowed to grow without bound", () => {
+  const many = Array.from({ length: 350 }, (_, n) => ({ name: `Exercise ${n}` }));
+  assert.equal(normaliseExerciseLibrary(many).length, 300);
 });

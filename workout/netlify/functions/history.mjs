@@ -3,9 +3,13 @@
  * POST   /api/history  { sessions, settings } → fold new workouts in
  * DELETE /api/history  { ids }                → remove workouts logged by mistake
  *
- * Every one of them needs the session cookie, reading included. This is a
- * record of one person's body and what it did every day for a year; it is not
- * public the way the plan is.
+ * Every one of them needs an account — see _lib/users.mjs — reading included.
+ * This is a record of one person's body and what it did every day for a
+ * year; it is not public the way the plan is, and it is not shared between
+ * the (up to five) people using this app the way the plan is either. Each
+ * account has its own key; there is no admin override that can read another
+ * account's record, because the admin password and an account are two
+ * unrelated locks.
  *
  * POST IS A MERGE, NEVER A REPLACEMENT
  * She may finish a workout on her phone while the iPad still holds last week's
@@ -13,13 +17,14 @@
  * device's workout would vanish. Only what is new is sent, the union is taken
  * here by id, and the two can never delete each other's work.
  */
-import { HISTORY, HISTORY_KEY, signedIn, configured, json } from "./_lib/auth.mjs";
+import { HISTORY, configured, historyKeyFor, json } from "./_lib/auth.mjs";
+import { currentAccount } from "./_lib/users.mjs";
 import { normaliseHistory, mergeHistory, dropSessions } from "./_lib/data.mjs";
 
 export const config = { path: "/api/history" };
 
-const read = async () => {
-  try { return normaliseHistory(await HISTORY().get(HISTORY_KEY, { type: "json" })); }
+const read = async (key) => {
+  try { return normaliseHistory(await HISTORY().get(key, { type: "json" })); }
   catch (err) {
     console.warn("history: blob read failed,", err && err.message);
     return null;                       // told apart from "no workouts yet"
@@ -30,10 +35,12 @@ export default async (req) => {
   if (!configured()) {
     return json({ ok: false, error: "This app has no password set, so the record is kept on the phone only." }, 503);
   }
-  if (!signedIn(req)) return json({ ok: false, error: "Not signed in." }, 401);
+  const user = await currentAccount(req);
+  if (!user) return json({ ok: false, error: "Not signed in." }, 401);
+  const key = historyKeyFor(user.id);
 
   if (req.method === "GET") {
-    const stored = await read();
+    const stored = await read(key);
     if (!stored) return json({ ok: false, error: "The store could not be reached." }, 502);
     return json({ ok: true, history: stored });
   }
@@ -41,7 +48,7 @@ export default async (req) => {
   let body = {};
   try { body = await req.json(); } catch { return json({ ok: false, error: "Could not read that." }, 400); }
 
-  const stored = await read();
+  const stored = await read(key);
   if (!stored) return json({ ok: false, error: "The store could not be reached." }, 502);
 
   let next;
@@ -50,7 +57,7 @@ export default async (req) => {
   else return json({ ok: false }, 405);
 
   try {
-    await HISTORY().setJSON(HISTORY_KEY, next);
+    await HISTORY().setJSON(key, next);
   } catch (err) {
     return json({ ok: false, error: "Could not save the record: " + (err?.message || err) }, 502);
   }

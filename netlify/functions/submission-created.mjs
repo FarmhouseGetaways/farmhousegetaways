@@ -47,9 +47,11 @@ export default async (req) => {
   // list box left unticked, a form that never feeds the list at all, or
   // EmailOctopus simply not being configured yet. Those are exactly the
   // submissions worth knowing about, so alerting cannot sit behind them.
+  // sendAlert() logs each channel's own outcome, at console.error for a
+  // configured-but-failed channel and console.log for sent/skipped, so
+  // nothing here duplicates that.
   try {
-    const alerted = await sendAlert(formName, data);
-    console.log(`[alert] ${formName}: ntfy ${alerted.ntfy}, webhook ${alerted.webhook}`);
+    await sendAlert(formName, data);
   } catch (err) {
     console.error(`[alert] threw: ${String(err?.message || err)}`);
   }

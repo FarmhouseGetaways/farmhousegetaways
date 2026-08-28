@@ -4,18 +4,23 @@
  * POST   /api/reminders          → subscribe, change the hour, or snooze
  * DELETE /api/reminders          → stop reminding this device
  *
- * Signed in only, all of it. This is one household's app; a stranger who found
- * the URL should not be able to attach a phone to it.
+ * Needs an account signed in, all of it — see _lib/users.mjs. A reminder is
+ * personal ("you have a workout today"), so it is gated the same way the
+ * record is, not by the admin password: any of the (up to five) people using
+ * this app can set one up on their own device.
  *
  * A subscription belongs to a DEVICE, not to a person. Two phones can want two
  * different hours and neither is wrong, so the hour, the zone and any snooze
  * are stored alongside the endpoint rather than in the shared settings.
  */
-import { SUBS, signedIn, configured as hasPassword, json } from "./_lib/auth.mjs";
+import { SUBS, configured as hasPassword, json } from "./_lib/auth.mjs";
+import { currentAccount } from "./_lib/users.mjs";
 import { normaliseReminder, timezone } from "./_lib/data.mjs";
 import { publicKey, configured as hasKeys, keyFor, putSub, dropSub } from "./_lib/push.mjs";
 import { nextLocalHour } from "./_lib/remind.mjs";
 import { runReminders } from "./_lib/tick.mjs";
+import { getConfig } from "./_lib/reminder-config.mjs";
+import { effectiveFor } from "./_lib/reminder-shape.mjs";
 
 export const config = { path: "/api/reminders" };
 
@@ -25,7 +30,8 @@ export default async (req) => {
   if (!hasPassword()) {
     return json({ ok: false, error: "This app has no password set, so reminders cannot be set up." }, 503);
   }
-  if (!signedIn(req)) return json({ ok: false, error: "Not signed in." }, 401);
+  const account = await currentAccount(req);
+  if (!account) return json({ ok: false, error: "Not signed in." }, 401);
 
   const url = new URL(req.url);
 
@@ -41,7 +47,11 @@ export default async (req) => {
     // is how somebody proves the chain works during setup instead of waiting
     // an hour to discover it does not. ?test=force sends regardless of timing.
     const test = url.searchParams.get("test");
-    const out = { ok: true, ready: hasKeys(), publicKey: publicKey(), ...shape(sub) };
+    // Shown even before subscribing, so the Reminders screen can say what
+    // will happen the moment "Remind me" is pressed — this account's own
+    // admin-set schedule, or the site default if nobody has customised it.
+    const effective = effectiveFor(await getConfig(), account.reminderOverride);
+    const out = { ok: true, ready: hasKeys(), publicKey: publicKey(), effective, ...shape(sub) };
     if (test) out.test = await runReminders({ force: test === "force" });
     return json(out);
   }
@@ -75,8 +85,14 @@ export default async (req) => {
   let existing = null;
   try { existing = await SUBS().get(key, { type: "json" }); } catch { existing = null; }
 
+  // A brand new device seeds its hour and enabled state from the admin's
+  // schedule for this account, not a hardcoded 8am — the whole point of the
+  // admin reminder screen is that the hour is its decision, not the device's.
+  // An existing subscription keeps whatever it already had.
+  const seed = existing ? {} : effectiveFor(await getConfig(), account.reminderOverride);
+
   const tz = timezone(body.tz) || existing?.reminder?.tz || "";
-  let reminder = normaliseReminder({ ...(existing?.reminder || {}), ...(body.reminder || {}), tz });
+  let reminder = normaliseReminder({ ...seed, ...(existing?.reminder || {}), ...(body.reminder || {}), tz });
 
   /* "Not now — remind me at five." The hour she scrolled to is turned into the
      next moment that hour comes round where she is, which is why it means five
@@ -89,6 +105,11 @@ export default async (req) => {
   const record = {
     endpoint: subscription.endpoint,
     keys: subscription.keys,
+    // Which account this device belongs to — what lets the admin reminder
+    // screen find and update it. Devices subscribed before this existed have
+    // no accountId; they still work, they are just outside admin control
+    // until resubscribed.
+    accountId: account.id,
     reminder,
     updatedAt: new Date().toISOString(),
     createdAt: existing?.createdAt || new Date().toISOString(),

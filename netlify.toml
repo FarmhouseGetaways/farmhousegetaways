@@ -1,8 +1,22 @@
 # Farmhouse Getaways — Netlify config
 # Static site. No build step.
 
+# Both this site and Carissa's workout tracker (workout/netlify.toml) watch
+# `main` on this one repository, so without the line below every push builds
+# BOTH sites and every push costs twice what it should.
+#
+# `ignore` is a shell command Netlify runs before building, from this
+# directory. Exit 0 means "nothing relevant changed, skip the build"; any
+# other exit code means build. So: skip when the commit range touched nothing
+# outside workout/.
+#
+# If $CACHED_COMMIT_REF is empty — a first build, a cleared cache, a manual
+# deploy — git diff errors, which is a non-zero exit, which builds. The
+# failure mode is an extra build, never a missed one. That is the right way
+# round and is why this is not wrapped in anything cleverer.
 [build]
   publish = "."
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout'"
 
 [functions]
   directory = "netlify/functions"

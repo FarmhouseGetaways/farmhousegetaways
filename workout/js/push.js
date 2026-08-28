@@ -75,6 +75,10 @@ export async function status() {
     publicKey: body.publicKey || "",
     subscribed: !!body.subscribed && !!existing,
     reminder: body.reminder || null,
+    // What this account's reminder will be set to the moment "Remind me" is
+    // pressed — the admin's schedule for this person, or the site default.
+    // The hour is no longer a choice made here; see enable() below.
+    effective: body.effective || null,
     permission: permission(),
     why: body.ready ? "" : "Reminders are not switched on for this site yet.",
   };
@@ -86,8 +90,13 @@ export async function status() {
  * Must be called straight from a tap: asking for permission from anywhere else
  * is refused outright by some browsers, and by others it is silently denied
  * for ever, which is worse.
+ *
+ * No hour is chosen here any more — the admin decides that, per account or
+ * for everyone at once (see Settings → Edit the week → Reminders on the
+ * admin side). This just asks the browser's permission and subscribes;
+ * the server seeds the actual schedule from that account's own setting.
  */
-export async function enable({ hour = 8 } = {}) {
+export async function enable() {
   const state = await status();
   if (!state.supported) throw new Error(state.why);
   if (!state.ready) throw new Error(state.why || "Reminders are not switched on for this site yet.");
@@ -111,7 +120,7 @@ export async function enable({ hour = 8 } = {}) {
 
   const { res, body } = await call(API, {
     method: "POST",
-    body: JSON.stringify({ subscription: sub.toJSON(), tz: timezone(), reminder: { enabled: true, hour } }),
+    body: JSON.stringify({ subscription: sub.toJSON(), tz: timezone(), reminder: { enabled: true } }),
   });
   if (!res.ok || !body.ok) throw new Error(body.error || `The server said ${res.status}.`);
   return body;
