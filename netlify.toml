@@ -23,25 +23,6 @@
   node_bundler = "esbuild"
 
 
-# ============================================================================
-#  ⚠️  STAGING — THE SITE IS HIDDEN FROM GOOGLE
-#
-#  The block below tells every search engine not to index this site.
-#  It is here on purpose while farmhousegetaways.com still points at the
-#  old site.
-#
-#  >>> DELETE THIS ENTIRE BLOCK THE DAY YOU POINT THE DOMAIN HERE. <<<
-#  >>> ALSO change robots.txt back to "Allow: /".                  <<<
-#
-#  If you forget, the site will be live and completely invisible in search.
-# ============================================================================
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
-# ============================ END STAGING BLOCK =============================
-
-
 [[headers]]
   for = "/*"
   [headers.values]
