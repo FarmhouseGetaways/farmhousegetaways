@@ -953,9 +953,10 @@ a { color: inherit; }
 .fs-tv-card:hover { transform: translateY(-2px); }
 .fs-tv-card-logo { width: clamp(140px, 22vw, 200px); height: auto; display: block; }
 .fs-tv-card-label {
-  font-size: .78rem; font-weight: 700; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--blush-pale);
+  font-family: var(--display); font-size: clamp(1.1rem, 2vw, 1.35rem);
+  font-weight: 400; color: var(--bloom);
 }
+.fs-tv-card-label em { font-style: italic; color: #3DE04A; }
 .fs-tv-card .btn { width: auto; }
 
 /* ---------- property chips — segmentation without a dropdown ---------- */
