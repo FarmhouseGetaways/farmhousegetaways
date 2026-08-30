@@ -211,6 +211,70 @@ a { color: inherit; }
 @media (min-width: 62rem) { .hero-grid { grid-template-columns: 1.5fr .85fr; } }
 .hero .display { color: var(--plum); }
 
+/* the booking card, sat in the hero-grid's side column: same box the numbers
+   board used to occupy, so it inherits the "end"-aligned grid and needs no
+   width rules of its own */
+.hero-grid .booking { width: 100%; }
+
+/* ---------- property-page hero: fixed box, several photos rotating through
+   it. Same crossfade mechanics as .hero-stack (fixed dimensions via
+   aspect-ratio + object-fit: cover so the box never reshapes around a
+   photo), just scoped to a smaller in-page frame instead of a full-bleed
+   band, and with two photo-count variants for Mountain Retreat (6) and Red
+   Barn Ranch (10). ---------- */
+.hero-lead-stack {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius);
+  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  background: var(--bloom-2);
+}
+.hero-lead-stack .hero-shot { border-radius: inherit; }
+
+.hero-lead-stack--play6 .hero-shot:first-child { opacity: 0; }
+.hero-lead-stack--play6 .hero-shot {
+  animation: heroCycle6 33s linear infinite, heroDrift6 33s linear infinite;
+  /* six 5.5s slots, same pacing as the homepage rotation */
+  animation-delay: calc(var(--i) * 5.5s - 4.3s);
+  will-change: opacity, transform;
+}
+@keyframes heroCycle6 {
+  0%       { opacity: 0 }
+  3.6364%  { opacity: 1 }
+  16.6667% { opacity: 1 }
+  20.303%  { opacity: 0 }
+  100%     { opacity: 0 }
+}
+@keyframes heroDrift6 {
+  0%            { transform: scale(1.03) translate3d(0,0,0) }
+  20.303%, 100% { transform: scale(1.11) translate3d(-1.2%,-0.6%,0) }
+}
+
+.hero-lead-stack--play10 .hero-shot:first-child { opacity: 0; }
+.hero-lead-stack--play10 .hero-shot {
+  animation: heroCycle10 55s linear infinite, heroDrift10 55s linear infinite;
+  animation-delay: calc(var(--i) * 5.5s - 4.3s);
+  will-change: opacity, transform;
+}
+@keyframes heroCycle10 {
+  0%       { opacity: 0 }
+  2.1818%  { opacity: 1 }
+  10%      { opacity: 1 }
+  12.1818% { opacity: 0 }
+  100%     { opacity: 0 }
+}
+@keyframes heroDrift10 {
+  0%             { transform: scale(1.03) translate3d(0,0,0) }
+  12.1818%, 100% { transform: scale(1.11) translate3d(-1.2%,-0.6%,0) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-lead-stack--play6 .hero-shot,
+  .hero-lead-stack--play10 .hero-shot { animation: none; opacity: 0; }
+  .hero-lead-stack--play6 .hero-shot:first-child,
+  .hero-lead-stack--play10 .hero-shot:first-child { opacity: 1; }
+}
+
 .reveal { animation: rise .8s cubic-bezier(.22,.68,.28,1) both; }
 .reveal-2 { animation-delay: .12s; }
 .reveal-3 { animation-delay: .24s; }
