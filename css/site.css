@@ -440,31 +440,31 @@ a { color: inherit; }
   opacity: 0;
 }
 /* Without JS, on a phone, or with motion reduced: the first photo, and only
-   the first photo. The other eleven never get a src, so they never download. */
+   the first photo. The other nine never get a src, so they never download. */
 .hero-shot:first-child { opacity: 1; }
 
 .hero-stack--play .hero-shot:first-child { opacity: 0; }
 .hero-stack--play .hero-shot {
   animation:
-    heroCycle 108s linear infinite,
-    heroDrift 108s linear infinite;
-  /* twelve nine-second slots; the -6.5s starts the cycle mid-hold so the first
+    heroCycle 90s linear infinite,
+    heroDrift 90s linear infinite;
+  /* ten nine-second slots; the -6.5s starts the cycle mid-hold so the first
      photo is fully up on paint instead of fading in from nothing */
   animation-delay: calc(var(--i) * 9s - 6.5s);
   will-change: opacity, transform;
 }
 @keyframes heroCycle {
   0%       { opacity: 0 }
-  2.3148%  { opacity: 1 }
-  8.3333%  { opacity: 1 }
-  10.6481% { opacity: 0 }
+  2.7778%  { opacity: 1 }
+  10%      { opacity: 1 }
+  12.7778% { opacity: 0 }
   100%     { opacity: 0 }
 }
 /* the drift: a slow push-in while the photo is on screen; it resets while
    the photo is fully transparent, so the jump is never visible */
 @keyframes heroDrift {
   0%                  { transform: scale(1.03) translate3d(0,0,0) }
-  10.6481%, 100%      { transform: scale(1.11) translate3d(-1.2%,-0.6%,0) }
+  12.7778%, 100%      { transform: scale(1.11) translate3d(-1.2%,-0.6%,0) }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-stack--play .hero-shot { animation: none; opacity: 0; }
