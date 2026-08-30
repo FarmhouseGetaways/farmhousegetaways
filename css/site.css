@@ -941,16 +941,21 @@ a { color: inherit; }
 .signup-card .form { gap: 1.1rem; max-width: none; }
 .signup-card .btn { width: 100%; text-align: center; }
 
-/* the big Farmstand.TV card that replaced the map-signup form: same white
-   shell as .signup-card, but its own content — a logo and a button, centred,
-   the whole card clickable. */
+/* the big Farmstand.TV panel that replaced the map-signup form: no card
+   shell, sits straight on the dark band like the brand-family mark does
+   elsewhere. A plain text wordmark under the logo carries the identification
+   the logo's own green lettering can't on this background. */
 .fs-tv-card {
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 1.5rem; text-decoration: none; cursor: pointer;
-  transition: transform .2s ease, box-shadow .2s ease;
+  gap: 1.1rem; text-decoration: none; cursor: pointer;
+  transition: transform .2s ease;
 }
 .fs-tv-card:hover { transform: translateY(-2px); }
-.fs-tv-card-logo { width: clamp(120px, 20vw, 168px); height: auto; display: block; }
+.fs-tv-card-logo { width: clamp(140px, 22vw, 200px); height: auto; display: block; }
+.fs-tv-card-label {
+  font-size: .78rem; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--blush-pale);
+}
 .fs-tv-card .btn { width: auto; }
 
 /* ---------- property chips — segmentation without a dropdown ---------- */
