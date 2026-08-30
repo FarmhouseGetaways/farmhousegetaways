@@ -571,12 +571,12 @@ Mountain Retreat offers a different kind of stay: eight acres of trail and pine 
 </footer>
 
 <script>
-/* The hero rotates only on a wide screen with motion allowed. Everywhere else
-   — phones, reduced-motion, no JS — the first photo stays put and the other
-   eighteen are never downloaded. */
+/* The hero rotates everywhere motion is allowed, phone included. With motion
+   reduced, or with JS off, the first photo stays put and the other eighteen
+   are never downloaded. */
 (function () {
   var m = window.matchMedia;
-  if (!m || !m("(min-width: 47rem)").matches || m("(prefers-reduced-motion: reduce)").matches) return;
+  if (m && m("(prefers-reduced-motion: reduce)").matches) return;
   var stack = document.querySelector(".hero-stack");
   if (!stack) return;
   Array.prototype.forEach.call(stack.querySelectorAll(".hero-shot[data-src]"), function (img) {
