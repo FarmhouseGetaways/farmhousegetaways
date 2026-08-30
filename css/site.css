@@ -208,13 +208,20 @@ a { color: inherit; }
 }
 
 .hero-grid { display: grid; gap: clamp(2.5rem,5vw,4rem); grid-template-columns: 1fr; align-items: end; }
-@media (min-width: 62rem) { .hero-grid { grid-template-columns: 1.5fr .85fr; } }
+@media (min-width: 62rem) { .hero-grid:not(.hero-grid--stacked) { grid-template-columns: 1.5fr .85fr; } }
 .hero .display { color: var(--plum); }
 
 /* the booking card, sat in the hero-grid's side column: same box the numbers
    board used to occupy, so it inherits the "end"-aligned grid and needs no
    width rules of its own */
 .hero-grid .booking { width: 100%; }
+
+/* the property pages: full-width photo, then the booking card full-width
+   beneath it, at every viewport — not just the mobile single column. Cory
+   preferred how this looked when a narrow window collapsed the two-column
+   grid, so that stacked layout now applies always instead of only below
+   62rem. No extra max-width here: it fills the same .wrap width as the
+   header and every other section, and stays fluid as the browser resizes. */
 
 /* ---------- property-page hero: fixed box, several photos rotating through
    it. Same crossfade mechanics as .hero-stack (fixed dimensions via
