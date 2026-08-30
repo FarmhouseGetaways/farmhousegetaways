@@ -693,14 +693,14 @@ a { color: inherit; }
 }
 
 .booking-head {
-  display: flex; align-items: center; gap: .6rem;
-  font-size: .74rem; font-weight: 700;
-  letter-spacing: .17em; text-transform: uppercase;
+  display: flex; align-items: center; gap: .65rem;
+  font-size: clamp(1rem, 1.6vw, 1.15rem); font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
   margin: 0 0 1.25rem; padding-bottom: .9rem;
   border-bottom: 1px solid var(--bloom-3);
 }
 .booking-head::before {
-  content: ""; flex: 0 0 auto; width: 26px; height: 12px;
+  content: ""; flex: 0 0 auto; width: 32px; height: 15px;
   background: currentColor;
   -webkit-mask: var(--sprig) center / contain no-repeat;
           mask: var(--sprig) center / contain no-repeat;
