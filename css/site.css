@@ -223,6 +223,10 @@ a { color: inherit; }
    62rem. No extra max-width here: it fills the same .wrap width as the
    header and every other section, and stays fluid as the browser resizes. */
 
+/* book-both.html: the side card top-aligned with the photo instead of
+   bottom-aligned, since the card is shorter than the photo+lede column. */
+.hero-grid--top { align-items: start; }
+
 /* ---------- property-page hero: fixed box, several photos rotating through
    it. Same crossfade mechanics as .hero-stack (fixed dimensions via
    aspect-ratio + object-fit: cover so the box never reshapes around a
