@@ -227,6 +227,11 @@ a { color: inherit; }
    bottom-aligned, since the card is shorter than the photo+lede column. */
 .hero-grid--top { align-items: start; }
 
+/* the property pages: tighter gap between the masthead and the hero photo.
+   .hero's own padding-block still governs the bottom (space before the
+   ticker) — this only pulls in the top. */
+.hero.hero--tight-top { padding-top: clamp(1.25rem, 3vw, 2.5rem); }
+
 /* ---------- property-page hero: fixed box, several photos rotating through
    it. Same crossfade mechanics as .hero-stack (fixed dimensions via
    aspect-ratio + object-fit: cover so the box never reshapes around a
