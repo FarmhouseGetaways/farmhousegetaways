@@ -933,6 +933,18 @@ a { color: inherit; }
 .signup-card .form { gap: 1.1rem; max-width: none; }
 .signup-card .btn { width: 100%; text-align: center; }
 
+/* the big Farmstand.TV card that replaced the map-signup form: same white
+   shell as .signup-card, but its own content — a logo and a button, centred,
+   the whole card clickable. */
+.fs-tv-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 1.5rem; text-decoration: none; cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.fs-tv-card:hover { transform: translateY(-2px); }
+.fs-tv-card-logo { width: clamp(120px, 20vw, 168px); height: auto; display: block; }
+.fs-tv-card .btn { width: auto; }
+
 /* ---------- property chips — segmentation without a dropdown ---------- */
 .chips { border: 0; margin: 0; padding: 0; }
 .chips legend {
