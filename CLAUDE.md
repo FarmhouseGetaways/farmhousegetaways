@@ -315,42 +315,47 @@ The same figure appears on a property page, on the homepage comparison board,
 in a meta description and sometimes in the JSON-LD. When one changes, grep for
 it and change all of them, or the pages start contradicting each other.
 
-Current as of 9 Aug 2026:
+Current as of 5 Sep 2026:
 
-- **Red Barn Ranch: 6 bedrooms, 3.5 bathrooms, sleeps 18, 4 acres.**
+- **Red Barn Ranch: 7 bedrooms, 4.5 bathrooms, sleeps 20, 4 acres.**
 - **Mountain Retreat: 4 bedrooms, 3 bathrooms, sleeps 14, 8 acres.**
-- **32 across both properties.**
+- **34 across both properties.**
 
-**The bathroom count moves with the tiny home.** The house itself has 3.5. The
-Industrial Mini Mansion's full bathroom is the fourth, so the figure is 4.5 only
-while the tiny home counts as part of the property. It is 3.5 today because the
-site now sells six bedrooms — see below. Earlier drafts said 5.5, which was the
-same mistake in the other direction: someone read "the tiny home has its own
-full bathroom" and added it on top of a total that already contained it.
+### Why it is seven bedrooms, and why the seventh has no name
 
-### Why it is six bedrooms and not seven
+Room seven is **deliberately not tied to a structure.** Depending on when a
+guest books it is either the Industrial Mini Mansion — the tiny home — or the
+loft the owners lived in until they moved to a third property in Sep 2026.
+Both are a bedroom with a full bathroom, so the figures a booking actually
+rests on — seven bedrooms, 4.5 bathrooms, sleeps 20 — are true either way.
 
-The Industrial Mini Mansion — the tiny home, seventh bedroom — has a compliance
-problem and will probably move off the property before the end of 2026. The
-owners will always have room for the extra guests, via the loft or a trailer,
-but they cannot promise that particular room.
+This is the same principle the site adopted on 9 Aug 2026, running the other
+direction. Then the seventh room could not be promised, so the site sold six
+and kept the capacity honest. Now the seventh room *can* be promised; which
+building it is cannot. **Promise the capacity, not the room** still holds.
 
-So on 9 Aug 2026 the site was changed to **promise the capacity, not the room**.
-Six bedrooms and eighteen beds is true today and stays true whatever happens, so
-no booking taken now can be broken by the outcome. Anyone needing more is
-invited to ask, on the `red-barn-ranch.html` sleeping board and in the prose
-beneath it.
+Practical rules:
 
-**Do not put the seventh bedroom back** on the strength of a photograph or an
-old draft. It goes back only when the owner says the compliance question is
-settled — and then sleeps 18 becomes 20, 32 becomes 34, and six bedrooms becomes
-seven, everywhere.
+- **Do not name the tiny home or the loft** in guest-facing copy. The old IMM
+  content was removed on purpose and stays removed. Said 5 Sep 2026: "we're not
+  gonna say it's the tiny home, we're just gonna say it's seven bedrooms."
+- **Never write "all seven bedrooms are on one floor."** Six are, off the single
+  central hallway; the seventh is its own private space in both scenarios. The
+  single-storey and no-stairs-at-the-entry claims are scoped to those six on
+  purpose — that wording is load-bearing, not clumsy.
+- The 4.5 figure is the main house's 3.5 plus room seven's full bathroom.
+  Earlier drafts said 5.5, which double-counted it.
 
-That change touched 38 references across seven pages: copy, both meta
-descriptions, the JSON-LD `numberOfRooms` and `occupancy`, the doubled ticker
-lists, the detail and comparison boards, two form `max` attributes, the enquiry
-dropdowns, and `emails/welcome-farmhousegetaways.html`. It is a single commit,
-`f3f1d0c`, so it can be reverted in one command if the answer comes back happy.
+The 9 Aug change down to six bedrooms was commit `f3f1d0c`. The 5 Sep change
+back to seven touched 64 references across nine pages: copy, both meta
+descriptions, the JSON-LD `numberOfRooms` and `occupancy`, the detail and
+comparison boards, two form `max` attributes, the enquiry dropdowns, and
+`emails/welcome-farmhousegetaways.html`.
+
+**Still outstanding as of 5 Sep:** the bed-count sentence on
+`red-barn-ranch.html` ("The bed setup (ten total, including 3 fold-out
+options)… up to fourteen adults") is still the six-bedroom arithmetic and needs
+the real figures for room seven before it is accurate.
 
 ## Redirects — do not delete
 
