@@ -156,8 +156,22 @@ a { color: inherit; }
 /* ---------- masthead ---------- */
 /* The masthead is sticky, so an in-page link like "Check dates" -> #book would
    otherwise land with the section heading tucked underneath it. Every element
-   that can be jumped to keeps a header's worth of room above it. */
-[id] { scroll-margin-top: 5.5rem; }
+   that can be jumped to keeps a header's worth of room above it.
+
+   MEASURED 6 Sep 2026, because 5.5rem (88px) was short at every single width
+   and had been since the header went sticky — every in-page jump landed with
+   its heading hidden. Real rendered masthead heights:
+
+       1280px wide -> 133px
+        760px wide -> 152px   (nav starts wrapping)
+        375px wide -> 209px   (.masthead-inner turns into a column below 47rem)
+
+   This matters more than it did: the Meta ads land on /red-barn-ranch#book and
+   /mountain-retreat#book, so this offset IS the first thing an ad click sees,
+   and most of that traffic is on a phone — the width where the old value was
+   worst. Re-measure if the masthead gains or loses a row. */
+[id] { scroll-margin-top: 11rem; }
+@media (max-width: 47rem) { [id] { scroll-margin-top: 14rem; } }
 .masthead {
   position: sticky; top: 0; z-index: 40;
   background: rgba(252,248,246,.94);
@@ -1082,4 +1096,62 @@ a { color: inherit; }
 }
 .map-cap {
   font-size: .78rem; color: var(--stone); margin: .9rem 0 0; text-align: center;
+}
+
+/* ---------- deal list, under each date picker ----------
+   Added 6 Sep 2026 for the Meta campaign. Until now the two property pages —
+   the exact pages the ads land on — had NO email capture on them at all. The
+   `foot-signup` band down in the footer is a Farmstand.TV link, not a form, and
+   the real signup band lives only on the home, story, Ramona and map pages. So
+   an ad click that did not book left nothing behind at all.
+
+   This sits inside the booking card, directly under the Lodgify box, because
+   that is the one moment somebody is already thinking about dates — and the
+   moment they find out their dates are gone is exactly when a list is worth
+   joining.
+
+   ⚠ name="newsletter" is load-bearing. SUBSCRIBE_FORMS in
+   netlify/functions/_lib/signup.mjs treats that exact form name as being the
+   subscription itself, which is why there is no consent tick box here and why
+   the fine print under the button has to keep promising what it promises.
+   Rename this form and every signup through it silently becomes "stored, will
+   never be mailed" — no error, no log, just a list that stops growing. */
+.deal-join {
+  margin: 1.5rem 0 0; padding: 1.4rem 0 0;
+  border-top: 1px solid var(--sage-line);
+}
+.deal-join-head {
+  font-size: .7rem; font-weight: 700; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--sage); margin: 0 0 .55rem;
+}
+.deal-join-sub {
+  font-size: .95rem; line-height: 1.5; color: var(--plum-soft); margin: 0 0 1rem;
+}
+.deal-join-form { display: grid; gap: .6rem; }
+/* One column by default: on a phone — where most of this traffic lands — a
+   side-by-side email field and button squeezes both below a usable size. */
+@media (min-width: 30rem) {
+  .deal-join-row { display: grid; grid-template-columns: 1fr auto; gap: .6rem; }
+}
+.deal-join-form input[type="text"],
+.deal-join-form input[type="email"] {
+  font-family: var(--body); font-size: 1rem; padding: .8rem .95rem;
+  border: 1px solid var(--sage-line); background: #fff; color: var(--plum);
+  border-radius: var(--radius); width: 100%;
+}
+.deal-join-form input:focus {
+  border-color: var(--sage); outline: none; box-shadow: 0 0 0 3px var(--sage-pale);
+}
+.deal-join-form .btn { white-space: nowrap; }
+.deal-join-fine {
+  font-size: .78rem; line-height: 1.5; color: var(--stone); margin: .85rem 0 0;
+}
+
+/* Label text for screen readers only. The fields carry visible placeholders,
+   but a placeholder is not a label — it disappears on focus and is skipped by
+   some screen readers, so the real label stays in the markup and is moved out
+   of sight rather than removed. */
+.vh {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }

@@ -47,7 +47,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" sizes="512x512" href="/images/icon-512.png">
 <meta name="theme-color" content="#3F5548">
 <link rel="preload" as="image" imagesrcset="/images/hero10-mr-aerial-960.jpg 960w, /images/hero10-mr-aerial-1920.jpg 1920w" imagesizes="(min-width: 62rem) 58vw, 100vw">
-<link rel="stylesheet" href="/css/site.css?v=4b0c6ca4">
+<link rel="stylesheet" href="/css/site.css?v=f97483ac">
 <style>
   :root {
     --ldg-bnb-background: transparent;
@@ -163,6 +163,25 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
           data-done-label='Done'
         ></div>
         <p class="booking-trust"><span>Secure checkout</span><span>No booking fees</span><span>Instant confirmation</span></p>
+
+        <div class="deal-join">
+          <p class="deal-join-head">Not booking today?</p>
+          <p class="deal-join-sub">Join the list. We send word when good weekends open up at the retreat, and our direct-booking deals go out to the list first.</p>
+          <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html">
+            <input type="hidden" name="form-name" value="newsletter">
+            <input type="hidden" name="source" value="mr-book-top">
+            <input type="hidden" name="property" value="Mountain Retreat">
+            <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" aria-hidden="true"></label></p>
+            <label class="vh" for="dj-mr-top-name">First name</label>
+            <input id="dj-mr-top-name" name="first-name" type="text" placeholder="First name" autocomplete="given-name">
+            <div class="deal-join-row">
+              <label class="vh" for="dj-mr-top-email">Email</label>
+              <input id="dj-mr-top-email" name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+              <button class="btn btn-primary" type="submit">Join the list</button>
+            </div>
+          </form>
+          <p class="deal-join-fine">One or two emails a month. Unsubscribe in a click. We never sell or share your address.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -479,6 +498,25 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
               data-done-label='Done'
             ></div>
           <p class="booking-trust"><span>Secure checkout</span><span>No booking fees</span><span>Instant confirmation</span></p>
+
+          <div class="deal-join">
+            <p class="deal-join-head">Not booking today?</p>
+            <p class="deal-join-sub">Join the list. We send word when good weekends open up at the retreat, and our direct-booking deals go out to the list first.</p>
+            <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html">
+              <input type="hidden" name="form-name" value="newsletter">
+              <input type="hidden" name="source" value="mr-book-bottom">
+              <input type="hidden" name="property" value="Mountain Retreat">
+              <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" aria-hidden="true"></label></p>
+              <label class="vh" for="dj-mr-bot-name">First name</label>
+              <input id="dj-mr-bot-name" name="first-name" type="text" placeholder="First name" autocomplete="given-name">
+              <div class="deal-join-row">
+                <label class="vh" for="dj-mr-bot-email">Email</label>
+                <input id="dj-mr-bot-email" name="email" type="email" required placeholder="you@example.com" autocomplete="email">
+                <button class="btn btn-primary" type="submit">Join the list</button>
+              </div>
+            </form>
+            <p class="deal-join-fine">One or two emails a month. Unsubscribe in a click. We never sell or share your address.</p>
+          </div>
       </div>
     </div>
   </section>
