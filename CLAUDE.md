@@ -352,10 +352,19 @@ descriptions, the JSON-LD `numberOfRooms` and `occupancy`, the detail and
 comparison boards, two form `max` attributes, the enquiry dropdowns, and
 `emails/welcome-farmhousegetaways.html`.
 
-**Still outstanding as of 5 Sep:** the bed-count sentence on
-`red-barn-ranch.html` ("The bed setup (ten total, including 3 fold-out
-options)… up to fourteen adults") is still the six-bedroom arithmetic and needs
-the real figures for room seven before it is accurate.
+### The bed count moves with room seven
+
+- **10 beds** in the main house alone.
+- **11 beds** today, because room seven is currently the tiny home.
+- **14 beds** once the loft swaps in for the tiny home — it is 800 sq ft and
+  carries three more beds than the tiny home does.
+
+The site says **eleven** today. The owners will say when the swap happens; that
+is the moment it becomes fourteen, and it is the only figure that moves — seven
+bedrooms, 4.5 bathrooms and sleeps 20 hold across both.
+
+"Up to fourteen adults with children filling out the rest" still holds at a
+capacity of twenty and does not need touching.
 
 ## Redirects — do not delete
 
