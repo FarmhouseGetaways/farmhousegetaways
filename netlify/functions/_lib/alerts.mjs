@@ -172,6 +172,84 @@ async function toWebhook(alert, formName, data) {
 }
 
 /**
+ * The same alert as an email, through Resend.
+ *
+ * WHY THIS EXISTS AT ALL
+ * Netlify sends its own form-submission email and its template cannot be
+ * changed — the only setting is who receives it. It arrives as
+ * "Form submission from newsletter form:" over a dump of raw field names
+ * ("Source: rbr-book-top"), which is a database column read aloud. The owner,
+ * 7 Sep 2026: "bad subject, bad data." The only way to control the wording is
+ * to send it ourselves, and nothing else in this stack can send an email:
+ * Netlify functions cannot, and EmailOctopus does lists, not one-off messages.
+ *
+ * ⚠ TURN NETLIFY'S OWN FORM EMAIL OFF once this is confirmed working, or every
+ * submission arrives twice. It lives in the Netlify UI, not in this repo:
+ * Project configuration → Notifications → Form submission notifications.
+ *
+ * Three variables, and it stays silent unless all three are set:
+ *   RESEND_API_KEY   a sending-access key from resend.com
+ *   RESEND_FROM      the from address. Currently Resend's shared
+ *                    onboarding@resend.dev, which may only send to the account
+ *                    owner's own address — fine, because this only ever goes to
+ *                    the owner. Sending anywhere else needs farmhousegetaways.com
+ *                    verified in Resend first, which is DNS at the registrar.
+ *   ALERT_EMAIL_TO   where it lands.
+ *
+ * reply_to is the person who submitted, so hitting Reply in the inbox writes
+ * back to them rather than to a no-reply address.
+ */
+async function toEmail(alert, data) {
+  const key = (process.env.RESEND_API_KEY || "").trim();
+  const from = (process.env.RESEND_FROM || "").trim();
+  const to = (process.env.ALERT_EMAIL_TO || "").trim();
+  if (!key || !from || !to) return "skipped";
+
+  const esc = (s) =>
+    String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+  // Each line of the summary is "Label: value". Bold the label, and turn a bare
+  // URL into a link, so the page it came from is one click rather than a copy
+  // and paste.
+  const rows = alert.body.split("\n").map((line) => {
+    const at = line.indexOf(": ");
+    const label = at > 0 ? line.slice(0, at) : "";
+    const value = at > 0 ? line.slice(at + 2) : line;
+    const shown = /^https?:\/\/\S+$/.test(value)
+      ? `<a href="${esc(value)}">${esc(value)}</a>`
+      : esc(value);
+    return label
+      ? `<tr><td style="padding:3px 14px 3px 0;color:#6E5F66;white-space:nowrap;">${esc(label)}</td>` +
+        `<td style="padding:3px 0;color:#22201d;"><strong>${shown}</strong></td></tr>`
+      : `<tr><td colspan="2" style="padding:3px 0;color:#22201d;">${shown}</td></tr>`;
+  });
+
+  const html =
+    `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;">` +
+    `<table cellpadding="0" cellspacing="0" border="0">${rows.join("")}</table></div>`;
+
+  const replyTo = String(data?.email || "").trim();
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: alert.title,
+      text: alert.body,
+      html,
+      ...(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(replyTo) ? { reply_to: [replyTo] } : {}),
+    }),
+  });
+  if (res.ok) return "sent";
+  // Resend puts the reason in the body and it is the difference between a bad
+  // key and an unverified from address. A bare status number costs an hour.
+  let why = "";
+  try { why = ` ${(await res.text()).slice(0, 200)}`; } catch { /* nothing to add */ }
+  return `failed ${res.status}${why}`;
+}
+
+/**
  * "sent" and "skipped" are the two routine outcomes and get an ordinary log
  * line. Anything else — "failed 401", "error <message>" — means a channel
  * that IS configured did not deliver, and that must never sit at the same
@@ -189,13 +267,15 @@ function logChannel(name, result) {
 
 /** Fire every configured channel. Never throws. */
 export async function sendAlert(formName, data) {
-  if (!formName) return { ntfy: "skipped", webhook: "skipped" };
+  if (!formName) return { ntfy: "skipped", webhook: "skipped", email: "skipped" };
   const alert = summarise(formName, data || {});
-  const [ntfy, webhook] = await Promise.all([
+  const [ntfy, webhook, email] = await Promise.all([
     toNtfy(alert).catch((e) => `error ${e.message}`),
     toWebhook(alert, formName, data || {}).catch((e) => `error ${e.message}`),
+    toEmail(alert, data || {}).catch((e) => `error ${e.message}`),
   ]);
   logChannel("ntfy", ntfy);
   logChannel("webhook", webhook);
-  return { ntfy, webhook };
+  logChannel("email", email);
+  return { ntfy, webhook, email };
 }
