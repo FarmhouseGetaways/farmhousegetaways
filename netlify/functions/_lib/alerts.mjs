@@ -50,7 +50,43 @@ const INTERESTING = [
   "email", "phone", "city", "message",
 ];
 
+/**
+ * The mailing-list signup gets its own shape, because the generic one below
+ * spells a database out loud: "Source: rbr-book-top" tells you nothing you
+ * wanted at a glance, and the property is the first thing worth knowing.
+ *
+ * Reads `property` and `page`, both hidden fields the form already carries.
+ * Falls through to the generic summary if a signup arrives without them — the
+ * farmstand map page uses this same form name and has neither.
+ */
+function summariseSignup(data) {
+  const property = (data.property || "").toString().trim();
+  const page = (data.page || "").toString().trim();
+  if (!property && !page) return null;
+
+  const SHORT = { "Red Barn Ranch": "RBR", "Mountain Retreat": "MR" };
+  const tag = SHORT[property] || property;
+  const name = (data["first-name"] || data.name || "").toString().trim();
+  const email = (data.email || "").toString().trim();
+
+  const lines = [];
+  if (name) lines.push(`Name: ${name}`);
+  if (email) lines.push(`Email: ${email}`);
+  lines.push(`Source: ${tag || "Site"} email signup form below the booking form`);
+  if (page) lines.push(`On: ${page}`);
+
+  return {
+    title: `${tag ? tag + " " : ""}Customer Email Signup - Booking Widget Form`,
+    body: lines.join("\n"),
+  };
+}
+
 function summarise(formName, data) {
+  if (formName === "newsletter") {
+    const signup = summariseSignup(data);
+    if (signup) return signup;
+  }
+
   const pretty = {
     contact: "Inquiry",
     farmstand: "Farm Stand Submission",
