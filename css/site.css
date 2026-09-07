@@ -1129,9 +1129,18 @@ a { color: inherit; }
 }
 .deal-join-form { display: grid; gap: .6rem; }
 /* One column by default: on a phone — where most of this traffic lands — a
-   side-by-side email field and button squeezes both below a usable size. */
+   side-by-side email field and button squeezes both below a usable size.
+   The row is a grid at BOTH sizes on purpose. It was a plain block when
+   stacked, which meant `gap` did not apply and the button sat hard against the
+   bottom of the email field with nothing between them. */
+.deal-join-row { display: grid; gap: .9rem; }
 @media (min-width: 30rem) {
-  .deal-join-row { display: grid; grid-template-columns: 1fr auto; gap: .6rem; }
+  .deal-join-row { grid-template-columns: 1fr auto; gap: .6rem; align-items: center; }
+}
+/* Stacked, a half-width pill under a full-width field reads as unfinished and
+   is a smaller tap target than it needs to be. */
+@media (max-width: 29.99rem) {
+  .deal-join-form .btn { width: 100%; }
 }
 .deal-join-form input[type="text"],
 .deal-join-form input[type="email"] {
