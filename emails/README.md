@@ -1,11 +1,18 @@
 # The emails
 
-Three welcome emails, one per brand. Each delivers the Ramona Farmstand Map and
-sends once, automatically, the moment somebody signs up.
+Three welcome emails, one per brand. Each sends once, automatically, the moment
+somebody signs up.
+
+**Only two of them carry the Ramona Farmstand Map.** Farmhouse Getaways stopped
+on 7 Sep 2026: the property pages grew their own signup under the booking
+widget, and somebody joining a deals list from under a date picker never asked
+for a farmstand map. Its welcome is about the two houses and what the list
+actually sends. Farmstand.TV and Mini Barn Market signups genuinely do ask for
+the map, so theirs still deliver it.
 
 | File | Goes to | Subject line |
 |---|---|---|
-| `welcome-farmhousegetaways.html` | tag `farmhousegetaways` | Here is the Ramona Farmstand Map |
+| `welcome-farmhousegetaways.html` | tag `farmhousegetaways` | Welcome in — you will hear about open weekends first |
 | `welcome-minibarnmarket.html` | tag `minibarnmarket` | The barn is always open (and here is the map) |
 | `welcome-farmstandtv.html` | tag `farmstandtv` | The Ramona Farmstand Map |
 
@@ -31,8 +38,8 @@ Do this three times, once per brand.
      sends the Farmhouse welcome to Mini Barn Market signups.
    * If your plan will not let you put a condition on the trigger, do it the
      other way instead — see *Naming the automation explicitly* below.
-4. Add a **Send email** step. No delay: they asked for the map, so the map
-   should arrive while they are still looking at the thanks page.
+4. Add a **Send email** step. No delay — it should arrive while they are still
+   looking at the thanks page.
 5. In the email step choose the **HTML** editor, not the drag-and-drop one, and
    paste the whole matching file.
 6. Set the subject from the table above. The preheader is in a comment at the
