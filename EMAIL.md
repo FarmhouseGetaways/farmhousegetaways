@@ -20,13 +20,13 @@ tags, and "send to just Mini Barn Market" is a filter in the dropdown.
 3. **Deploys → Trigger deploy.** Variables only reach the site on a new deploy.
 4. Open this, with your admin password in place of `YOUR_PASSWORD`:
 
-       https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_PASSWORD
+       https://farmhousegetaways.com/api/emailoctopus?key=YOUR_PASSWORD
 
    It lists every list on the account with its id. Copy the one you want into
    `EMAILOCTOPUS_LIST_ID` in Netlify and trigger another deploy.
 5. Now prove it actually works:
 
-       https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_PASSWORD&selftest=1
+       https://farmhousegetaways.com/api/emailoctopus?key=YOUR_PASSWORD&selftest=1
 
    That adds a test contact with all three brand tags, reads it back to check
    the tags really stuck, and deletes it again. When it says `"ready": true`
@@ -96,7 +96,7 @@ the next deploy, so nothing works until you do this.
 
 Open:
 
-    https://farmhousegetaways.netlify.app/api/emailoctopus?key=YOUR_ADMIN_PASSWORD
+    https://farmhousegetaways.com/api/emailoctopus?key=YOUR_ADMIN_PASSWORD
 
 It prints every list on the account with its id, and tells you what is still
 missing. Copy the id you want into `EMAILOCTOPUS_LIST_ID`, redeploy, reload the

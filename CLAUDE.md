@@ -71,7 +71,7 @@ Netlify UI offered to overwrite it.
 
 | What | Repo | Live at | Built how |
 |---|---|---|---|
-| **Farmhouse Getaways** | `FarmhouseGetaways/farmhousegetaways` | farmhousegetaways.netlify.app — farmhousegetaways.com moving over soon | Hand-written HTML, one CSS file, no build step |
+| **Farmhouse Getaways** | `FarmhouseGetaways/farmhousegetaways` | **farmhousegetaways.com** (farmhousegetaways.netlify.app still resolves) | Hand-written HTML, one CSS file, no build step |
 | **Mini Barn Market** | `FarmhouseGetaways/minibarnmarket` | minibarnmarket.com | Hand-written HTML, no build step |
 | **Farmstand.TV** | `FarmhouseGetaways/farmstandtv` | farmstand.tv and farmstandtv.com (same site) | Hand-written HTML, no build step |
 | **The app** | `FarmhouseGetaways/farmhouse-app` | farmhousegetawaysapp.netlify.app | **Generated — see below** |
@@ -218,7 +218,9 @@ Netlify is connected to this repo and builds `main` automatically. No Publish
 click is needed — it self-publishes. `netlify.toml` sets `publish = "."` with no
 build command, so files ship exactly as they are here.
 
-Live at **https://farmhousegetaways.netlify.app**.
+Live at **https://farmhousegetaways.com**. The netlify.app subdomain still
+resolves to the same build, but the apex is the real address - use it in
+anything a guest will see.
 
 ### Two sites watch this one repo, so a build is skipped when it is not owed
 
@@ -280,16 +282,29 @@ live. They are not going to run git commands. Do that part for them.
 Verify the change actually reached the live site before saying it is live —
 curl the page and check for the new text. A push is not a deploy.
 
-## The site is deliberately hidden from Google
+## The domain has moved. The site is public and indexable.
 
-`robots.txt` says `Disallow: /` and `netlify.toml` sends
-`X-Robots-Tag: noindex, nofollow`. This is on purpose: `farmhousegetaways.com`
-still points at the old WordPress site, and this one is staging until the domain
-moves.
+**`farmhousegetaways.com` serves THIS site.** The old WordPress site is gone.
+The migration happened weeks before 7 Sep 2026, and this file went on claiming
+otherwise for long enough to waste real time — the owner's words on 7 Sep 2026:
+"what the hell is this. We migrated weeks ago from WordPress."
 
-**Do not "fix" this.** Both files carry plain-English instructions for the day
-the domain is pointed here. Flip them only when the owner says the domain has
-moved.
+Verified live on 7 Sep 2026:
+
+| Check | Live value |
+|---|---|
+| `robots.txt` | `Allow: /`, with a sitemap line |
+| `X-Robots-Tag` response header | not sent |
+| `<meta name="robots">` | not present |
+
+So the site is fully open to Google and nothing needs flipping. This section
+used to say the opposite and told future sessions **not** to "fix" a
+`Disallow: /` and a `noindex` header. Both were correctly switched off at
+migration; only this file was left behind.
+
+**If you find yourself about to repeat any claim about staging, WordPress, or
+the domain "moving over soon" — check the live site first.** One request to
+`https://farmhousegetaways.com/robots.txt` settles it.
 
 ## Pages
 
@@ -450,8 +465,15 @@ can start an automation but has no endpoint to create one.
   pages pointed at `#main` — the top of the page — until 21 Aug 2026, so the
   button appeared to do nothing.
 - **The masthead is sticky**, so any in-page jump would land with its heading
-  tucked underneath it. `[id] { scroll-margin-top: 5.5rem }` in `site.css`
-  handles this for every anchor at once. Do not solve it per-link.
+  tucked underneath it. `site.css` handles this for every anchor at once — do
+  not solve it per-link. The value is **`11rem`, and `14rem` below the 47rem
+  breakpoint** where `.masthead-inner` stacks into a column. It was `5.5rem`
+  (88px) until 7 Sep 2026, which was short at *every* width: the masthead
+  measures 133px at 1280 wide, 152px at 760 and 209px at 375, so every in-page
+  jump landed with its heading hidden behind the header. This matters more than
+  it used to — the Meta ads land on `/red-barn-ranch#book` and
+  `/mountain-retreat#book`, so the offset is the first thing an ad click sees.
+  Re-measure if the masthead gains or loses a row.
 - **The ticker** (the scrolling bar, `section.ticker`) holds its `<ul>` **twice**
   on every page. The second copy is `aria-hidden="true"` and exists only so the
   scroll loops seamlessly. Any change to a ticker item must be made in both
@@ -639,11 +661,12 @@ contradiction, but the owner was asked whether the derby track should go back
 into the prose and has not answered.
 
 **SEO comes last.** Titles, meta descriptions and structured data should be done
-in one pass across all nine pages, immediately before `robots.txt` and the
-`noindex` header are flipped. Doing it earlier means redoing it after every copy
-change, and nothing ranks while the site is hidden anyway. Target capacity terms
-— large group vacation rental San Diego, sleeps 18, family reunion — which the
-titles do not currently carry at all. `mountain-retreat.html`'s JSON-LD is also
+in one pass across all nine pages. The site is public and indexable now — see
+*The domain has moved* above — so this is no longer gated on anything, it is
+simply outstanding, and every day it waits is a day of not ranking. Target
+capacity terms: large group vacation rental San Diego, **sleeps 20**, family
+reunion. Both property titles now carry the capacity ("Vacation Rental Sleeps
+20", "Sleeps 14"); the other seven pages do not. `mountain-retreat.html`'s JSON-LD is also
 missing `occupancy`, which the ranch has.
 
 ## The visual editor at `/edit.html`
@@ -1099,25 +1122,32 @@ Google Drive, Gmail and Google Calendar connectors are live on the account.
 Drive is the useful one here: it can pull a shared folder of photographs
 directly, which is the answer to the photographs problem above.
 
-### What a Claude Code session cannot do — read before promising anything
+### Driving the owner's browser — this depends on where the session runs
 
-**A Claude Code session cannot drive the owner's browser.** It runs in a
-container in the cloud with no link to their machine. It can read and write
-every file here, push to GitHub, and fetch the live site — and that is the lot.
+**Updated 7 Sep 2026. The old version of this section said flatly that a Claude
+Code session cannot drive the browser. That is no longer true and following it
+means handing the owner manual steps they do not need.**
 
-The owner has the **Claude for Chrome** extension, which genuinely does drive
-their browser, but it works with **claude.ai** conversations, not with a Claude
-Code session. They are different surfaces. On 10 Aug 2026 this caused a long
-and frustrating detour: a session said it could not drive the browser, the owner
-said it had been doing so for a week, and both were right about different tools.
+A session running in **Claude Code on the owner's own desktop** has the
+`claude-in-chrome` tools and drives their real Chrome, logged-in sessions and
+all. On 6–7 Sep 2026 one session used them to read the Lodgify rate calendar and
+pricing screens, read Meta Ads Manager, read Netlify's notification settings and
+function logs, and submit a real form on the live site end to end. There is also
+a separate in-app browser pane (`Claude_Browser`) for anything public that needs
+no login.
 
-So the division of labour is:
+A session running **in the cloud** genuinely cannot: no link to their machine,
+so it is files, GitHub and fetching the live site only.
 
-- **Here** — anything touching the site: copy, layout, photographs, forms,
-  commits, deploys.
-- **claude.ai with the Chrome extension** — anything that means clicking through
-  somebody else's settings pages: GitHub tokens, Netlify configuration, the
-  Airbnb and Lodgify listings.
+So: **work out which you are before promising or refusing anything.** If the
+`claude-in-chrome` tools are present, use them — dashboards included. See the
+*Handle credential setup directly* note in memory: drive Stripe, Netlify and
+Lodgify yourself rather than writing out click-by-click instructions.
+
+Two things stay off-limits wherever the session runs, because they are decisions
+rather than capabilities: **signing in through an SSO prompt on the owner's
+behalf**, and **anything outward-facing or irreversible without a clear yes** —
+publishing, sending, paying, or repricing a live listing.
 
 When browser work has to happen in this session anyway, the fallback that worked
 was: **one instruction at a time, and wait.** Batches of five steps failed
