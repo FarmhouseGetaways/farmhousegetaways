@@ -125,7 +125,25 @@
 
   <div id="report" class="hide">
 
+    <div class="panel" id="live-panel">
+      <h2>Right now — the last 30 minutes</h2>
+      <p class="explain">
+        <b>Every other number on this page is hours old.</b> GA4 processes its main
+        reports on a delay, so a click you just made will not appear below for
+        several hours — that is normal, not a fault. This panel comes from GA4's
+        separate realtime feed and updates within seconds, which makes it the only
+        honest way to answer "did that click actually register?".
+        <b>To test the tracking:</b> open a property page, press Book Now, then reload
+        this page — it should appear here immediately.
+      </p>
+      <div id="live-body"></div>
+    </div>
+
     <h2 class="section">How busy the site was</h2>
+    <p class="explain" style="margin-top:-.4rem;">
+      Everything from here down is GA4's processed data, which lags by several hours
+      and up to a day. Today's activity will be under-counted.
+    </p>
     <div class="strip" id="summary"></div>
 
     <h2 class="section">The booking funnel</h2>
@@ -358,12 +376,12 @@
       read("funnel-read", "warn", "No property page views in this period.",
         "Nothing to diagnose yet — widen the period, or wait for traffic.");
     } else if (g.bookingStarts.total === 0 && g.datePickerOpens.total === 0) {
-      read("funnel-read", "bad", "Nobody reached the booking widget — and that may be a tracking fault, not a real zero.",
-        "<p>" + num(views) + " people opened a property page and not one opened the date picker or pressed Book Now. " +
-        "Two possible explanations, and they need different fixes:</p><ul>" +
-        "<li><b>Real:</b> people are reading the page and leaving before the widget. That is a page problem — the widget may be too far down, or the price is doing the work of a closed door.</li>" +
-        "<li><b>Tracking:</b> these two steps are detected by watching for clicks on Lodgify's own buttons, identified by an attribute Lodgify controls. If Lodgify renamed it, the clicks happen and we never see them. This tracking only went live on 7 September, so it has barely been proven.</li>" +
-        "</ul><p>Worth ruling out the second before acting on the first: press Book Now on the live site yourself, then reload this page.</p>");
+      read("funnel-read", "warn", "No booking activity recorded yet — but check the delay before reading anything into it.",
+        "<p>" + num(views) + " people opened a property page and none is recorded as opening the date picker or pressing Book Now.</p>" +
+        "<p><b>The tracking itself is confirmed working.</b> Both events were fired and captured on the live site on 8 September 2026. " +
+        "They went live on 7 September, so there is barely any history here yet, and GA4's processed reports lag by hours — a click today will not show up below until tomorrow. " +
+        "Use the live panel at the top of this page to confirm a click registered.</p>" +
+        "<p>If this is still flat once a few days have passed, then it is a real page problem worth solving: people reading and leaving before they ever reach the widget.</p>");
     } else if (g.bookingStarts.total === 0) {
       read("funnel-read", "bad", "People open the calendar but nobody presses Book Now.",
         "<p>" + num(g.datePickerOpens.total) + " opened the date picker and none went through. " +
@@ -375,6 +393,35 @@
       read("funnel-read", "good", "The funnel is producing booking starts.",
         "<p>" + pctText(r.bookingFromView) + " of property views reach Book Now. Watch this number as the campaign runs — it is the one that says whether the traffic you are buying is the right traffic.</p>");
     }
+  }
+
+  function renderLive(live) {
+    var tracked = live.tracked || [];
+    var all = live.all || [];
+    var body = "";
+
+    if (tracked.length) {
+      body += '<div class="read good"><b>Tracking is firing right now.</b><p>' +
+        tracked.map(function (t) { return esc(t.name) + " — " + num(t.count); }).join("<br>") +
+        "</p></div>";
+    } else if (live.totalEvents) {
+      body += '<div class="read warn"><b>Someone is on the site, but nobody has touched the booking widget in the last 30 minutes.</b>' +
+        "<p>That is expected on a quiet site. It does not tell you the tracking is broken — it tells you nobody has clicked yet. " +
+        "Press Book Now on a property page and reload to prove it.</p></div>";
+    } else {
+      body += '<div class="read"><b>Nobody on the site in the last 30 minutes.</b>' +
+        "<p>Open a property page yourself and reload if you want to test the tracking.</p></div>";
+    }
+
+    if (all.length) {
+      body += '<table style="margin-top:1rem;"><thead><tr><th>Event (last 30 min)</th><th class="n">Count</th></tr></thead><tbody>' +
+        all.map(function (e) {
+          var isKey = /generate_lead|begin_checkout|date_picker_opened/.test(e.name);
+          return "<tr><td" + (isKey ? ' style="font-weight:700;"' : ' class="muted"') + ">" + esc(e.name) +
+            '</td><td class="n">' + num(e.count) + "</td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+    $("live-body").innerHTML = body;
   }
 
   function renderSummary(s) {
@@ -409,6 +456,7 @@
     }
     $("report").classList.remove("hide");
 
+    renderLive(g.live || {});
     renderSummary(g.summary || {});
     renderFunnel(g);
 

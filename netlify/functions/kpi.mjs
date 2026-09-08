@@ -133,6 +133,30 @@ async function runReport(token, propertyId, report) {
   return body;
 }
 
+/**
+ * The last 30 minutes, from GA4's separate realtime endpoint.
+ *
+ * WHY THIS EXISTS AT ALL. Everything else on this page comes from GA4's
+ * standard reporting tables, which lag by hours — Cory pressed Book Now on
+ * 8 Sep, watched "Started booking" stay at zero, and reasonably concluded the
+ * tracking was broken. It was not: the events fired correctly and simply had
+ * not been processed yet. A number that takes a day to move cannot answer
+ * "did that click register?", and this one can.
+ */
+async function runRealtimeReport(token, propertyId, report) {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runRealtimeReport`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(report),
+    }
+  );
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error?.message || `GA4 realtime failed (${res.status})`);
+  return body;
+}
+
 /** GA4 returns rows as positional arrays; give them names. */
 function rows(report) {
   return (report.rows || []).map((r) => ({
@@ -221,13 +245,18 @@ async function ga4(days) {
       metrics: [{ name: "sessions" }],
       limit: 25,
     }),
+    runRealtimeReport(token, propertyId, {
+      dimensions: [{ name: "eventName" }],
+      metrics: [{ name: "eventCount" }],
+      limit: 40,
+    }),
   ]);
 
   // A rejected report becomes an empty one; note which failed so the page can
   // say so rather than quietly showing a blank table as though it were a zero.
   const failed = [];
-  const NAMES = ["events", "referrers", "pages", "totals", "channels", "sources", "devices", "places", "landing pages"];
-  const [byEvent, byReferrer, byPage, totals, channels, sources, devices, places, landings] =
+  const NAMES = ["events", "referrers", "pages", "totals", "channels", "sources", "devices", "places", "landing pages", "live"];
+  const [byEvent, byReferrer, byPage, totals, channels, sources, devices, places, landings, live] =
     settled.map((r, i) => {
       if (r.status === "fulfilled") return r.value;
       failed.push(NAMES[i]);
@@ -332,9 +361,21 @@ async function ga4(days) {
   const datePickerOpens = total("date_picker_opened");
   const leads = total("generate_lead");
 
+  /* The tracked events specifically, so the page can answer "did my click
+     register?" without the reader hunting through every pageview. */
+  const TRACKED = { generate_lead: "Became a lead", begin_checkout: "Started booking", date_picker_opened: "Opened the date picker" };
+  const liveRows = rows(live);
   return {
     connected: true,
     failedReports: failed,
+    live: {
+      totalEvents: liveRows.reduce((s, r) => s + r.value, 0),
+      tracked: liveRows
+        .filter((r) => TRACKED[r.keys[0]])
+        .map((r) => ({ name: TRACKED[r.keys[0]], raw: r.keys[0], count: r.value }))
+        .sort((a, b) => b.count - a.count),
+      all: liveRows.map((r) => ({ name: r.keys[0], count: r.value })).sort((a, b) => b.count - a.count).slice(0, 12),
+    },
     summary: {
       users: metric(0),
       newUsers: metric(1),
