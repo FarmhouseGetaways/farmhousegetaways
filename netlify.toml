@@ -111,6 +111,12 @@
   to = "/.netlify/functions/emailoctopus-status"
   status = 200
 
+# The Rule #9 micro-goal numbers behind /kpi.html. Needs ?key=ADMIN_PASSWORD.
+[[redirects]]
+  from = "/api/kpi"
+  to = "/.netlify/functions/kpi"
+  status = 200
+
 # old URL kept alive after the Weddings page was renamed
 [[redirects]]
   from = "/events.html"

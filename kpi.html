@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking funnel — Farmhouse Getaways</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Karla:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+<meta name="theme-color" content="#3F5548">
+<link rel="stylesheet" href="/css/site.css">
+<style>
+  .kpi-wrap { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .kpi-head { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; justify-content: space-between; }
+  .kpi-title { font-family: var(--display); font-size: clamp(2rem, 5vw, 3rem); margin: 0; color: var(--sage-deeper); }
+  .kpi-sub { color: var(--plum-soft); margin: .35rem 0 0; }
+
+  .kpi-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.5rem 0 2rem; }
+  .kpi-controls input, .kpi-controls select {
+    font: inherit; padding: .55rem .7rem; border: 1px solid var(--sage-line);
+    border-radius: 999px; background: #fff; color: var(--plum);
+  }
+  .kpi-controls button {
+    font: inherit; padding: .55rem 1.2rem; border: 0; border-radius: 999px;
+    background: var(--sage-deep); color: #fff; cursor: pointer;
+  }
+  .kpi-controls button:hover { background: var(--sage-deeper); }
+
+  .funnel { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin-bottom: 2.5rem; }
+  .step {
+    background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem;
+    padding: 1.25rem 1.35rem; position: relative;
+  }
+  .step-label { text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; color: var(--stone); margin: 0 0 .4rem; }
+  .step-num { font-family: var(--display); font-size: 2.8rem; line-height: 1; color: var(--sage-deeper); font-variant-numeric: tabular-nums; }
+  .step-note { color: var(--plum-soft); font-size: .85rem; margin: .5rem 0 0; }
+  .step-split { margin: .9rem 0 0; padding: .8rem 0 0; border-top: 1px dashed var(--sage-line); font-size: .88rem; }
+  .step-split div { display: flex; justify-content: space-between; gap: 1rem; padding: .15rem 0; }
+  .step-split .v { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .t-rbr { color: var(--rbr); }
+  .t-mr  { color: var(--mr); }
+
+  .panel { background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem; padding: 1.35rem 1.5rem; margin-bottom: 1.5rem; }
+  .panel h2 { font-family: var(--display); font-size: 1.5rem; margin: 0 0 .75rem; color: var(--sage-deeper); }
+  .panel table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .panel th, .panel td { text-align: left; padding: .45rem 0; border-bottom: 1px solid var(--bloom-3); }
+  .panel td.n, .panel th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .panel tr:last-child td { border-bottom: 0; }
+
+  .muted { color: var(--plum-soft); }
+  .warn { background: var(--blush-pale); border-color: var(--blush); }
+  .notice { padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid var(--sage-line); background: var(--bloom-2); margin-bottom: 1.5rem; }
+  .hide { display: none !important; }
+</style>
+</head>
+<body style="background:var(--bloom);">
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="wordmark" href="/"><img src="/images/logo-dark.png" width="620" height="373" alt="Farmhouse Getaways"><span>Ramona, California</span></a>
+  </div>
+</header>
+
+<main class="kpi-wrap">
+  <div class="kpi-head">
+    <div>
+      <h1 class="kpi-title">Booking funnel</h1>
+      <p class="kpi-sub">How many people became a lead, looked at a property, and started booking.</p>
+    </div>
+  </div>
+
+  <form class="kpi-controls" id="controls">
+    <label class="vh" for="key">Admin key</label>
+    <input id="key" type="password" placeholder="Admin key" autocomplete="current-password">
+    <label class="vh" for="days">Period</label>
+    <select id="days">
+      <option value="7">Last 7 days</option>
+      <option value="28" selected>Last 28 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+    <button type="submit">Show me</button>
+  </form>
+
+  <div id="status" class="notice hide"></div>
+
+  <div id="report" class="hide">
+    <div class="funnel">
+      <div class="step">
+        <p class="step-label">Became a lead</p>
+        <div class="step-num" id="leads">–</div>
+        <p class="step-note">Joined the last-minute deals list.</p>
+        <div class="step-split" id="leads-split"></div>
+      </div>
+      <div class="step">
+        <p class="step-label">Viewed a property</p>
+        <div class="step-num" id="views">–</div>
+        <p class="step-note">Opened a property page.</p>
+        <div class="step-split" id="views-split"></div>
+      </div>
+      <div class="step">
+        <p class="step-label">Started booking</p>
+        <div class="step-num" id="starts">–</div>
+        <p class="step-note">Pressed Book Now on the widget.</p>
+        <div class="step-split" id="starts-split"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Where the leads came from</h2>
+      <table>
+        <thead><tr><th>Form</th><th class="n">Leads</th></tr></thead>
+        <tbody id="sources"></tbody>
+      </table>
+      <p class="muted" style="margin:.9rem 0 0;font-size:.85rem;">
+        Signups before 7 September 2026 have no form recorded against them — GA4 only
+        started keeping that the day the custom dimensions were added, and it does not backfill.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Date pickers opened</h2>
+      <p class="muted" style="margin:0 0 .5rem;">A softer signal than Book Now — someone checking whether their weekend is free.</p>
+      <div class="step-num" id="pickers" style="font-size:2rem;">–</div>
+    </div>
+
+    <div class="panel" id="meta-panel">
+      <h2>Meta ads</h2>
+      <div id="meta-body"></div>
+    </div>
+
+    <p class="muted" id="generated" style="font-size:.82rem;"></p>
+  </div>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY_STORE = "fg-admin-key";
+
+  // Remember the key for the tab only. sessionStorage dies with the tab, which
+  // is the right lifetime for a password on a shared office machine.
+  try {
+    var saved = sessionStorage.getItem(KEY_STORE);
+    if (saved) $("key").value = saved;
+  } catch (e) {}
+
+  function say(msg, isWarn) {
+    var el = $("status");
+    el.textContent = msg;
+    el.classList.remove("hide");
+    el.classList.toggle("warn", !!isWarn);
+  }
+
+  function num(n) { return (n || 0).toLocaleString(); }
+
+  function renderSplit(el, obj) {
+    var names = Object.keys(obj || {});
+    if (!names.length) { el.innerHTML = '<div class="muted">Nothing yet.</div>'; return; }
+    el.innerHTML = names.sort().map(function (name) {
+      var cls = name === "Red Barn Ranch" ? "t-rbr" : name === "Mountain Retreat" ? "t-mr" : "muted";
+      return '<div><span class="' + cls + '">' + name + '</span><span class="v">' + num(obj[name]) + "</span></div>";
+    }).join("");
+  }
+
+  function render(data) {
+    var g = data.ga4 || {};
+    if (!g.connected) {
+      say("GA4 is not reporting: " + (g.reason || "unknown reason"), true);
+      $("report").classList.add("hide");
+      return;
+    }
+    $("status").classList.add("hide");
+    $("report").classList.remove("hide");
+
+    $("leads").textContent = num(g.leads.total);
+    renderSplit($("leads-split"), g.leads.byProperty);
+
+    var views = g.propertyViews || {};
+    var totalViews = Object.keys(views).reduce(function (s, k) { return s + views[k]; }, 0);
+    $("views").textContent = num(totalViews);
+    renderSplit($("views-split"), views);
+
+    $("starts").textContent = num(g.bookingStarts.total);
+    renderSplit($("starts-split"), g.bookingStarts.byProperty);
+
+    $("pickers").textContent = num(g.datePickerOpens.total);
+
+    var bySource = g.leads.bySource || {};
+    var srcNames = Object.keys(bySource).sort(function (a, b) { return bySource[b] - bySource[a]; });
+    $("sources").innerHTML = srcNames.length
+      ? srcNames.map(function (s) { return "<tr><td>" + s + '</td><td class="n">' + num(bySource[s]) + "</td></tr>"; }).join("")
+      : '<tr><td class="muted" colspan="2">No leads in this period.</td></tr>';
+
+    var m = data.meta || {};
+    $("meta-body").innerHTML = m.connected
+      ? (m.campaigns.length
+          ? '<table><thead><tr><th>Campaign</th><th class="n">Spend</th><th class="n">Clicks</th></tr></thead><tbody>' +
+            m.campaigns.map(function (c) {
+              return "<tr><td>" + c.name + '</td><td class="n">$' + c.spend.toFixed(2) + '</td><td class="n">' + num(c.clicks) + "</td></tr>";
+            }).join("") + "</tbody></table>"
+          : '<p class="muted">Connected, but no campaigns have run in this period.</p>')
+      : '<p class="muted">' + (m.reason || "Not connected.") + "</p>";
+
+    $("generated").textContent =
+      "Last " + data.days + " days · read " + new Date(data.generatedAt).toLocaleString();
+  }
+
+  $("controls").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var key = $("key").value.trim();
+    if (!key) { say("Enter the admin key.", true); return; }
+    try { sessionStorage.setItem(KEY_STORE, key); } catch (err) {}
+    say("Reading GA4…", false);
+
+    fetch("/api/kpi?days=" + encodeURIComponent($("days").value), {
+      headers: { "x-admin-password": key },
+    })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (res) {
+        if (!res.ok) { say(res.body.error || "That did not work.", true); return; }
+        render(res.body);
+      })
+      .catch(function (err) { say("Could not reach the server: " + err.message, true); });
+  });
+
+  // If the key is already remembered, load without making them press anything.
+  if ($("key").value) $("controls").dispatchEvent(new Event("submit"));
+})();
+</script>
+</body>
+</html>
