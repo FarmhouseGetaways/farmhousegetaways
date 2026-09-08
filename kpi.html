@@ -49,6 +49,10 @@
   .panel td.n, .panel th.n { text-align: right; font-variant-numeric: tabular-nums; }
   .panel tr:last-child td { border-bottom: 0; }
 
+  /* Google's button draws at its own width; an unconstrained block parent
+     stretches the frame around it and it reads as two overlapping buttons. */
+  #gsi-button { width: fit-content; }
+
   .muted { color: var(--plum-soft); }
   .warn { background: var(--blush-pale); border-color: var(--blush); }
   .notice { padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid var(--sage-line); background: var(--bloom-2); margin-bottom: 1.5rem; }
