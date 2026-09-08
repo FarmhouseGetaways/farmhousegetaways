@@ -1132,6 +1132,15 @@ a { color: inherit; }
   font-size: 1rem; font-weight: 700; line-height: 1.35;
   color: var(--plum); margin: 0 0 1rem; text-wrap: balance;
 }
+/* On the homepage the signup sits below BOTH booking cards rather than inside
+   each one, so it needs its own breathing room instead of the hairline rule
+   that separates it from the widget above it on a property page. */
+.deal-join--wide {
+  max-width: 34rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: 0;
+  border-top: 0;
+}
 .deal-join-form { display: grid; gap: .6rem; }
 /* Stacked on a phone; name / email / button on one line once there is room.
    The row is a grid at BOTH sizes on purpose — it used to be a plain block

@@ -102,7 +102,7 @@
     <div class="kpi-head">
       <div>
         <h1 class="kpi-title">Booking funnel</h1>
-        <p class="kpi-sub">Everything GA4 knows about farmhousegetaways.com, read in plain English.</p>
+        <p class="kpi-sub">Everything Google Analytics knows about farmhousegetaways.com, read in plain English.</p>
       </div>
       <p class="muted" style="font-size:.85rem;margin:0;">
         <span id="whoami"></span> · <a href="#" id="signout">Sign out</a>
@@ -128,9 +128,9 @@
     <div class="panel" id="live-panel">
       <h2>Right now — the last 30 minutes</h2>
       <p class="explain">
-        <b>Every other number on this page is hours old.</b> GA4 processes its main
+        <b>Every other number on this page is hours old.</b> Google Analytics processes its main
         reports on a delay, so a click you just made will not appear below for
-        several hours — that is normal, not a fault. This panel comes from GA4's
+        several hours — that is normal, not a fault. This panel comes from Google Analytics'
         separate realtime feed and updates within seconds, which makes it the only
         honest way to answer "did that click actually register?".
         <b>To test the tracking:</b> open a property page, press Book Now, then reload
@@ -141,7 +141,7 @@
 
     <h2 class="section">How busy the site was</h2>
     <p class="explain" style="margin-top:-.4rem;">
-      Everything from here down is GA4's processed data, which lags by several hours
+      Everything from here down is Google Analytics's processed data, which lags by several hours
       and up to a day. Today's activity will be under-counted.
     </p>
     <div class="strip" id="summary"></div>
@@ -162,7 +162,7 @@
       <h2>Platforms</h2>
       <p class="explain">
         The actual site or app someone was on immediately before landing here.
-        GA4 stores these as raw hostnames — <i>m.facebook.com</i>, <i>l.instagram.com</i>,
+        Google Analytics stores these as raw hostnames — <i>m.facebook.com</i>, <i>l.instagram.com</i>,
         <i>(direct)</i> — so they are renamed here to what they really are.
         <b>Direct</b> means no referrer at all: typed the address, a bookmark, or a
         link from a text message or email app.
@@ -192,7 +192,7 @@
     <div class="panel">
       <h2>Do the other brands send bookings?</h2>
       <p class="explain">
-        Mini Barn Market and Farmstand.TV are separate GA4 properties, so their traffic
+        Mini Barn Market and Farmstand.TV are separate Google Analytics properties, so their traffic
         cannot be added to this one. What can be answered here is the question that
         actually matters: of the people who became a lead or started booking
         <i>on this site</i>, how many arrived from the other two brands. That is
@@ -263,7 +263,7 @@
         <tbody id="sources-forms"></tbody>
       </table>
       <p class="muted" style="margin:.9rem 0 0;font-size:.82rem;">
-        Signups before 7 September 2026 have no form recorded against them — GA4 only
+        Signups before 7 September 2026 have no form recorded against them — Google Analytics only
         began keeping that on the day the custom dimensions were created, and it does
         not backfill.
       </p>
@@ -379,7 +379,7 @@
       read("funnel-read", "warn", "No booking activity recorded yet — but check the delay before reading anything into it.",
         "<p>" + num(views) + " people opened a property page and none is recorded as opening the date picker or pressing Book Now.</p>" +
         "<p><b>The tracking itself is confirmed working.</b> Both events were fired and captured on the live site on 8 September 2026. " +
-        "They went live on 7 September, so there is barely any history here yet, and GA4's processed reports lag by hours — a click today will not show up below until tomorrow. " +
+        "They went live on 7 September, so there is barely any history here yet, and Google Analytics's processed reports lag by hours — a click today will not show up below until tomorrow. " +
         "Use the live panel at the top of this page to confirm a click registered.</p>" +
         "<p>If this is still flat once a few days have passed, then it is a real page problem worth solving: people reading and leaving before they ever reach the widget.</p>");
     } else if (g.bookingStarts.total === 0) {
@@ -442,14 +442,14 @@
   function render(data) {
     var g = data.ga4 || {};
     if (!g.connected) {
-      say("GA4 is not reporting: " + (g.reason || "unknown reason"), true);
+      say("Google Analytics is not reporting: " + (g.reason || "unknown reason"), true);
       $("report").classList.add("hide");
       return;
     }
     // Be honest about a panel that failed rather than letting an empty table
     // read as a genuine zero.
     if ((g.failedReports || []).length) {
-      say("Some panels could not be read from GA4 (" + g.failedReports.join(", ") +
+      say("Some panels could not be read from Google Analytics (" + g.failedReports.join(", ") +
           "). Everything else below is accurate.", true);
     } else {
       $("status").classList.add("hide");
@@ -539,13 +539,13 @@
       : '<p class="muted">' + esc(m.reason || "Not connected.") + "</p>";
 
     $("generated").textContent =
-      "GA4 property 354452865 (farmhousegetaways.com) · last " + data.days +
+      "Google Analytics property 354452865 (farmhousegetaways.com) · last " + data.days +
       " days · read " + new Date(data.generatedAt).toLocaleString();
   }
 
   function load() {
     if (!idToken) return;
-    say("Reading GA4…", false);
+    say("Reading Google Analytics…", false);
     fetch("/api/kpi?days=" + encodeURIComponent($("days").value), {
       headers: { Authorization: "Bearer " + idToken },
     })
