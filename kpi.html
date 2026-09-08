@@ -399,7 +399,14 @@
       $("report").classList.add("hide");
       return;
     }
-    $("status").classList.add("hide");
+    // Be honest about a panel that failed rather than letting an empty table
+    // read as a genuine zero.
+    if ((g.failedReports || []).length) {
+      say("Some panels could not be read from GA4 (" + g.failedReports.join(", ") +
+          "). Everything else below is accurate.", true);
+    } else {
+      $("status").classList.add("hide");
+    }
     $("report").classList.remove("hide");
 
     renderSummary(g.summary || {});

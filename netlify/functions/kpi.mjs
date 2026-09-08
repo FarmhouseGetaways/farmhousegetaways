@@ -158,10 +158,14 @@ async function ga4(days) {
 
   /* Every question is a separate GA4 report, so they go out together rather
      than one after another — nine sequential round trips to Google is a page
-     that feels broken. */
-  const [
-    byEvent, byReferrer, byPage, totals, channels, sources, devices, places, landings,
-  ] = await Promise.all([
+     that feels broken.
+
+     allSettled, not all: one rejected report must not take the page down with
+     it. GA4 rejects a whole request over a single unknown dimension name, and
+     losing the funnel — the part that matters — because the cities panel was
+     mistyped would be a bad trade. A failed report degrades to no rows and its
+     own panel reads empty. */
+  const settled = await Promise.allSettled([
     // The micro-goals. Event name says which goal; the custom dimensions say
     // which farmhouse and which form.
     report({
@@ -218,6 +222,23 @@ async function ga4(days) {
       limit: 25,
     }),
   ]);
+
+  // A rejected report becomes an empty one; note which failed so the page can
+  // say so rather than quietly showing a blank table as though it were a zero.
+  const failed = [];
+  const NAMES = ["events", "referrers", "pages", "totals", "channels", "sources", "devices", "places", "landing pages"];
+  const [byEvent, byReferrer, byPage, totals, channels, sources, devices, places, landings] =
+    settled.map((r, i) => {
+      if (r.status === "fulfilled") return r.value;
+      failed.push(NAMES[i]);
+      return { rows: [] };
+    });
+
+  // The funnel itself is the point of the page; if that one report failed we
+  // are not rendering a believable page, so say so outright.
+  if (failed.includes("events")) {
+    return { connected: false, reason: "GA4 rejected the events report: " + (settled[0].reason?.message || "unknown") };
+  }
 
   const events = rows(byEvent);
   const total = (name) =>
@@ -313,6 +334,7 @@ async function ga4(days) {
 
   return {
     connected: true,
+    failedReports: failed,
     summary: {
       users: metric(0),
       newUsers: metric(1),
