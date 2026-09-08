@@ -149,50 +149,75 @@ async function ga4(days) {
 
   const token = await accessToken(sa);
   const dateRanges = [{ startDate: `${days}daysAgo`, endDate: "today" }];
+  const report = (body) => runReport(token, propertyId, { dateRanges, ...body });
 
-  // One report covers every micro-goal: the event name says which goal, the
-  // custom dimensions say which farmhouse and which form.
-  const byEvent = await runReport(token, propertyId, {
-    dateRanges,
-    dimensions: [{ name: "eventName" }, { name: "customEvent:property" }, { name: "customEvent:source" }],
-    metrics: [{ name: "eventCount" }],
-    dimensionFilter: {
-      filter: {
-        fieldName: "eventName",
-        inListFilter: {
-          values: ["generate_lead", "begin_checkout", "date_picker_opened"],
-        },
-      },
-    },
-    limit: 200,
+  const KEY_EVENTS = ["generate_lead", "begin_checkout", "date_picker_opened"];
+  const eventFilter = (values) => ({
+    filter: { fieldName: "eventName", inListFilter: { values } },
   });
 
-  /* DOES THE FARM STAND ACTUALLY SEND BOOKINGS? The three brands are separate
-     GA4 properties, so they cannot be added together — but the question worth
-     asking is answerable from this property alone: of the people who became a
-     lead or started booking HERE, which site did they arrive from. That is what
-     decides whether cross-linking earns its keep, and it costs no extra access
-     and no ad spend. */
-  const byReferrer = await runReport(token, propertyId, {
-    dateRanges,
-    dimensions: [{ name: "eventName" }, { name: "sessionSource" }],
-    metrics: [{ name: "eventCount" }],
-    dimensionFilter: {
-      filter: {
-        fieldName: "eventName",
-        inListFilter: { values: ["generate_lead", "begin_checkout"] },
-      },
-    },
-    limit: 200,
-  });
-
-  // "Viewing a property" is a page view of one of the two property pages.
-  const byPage = await runReport(token, propertyId, {
-    dateRanges,
-    dimensions: [{ name: "pagePath" }],
-    metrics: [{ name: "screenPageViews" }],
-    limit: 200,
-  });
+  /* Every question is a separate GA4 report, so they go out together rather
+     than one after another — nine sequential round trips to Google is a page
+     that feels broken. */
+  const [
+    byEvent, byReferrer, byPage, totals, channels, sources, devices, places, landings,
+  ] = await Promise.all([
+    // The micro-goals. Event name says which goal; the custom dimensions say
+    // which farmhouse and which form.
+    report({
+      dimensions: [{ name: "eventName" }, { name: "customEvent:property" }, { name: "customEvent:source" }],
+      metrics: [{ name: "eventCount" }],
+      dimensionFilter: eventFilter(KEY_EVENTS),
+      limit: 250,
+    }),
+    /* DOES THE FARM STAND ACTUALLY SEND BOOKINGS? The three brands are separate
+       GA4 properties and cannot be added together, but the question worth asking
+       is answerable from this property alone: of the people who became a lead or
+       started booking HERE, which site did they arrive from. */
+    report({
+      dimensions: [{ name: "eventName" }, { name: "sessionSource" }],
+      metrics: [{ name: "eventCount" }],
+      dimensionFilter: eventFilter(["generate_lead", "begin_checkout"]),
+      limit: 250,
+    }),
+    report({
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      limit: 250,
+    }),
+    report({
+      metrics: [
+        { name: "activeUsers" }, { name: "newUsers" }, { name: "sessions" },
+        { name: "engagedSessions" }, { name: "screenPageViews" },
+        { name: "averageSessionDuration" },
+      ],
+    }),
+    report({
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      metrics: [{ name: "sessions" }],
+      limit: 25,
+    }),
+    report({
+      dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
+      metrics: [{ name: "sessions" }],
+      limit: 40,
+    }),
+    report({
+      dimensions: [{ name: "deviceCategory" }],
+      metrics: [{ name: "sessions" }],
+      limit: 10,
+    }),
+    report({
+      dimensions: [{ name: "city" }, { name: "region" }],
+      metrics: [{ name: "sessions" }],
+      limit: 25,
+    }),
+    report({
+      dimensions: [{ name: "landingPagePlusQueryString" }],
+      metrics: [{ name: "sessions" }],
+      limit: 25,
+    }),
+  ]);
 
   const events = rows(byEvent);
   const total = (name) =>
@@ -216,11 +241,63 @@ async function ga4(days) {
   const pageViews = rows(byPage);
   const viewsFor = (needle) =>
     pageViews.filter((p) => p.keys[0].includes(needle)).reduce((sum, p) => sum + p.value, 0);
+  const propertyViews = {
+    "Red Barn Ranch": viewsFor("red-barn-ranch"),
+    "Mountain Retreat": viewsFor("mountain-retreat"),
+  };
+  const propertyViewTotal = propertyViews["Red Barn Ranch"] + propertyViews["Mountain Retreat"];
 
-  /* Sister-site referrals, named plainly. GA4 reports a referring host, so
-     "minibarnmarket.com" and "farmstand.tv" show up as sources like any other
-     site. Everything else is rolled up rather than listed, because the question
-     here is specifically "do the other two brands feed this one?". */
+  /* GA4 reports raw hostnames and its own shorthand. "m.facebook.com" and
+     "l.instagram.com" are Facebook and Instagram; "(direct)" means someone
+     typed the address or used a bookmark. Naming them plainly is the whole
+     point of this panel — the raw strings are unreadable to anyone who does
+     not already live in analytics. */
+  const PLATFORMS = [
+    [/^google$|googleadservices|google\.com/i, "Google"],
+    [/facebook|fb\.com|fb\.me/i, "Facebook"],
+    [/instagram/i, "Instagram"],
+    [/airbnb/i, "Airbnb"],
+    [/vrbo|homeaway|expedia/i, "Vrbo / Expedia"],
+    [/lodgify/i, "Lodgify"],
+    [/minibarnmarket/i, "Mini Barn Market"],
+    [/farmstand/i, "Farmstand.TV"],
+    [/bing/i, "Bing"],
+    [/duckduckgo/i, "DuckDuckGo"],
+    [/yahoo/i, "Yahoo"],
+    [/tiktok/i, "TikTok"],
+    [/pinterest/i, "Pinterest"],
+    [/youtube/i, "YouTube"],
+    [/linkedin/i, "LinkedIn"],
+    [/^\(?direct\)?$/i, "Direct (typed or bookmarked)"],
+    [/^\(?not set\)?$/i, "Unknown"],
+    [/yelp/i, "Yelp"],
+    [/tripadvisor/i, "Tripadvisor"],
+    [/mail|gmail|outlook|emailoctopus/i, "Email"],
+  ];
+  const prettyPlatform = (raw) => {
+    const s = String(raw || "").trim();
+    for (const [re, name] of PLATFORMS) if (re.test(s)) return name;
+    return s.replace(/^www\./, "") || "Unknown";
+  };
+
+  const list = (rep, mapKeys) =>
+    rows(rep)
+      .map((r) => ({ name: mapKeys(r.keys), sessions: r.value }))
+      .filter((r) => r.name)
+      .sort((a, b) => b.sessions - a.sessions);
+
+  // Several raw sources collapse to one platform, so re-add after renaming.
+  const merge = (items) => {
+    const out = new Map();
+    for (const it of items) out.set(it.name, (out.get(it.name) || 0) + it.sessions);
+    return [...out.entries()].map(([name, sessions]) => ({ name, sessions }))
+      .sort((a, b) => b.sessions - a.sessions);
+  };
+
+  const totalsRow = (totals.rows || [])[0];
+  const metric = (i) => Number(totalsRow?.metricValues?.[i]?.value || 0);
+  const sessions = metric(2);
+
   const sisters = { "Mini Barn Market": /minibarnmarket/i, "Farmstand.TV": /farmstand/i };
   const referrals = { "Mini Barn Market": 0, "Farmstand.TV": 0, "Everything else": 0 };
   for (const r of rows(byReferrer)) {
@@ -229,16 +306,39 @@ async function ga4(days) {
     referrals[hit || "Everything else"] += r.value;
   }
 
+  const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : null);
+  const bookingStarts = total("begin_checkout");
+  const datePickerOpens = total("date_picker_opened");
+  const leads = total("generate_lead");
+
   return {
     connected: true,
-    referrals,
-    leads: { total: total("generate_lead"), byProperty: split("generate_lead"), bySource },
-    bookingStarts: { total: total("begin_checkout"), byProperty: split("begin_checkout") },
-    datePickerOpens: { total: total("date_picker_opened"), byProperty: split("date_picker_opened") },
-    propertyViews: {
-      "Red Barn Ranch": viewsFor("red-barn-ranch"),
-      "Mountain Retreat": viewsFor("mountain-retreat"),
+    summary: {
+      users: metric(0),
+      newUsers: metric(1),
+      sessions,
+      engagedSessions: metric(3),
+      engagementRate: pct(metric(3), sessions),
+      pageViews: metric(4),
+      avgSessionSeconds: Math.round(metric(5)),
     },
+    leads: { total: leads, byProperty: split("generate_lead"), bySource },
+    bookingStarts: { total: bookingStarts, byProperty: split("begin_checkout") },
+    datePickerOpens: { total: datePickerOpens, byProperty: split("date_picker_opened") },
+    propertyViews,
+    rates: {
+      propertyViewTotal,
+      pickerFromView: pct(datePickerOpens, propertyViewTotal),
+      bookingFromView: pct(bookingStarts, propertyViewTotal),
+      leadFromView: pct(leads, propertyViewTotal),
+      bookingFromPicker: pct(bookingStarts, datePickerOpens),
+    },
+    channels: list(channels, (k) => k[0]),
+    sources: merge(list(sources, (k) => prettyPlatform(k[0]))).slice(0, 12),
+    devices: list(devices, (k) => k[0].replace(/^./, (c) => c.toUpperCase())),
+    places: list(places, (k) => (k[0] && k[0] !== "(not set)" ? `${k[0]}, ${k[1]}` : null)).slice(0, 10),
+    landingPages: list(landings, (k) => k[0]).slice(0, 10),
+    referrals,
   };
 }
 

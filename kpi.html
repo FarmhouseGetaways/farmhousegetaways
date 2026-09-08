@@ -12,13 +12,13 @@
 <meta name="theme-color" content="#3F5548">
 <link rel="stylesheet" href="/css/site.css">
 <style>
-  .kpi-wrap { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .kpi-wrap { max-width: 68rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; }
   .kpi-head { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; justify-content: space-between; }
   .kpi-title { font-family: var(--display); font-size: clamp(2rem, 5vw, 3rem); margin: 0; color: var(--sage-deeper); }
   .kpi-sub { color: var(--plum-soft); margin: .35rem 0 0; }
 
   .kpi-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: 1.5rem 0 2rem; }
-  .kpi-controls input, .kpi-controls select {
+  .kpi-controls select {
     font: inherit; padding: .55rem .7rem; border: 1px solid var(--sage-line);
     border-radius: 999px; background: #fff; color: var(--plum);
   }
@@ -28,35 +28,51 @@
   }
   .kpi-controls button:hover { background: var(--sage-deeper); }
 
-  .funnel { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin-bottom: 2.5rem; }
-  .step {
-    background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem;
-    padding: 1.25rem 1.35rem; position: relative;
-  }
+  #gsi-button { width: fit-content; }
+
+  /* ---- summary strip ---- */
+  .strip { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); margin-bottom: 2rem; }
+  .cell { background: #fff; border: 1px solid var(--sage-line); border-radius: .75rem; padding: .85rem 1rem; }
+  .cell .k { text-transform: uppercase; letter-spacing: .07em; font-size: .66rem; color: var(--stone); margin: 0 0 .3rem; }
+  .cell .v { font-family: var(--display); font-size: 1.9rem; line-height: 1; color: var(--sage-deeper); font-variant-numeric: tabular-nums; }
+  .cell .s { font-size: .74rem; color: var(--plum-soft); margin: .3rem 0 0; }
+
+  /* ---- funnel ---- */
+  .funnel { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+  .step { background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem; padding: 1.25rem 1.35rem; }
   .step-label { text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; color: var(--stone); margin: 0 0 .4rem; }
   .step-num { font-family: var(--display); font-size: 2.8rem; line-height: 1; color: var(--sage-deeper); font-variant-numeric: tabular-nums; }
-  .step-note { color: var(--plum-soft); font-size: .85rem; margin: .5rem 0 0; }
+  .step-num.zero { color: var(--blush); }
+  .step-rate { font-size: .8rem; color: var(--plum-soft); margin: .45rem 0 0; }
+  .step-note { color: var(--plum-soft); font-size: .84rem; margin: .5rem 0 0; }
   .step-split { margin: .9rem 0 0; padding: .8rem 0 0; border-top: 1px dashed var(--sage-line); font-size: .88rem; }
   .step-split div { display: flex; justify-content: space-between; gap: 1rem; padding: .15rem 0; }
   .step-split .v { font-variant-numeric: tabular-nums; font-weight: 700; }
   .t-rbr { color: var(--rbr); }
   .t-mr  { color: var(--mr); }
 
-  .panel { background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem; padding: 1.35rem 1.5rem; margin-bottom: 1.5rem; }
-  .panel h2 { font-family: var(--display); font-size: 1.5rem; margin: 0 0 .75rem; color: var(--sage-deeper); }
+  .panel { background: #fff; border: 1px solid var(--sage-line); border-radius: 1rem; padding: 1.35rem 1.5rem; margin-bottom: 1.25rem; }
+  .panel h2 { font-family: var(--display); font-size: 1.55rem; margin: 0 0 .35rem; color: var(--sage-deeper); }
+  .explain { color: var(--plum-soft); font-size: .88rem; margin: 0 0 1rem; max-width: 60ch; }
   .panel table { width: 100%; border-collapse: collapse; font-size: .92rem; }
   .panel th, .panel td { text-align: left; padding: .45rem 0; border-bottom: 1px solid var(--bloom-3); }
   .panel td.n, .panel th.n { text-align: right; font-variant-numeric: tabular-nums; }
   .panel tr:last-child td { border-bottom: 0; }
+  .bar { height: 6px; border-radius: 99px; background: var(--sage-pale); overflow: hidden; margin-top: .25rem; }
+  .bar i { display: block; height: 100%; background: var(--sage); }
 
-  /* Google's button draws at its own width; an unconstrained block parent
-     stretches the frame around it and it reads as two overlapping buttons. */
-  #gsi-button { width: fit-content; }
+  /* ---- the verdict boxes ---- */
+  .read { border-left: 3px solid var(--sage); background: var(--bloom-2); padding: .8rem 1rem; border-radius: .5rem; margin-top: 1rem; font-size: .9rem; }
+  .read.bad { border-left-color: var(--rbr); background: #FBEDEA; }
+  .read.warn { border-left-color: var(--brass); background: #FBF4E6; }
+  .read.good { border-left-color: var(--mr); background: #EDF5EF; }
+  .read b { display: block; margin-bottom: .2rem; }
 
   .muted { color: var(--plum-soft); }
-  .warn { background: var(--blush-pale); border-color: var(--blush); }
   .notice { padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid var(--sage-line); background: var(--bloom-2); margin-bottom: 1.5rem; }
+  .notice.warn { background: var(--blush-pale); border-color: var(--blush); }
   .hide { display: none !important; }
+  h2.section { font-family: var(--display); font-size: 1.15rem; color: var(--stone); text-transform: uppercase; letter-spacing: .1em; margin: 2.25rem 0 .75rem; }
 </style>
 </head>
 <body style="background:var(--bloom);">
@@ -86,7 +102,7 @@
     <div class="kpi-head">
       <div>
         <h1 class="kpi-title">Booking funnel</h1>
-        <p class="kpi-sub">How many people became a lead, looked at a property, and started booking.</p>
+        <p class="kpi-sub">Everything GA4 knows about farmhousegetaways.com, read in plain English.</p>
       </div>
       <p class="muted" style="font-size:.85rem;margin:0;">
         <span id="whoami"></span> · <a href="#" id="signout">Sign out</a>
@@ -99,6 +115,7 @@
         <option value="7">Last 7 days</option>
         <option value="28" selected>Last 28 days</option>
         <option value="90">Last 90 days</option>
+        <option value="365">Last 12 months</option>
       </select>
       <button type="submit">Show me</button>
     </form>
@@ -107,58 +124,139 @@
   <div id="status" class="notice hide"></div>
 
   <div id="report" class="hide">
-    <div class="funnel">
-      <div class="step">
-        <p class="step-label">Became a lead</p>
-        <div class="step-num" id="leads">–</div>
-        <p class="step-note">Joined the last-minute deals list.</p>
-        <div class="step-split" id="leads-split"></div>
-      </div>
-      <div class="step">
-        <p class="step-label">Viewed a property</p>
-        <div class="step-num" id="views">–</div>
-        <p class="step-note">Opened a property page.</p>
-        <div class="step-split" id="views-split"></div>
-      </div>
-      <div class="step">
-        <p class="step-label">Started booking</p>
-        <div class="step-num" id="starts">–</div>
-        <p class="step-note">Pressed Book Now on the widget.</p>
-        <div class="step-split" id="starts-split"></div>
-      </div>
+
+    <h2 class="section">How busy the site was</h2>
+    <div class="strip" id="summary"></div>
+
+    <h2 class="section">The booking funnel</h2>
+    <p class="explain" style="margin-top:-.4rem;">
+      Four steps, in the order a guest actually moves through them. Each number is
+      people doing the thing; the percentage under it is how many of the people at
+      the previous step made it this far. Where the percentage collapses is where
+      you are losing bookings.
+    </p>
+    <div class="funnel" id="funnel"></div>
+    <div id="funnel-read"></div>
+
+    <h2 class="section">Where the traffic comes from</h2>
+
+    <div class="panel">
+      <h2>Platforms</h2>
+      <p class="explain">
+        The actual site or app someone was on immediately before landing here.
+        GA4 stores these as raw hostnames — <i>m.facebook.com</i>, <i>l.instagram.com</i>,
+        <i>(direct)</i> — so they are renamed here to what they really are.
+        <b>Direct</b> means no referrer at all: typed the address, a bookmark, or a
+        link from a text message or email app.
+      </p>
+      <table>
+        <thead><tr><th>Platform</th><th class="n">Sessions</th><th class="n">Share</th></tr></thead>
+        <tbody id="sources"></tbody>
+      </table>
+      <div id="sources-read"></div>
     </div>
 
     <div class="panel">
-      <h2>Where the leads came from</h2>
-      <table>
-        <thead><tr><th>Form</th><th class="n">Leads</th></tr></thead>
-        <tbody id="sources"></tbody>
-      </table>
-      <p class="muted" style="margin:.9rem 0 0;font-size:.85rem;">
-        Signups before 7 September 2026 have no form recorded against them — GA4 only
-        started keeping that the day the custom dimensions were added, and it does not backfill.
+      <h2>Channels</h2>
+      <p class="explain">
+        Google's own grouping of those platforms into marketing categories.
+        <b>Organic Search</b> is free Google/Bing results. <b>Direct</b> is people who
+        already knew you. <b>Referral</b> is another website linking to you.
+        <b>Paid Search</b> and <b>Paid Social</b> are ads — both should be zero until a
+        campaign launches, so anything appearing there before then is worth a look.
       </p>
+      <table>
+        <thead><tr><th>Channel</th><th class="n">Sessions</th><th class="n">Share</th></tr></thead>
+        <tbody id="channels"></tbody>
+      </table>
     </div>
 
     <div class="panel">
       <h2>Do the other brands send bookings?</h2>
-      <p class="muted" style="margin:0 0 .75rem;">
-        Of everyone who became a lead or started booking here, where they arrived from.
+      <p class="explain">
+        Mini Barn Market and Farmstand.TV are separate GA4 properties, so their traffic
+        cannot be added to this one. What can be answered here is the question that
+        actually matters: of the people who became a lead or started booking
+        <i>on this site</i>, how many arrived from the other two brands. That is
+        whether the cross-linking earns its keep.
       </p>
       <table>
         <thead><tr><th>Arrived from</th><th class="n">Leads + booking starts</th></tr></thead>
         <tbody id="referrals"></tbody>
       </table>
+      <div id="referrals-read"></div>
+    </div>
+
+    <h2 class="section">Who they are and where they are</h2>
+
+    <div class="panel">
+      <h2>Devices</h2>
+      <p class="explain">
+        What people are browsing on. This matters more than it looks: the booking
+        widget is the narrowest part of the site on a phone, and if most traffic is
+        mobile then any friction there costs real bookings.
+      </p>
+      <table>
+        <thead><tr><th>Device</th><th class="n">Sessions</th><th class="n">Share</th></tr></thead>
+        <tbody id="devices"></tbody>
+      </table>
+      <div id="devices-read"></div>
     </div>
 
     <div class="panel">
-      <h2>Date pickers opened</h2>
-      <p class="muted" style="margin:0 0 .5rem;">A softer signal than Book Now — someone checking whether their weekend is free.</p>
-      <div class="step-num" id="pickers" style="font-size:2rem;">–</div>
+      <h2>Where they are</h2>
+      <p class="explain">
+        Top cities by sessions. The Meta campaign is aimed at Los Angeles, Orange and
+        San Diego counties, so this is the check on whether the people already finding
+        you are the people we plan to pay to reach.
+      </p>
+      <table>
+        <thead><tr><th>City</th><th class="n">Sessions</th></tr></thead>
+        <tbody id="places"></tbody>
+      </table>
+      <div id="places-read"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Where they land first</h2>
+      <p class="explain">
+        The first page of each visit. Ads point at a property page, so once campaigns
+        run these should shift. A high share landing straight on the homepage means
+        people are arriving from search or word of mouth rather than a targeted link.
+      </p>
+      <table>
+        <thead><tr><th>Landing page</th><th class="n">Sessions</th></tr></thead>
+        <tbody id="landings"></tbody>
+      </table>
+    </div>
+
+    <h2 class="section">Leads</h2>
+
+    <div class="panel">
+      <h2>Which form they signed up on</h2>
+      <p class="explain">
+        Each signup form on the site carries a tag: <i>home-rbr</i> and <i>home-mr</i> are
+        the two on the homepage, <i>rbr-book-top</i> / <i>rbr-book-bottom</i> are the two on the
+        Red Barn Ranch page, and the same pattern for the retreat. This tells you which
+        placement is worth keeping.
+      </p>
+      <table>
+        <thead><tr><th>Form</th><th class="n">Leads</th></tr></thead>
+        <tbody id="sources-forms"></tbody>
+      </table>
+      <p class="muted" style="margin:.9rem 0 0;font-size:.82rem;">
+        Signups before 7 September 2026 have no form recorded against them — GA4 only
+        began keeping that on the day the custom dimensions were created, and it does
+        not backfill.
+      </p>
     </div>
 
     <div class="panel" id="meta-panel">
       <h2>Meta ads</h2>
+      <p class="explain">
+        Spend and clicks per campaign, once Meta is connected. Nothing has run yet, so
+        this stays empty until the fall campaign launches.
+      </p>
       <div id="meta-body"></div>
     </div>
 
@@ -185,15 +283,112 @@
     el.classList.remove("hide");
     el.classList.toggle("warn", !!isWarn);
   }
-
   function num(n) { return (n || 0).toLocaleString(); }
+  function pctText(v) { return v === null || v === undefined ? "—" : v + "%"; }
+  function esc(s) { return String(s).replace(/[<>&]/g, function (c) { return ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]; }); }
+
+  function read(target, tone, title, body) {
+    $(target).innerHTML = '<div class="read ' + tone + '"><b>' + esc(title) + "</b>" + body + "</div>";
+  }
 
   function renderSplit(el, obj) {
     var names = Object.keys(obj || {});
     if (!names.length) { el.innerHTML = '<div class="muted">Nothing yet.</div>'; return; }
     el.innerHTML = names.sort().map(function (name) {
       var cls = name === "Red Barn Ranch" ? "t-rbr" : name === "Mountain Retreat" ? "t-mr" : "muted";
-      return '<div><span class="' + cls + '">' + name + '</span><span class="v">' + num(obj[name]) + "</span></div>";
+      return '<div><span class="' + cls + '">' + esc(name) + '</span><span class="v">' + num(obj[name]) + "</span></div>";
+    }).join("");
+  }
+
+  // A table of name / count / share-of-total, with a bar so the shape is readable.
+  function renderRanked(tbodyId, items, opts) {
+    opts = opts || {};
+    var body = $(tbodyId);
+    if (!items || !items.length) {
+      body.innerHTML = '<tr><td class="muted" colspan="3">Nothing in this period.</td></tr>';
+      return;
+    }
+    var total = items.reduce(function (s, i) { return s + i.sessions; }, 0);
+    var max = items[0].sessions || 1;
+    body.innerHTML = items.map(function (i) {
+      var share = total ? Math.round((i.sessions / total) * 1000) / 10 : 0;
+      return "<tr><td>" + esc(i.name) +
+        '<div class="bar"><i style="width:' + Math.max(2, (i.sessions / max) * 100) + '%"></i></div></td>' +
+        '<td class="n">' + num(i.sessions) + "</td>" +
+        (opts.noShare ? "" : '<td class="n">' + share + "%</td>") +
+        "</tr>";
+    }).join("");
+  }
+
+  function renderFunnel(g) {
+    var r = g.rates || {};
+    var views = r.propertyViewTotal || 0;
+    var steps = [
+      { label: "Viewed a property", n: views, rate: null,
+        note: "Opened the Red Barn Ranch or Mountain Retreat page." },
+      { label: "Opened the date picker", n: g.datePickerOpens.total, rate: r.pickerFromView,
+        note: "Clicked into the calendar to check dates. The first real sign of intent.",
+        split: g.datePickerOpens.byProperty },
+      { label: "Started booking", n: g.bookingStarts.total, rate: r.bookingFromView,
+        note: "Pressed Book Now and went through to Lodgify.",
+        split: g.bookingStarts.byProperty },
+      { label: "Became a lead", n: g.leads.total, rate: r.leadFromView,
+        note: "Joined the last-minute deals list instead of booking now.",
+        split: g.leads.byProperty }
+    ];
+    $("funnel").innerHTML = steps.map(function (s) {
+      return '<div class="step">' +
+        '<p class="step-label">' + esc(s.label) + "</p>" +
+        '<div class="step-num' + (s.n === 0 ? " zero" : "") + '">' + num(s.n) + "</div>" +
+        (s.rate === null || s.rate === undefined ? "" :
+          '<p class="step-rate">' + pctText(s.rate) + " of property views</p>") +
+        '<p class="step-note">' + esc(s.note) + "</p>" +
+        (s.split ? '<div class="step-split" data-split="' + esc(s.label) + '"></div>' : "") +
+        "</div>";
+    }).join("");
+    steps.forEach(function (s) {
+      if (!s.split) return;
+      renderSplit(document.querySelector('[data-split="' + s.label + '"]'), s.split);
+    });
+
+    // The read. Booking starts at zero against real property traffic is the
+    // single most important thing this page can tell you, so it is said plainly
+    // — including the possibility that the tracking, not the funnel, is at fault.
+    if (views === 0) {
+      read("funnel-read", "warn", "No property page views in this period.",
+        "Nothing to diagnose yet — widen the period, or wait for traffic.");
+    } else if (g.bookingStarts.total === 0 && g.datePickerOpens.total === 0) {
+      read("funnel-read", "bad", "Nobody reached the booking widget — and that may be a tracking fault, not a real zero.",
+        "<p>" + num(views) + " people opened a property page and not one opened the date picker or pressed Book Now. " +
+        "Two possible explanations, and they need different fixes:</p><ul>" +
+        "<li><b>Real:</b> people are reading the page and leaving before the widget. That is a page problem — the widget may be too far down, or the price is doing the work of a closed door.</li>" +
+        "<li><b>Tracking:</b> these two steps are detected by watching for clicks on Lodgify's own buttons, identified by an attribute Lodgify controls. If Lodgify renamed it, the clicks happen and we never see them. This tracking only went live on 7 September, so it has barely been proven.</li>" +
+        "</ul><p>Worth ruling out the second before acting on the first: press Book Now on the live site yourself, then reload this page.</p>");
+    } else if (g.bookingStarts.total === 0) {
+      read("funnel-read", "bad", "People open the calendar but nobody presses Book Now.",
+        "<p>" + num(g.datePickerOpens.total) + " opened the date picker and none went through. " +
+        "That is the clearest signal on this page: interest is real, and something at the moment of committing — most likely the price shown for their dates — is stopping them.</p>");
+    } else if (r.bookingFromView !== null && r.bookingFromView < 1) {
+      read("funnel-read", "warn", "Booking starts are very low relative to traffic.",
+        "<p>" + pctText(r.bookingFromView) + " of property views reach Book Now. There is no universal target, but under about 1% usually means the page is attracting people who were never close to booking, or the widget is being missed.</p>");
+    } else {
+      read("funnel-read", "good", "The funnel is producing booking starts.",
+        "<p>" + pctText(r.bookingFromView) + " of property views reach Book Now. Watch this number as the campaign runs — it is the one that says whether the traffic you are buying is the right traffic.</p>");
+    }
+  }
+
+  function renderSummary(s) {
+    var mins = Math.floor((s.avgSessionSeconds || 0) / 60);
+    var secs = (s.avgSessionSeconds || 0) % 60;
+    var cells = [
+      { k: "People", v: num(s.users), s: num(s.newUsers) + " of them new" },
+      { k: "Visits", v: num(s.sessions), s: "One person can visit more than once" },
+      { k: "Engaged visits", v: pctText(s.engagementRate), s: "Stayed 10s+, or went deeper than one page" },
+      { k: "Avg visit", v: mins + "m " + secs + "s", s: "Time on the site per visit" },
+      { k: "Pages seen", v: num(s.pageViews), s: "Across every visit" }
+    ];
+    $("summary").innerHTML = cells.map(function (c) {
+      return '<div class="cell"><p class="k">' + esc(c.k) + '</p><div class="v">' + c.v + '</div><p class="s">' + esc(c.s) + "</p></div>";
     }).join("");
   }
 
@@ -207,31 +402,75 @@
     $("status").classList.add("hide");
     $("report").classList.remove("hide");
 
-    $("leads").textContent = num(g.leads.total);
-    renderSplit($("leads-split"), g.leads.byProperty);
+    renderSummary(g.summary || {});
+    renderFunnel(g);
 
-    var views = g.propertyViews || {};
-    var totalViews = Object.keys(views).reduce(function (s, k) { return s + views[k]; }, 0);
-    $("views").textContent = num(totalViews);
-    renderSplit($("views-split"), views);
+    renderRanked("sources", g.sources);
+    renderRanked("channels", g.channels);
+    renderRanked("devices", g.devices);
+    renderRanked("places", g.places, { noShare: true });
+    renderRanked("landings", g.landingPages, { noShare: true });
 
-    $("starts").textContent = num(g.bookingStarts.total);
-    renderSplit($("starts-split"), g.bookingStarts.byProperty);
+    // Platforms read — name the biggest one rather than making them scan.
+    var top = (g.sources || [])[0];
+    if (top) {
+      var totalSess = g.sources.reduce(function (s, i) { return s + i.sessions; }, 0);
+      var topShare = Math.round((top.sessions / totalSess) * 100);
+      read("sources-read", topShare > 70 ? "warn" : "good",
+        top.name + " sends " + topShare + "% of your traffic.",
+        topShare > 70
+          ? "<p>Nearly everything arrives from one place. That is fragile — if it dips, so does the whole site. The campaign is partly about not being in this position.</p>"
+          : "<p>Traffic is spread across more than one source, which is the healthier shape.</p>");
+    }
 
-    $("pickers").textContent = num(g.datePickerOpens.total);
+    // Devices read — actionable only if mobile dominates.
+    var mob = (g.devices || []).filter(function (d) { return /mobile/i.test(d.name); })[0];
+    var devTotal = (g.devices || []).reduce(function (s, i) { return s + i.sessions; }, 0);
+    if (mob && devTotal) {
+      var mobShare = Math.round((mob.sessions / devTotal) * 100);
+      read("devices-read", mobShare >= 60 ? "warn" : "good",
+        mobShare + "% of visits are on a phone.",
+        mobShare >= 60
+          ? "<p>Most people meet this site on a small screen, so the booking widget has to work perfectly there. Worth checking the property pages on your own phone before spending on ads that will land mostly on mobile.</p>"
+          : "<p>A workable mix. Desktop is still doing real work, which usually suits a booking that involves several people agreeing on dates.</p>");
+    }
 
+    // Places read against the campaign's intended geography.
+    var socal = (g.places || []).filter(function (p) {
+      return /San Diego|Los Angeles|Orange|Irvine|Anaheim|Long Beach|Ramona|Escondido|Poway|Carlsbad|Oceanside/i.test(p.name);
+    });
+    var placeTotal = (g.places || []).reduce(function (s, i) { return s + i.sessions; }, 0);
+    if (placeTotal) {
+      var socalShare = Math.round((socal.reduce(function (s, i) { return s + i.sessions; }, 0) / placeTotal) * 100);
+      read("places-read", socalShare >= 40 ? "good" : "warn",
+        socalShare + "% of top-city traffic is already Southern California.",
+        socalShare >= 40
+          ? "<p>The people finding you are broadly the people the campaign intends to pay for, which is a good sign for the targeting.</p>"
+          : "<p>Most traffic is from outside the counties the campaign targets. Not a problem by itself — but it means today's visitors are not a preview of the campaign's audience, so do not judge the ads against these numbers.</p>");
+    }
+
+    // Sister brands.
     var ref = g.referrals || {};
     var refOrder = ["Mini Barn Market", "Farmstand.TV", "Everything else"];
     $("referrals").innerHTML = refOrder.map(function (name) {
       var isSister = name !== "Everything else";
-      return "<tr><td" + (isSister ? "" : ' class="muted"') + ">" + name +
+      return "<tr><td" + (isSister ? "" : ' class="muted"') + ">" + esc(name) +
              '</td><td class="n">' + num(ref[name]) + "</td></tr>";
     }).join("");
+    var sisterTotal = (ref["Mini Barn Market"] || 0) + (ref["Farmstand.TV"] || 0);
+    read("referrals-read", sisterTotal > 0 ? "good" : "warn",
+      sisterTotal > 0
+        ? "The other two brands produced " + num(sisterTotal) + " lead" + (sisterTotal === 1 ? "" : "s") + " or booking starts."
+        : "Neither of the other brands has produced a lead or a booking start.",
+      sisterTotal > 0
+        ? "<p>The cross-linking is doing something measurable. Worth keeping, and worth making the links more prominent.</p>"
+        : "<p>That is the evidence for keeping ad spend on this site alone rather than splitting it three ways. It does not mean the links are worthless — the farm stand builds familiarity — but it does mean they are not a booking channel today.</p>");
 
+    // Leads by form.
     var bySource = g.leads.bySource || {};
     var srcNames = Object.keys(bySource).sort(function (a, b) { return bySource[b] - bySource[a]; });
-    $("sources").innerHTML = srcNames.length
-      ? srcNames.map(function (s) { return "<tr><td>" + s + '</td><td class="n">' + num(bySource[s]) + "</td></tr>"; }).join("")
+    $("sources-forms").innerHTML = srcNames.length
+      ? srcNames.map(function (s) { return "<tr><td>" + esc(s) + '</td><td class="n">' + num(bySource[s]) + "</td></tr>"; }).join("")
       : '<tr><td class="muted" colspan="2">No leads in this period.</td></tr>';
 
     var m = data.meta || {};
@@ -239,13 +478,14 @@
       ? (m.campaigns.length
           ? '<table><thead><tr><th>Campaign</th><th class="n">Spend</th><th class="n">Clicks</th></tr></thead><tbody>' +
             m.campaigns.map(function (c) {
-              return "<tr><td>" + c.name + '</td><td class="n">$' + c.spend.toFixed(2) + '</td><td class="n">' + num(c.clicks) + "</td></tr>";
+              return "<tr><td>" + esc(c.name) + '</td><td class="n">$' + c.spend.toFixed(2) + '</td><td class="n">' + num(c.clicks) + "</td></tr>";
             }).join("") + "</tbody></table>"
           : '<p class="muted">Connected, but no campaigns have run in this period.</p>')
-      : '<p class="muted">' + (m.reason || "Not connected.") + "</p>";
+      : '<p class="muted">' + esc(m.reason || "Not connected.") + "</p>";
 
     $("generated").textContent =
-      "Last " + data.days + " days · read " + new Date(data.generatedAt).toLocaleString();
+      "GA4 property 354452865 (farmhousegetaways.com) · last " + data.days +
+      " days · read " + new Date(data.generatedAt).toLocaleString();
   }
 
   function load() {
@@ -264,10 +504,7 @@
       .catch(function (err) { say("Could not reach the server: " + err.message, true); });
   }
 
-  function showSignedIn() {
-    $("gate").classList.add("hide");
-    $("app").classList.remove("hide");
-  }
+  function showSignedIn() { $("gate").classList.add("hide"); $("app").classList.remove("hide"); }
 
   function signOut() {
     idToken = null;
@@ -277,7 +514,6 @@
     $("gate").classList.remove("hide");
   }
 
-  // Google hands back a signed ID token; the server decides whether it counts.
   window.onGoogleCredential = function (response) {
     idToken = response.credential;
     try { sessionStorage.setItem(TOKEN_STORE, idToken); } catch (e) {}
@@ -290,10 +526,7 @@
       say("Could not reach Google sign-in.", true);
       return;
     }
-    google.accounts.id.initialize({
-      client_id: CLIENT_ID,
-      callback: window.onGoogleCredential,
-    });
+    google.accounts.id.initialize({ client_id: CLIENT_ID, callback: window.onGoogleCredential });
     google.accounts.id.renderButton($("gsi-button"), {
       theme: "outline", size: "large", text: "signin_with", shape: "pill",
     });
@@ -302,7 +535,6 @@
   $("controls").addEventListener("submit", function (e) { e.preventDefault(); load(); });
   $("signout").addEventListener("click", function (e) { e.preventDefault(); signOut(); });
 
-  // A remembered token skips the button, but the server still re-verifies it.
   if (idToken) { showSignedIn(); load(); }
 })();
 </script>
