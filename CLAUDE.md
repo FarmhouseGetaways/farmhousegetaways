@@ -513,6 +513,56 @@ Barn Ranch measured 696px inside a 390px screen, Mountain Retreat 539px, and
 stacking label above value below 40rem, and adding `min-width: 0` to the grid
 children as a general guard. Re-run the check after any layout change.
 
+## Micro-KPI tracking (100K Stay Rule #9) — added 7 Sep 2026
+
+Most visitors never book from an ad; watching only bookings makes every
+campaign look like it did nothing. The fix is tracking the steps in between —
+becoming a lead, viewing a property, starting the booking process — each as
+its own event, in both Meta and GA4.
+
+**Viewing a property** needed nothing new — the Meta Pixel `PageView` and
+GA4 `page_view` events already fire site-wide on every page load.
+
+**Starting the booking process** is new. Both property pages carry an inline
+script, right before `</body>`, that listens on `document` for clicks
+matching Lodgify's own `data-testid` attributes — event delegation, not a
+direct listener, because the widget renders asynchronously after this script
+runs and each page carries **two** copies of it (the hero box and the
+`#book-bottom` band):
+
+| Click target | `data-testid` | Fires |
+|---|---|---|
+| The "Book Now" button | `book-now-box.cta-button` | Meta `InitiateCheckout`, GA4 `begin_checkout` — both are each platform's own standard event name for this moment, not a custom one |
+| The date-picker trigger | `book-now-box.date-picker.trigger` | Meta custom `DatePickerOpened`, GA4 `date_picker_opened` — a bonus earlier-funnel signal, not one of the course's three |
+
+⚠ **This is a real dependency on Lodgify's internal markup.** If Lodgify ever
+renames these `data-testid` values in a widget update, both events go silent
+with no error anywhere — check `[data-testid="book-now-box.cta-button"]`
+still exists in the live DOM if InitiateCheckout volume drops to zero.
+
+**Becoming a lead** already worked, but wasn't broken out by property. The
+four "Not booking today?" forms — top and bottom of both property pages —
+each carry a **hidden `property` and `source` field for EmailOctopus, and
+also now the same two values on the form's own `action` URL** as a query
+string, e.g. `action="/thanks-list.html?property=Red%20Barn%20Ranch&amp;source=rbr-book-top"`.
+Netlify's own redirect-on-success just follows whatever URL is in `action`,
+so the query string survives the round trip unchanged — no server code
+needed. `thanks-list.html` reads `?property=` and fires `fbq('track','Lead',
+{content_name: property})` and `gtag('event','generate_lead', {property,
+source})`; absent both (the farmstand map page's own newsletter signup
+redirects here too, with neither param), it falls back to the old
+unqualified `Lead` event rather than throwing.
+
+**Where to actually look at this, today, with nothing new to build:** Meta
+Events Manager (Overview tab, this pixel) already breaks out Lead,
+InitiateCheckout and PageView with trend lines; GA4 → Reports → Engagement →
+Events shows `generate_lead`, `begin_checkout` and `page_view` the same way,
+and both can be filtered or segmented by the `property` parameter once
+enough events land. A single dashboard pulling all three sources into one
+page is a larger build — needs a GA4 Data API service account and a Meta
+Marketing API system-user token, neither of which exist yet — and is tracked
+as a separate piece of work, not part of this change.
+
 ## Integrations
 
 What is actually wired into the code, verified 7 Aug 2026:

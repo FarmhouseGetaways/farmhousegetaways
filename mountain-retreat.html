@@ -166,7 +166,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 
         <div class="deal-join">
           <p class="deal-join-head">Sign up to get notified when we run last minute booking specials!</p>
-          <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html">
+          <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html?property=Mountain%20Retreat&amp;source=mr-book-top">
             <input type="hidden" name="form-name" value="newsletter">
             <input type="hidden" name="source" value="mr-book-top">
             <input type="hidden" name="page" value="https://farmhousegetaways.com/mountain-retreat#book">
@@ -501,7 +501,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 
           <div class="deal-join">
             <p class="deal-join-head">Sign up to get notified when we run last minute booking specials!</p>
-            <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html">
+            <form class="deal-join-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thanks-list.html?property=Mountain%20Retreat&amp;source=mr-book-bottom">
               <input type="hidden" name="form-name" value="newsletter">
               <input type="hidden" name="source" value="mr-book-bottom">
               <input type="hidden" name="page" value="https://farmhousegetaways.com/mountain-retreat#book-bottom">
@@ -586,5 +586,31 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 })();
 </script>
 <script src="https://app.lodgify.com/book-now-box/stable/renderBookNowBox.js" defer></script>
+
+<!-- Micro-KPI: "starting the booking process" (100K Stay, Rule #9).
+     Event delegation on document, not a direct listener, because the Lodgify
+     widget renders after this script runs and there are two copies of it on
+     the page (the hero box and the bottom "book direct" band) — one listener
+     here covers both without caring which one fired or when either mounted.
+     InitiateCheckout / begin_checkout are Meta's and GA4's own standard event
+     names for exactly this moment, so they show up in each platform's normal
+     reporting rather than as an unrecognised custom event. DatePickerOpened is
+     a bonus earlier-funnel signal, not one of the three the course names. -->
+<script>
+(function () {
+  var PROPERTY = "Mountain Retreat";
+  document.addEventListener("click", function (e) {
+    if (e.target.closest('[data-testid="book-now-box.cta-button"]')) {
+      if (window.fbq) fbq('track', 'InitiateCheckout', { content_name: PROPERTY, content_category: 'booking' });
+      if (window.gtag) gtag('event', 'begin_checkout', { items: [{ item_name: PROPERTY }] });
+      return;
+    }
+    if (e.target.closest('[data-testid="book-now-box.date-picker.trigger"]')) {
+      if (window.fbq) fbq('trackCustom', 'DatePickerOpened', { property: PROPERTY });
+      if (window.gtag) gtag('event', 'date_picker_opened', { property: PROPERTY });
+    }
+  });
+})();
+</script>
 </body>
 </html>

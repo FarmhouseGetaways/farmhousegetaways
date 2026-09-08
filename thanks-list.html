@@ -9,6 +9,20 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-MFZXQL6BJ2');
+
+  // Micro-KPI: "becoming a lead" (100K Stay, Rule #9), broken out by property.
+  // The four join-list forms under each booking widget now carry ?property=
+  // and &source= on their own action URL, so Netlify's redirect here lands
+  // with them still on the query string. The farmstand map page's own signup
+  // also redirects here but sets neither param, so this reads as generic
+  // rather than failing — same page, two different signup contexts.
+  (function () {
+    var q = new URLSearchParams(location.search);
+    gtag('event', 'generate_lead', {
+      property: q.get('property') || 'unspecified',
+      source: q.get('source') || 'unspecified'
+    });
+  })();
 </script>
 
 <!-- Meta Pixel Code -->
@@ -23,7 +37,15 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1345625557334779');
 fbq('track', 'PageView');
-fbq('track', 'Lead');
+(function () {
+  var q = new URLSearchParams(location.search);
+  var property = q.get('property');
+  if (property) {
+    fbq('track', 'Lead', { content_name: property, content_category: 'newsletter' });
+  } else {
+    fbq('track', 'Lead');
+  }
+})();
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"

@@ -1,59 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Farmhouse Getaways</title></head>
+<body style="margin:0;padding:0;">
 <!--
-  FARMHOUSE GETAWAYS — welcome
-  Sends once, immediately, to anyone tagged `farmhousegetaways`.
+  FARMHOUSE GETAWAYS - welcome + fall urgency
 
-  Subject:   Welcome in — you will hear about open weekends first
-  Preheader: Two houses in Ramona, and word before the dates reach the listing sites.
+  ⚠ PULLED BACK FROM EMAILOCTOPUS 7 Sep 2026. This file had drifted: the repo
+  still held the old map-delivery welcome while EmailOctopus held this one,
+  written on 1 Sep and never synced back. A session on 7 Sep then "rewrote" the
+  stale repo copy, which would have thrown this away. EmailOctopus holds its own
+  copy and is what actually sends - when you change one, change both.
 
-  HOW TO USE IT
-  EmailOctopus → Automation → the email step → choose the **HTML** editor (not
-  the drag-and-drop one) → paste this whole file.
-
-  Do not retype the merge tags in the body below — the ones wrapped in double
-  curly braces. EmailOctopus treats those as merge syntax, so a typo does not
-  fall back to plain text: it fails to render and the contact sees raw code.
-
-  Four are used here: FirstName with a default, UnsubscribeURL, SenderInfo and
-  WebVersionURL. emails/README.md spells each one out in full.
-
-  NOTHING IN THIS COMMENT MAY CONTAIN A MERGE DELIMITER.
-  EmailOctopus parses merge syntax across the whole document, HTML comments
-  included, and an empty pair is invalid. This comment used to demonstrate the
-  delimiters literally, and that alone made every one of these emails fail to
-  render server-side with "This email has a syntax error" — while the editor
-  preview looked perfectly fine. Describe them in words, never by example.
-
-  REWRITTEN 7 Sep 2026 — IT NO LONGER DELIVERS THE FARMSTAND MAP
-  This used to be map-delivery: subject "Here is the Ramona Farmstand Map", a
-  map image, a PDF download button. That was right when the only way onto this
-  list was the farmstand map page. It stopped being right the day the property
-  pages grew their own signup under the booking widget — somebody joining a
-  deals list from under a date picker did not ask for a farmstand map, and
-  sending them one is a promise nobody made.
-
-  The map still belongs in the OTHER TWO welcome emails. Farmstand.TV and Mini
-  Barn Market signups genuinely do ask for it, and welcome-farmstandtv.html and
-  welcome-minibarnmarket.html are untouched on purpose.
-
-  NO PROMO CODE IN HERE, DELIBERATELY
-  FALL15 is a seasonal code and this is an evergreen automation that will still
-  be sending in March. A dated code baked into it goes stale silently, and
-  EmailOctopus holds its own copy of this file, so fixing it later means
-  remembering to paste it in again. Specials go out as campaigns instead, which
-  is what the list is for.
-
-  LINKS POINT AT farmhousegetaways.com
-  They used to point at farmhousegetaways.netlify.app, because the domain still
-  served the old WordPress site. It does not any more — the domain is live on
-  this site and was checked again on 7 Sep 2026. CLAUDE.md still says otherwise
-  in a couple of places and is stale on that point.
-
-  WHY IT LOOKS LIKE 2005 IN HERE
-  Tables, inline styles, no flexbox and no <style> block. Outlook renders with
-  Word's engine and Gmail strips <head> styles, so anything more modern falls
-  apart in the two clients most of this list will read it in. Every dark cell
-  carries a bgcolor attribute as well as a CSS background, because Outlook
-  ignores the CSS one.
+  ⚠ THE TAG IS "farmhouse-getaways", WITH A HYPHEN. The header below used to say
+  "farmhousegetaways" and so did the live automation's trigger filter. Nothing
+  carries that tag any more: brand() in _lib/signup.mjs derives it from
+  SITE_LABEL "Farmhouse Getaways", which EmailOctopus slugifies WITH the hyphen.
+  Both tags exist in the account, the hyphenless one is legacy, and the filter
+  matched only that - so the automation could never have fired for a single new
+  signup. Filter corrected 7 Sep 2026.
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background:#F4ECE7;">
   <tr>
@@ -72,75 +36,65 @@
 
         <!-- masthead -->
         <tr>
-          <td align="center" bgcolor="#3F5548" style="background:#3F5548;padding:26px 24px;">
+          <td align="center" style="background:#3F5548;padding:26px 24px;">
             <div style="font-family:Georgia,'Times New Roman',serif;font-size:23px;line-height:1.2;color:#FCF8F6;">Farmhouse Getaways</div>
             <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9CC0A6;padding-top:7px;">Ramona, California</div>
           </td>
         </tr>
 
-        <!-- the fire pit. Same photograph as the fall campaign's second ad, on
-             purpose: somebody who clicked that ad and joined the list should
-             recognise where they are. -->
+        <!-- hero photo -->
         <tr>
           <td style="padding:0;">
-            <a href="https://farmhousegetaways.com/red-barn-ranch">
-              <img src="https://farmhousegetaways.com/images/hero7-fire-pit-960.jpg"
-                   width="600" alt="The fire pit at Red Barn Ranch, lit at sunset"
-                   style="display:block;width:100%;max-width:600px;height:auto;border:0;">
-            </a>
+            <img src="https://farmhousegetaways.com/images/hero1-aerial-dusk-960.jpg"
+                 width="600" alt="Red Barn Ranch and Mountain Retreat at dusk, Ramona, California"
+                 style="display:block;width:100%;max-width:600px;height:auto;border:0;">
           </td>
         </tr>
 
         <tr>
-          <td style="padding:30px 34px 8px;">
-            <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:29px;line-height:1.22;color:#453940;">
-              Welcome in, {{FirstName|default("there")}}.
+          <td style="padding:30px 34px 6px;">
+            <span style="display:inline-block;font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.18em;text-transform:uppercase;color:#B8402A;padding-bottom:10px;">Fall will fill up fast</span>
+            <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:28px;line-height:1.24;color:#453940;">
+              {{FirstName|default("Hi there")}}, our September, October and November calendar has some great getaways.
             </h1>
 
             <p style="margin:0 0 15px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#453940;">
-              Thank you for joining us. Here is exactly what that means, so none of
-              it is a surprise.
-            </p>
-
-            <p style="margin:0 0 15px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#453940;">
-              When a good weekend opens up at either house &mdash; a cancellation, a
-              gap between bookings, a last-minute special &mdash; this list hears
-              about it first, before those dates go back out to the listing sites.
+              Fall is the best time to be in Ramona &mdash; the heat breaks, the vineyards turn, and the pool is still
+              warm enough to use. It's also the quietest stretch on our books right now, which means dates that are
+              usually gone months out are open today.
             </p>
 
             <p style="margin:0 0 26px;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.62;color:#453940;">
-              And when you book with us directly there are no service fees, and you
-              are talking to the two people who live here. One or two emails a
-              month. That is the whole of it.
+              Book directly with us and take 15% off, on top of paying zero booking fees &mdash; something
+              you don't get with Airbnb or VRBO.
             </p>
           </td>
         </tr>
 
-        <!-- the houses -->
+        <!-- promo code block -->
+        <tr>
+          <td style="padding:0 34px 28px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#3F5548;border-radius:10px;">
+              <tr>
+                <td align="center" style="padding:20px 20px 18px;">
+                  <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#9CC0A6;padding-bottom:8px;">Use this code at checkout</div>
+                  <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:.04em;color:#FCF8F6;padding-bottom:8px;">FALL15</div>
+                  <div style="font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#DDE6DC;">15% off Red Barn Ranch or Mountain Retreat, booked direct on our own site.</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- book now, two houses -->
         <tr>
           <td style="padding:0 34px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #EADFD8;">
               <tr><td style="padding:24px 0 14px;">
-                <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#7C9885;padding-bottom:12px;">The two houses</div>
-
-                <p style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
-                  <strong>Red Barn Ranch</strong> sleeps twenty across seven bedrooms,
-                  on four acres of working farm &mdash; a fenced pool and spa, and a
-                  2,200 square foot barn full of arcade cabinets, a pool table and a
-                  putting green, which is where the children tend to spend the
-                  afternoon.
-                </p>
-
-                <p style="margin:0 0 18px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
-                  <strong>Mountain Retreat</strong> sleeps fourteen across four
-                  bedrooms, on eight private acres of pine and granite at the base of
-                  Iron Mountain, with trails from the back door and a hot tub under a
-                  very dark sky.
-                </p>
-
-                <p style="margin:0 0 18px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
-                  Both are half an hour from San Diego. If your group is larger than
-                  either one, the two together sleep thirty-four.
+                <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#7C9885;padding-bottom:10px;">Pick one, or take both</div>
+                <p style="margin:0 0 4px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
+                  Two farmhouses, three miles apart, sleeping 34 between them. Rates and availability are live &mdash;
+                  see exactly what's open before you call.
                 </p>
               </td></tr>
             </table>
@@ -148,20 +102,42 @@
         </tr>
 
         <tr>
-          <td style="padding:0 34px 30px;">
+          <td style="padding:0 34px 8px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td width="50%" style="padding-right:6px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr><td align="center" bgcolor="#C4462F" style="border-radius:8px;">
-                      <a href="https://farmhousegetaways.com/red-barn-ranch" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Red Barn Ranch</a>
+                <td width="50%" style="padding-right:6px;vertical-align:top;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #EADFD8;border-radius:10px;overflow:hidden;">
+                    <tr><td>
+                      <img src="https://farmhousegetaways.com/images/hero2-pool-overhead-960.jpg" width="280" height="158" alt="Red Barn Ranch pool, overhead view" style="display:block;width:100%;height:auto;border:0;">
+                    </td></tr>
+                    <tr><td style="padding:14px 14px 6px;">
+                      <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:#B8402A;">Red Barn Ranch</div>
+                      <div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#6E5F66;padding-top:2px;">Sleeps 20 &middot; 4 acres &middot; working farm</div>
+                    </td></tr>
+                    <tr><td style="padding:6px 14px 16px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr><td align="center" bgcolor="#C4462F" style="border-radius:8px;">
+                          <a href="https://farmhousegetaways.com/red-barn-ranch.html#book" style="display:block;padding:12px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Check dates</a>
+                        </td></tr>
+                      </table>
                     </td></tr>
                   </table>
                 </td>
-                <td width="50%" style="padding-left:6px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr><td align="center" bgcolor="#35835C" style="border-radius:8px;">
-                      <a href="https://farmhousegetaways.com/mountain-retreat" style="display:block;padding:14px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Mountain Retreat</a>
+                <td width="50%" style="padding-left:6px;vertical-align:top;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #EADFD8;border-radius:10px;overflow:hidden;">
+                    <tr><td>
+                      <img src="https://farmhousegetaways.com/images/hero10-mr-aerial-960.jpg" width="280" height="158" alt="Mountain Retreat, aerial view" style="display:block;width:100%;height:auto;border:0;">
+                    </td></tr>
+                    <tr><td style="padding:14px 14px 6px;">
+                      <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:#35835C;">Mountain Retreat</div>
+                      <div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:#6E5F66;padding-top:2px;">Sleeps 14 &middot; 8 acres &middot; trails &amp; pine</div>
+                    </td></tr>
+                    <tr><td style="padding:6px 14px 16px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr><td align="center" bgcolor="#35835C" style="border-radius:8px;">
+                          <a href="https://farmhousegetaways.com/mountain-retreat.html#book" style="display:block;padding:12px 8px;font-family:Helvetica,Arial,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:#ffffff;text-decoration:none;">Check dates</a>
+                        </td></tr>
+                      </table>
                     </td></tr>
                   </table>
                 </td>
@@ -170,15 +146,69 @@
           </td>
         </tr>
 
+        <!-- why book direct -->
+        <tr>
+          <td style="padding:8px 34px 4px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #EADFD8;">
+              <tr><td style="padding:22px 0 4px;">
+                <div style="font-family:Helvetica,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:.2em;text-transform:uppercase;color:#7C9885;padding-bottom:12px;">Why book direct</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding:0 0 10px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#453940;">
+                      <strong style="color:#3F5548;">Superhost, 9 years running</strong> &mdash; 4.9&#9733; across 47 Google reviews and 100's of AirBNB reviews.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 0 10px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#453940;">
+                      <strong style="color:#3F5548;">No booking fees</strong>, ever &mdash; direct is simply cheaper than the listing sites.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 0 10px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#453940;">
+                      <strong style="color:#3F5548;">Us, not a call center</strong> &mdash; we live on-site at the ranch and answer the phone ourselves.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0 0 4px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#453940;">
+                      <strong style="color:#3F5548;">35 minutes from San Diego</strong>, with forty-plus wineries, Potato Chip Rock and the Safari Park all close by.
+                    </td>
+                  </tr>
+                </table>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- closing CTA -->
+        <tr>
+          <td align="center" style="padding:22px 34px 12px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#3F5548" style="border-radius:999px;">
+                  <a href="https://farmhousegetaways.com/#book"
+                     style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:.15em;text-transform:uppercase;color:#FCF8F6;text-decoration:none;border-radius:999px;">
+                    See what's open &amp; book
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:0 34px 8px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#6E5F66;">
+            Planning a wedding, reunion or company retreat instead? <a href="https://farmhousegetaways.com/wedding-groups.html" style="color:#3F5548;text-decoration:underline;">See group rates &amp; both houses together &rarr;</a>
+          </td>
+        </tr>
+
         <!-- signed -->
         <tr>
-          <td style="padding:0 34px 32px;">
-            <p style="margin:0 0 10px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#453940;">
-              If you already have dates in mind, just reply to this email &mdash; it
-              comes to us, and we would be glad to help you work it out.
-            </p>
+          <td style="padding:20px 34px 32px;">
             <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.5;color:#453940;">
-              &mdash; Cory &amp; Carissa
+              — Cory &amp; Carissa
+            </p>
+            <p style="margin:4px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#6E5F66;">
+              <a href="tel:+17604408881" style="color:#6E5F66;text-decoration:none;">(760) 440-8881</a> &middot; <a href="mailto:info@farmhousegetaways.com" style="color:#6E5F66;text-decoration:none;">info@farmhousegetaways.com</a>
             </p>
           </td>
         </tr>
@@ -188,8 +218,7 @@
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
         <tr>
           <td align="center" style="padding:20px 24px 8px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#6E5F66;">
-            You are getting this because you signed up at farmhousegetaways.com.
-            One or two emails a month, and no more than that.<br>
+            You are getting this because you signed up at farmhousegetaways.com.<br>
             <a href="{{UnsubscribeURL}}" style="color:#6E5F66;text-decoration:underline;">Unsubscribe</a>
           </td>
         </tr>
@@ -203,3 +232,7 @@
     </td>
   </tr>
 </table>
+
+
+</body>
+</html>
