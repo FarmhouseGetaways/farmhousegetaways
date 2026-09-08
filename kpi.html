@@ -141,6 +141,17 @@
     </div>
 
     <div class="panel">
+      <h2>Do the other brands send bookings?</h2>
+      <p class="muted" style="margin:0 0 .75rem;">
+        Of everyone who became a lead or started booking here, where they arrived from.
+      </p>
+      <table>
+        <thead><tr><th>Arrived from</th><th class="n">Leads + booking starts</th></tr></thead>
+        <tbody id="referrals"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
       <h2>Date pickers opened</h2>
       <p class="muted" style="margin:0 0 .5rem;">A softer signal than Book Now — someone checking whether their weekend is free.</p>
       <div class="step-num" id="pickers" style="font-size:2rem;">–</div>
@@ -208,6 +219,14 @@
     renderSplit($("starts-split"), g.bookingStarts.byProperty);
 
     $("pickers").textContent = num(g.datePickerOpens.total);
+
+    var ref = g.referrals || {};
+    var refOrder = ["Mini Barn Market", "Farmstand.TV", "Everything else"];
+    $("referrals").innerHTML = refOrder.map(function (name) {
+      var isSister = name !== "Everything else";
+      return "<tr><td" + (isSister ? "" : ' class="muted"') + ">" + name +
+             '</td><td class="n">' + num(ref[name]) + "</td></tr>";
+    }).join("");
 
     var bySource = g.leads.bySource || {};
     var srcNames = Object.keys(bySource).sort(function (a, b) { return bySource[b] - bySource[a]; });

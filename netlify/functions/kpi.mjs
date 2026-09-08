@@ -167,6 +167,25 @@ async function ga4(days) {
     limit: 200,
   });
 
+  /* DOES THE FARM STAND ACTUALLY SEND BOOKINGS? The three brands are separate
+     GA4 properties, so they cannot be added together — but the question worth
+     asking is answerable from this property alone: of the people who became a
+     lead or started booking HERE, which site did they arrive from. That is what
+     decides whether cross-linking earns its keep, and it costs no extra access
+     and no ad spend. */
+  const byReferrer = await runReport(token, propertyId, {
+    dateRanges,
+    dimensions: [{ name: "eventName" }, { name: "sessionSource" }],
+    metrics: [{ name: "eventCount" }],
+    dimensionFilter: {
+      filter: {
+        fieldName: "eventName",
+        inListFilter: { values: ["generate_lead", "begin_checkout"] },
+      },
+    },
+    limit: 200,
+  });
+
   // "Viewing a property" is a page view of one of the two property pages.
   const byPage = await runReport(token, propertyId, {
     dateRanges,
@@ -198,8 +217,21 @@ async function ga4(days) {
   const viewsFor = (needle) =>
     pageViews.filter((p) => p.keys[0].includes(needle)).reduce((sum, p) => sum + p.value, 0);
 
+  /* Sister-site referrals, named plainly. GA4 reports a referring host, so
+     "minibarnmarket.com" and "farmstand.tv" show up as sources like any other
+     site. Everything else is rolled up rather than listed, because the question
+     here is specifically "do the other two brands feed this one?". */
+  const sisters = { "Mini Barn Market": /minibarnmarket/i, "Farmstand.TV": /farmstand/i };
+  const referrals = { "Mini Barn Market": 0, "Farmstand.TV": 0, "Everything else": 0 };
+  for (const r of rows(byReferrer)) {
+    const src = r.keys[1] || "";
+    const hit = Object.keys(sisters).find((name) => sisters[name].test(src));
+    referrals[hit || "Everything else"] += r.value;
+  }
+
   return {
     connected: true,
+    referrals,
     leads: { total: total("generate_lead"), byProperty: split("generate_lead"), bySource },
     bookingStarts: { total: total("begin_checkout"), byProperty: split("begin_checkout") },
     datePickerOpens: { total: total("date_picker_opened"), byProperty: split("date_picker_opened") },
