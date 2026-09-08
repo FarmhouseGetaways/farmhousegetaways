@@ -111,7 +111,7 @@
   to = "/.netlify/functions/emailoctopus-status"
   status = 200
 
-# The Rule #9 micro-goal numbers behind /kpi.html. Needs ?key=ADMIN_PASSWORD.
+# The Rule #9 micro-goal numbers behind /kpi.html. Needs a Google ID token.
 [[redirects]]
   from = "/api/kpi"
   to = "/.netlify/functions/kpi"

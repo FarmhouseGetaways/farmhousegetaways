@@ -63,24 +63,42 @@
 </header>
 
 <main class="kpi-wrap">
-  <div class="kpi-head">
-    <div>
-      <h1 class="kpi-title">Booking funnel</h1>
-      <p class="kpi-sub">How many people became a lead, looked at a property, and started booking.</p>
+  <!-- SIGNED OUT: the whole page is the sign-in button and nothing else. -->
+  <section id="gate">
+    <div class="kpi-head">
+      <div>
+        <h1 class="kpi-title">Booking funnel</h1>
+        <p class="kpi-sub">Sign in to continue.</p>
+      </div>
     </div>
-  </div>
+    <div id="gsi-button" style="margin-top:2rem;"></div>
+    <p class="muted" style="margin-top:1rem;font-size:.85rem;">
+      Only the Farmhouse Getaways Google account can open this.
+    </p>
+  </section>
 
-  <form class="kpi-controls" id="controls">
-    <label class="vh" for="key">Admin key</label>
-    <input id="key" type="password" placeholder="Admin key" autocomplete="current-password">
-    <label class="vh" for="days">Period</label>
-    <select id="days">
-      <option value="7">Last 7 days</option>
-      <option value="28" selected>Last 28 days</option>
-      <option value="90">Last 90 days</option>
-    </select>
-    <button type="submit">Show me</button>
-  </form>
+  <!-- SIGNED IN -->
+  <div id="app" class="hide">
+    <div class="kpi-head">
+      <div>
+        <h1 class="kpi-title">Booking funnel</h1>
+        <p class="kpi-sub">How many people became a lead, looked at a property, and started booking.</p>
+      </div>
+      <p class="muted" style="font-size:.85rem;margin:0;">
+        <span id="whoami"></span> · <a href="#" id="signout">Sign out</a>
+      </p>
+    </div>
+
+    <form class="kpi-controls" id="controls">
+      <label class="vh" for="days">Period</label>
+      <select id="days">
+        <option value="7">Last 7 days</option>
+        <option value="28" selected>Last 28 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button type="submit">Show me</button>
+    </form>
+  </div>
 
   <div id="status" class="notice hide"></div>
 
@@ -133,17 +151,18 @@
   </div>
 </main>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var KEY_STORE = "fg-admin-key";
+  var CLIENT_ID = "663773315216-vk2a6bvu7torbmkslcqasoq5sa8d6iue.apps.googleusercontent.com";
+  var TOKEN_STORE = "fg-kpi-idtoken";
+  var idToken = null;
 
-  // Remember the key for the tab only. sessionStorage dies with the tab, which
-  // is the right lifetime for a password on a shared office machine.
-  try {
-    var saved = sessionStorage.getItem(KEY_STORE);
-    if (saved) $("key").value = saved;
-  } catch (e) {}
+  // The token lives for the tab only. Google ID tokens expire in an hour
+  // anyway, so this is a convenience against re-clicking on every reload,
+  // not a session — the server re-verifies it with Google on every request.
+  try { idToken = sessionStorage.getItem(TOKEN_STORE); } catch (e) {}
 
   function say(msg, isWarn) {
     var el = $("status");
@@ -206,26 +225,62 @@
       "Last " + data.days + " days · read " + new Date(data.generatedAt).toLocaleString();
   }
 
-  $("controls").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var key = $("key").value.trim();
-    if (!key) { say("Enter the admin key.", true); return; }
-    try { sessionStorage.setItem(KEY_STORE, key); } catch (err) {}
+  function load() {
+    if (!idToken) return;
     say("Reading GA4…", false);
-
     fetch("/api/kpi?days=" + encodeURIComponent($("days").value), {
-      headers: { "x-admin-password": key },
+      headers: { Authorization: "Bearer " + idToken },
     })
-      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, status: r.status, body: b }; }); })
       .then(function (res) {
+        if (res.status === 401) { signOut(); say("That sign-in was not accepted. Try again.", true); return; }
         if (!res.ok) { say(res.body.error || "That did not work.", true); return; }
+        $("whoami").textContent = res.body.signedInAs || "";
         render(res.body);
       })
       .catch(function (err) { say("Could not reach the server: " + err.message, true); });
+  }
+
+  function showSignedIn() {
+    $("gate").classList.add("hide");
+    $("app").classList.remove("hide");
+  }
+
+  function signOut() {
+    idToken = null;
+    try { sessionStorage.removeItem(TOKEN_STORE); } catch (e) {}
+    $("app").classList.add("hide");
+    $("report").classList.add("hide");
+    $("gate").classList.remove("hide");
+  }
+
+  // Google hands back a signed ID token; the server decides whether it counts.
+  window.onGoogleCredential = function (response) {
+    idToken = response.credential;
+    try { sessionStorage.setItem(TOKEN_STORE, idToken); } catch (e) {}
+    showSignedIn();
+    load();
+  };
+
+  window.addEventListener("load", function () {
+    if (!window.google || !google.accounts || !google.accounts.id) {
+      say("Could not reach Google sign-in.", true);
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: window.onGoogleCredential,
+    });
+    google.accounts.id.renderButton($("gsi-button"), {
+      theme: "outline", size: "large", text: "signin_with", shape: "pill",
+    });
   });
 
-  // If the key is already remembered, load without making them press anything.
-  if ($("key").value) $("controls").dispatchEvent(new Event("submit"));
+  $("controls").addEventListener("submit", function (e) { e.preventDefault(); load(); });
+  $("signout").addEventListener("click", function (e) { e.preventDefault(); signOut(); });
+
+  // A remembered token skips the button, but the server still re-verifies it.
+  if (idToken) { showSignedIn(); load(); }
 })();
 </script>
 </body>

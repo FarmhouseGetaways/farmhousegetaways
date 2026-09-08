@@ -1,5 +1,5 @@
 /**
- * GET /api/kpi?key=ADMIN_PASSWORD[&days=28]
+ * GET /api/kpi[?days=28]  with  Authorization: Bearer <Google ID token>
  *
  * The numbers behind the 100K Stay "Rule #9" micro-goals, in one place:
  * becoming a lead, viewing a property, and starting the booking process.
@@ -31,24 +31,49 @@
  * reports itself as not-connected and the GA4 half still renders. Set
  * META_ACCESS_TOKEN and META_AD_ACCOUNT_ID and it fills in with no code change.
  *
- * Gated with ADMIN_PASSWORD, the same key the EmailOctopus status page uses,
- * and it FAILS CLOSED: no ADMIN_PASSWORD set means nobody gets in.
+ * GOOGLE SIGN-IN, NOT A SHARED PASSWORD. Cory, 8 Sep 2026: "Google SSO
+ * required only", with farmhousegetaways@gmail.com as master. A password in a
+ * query string is one screenshot away from being public and there is no way to
+ * tell who used it; a Google identity is per-person and revocable. The browser
+ * gets an ID token from Google and sends it here; this file asks GOOGLE whether
+ * the token is real rather than trusting anything the page claims.
+ *
+ * Three things must hold, all checked server-side:
+ *   1. Google says the token is valid (asked directly, never just decoded).
+ *   2. It was issued for OUR client id — a valid token minted for some other
+ *      site is not a key to this one.
+ *   3. The verified email is the allow-listed one, and Google marked it
+ *      verified.
+ *
+ * It FAILS CLOSED: with GOOGLE_CLIENT_ID or ADMIN_EMAIL unset, nobody gets in.
  */
 import { createSign } from "node:crypto";
 
 const json = (obj, status = 200) =>
   Response.json(obj, { status, headers: { "Cache-Control": "no-store" } });
 
-/** Constant time, so the endpoint cannot be used to guess the password. */
-function secretOk(given) {
-  const want = process.env.ADMIN_PASSWORD || "";
-  if (!want) return false;
-  const a = new TextEncoder().encode(String(given || ""));
-  const b = new TextEncoder().encode(want);
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
+/**
+ * Verify a Google ID token by asking Google, then check it was minted for us
+ * and belongs to the one account allowed in. Returns the email, or null.
+ */
+async function verifiedEmail(idToken) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const allowed = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  if (!clientId || !allowed || !idToken) return null;
+
+  const res = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+  );
+  if (!res.ok) return null;
+  const t = await res.json().catch(() => null);
+  if (!t) return null;
+
+  // `aud` is the whole point: a token for another site must not open this one.
+  if (t.aud !== clientId) return null;
+  if (String(t.email_verified) !== "true") return null;
+  if ((t.email || "").trim().toLowerCase() !== allowed) return null;
+  if (Number(t.exp) * 1000 < Date.now()) return null;
+  return t.email;
 }
 
 const b64url = (buf) =>
@@ -215,12 +240,14 @@ async function meta(days) {
 
 export default async (req) => {
   const url = new URL(req.url);
-  const given = url.searchParams.get("key") || req.headers.get("x-admin-password");
 
-  if (!process.env.ADMIN_PASSWORD) {
-    return json({ error: "ADMIN_PASSWORD is not set in Netlify, so this page stays shut." }, 503);
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.ADMIN_EMAIL) {
+    return json({ error: "Google sign-in is not configured, so this page stays shut." }, 503);
   }
-  if (!secretOk(given)) return json({ error: "Wrong key." }, 401);
+
+  const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const email = await verifiedEmail(bearer);
+  if (!email) return json({ error: "Sign in with the Farmhouse Getaways Google account." }, 401);
 
   const days = Math.min(Math.max(parseInt(url.searchParams.get("days") || "28", 10) || 28, 1), 365);
 
@@ -229,5 +256,5 @@ export default async (req) => {
     meta(days).catch((err) => ({ connected: false, reason: String(err.message || err) })),
   ]);
 
-  return json({ days, generatedAt: new Date().toISOString(), ga4: ga4Result, meta: metaResult });
+  return json({ days, signedInAs: email, generatedAt: new Date().toISOString(), ga4: ga4Result, meta: metaResult });
 };
