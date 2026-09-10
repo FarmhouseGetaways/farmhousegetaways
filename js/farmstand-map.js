@@ -15,8 +15,8 @@ var LIVE = "https://farmhousegetawaysapp.netlify.app/.netlify/functions/stands";
 
 var CENTER = [33.0300, -116.8700];
 var ZOOM = 12;
-var TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-var TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+var TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+var TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 var TAG_LABELS = {
   produce: "Produce", eggs: "Eggs", bakery: "Bakery", honey: "Honey",
@@ -88,7 +88,7 @@ function boot(stands) {
 
   if (hasMap) {
     map = L.map(mapEl, { scrollWheelZoom: false }).setView(CENTER, ZOOM);
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 20, subdomains: "abcd" }).addTo(map);
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(map);
     map.on("click", function () { map.scrollWheelZoom.enable(); });
     map.on("mouseout", function () { map.scrollWheelZoom.disable(); });
     group = L.layerGroup().addTo(map);
