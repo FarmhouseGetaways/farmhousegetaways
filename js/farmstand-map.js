@@ -15,8 +15,13 @@ var LIVE = "https://farmhousegetawaysapp.netlify.app/.netlify/functions/stands";
 
 var CENTER = [33.0300, -116.8700];
 var ZOOM = 12;
-var TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-var TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+/* Esri's World_Topo_Map — free, keyless, hillshaded terrain. Reads like a
+   trail map rather than a city street grid, which suits thirty stands
+   scattered across ranch roads far better than flat OSM streets. The same
+   tile source farmhouse-app's own map.js already uses for its "Terrain"
+   style, so it's a known-good choice, not a new provider to find gotchas in. */
+var TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}";
+var TILE_ATTR = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, USGS, NOAA';
 
 var TAG_LABELS = {
   produce: "Produce", eggs: "Eggs", bakery: "Bakery", honey: "Honey",
@@ -52,10 +57,8 @@ function directionsURL(s) {
 function pinIcon() {
   return L.divIcon({
     className: "fspin",
-    html: '<span style="display:block;width:14px;height:14px;border-radius:50% 50% 50% 0;' +
-          'transform:rotate(-45deg);background:#3F5548;border:2px solid #fff;' +
-          'box-shadow:0 2px 6px rgba(0,0,0,.35);"></span>',
-    iconSize: [14, 14], iconAnchor: [7, 16], popupAnchor: [0, -16]
+    html: '<span class="fspin-drop"></span>',
+    iconSize: [26, 26], iconAnchor: [13, 30], popupAnchor: [0, -28]
   });
 }
 

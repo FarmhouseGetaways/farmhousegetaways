@@ -51,27 +51,76 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
   /* The live farmstand map — see js/farmstand-map.js. Kept page-local rather
      than in site.css so this doesn't force a cache-bust across all eleven
      pages for rules only this one uses. */
+
+  /* A taller, more generous frame than a plain embed gets — this is what the
+     page came for, so it earns the real estate. .map-embed still supplies
+     the border/shadow/radius/overflow every other embed on the site uses;
+     this class only changes its proportions and gives #fsmap something to
+     actually fill (Leaflet needs an ancestor with a real height, which is
+     why #fsmap is nested INSIDE .map-embed rather than doubling as it —
+     the two elements need different `position` values). */
+  .map-embed-live { aspect-ratio: 4 / 5; }
+  @media (min-width: 40rem) { .map-embed-live { aspect-ratio: 16 / 9; } }
+  @media (min-width: 64rem) { .map-embed-live { aspect-ratio: 2.1 / 1; } }
   #fsmap { position: absolute; inset: 0; background: var(--bloom-2); font-family: var(--body); }
-  #fsmap .leaflet-popup-content-wrapper { border-radius: var(--radius); }
-  #fsmap .fspop h3 { margin: 0 0 .3rem; font-family: var(--display); font-size: 1.1rem; font-weight: 400; color: var(--plum); }
+
+  /* Leaflet's own chrome, restyled to look like it belongs on this site
+     rather than a default install — the boxy grey zoom buttons and the flat
+     white attribution strip are the two things that give a Leaflet map away. */
+  #fsmap .leaflet-control-zoom { border: none !important; box-shadow: 0 8px 20px -8px rgba(69,57,64,.35) !important; }
+  #fsmap .leaflet-control-zoom a {
+    width: 34px !important; height: 34px !important; line-height: 34px !important;
+    background: #fff !important; color: var(--sage-deep) !important;
+    border: 1px solid var(--sage-line) !important; font-size: 1.1rem !important;
+  }
+  #fsmap .leaflet-control-zoom a:first-child { border-radius: 10px 10px 0 0 !important; }
+  #fsmap .leaflet-control-zoom a:last-child { border-radius: 0 0 10px 10px !important; border-top: none !important; }
+  #fsmap .leaflet-control-zoom a:hover { background: var(--sage-pale) !important; }
+  #fsmap .leaflet-control-attribution {
+    background: rgba(252,248,246,.85) !important; backdrop-filter: blur(2px);
+    color: var(--stone) !important; font-family: var(--body); font-size: .68rem !important;
+    border-radius: 6px 0 0 0;
+  }
+  #fsmap .leaflet-control-attribution a { color: var(--sage-deep) !important; }
+
+  /* Popups — the serif heading and sage links carry the site's voice into
+     what would otherwise be Leaflet's plain default popup styling. */
+  #fsmap .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 20px 44px -20px rgba(69,57,64,.5); }
+  #fsmap .leaflet-popup-content { margin: .95rem 1.1rem; }
+  #fsmap .fspop h3 { margin: 0 0 .3rem; font-family: var(--display); font-size: 1.2rem; font-weight: 400; color: var(--plum); }
   #fsmap .fspop p { margin: 0 0 .3rem; font-size: .85rem; color: var(--plum-soft); }
   #fsmap .fspop-links { display: flex; gap: .8rem; margin-top: .5rem !important; }
   #fsmap .fspop-links a { color: var(--sage-deep); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
-  .fscontrols { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 1.1rem; }
+
+  /* The pin — a soft brass teardrop with a cream centre dot, echoing the
+     hero's brass-lamp accent rather than a stock Leaflet marker. */
+  #fsmap .fspin { background: none; border: none; }
+  .fspin-drop {
+    position: relative; display: block; width: 26px; height: 26px; border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg); background: var(--brass);
+    border: 2px solid #fff; box-shadow: 0 6px 14px -4px rgba(69,57,64,.55);
+  }
+  .fspin-drop::after {
+    content: ""; position: absolute; top: 6px; left: 6px; width: 10px; height: 10px;
+    border-radius: 50%; background: #fff;
+  }
+
+  .fscontrols { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 1.3rem; }
   .fschips { display: flex; flex-wrap: wrap; gap: .5rem; }
   .fschip {
     font: inherit; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
     padding: .5rem .95rem; border: 1px solid var(--sage-line); border-radius: 999px;
-    background: none; color: var(--plum); cursor: pointer;
+    background: #fff; color: var(--plum); cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease;
   }
+  .fschip:hover { border-color: var(--sage); }
   .fschip.is-on { background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
   .fscount { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--stone); }
   .fslist { list-style: none; margin: .6rem 0 0; padding: 0; border-top: var(--rule); }
-  .fsrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem .1rem; border-bottom: var(--rule); cursor: pointer; }
+  .fsrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem .1rem; border-bottom: var(--rule); cursor: pointer; transition: background .15s ease; }
   .fsrow:hover { background: var(--bloom-2); }
-  .fsrow b { display: block; font-family: var(--display); font-size: 1.05rem; font-weight: 400; color: var(--plum); }
-  .fsrow-hours, .fsrow-sells { display: block; font-size: .78rem; color: var(--sage-deep); margin-top: .1rem; }
-  .fsrow-addr { display: block; font-size: .8rem; color: var(--stone); margin-top: .1rem; }
+  .fsrow b { display: block; font-family: var(--display); font-size: 1.1rem; font-weight: 400; color: var(--plum); }
+  .fsrow-hours, .fsrow-sells { display: block; font-size: .78rem; color: var(--sage-deep); margin-top: .15rem; }
+  .fsrow-addr { display: block; font-size: .8rem; color: var(--stone); margin-top: .15rem; }
   .fsrow-dir { flex: none; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--sage-deep); text-decoration: underline; text-underline-offset: 3px; }
   .fsfail { padding: 1.5rem; text-align: center; color: var(--plum-soft); font-size: .9rem; }
   .fsfail a { color: var(--sage-deep); font-weight: 700; }
@@ -121,7 +170,9 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
        ====================================================================== -->
   <section class="band-tight">
     <div class="wrap">
-      <div class="map-embed" id="fsmap" role="img" aria-label="Map of Ramona farm stands"></div>
+      <div class="map-embed map-embed-live">
+        <div id="fsmap" role="img" aria-label="Map of Ramona farm stands"></div>
+      </div>
       <div class="fscontrols">
         <div class="fschips" id="fschips"></div>
         <p class="fscount" id="fscount"></p>
