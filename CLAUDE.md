@@ -360,6 +360,17 @@ Practical rules:
   purpose — that wording is load-bearing, not clumsy.
 - The 4.5 figure is the main house's 3.5 plus room seven's full bathroom.
   Earlier drafts said 5.5, which double-counted it.
+- **The hosts are close by, not on site.** They moved off the ranch in Sep 2026
+  and the site went on saying "hosts on site" for a while afterwards. Cory's
+  words, 9 Sep 2026: *"No, hosts on site. hosts are close by."* Nine claims were
+  corrected that day across `index`, `red-barn-ranch`, `book-both`,
+  `wedding-groups`, `our-story` and `emails/welcome-farmhousegetaways.html` —
+  detail-board rows and the hero tag now read **Close by**, and the prose says
+  they are close by and at the ranch most days for the animals and the gardens.
+  The offer is unchanged and still worth selling; only the location claim moved.
+  **Do not let "on site" come back**, and note the same claim still needs fixing
+  by hand in the live EmailOctopus welcome automation, which is not built from
+  this repository.
 
 The 9 Aug change down to six bedrooms was commit `f3f1d0c`. The 5 Sep change
 back to seven touched 64 references across nine pages: copy, both meta
