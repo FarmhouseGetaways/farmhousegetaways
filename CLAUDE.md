@@ -368,9 +368,12 @@ Practical rules:
   detail-board rows and the hero tag now read **Close by**, and the prose says
   they are close by and at the ranch most days for the animals and the gardens.
   The offer is unchanged and still worth selling; only the location claim moved.
-  **Do not let "on site" come back**, and note the same claim still needs fixing
-  by hand in the live EmailOctopus welcome automation, which is not built from
-  this repository.
+  **Do not let "on site" come back.** The live EmailOctopus automation was
+  corrected by hand the same day and is Active again — it is the email called
+  **"Welcome - Fall urgency"**, and EmailOctopus keeps its own copy of that HTML,
+  so a change here does not reach it. **To edit it you must set the automation to
+  Paused first**, or the editor refuses; Paused queues new contacts rather than
+  dropping them, and the status must be put back to Active afterwards.
 
 The 9 Aug change down to six bedrooms was commit `f3f1d0c`. The 5 Sep change
 back to seven touched 64 references across nine pages: copy, both meta
