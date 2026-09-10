@@ -1187,6 +1187,39 @@
   }
   Game.prototype.drawFighterAt = drawFighterAt;
 
+  /* DIZZY. Stars going round the head, which is one of the most recognisable
+     pictures in the genre and — more to the point — the only thing telling
+     the player that the opponent is stunned and now is the moment. The state
+     had a pose and a sound and nothing you could see.
+
+     Four-pointed stars on an ellipse rather than a circle, because a circle
+     read flat-on and the head is being looked at from the side; the two on
+     the far half are drawn smaller and dimmer so the ring has depth. */
+  function dizzyStars(ctx, x, y, t) {
+    var N = 4;
+    var spin = t * 0.085;
+    ctx.save();
+    for (var i = 0; i < N; i++) {
+      var a = spin + (i / N) * Math.PI * 2;
+      var far = Math.cos(a) < 0;                 /* behind the head */
+      var px = x + Math.sin(a) * 17;
+      var py = y + Math.cos(a) * 3.8 + Math.sin(t * 0.11) * 1.2;
+      var sc = far ? 0.72 : 1;
+      ctx.globalAlpha = far ? 0.55 : 0.95;
+      ctx.fillStyle = i % 2 ? '#fff3c4' : '#ffd45c';
+      ctx.beginPath();
+      for (var q = 0; q < 8; q++) {
+        var qa = (q / 8) * Math.PI * 2 - 0.4;
+        var rr = (q % 2 ? 1.8 : 5.0) * sc;
+        var qx = px + Math.cos(qa) * rr, qy = py + Math.sin(qa) * rr;
+        if (q === 0) ctx.moveTo(qx, qy); else ctx.lineTo(qx, qy);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function shadow(ctx, x, yBase, w, alpha) {
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -1767,6 +1800,11 @@
       drawFighterAt(ctx, ff.chr, ff.drawPose(),
                     ff.x - camX + ff.joltX, FLOOR_Y - ff.y - ff.joltY,
                     1, ff.facing, opts, ff.koSpin, ff.squash);
+      /* Stunned. Over both cats, so a star is never painted over by the
+         other fighter standing in front. */
+      if (ff.state === 'dizzy') {
+        dizzyStars(ctx, ff.x - camX, FLOOR_Y - ff.y - 108, this.t);
+      }
     }
 
     for (var p = 0; p < this.projectiles.length; p++) {

@@ -357,6 +357,13 @@ try {
           } else if (name === 'roster') {
             g.scene = 'roster'; g.roster = { cat: 2, pick: 0 };
           } else if (name === 'options') { g.scene = 'options'; g.optIndex = 0; }
+          else if (name === 'dizzy') {
+            g.startMatch(CF.ROSTER[0], CF.ROSTER[4], 0, 'versus');
+            for (let k = 0; k < 130; k++) g.step();
+            g.p2.setState('dizzy');
+            g.p2.dizzyTimer = 400;
+            for (let k = 0; k < 24; k++) g.step();
+          }
           else if (name === 'perfect') {
             /* The PERFECT banner, caught a few frames after it slams in.
                It is queued behind K.O., so the round has to actually end and
