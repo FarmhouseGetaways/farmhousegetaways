@@ -19,6 +19,9 @@ echo "== move list is not stale =="
 node tools/gen-moves.mjs >/dev/null
 git diff --quiet MOVES.md || echo "MOVES.md was stale — regenerated, commit it"
 echo
+echo "== the announcer is audible and says the right vowels =="
+node tools/voice.mjs | grep -E "peak amplitude|F1|F2"
+
 echo "== bundle =="
 node tools/bundle.mjs | tail -1
 echo

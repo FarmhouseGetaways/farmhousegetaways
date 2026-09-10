@@ -75,6 +75,120 @@
      single most tiring sound a fighting game can make. */
   function vary(v, amt) { return v * (1 + (Math.random() - 0.5) * (amt || 0.16)); }
 
+  /* ---- the announcer ------------------------------------------------------
+
+     There is not a single recorded sample in this game and there is not
+     going to be one: it ships as a single HTML file that runs from a file://
+     URL, and one voice clip would be larger than everything else in it put
+     together. So the announcer is SYNTHESISED, the same as the punches.
+
+     Speech, reduced to the part that matters here: a voiced sound is a buzz
+     from the larynx shaped by resonances of the throat and mouth called
+     FORMANTS. Two of them are enough to identify a vowel — F1 tracks roughly
+     how open the jaw is, F2 how far forward the tongue sits. So: one
+     sawtooth at the pitch of the voice through three parallel bandpass
+     filters whose frequencies are automated along the word, and the vowels
+     come out. Consonants are not voiced at all — they are noise bursts and
+     silences, which `noise()` already makes.
+
+     It will not be mistaken for a person, and it is not meant to be. This is
+     an arcade cabinet with a speaker behind a grille; slightly robotic is
+     the correct amount of robotic. */
+
+  /* [F1, F2, F3] in Hz, for a deep voice. */
+  var VOWEL = {
+    er: [490, 1350, 1600],    /* the 'er' of PERFECT — F3 pulled down for the r */
+    eh: [560, 1800, 2500],    /* the 'e' of 'fect' */
+    oh: [500,  900, 2400],
+    ah: [730, 1100, 2450],
+    ee: [280, 2250, 2900]
+  };
+
+  /* `word` is a list of steps:
+       ['v', vowel, dur, gain]        a voiced stretch
+       ['n', freq, Q, dur, gain]      a fricative or a plosive burst
+       ['s', dur]                     silence  */
+  function speak(word, f0, gain) {
+    var t0 = ctx.currentTime, total = 0, i;
+    for (i = 0; i < word.length; i++) {
+      total += word[i][0] === 'v' ? word[i][2]
+             : (word[i][0] === 'n' ? word[i][3] : word[i][1]);
+    }
+
+    /* The buzz, drifting DOWN across the word. A falling pitch is what makes
+       a delivery declarative; a flat one sounds like a question. */
+    var osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(f0 * 1.06, t0);
+    osc.frequency.linearRampToValueAtTime(f0 * 0.88, t0 + total);
+
+    var out = ctx.createGain();
+    out.gain.value = gain === undefined ? 0.16 : gain;
+    out.connect(sfxGain);
+
+    /* One gate in front of the filters: a voiced step opens it, so the buzz
+       simply is not there during a consonant. */
+    var voiceGate = ctx.createGain();
+    voiceGate.gain.setValueAtTime(0.0001, t0);
+    osc.connect(voiceGate);
+
+    var bands = [];
+    for (i = 0; i < 3; i++) {
+      var f = ctx.createBiquadFilter();
+      f.type = 'bandpass';
+      f.Q.value = [7, 9, 11][i];
+      f.frequency.setValueAtTime(VOWEL.ah[i], t0);
+      var fg = ctx.createGain();
+      fg.gain.value = [1, 0.62, 0.30][i];
+      voiceGate.connect(f); f.connect(fg); fg.connect(out);
+      bands.push(f);
+    }
+
+    var t = t0;
+    for (i = 0; i < word.length; i++) {
+      var stp = word[i];
+      if (stp[0] === 'v') {
+        var vw = VOWEL[stp[1]] || VOWEL.ah;
+        var dur = stp[2], g = stp[3] === undefined ? 1 : stp[3];
+        for (var b = 0; b < 3; b++) {
+          /* Ramped, not stepped. A formant that jumps between two vowels
+             clicks, and the GLIDE between them is most of what makes two
+             syllables sound like one word. */
+          bands[b].frequency.linearRampToValueAtTime(vw[b], t + Math.min(0.045, dur * 0.5));
+        }
+        voiceGate.gain.setTargetAtTime(g, t, 0.012);
+        voiceGate.gain.setTargetAtTime(0.0001, t + dur - 0.012, 0.008);
+        t += dur;
+      } else if (stp[0] === 'n') {
+        noise(stp[3], stp[1], stp[2], stp[4]);
+        t += stp[3];
+      } else {
+        t += stp[1];
+      }
+    }
+    osc.start(t0);
+    osc.stop(t + 0.05);
+  }
+
+  /* PERFECT: the plosive, the long stressed first syllable, the fricative,
+     the short second syllable, and the two stops that close it. The 'r' is
+     IN the vowel rather than after it, which is how it works in the accent
+     an arcade announcer has. */
+  function sayPerfect() {
+    speak([
+      ['s', 0.010],
+      ['n', 1400, 0.7, 0.022, 0.13],     /* P */
+      ['v', 'er', 0.235, 1.00],          /* PER — stressed, long */
+      ['n', 5200, 0.6, 0.085, 0.055],    /* F */
+      ['v', 'eh', 0.135, 0.85],          /* FE */
+      ['s', 0.022],
+      ['n', 1900, 1.1, 0.030, 0.100],    /* C */
+      ['s', 0.030],
+      ['n', 3600, 1.3, 0.032, 0.085]     /* T */
+    ], 112, 0.62);   /* measured: at 0.20 the announcer sat under the fanfare
+                        and could not be made out — see tools/voice.mjs */
+  }
+
   /* Every impact is three layers: a crack up top so it cuts through, a body
      in the middle so it has a shape, and a thump underneath so it lands. One
      noise burst on its own is a hiss, which is what these all were. */
@@ -135,6 +249,9 @@
       tone('sine', 440, 660, 0.42, 0.09, null, 0.18);
       /* a little air under it so it does not sound like a menu beep */
       noise(0.30, 2600, 1.4, 0.07);
+      /* and the announcer over the top, a beat later, so the fanfare
+         announces HIM rather than the two of them fighting for the moment */
+      setTimeout(sayPerfect, 160);
     },
     dizzy: function () {
       tone('sine', 760, 320, 0.4, 0.13);
@@ -256,6 +373,12 @@
 
   CF.Audio = {
     init: init, play: play,
+    /* The announcer, exposed so it can be MEASURED. Nobody working on this
+       game can hear it — the only honest way to know a synthesised vowel is
+       the vowel it was meant to be is to render it offline and look at where
+       the formant peaks actually landed. `tools/voice.mjs` does exactly
+       that. It is also the hook for any future callout. */
+    speak: speak, speakPerfect: sayPerfect, VOWEL: VOWEL,
     startMusic: startMusic, stopMusic: stopMusic, toggleMusic: toggleMusic, setKey: setKey,
     toggleSfx: toggleSfx, setVolume: setVolume,
     isMusicOn: function () { return !!musicTimer; },
