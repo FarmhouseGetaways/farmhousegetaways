@@ -270,16 +270,18 @@
          the tail from the scarf's own crossing, so it cannot reopen the
          lasso the scarf was tuned against above. */
       (function () {
-        var backPts = [T(0.60, -f.chestW * 0.95), T(0.80, -f.chestW * 0.68)];
+        var backPts = [T(0.50, -f.chestW * 1.00), T(0.62, -f.chestW * 0.90),
+                        T(0.74, -f.chestW * 0.76), T(0.86, -f.chestW * 0.58)];
         var bestT = null, bestB = null, bestD = 1e9;
-        for (var tt = 0.30; tt <= 0.95; tt += 0.065) {
+        for (var tt = 0.20; tt <= 0.98; tt += 0.04) {
           var tp = tailAt(tt);
           for (var bp = 0; bp < backPts.length; bp++) {
             var d = Math.hypot(tp.x - backPts[bp].x, tp.y - backPts[bp].y);
             if (d < bestD) { bestD = d; bestT = tp; bestB = backPts[bp]; }
           }
         }
-        var GAP = 15 * S;
+        var GAP = 34 * S;
+        if (typeof window !== 'undefined' && window.__DEBUG_HOLE) console.log('bestD', bestD, 'GAP', GAP, 'S', S, 'bestT', bestT, 'bestB', bestB);
         if (bestD < GAP) {
           A.add('back', function (cx) {
             cx.beginPath();

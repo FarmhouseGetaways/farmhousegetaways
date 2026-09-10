@@ -577,6 +577,32 @@
         ]);
       }, MAW_D, { band: true, edge: true });
 
+      /* --- the overhang: where the gut folds down onto the belt --------
+
+         A prior review flagged him pinching in at the waist under the belt
+         — the wrong shape for a sumo build. Measured against `bodyPoints`,
+         that pinch was real (the shared torso curve pulls in hard at
+         t 0.36) but the GUT patch above already covers it: at t 0.33-0.44
+         it bulges past chestW, well outside the natural curve, and by
+         t~0.55 the two lines cross over close enough that there is no
+         visible notch in the merged silhouette. Checked with a joint-marker
+         render and a column-width scan of the actual pixels, not just the
+         numbers — the pinch is gone.
+
+         What was still missing is not a pinch, it is an OVERHANG: real gut
+         does not meet a belt in a clean curve, it folds down ONTO it. One
+         flat crease, dark, sitting where the fold would compress against
+         the top of the mawashi, sells that in a way volume alone does not
+         — it is the single most recognisable heavyweight cue there is, and
+         it costs one shape with no clip. It runs nearly the width of the
+         torso, front to back, because a real fold does. */
+      A.add('front', function (cx) {
+        A.smooth(cx, [
+          T(0.44, -f.hipW * 0.85), T(0.44, f.chestW * 0.72),
+          T(0.36, f.chestW * 0.60), T(0.36, -f.hipW * 0.78)
+        ]);
+      }, A.shade(f.fur, 0.58), { flat: true });
+
       /* --- the knot ---------------------------------------------------
 
          This was a regular hexagon with a lit hexagon inside it, straight
