@@ -405,7 +405,24 @@
         bale(ctx, wx - OW + 10, OB - 62, 32, 28, 202);
         bale(ctx, wx + OW - 46, OB - 28, 44, 28, 203);
 
-        /* THE HOIST. Rope over the beam, a bale coming up on it. */
+        /* THE HOIST, AND THE CAT RIDING IT.
+
+           Rope over the beam, a bale coming up on it, and a cat sitting on
+           top of the bale all the way up with its friend waiting in the loft
+           to take it in. Seven seconds, so it is the loop you see most; the
+           claw is five and a half and the two never settle into lockstep.
+
+           The rider is a PALE cat, out of the light half of the crowd
+           palette, and everything else that sits on a bale in this stage is
+           deliberately out of the dark half. It is the one place in the barn
+           where the background behind a cat is a night sky and a dark blue
+           hill instead of straw, and a charcoal cat up there was a hole in
+           the window. Value first, every time.
+
+           It arrives at the one band of this window that is always visible:
+           the health bars own the top thirty pixels of the screen and the
+           cabinet bank starts at seventy, so a moment staged between the two
+           is a moment somebody actually sees. */
         var HC = 420, hu = (t % HC) / HC;
         var hoistX = wx - 8, beamY = OT - 2;
         var bY = hu < 0.62
@@ -423,6 +440,25 @@
         ctx.moveTo(hoistX + swingX - 7, bY - 4); ctx.lineTo(hoistX + swingX - 7, bY + 18);
         ctx.moveTo(hoistX + swingX + 7, bY - 4); ctx.lineTo(hoistX + swingX + 7, bY + 18);
         ctx.stroke();
+
+        /* THE RIDER. Faded in and out over the last 5% of its window so it
+           never pops — visible while the bale is actually climbing or held,
+           gone before the descent starts, because riding a bale DOWN off a
+           hoist reads as falling rather than as a lift. */
+        if (hu < 0.76) {
+          var riderFade = Math.min(1, hu / 0.05, (0.76 - hu) / 0.05);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, riderFade);
+          K.spectator(ctx, hoistX + swingX, bY - 4, 0.62, 4, t * 1.4, mood);
+          ctx.restore();
+        }
+        /* THE FRIEND, waiting on the loft floor. A small hop right as the
+           bale arrives — not a held pose, or it reads as a static prop
+           rather than something watching for the lift to land. */
+        var friendHop = (hu > 0.60 && hu < 0.80)
+          ? Math.max(0, Math.sin((hu - 0.60) / 0.20 * Math.PI)) * 3
+          : 0;
+        K.spectator(ctx, wx + OW - 22, OT + 32 - friendHop, 0.52, 9, t, mood);
 
         /* the frame round the opening, and the loft floor it sits on */
         ctx.strokeStyle = '#40261c'; ctx.lineWidth = 6;

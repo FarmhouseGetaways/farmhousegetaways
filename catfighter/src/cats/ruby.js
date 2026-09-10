@@ -589,7 +589,7 @@
         L2(cx, Q(-1.02, 0.52));
         L2(cx, Q(-0.28, 0.72));
         cx.closePath();
-      }, '#00ff00', { flat: true });
+      }, A.shade(f.fur2, 0.58), { flat: true });
 
       A.add('body', function (cx) {
         /* Cut with lineTo, not A.smooth. Smoothed, this came out as a grey
