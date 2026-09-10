@@ -46,6 +46,36 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" sizes="512x512" href="/images/icon-512.png">
 <meta name="theme-color" content="#3F5548">
 <link rel="stylesheet" href="/css/site.css?v=56dc72e1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* The live farmstand map — see js/farmstand-map.js. Kept page-local rather
+     than in site.css so this doesn't force a cache-bust across all eleven
+     pages for rules only this one uses. */
+  #fsmap { position: absolute; inset: 0; background: var(--bloom-2); font-family: var(--body); }
+  #fsmap .leaflet-popup-content-wrapper { border-radius: var(--radius); }
+  #fsmap .fspop h3 { margin: 0 0 .3rem; font-family: var(--display); font-size: 1.1rem; font-weight: 400; color: var(--plum); }
+  #fsmap .fspop p { margin: 0 0 .3rem; font-size: .85rem; color: var(--plum-soft); }
+  #fsmap .fspop-links { display: flex; gap: .8rem; margin-top: .5rem !important; }
+  #fsmap .fspop-links a { color: var(--sage-deep); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+  .fscontrols { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 1.1rem; }
+  .fschips { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .fschip {
+    font: inherit; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    padding: .5rem .95rem; border: 1px solid var(--sage-line); border-radius: 999px;
+    background: none; color: var(--plum); cursor: pointer;
+  }
+  .fschip.is-on { background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
+  .fscount { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--stone); }
+  .fslist { list-style: none; margin: .6rem 0 0; padding: 0; border-top: var(--rule); }
+  .fsrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem .1rem; border-bottom: var(--rule); cursor: pointer; }
+  .fsrow:hover { background: var(--bloom-2); }
+  .fsrow b { display: block; font-family: var(--display); font-size: 1.05rem; font-weight: 400; color: var(--plum); }
+  .fsrow-hours, .fsrow-sells { display: block; font-size: .78rem; color: var(--sage-deep); margin-top: .1rem; }
+  .fsrow-addr { display: block; font-size: .8rem; color: var(--stone); margin-top: .1rem; }
+  .fsrow-dir { flex: none; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--sage-deep); text-decoration: underline; text-underline-offset: 3px; }
+  .fsfail { padding: 1.5rem; text-align: center; color: var(--plum-soft); font-size: .9rem; }
+  .fsfail a { color: var(--sage-deep); font-weight: 700; }
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -83,19 +113,20 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 
   <!-- ======================================================================
        THE MAP ITSELF
-       Google My Maps embed. Portrait on a phone, landscape on a desktop.
-       The mid= is the same map published on Farmstand.TV.
-       NOTE: this is the /embed URL. Never publish the /edit one.
+       Live, not a Google My Maps embed — reads the same
+       /.netlify/functions/stands endpoint the app's own Map tab does, so a
+       stand approved on farmhouse-admin appears here on the next load, with
+       no reimport into My Maps and nothing to keep in sync by hand. See
+       js/farmstand-map.js on this page. Leaflet, no API key.
        ====================================================================== -->
   <section class="band-tight">
     <div class="wrap">
-      <div class="map-embed">
-        <iframe
-          src="https://www.google.com/maps/d/embed?mid=1r50U2E2lzWpJGfDHJx2AHXIabo-WHco&ehbc=2E312F"
-          title="The Ramona Farmstand Map — every working farm stand in Ramona, California"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div class="map-embed" id="fsmap" role="img" aria-label="Map of Ramona farm stands"></div>
+      <div class="fscontrols">
+        <div class="fschips" id="fschips"></div>
+        <p class="fscount" id="fscount"></p>
       </div>
+      <ul class="fslist" id="fslist"></ul>
       <p class="map-cap">Tap any pin for the address, the hours and what they sell. Everything on here has been visited in person.</p>
     </div>
   </section>
@@ -302,5 +333,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
     </div>
   </div>
 </footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/farmstand-map.js"></script>
 </body>
 </html>
