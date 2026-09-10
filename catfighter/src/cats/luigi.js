@@ -248,49 +248,6 @@
         }
       }, f.furBack, { flat: true });
 
-      /* ---- the diving hole -------------------------------------------------
-
-         The flying body attack throws the tail up past the shoulder blade
-         far enough that the bare rig — tail capsule against torso capsule,
-         nothing of mine involved — leaves a diamond of daylight sealed on
-         every side: a true enclosed hole, found with `node tools/shot.mjs
-         silhouette` is stand-pose only and does NOT catch it; it only shows
-         up on `flyBody` (and `superFly`, which reuses the same cel). Neither
-         `rig.js` nor the pose is mine to touch, so it is closed the same way
-         everything else on this cat reaches past the body: a tuft of fur,
-         grown from the tail towards the back, in the one pose where the two
-         are close enough to need it.
-
-         Checked by DISTANCE, not by pose name — the gate below only fires
-         when a sampled point on the tail curve and a sampled point on the
-         torso's back line actually land near each other, so a retimed move
-         or a different build stays correct without touching this again, and
-         every other pose pays nothing (the loop is cheap; the shape itself
-         is skipped entirely when nothing is close). This is the far side of
-         the tail from the scarf's own crossing, so it cannot reopen the
-         lasso the scarf was tuned against above. */
-      (function () {
-        var backPts = [T(0.50, -f.chestW * 1.00), T(0.62, -f.chestW * 0.90),
-                        T(0.74, -f.chestW * 0.76), T(0.86, -f.chestW * 0.58)];
-        var bestT = null, bestB = null, bestD = 1e9;
-        for (var tt = 0.20; tt <= 0.98; tt += 0.04) {
-          var tp = tailAt(tt);
-          for (var bp = 0; bp < backPts.length; bp++) {
-            var d = Math.hypot(tp.x - backPts[bp].x, tp.y - backPts[bp].y);
-            if (d < bestD) { bestD = d; bestT = tp; bestB = backPts[bp]; }
-          }
-        }
-        var GAP = 34 * S;
-        if (typeof window !== 'undefined' && window.__DEBUG_HOLE) console.log('bestD', bestD, 'GAP', GAP, 'S', S, 'bestT', bestT, 'bestB', bestB);
-        if (bestD < GAP) {
-          A.add('back', function (cx) {
-            cx.beginPath();
-            tuft(cx, bestT.x, bestT.y, bestB.x - bestT.x, bestB.y - bestT.y,
-                 bestD * 0.92, bestD * 0.40, 0);
-          }, f.furBack, { flat: true });
-        }
-      })();
-
       /* ---- the head --------------------------------------------------------
 
          `headShape: 'long'` gives him a cheek of 0.18 against a broad cat's
@@ -518,8 +475,54 @@
          Anything that reaches past x=-30 and sits below +8 makes the ring
          again, and it will not show up in colour — `node tools/shot.mjs
          silhouette`, and check the other five poses too, because stand is
-         the one pose where the tail is furthest out of the way. */
-      var BANNER = scarfPts(44, 20.0, -24.0, 5.6, 0.0, 3.2);
+         the one pose where the tail is furthest out of the way.
+
+         ONE MORE POSE BROKE IT. The four points above are all measured off
+         `stand`; they say nothing about `flyBody` (and `superFly`, which
+         reuses its cel), where the pose throws the tail up level with the
+         skull instead of back along the ground. The tuned route above never
+         goes near that tail position, so on those two moves the banner
+         and the tail crossed again and a `node tools/shot.mjs silhouette`
+         at 8x on `flyBody` specifically — the default `silhouette` command
+         only renders `stand`, which is exactly how this hid — showed the
+         same lasso the four points were chosen to prevent, this time
+         between the scarf and the tail's OWN arc rather than the old
+         second-tail streamer.
+
+         Retuning the route by hand for a second pose would just be trading
+         one hidden pose for a third someday, so instead it is CHECKED: the
+         tuned route is tried first and kept if the tail never comes closer
+         than `CLEAR`; if it does, a shorter, lower route that stays close to
+         the collar is tried instead of it. Ground poses never take the
+         second route — the tail is nowhere near the collar there — so the
+         look everywhere already proven is untouched, and the one pose that
+         needed it gets a shorter scarf rather than a hole. */
+      function scarfClearance(pts) {
+        var minD = 1e9;
+        for (var pi = 0; pi < pts.length; pi++) {
+          for (var tt = 0.12; tt <= 0.98; tt += 0.06) {
+            var tp = tailAt(tt);
+            var d = Math.hypot(pts[pi].x - tp.x, pts[pi].y - tp.y);
+            if (d < minD) minD = d;
+          }
+        }
+        return minD;
+      }
+      var SCARF_ROUTES = [
+        [44, 20.0, -24.0, 5.6, 0.0, 3.2],   /* the tuned route, clear on the ground */
+        [34, 2.0, -14.0, 5.2, 0.0, 2.0]     /* short and tucked, for a tail thrown past it */
+      ];
+      var CLEAR = 13 * S;
+      var BANNER = scarfPts.apply(null, SCARF_ROUTES[0]);
+      var __c0 = scarfClearance(BANNER);
+      if (__c0 < CLEAR) {
+        var alt = scarfPts.apply(null, SCARF_ROUTES[1]);
+        var __c1 = scarfClearance(alt);
+        if (typeof window !== 'undefined' && window.__DEBUG_HOLE) console.log('scarf route0 clear', __c0, 'route1 clear', __c1, 'CLEAR', CLEAR, 'S', S);
+        if (__c1 > __c0) BANNER = alt;
+      } else if (typeof window !== 'undefined' && window.__DEBUG_HOLE) {
+        console.log('scarf route0 clear', __c0, 'CLEAR', CLEAR, 'S', S, '(kept route0)');
+      }
       A.add('back', ribbon(BANNER, 6.4 * S), SCARF, { edge: true, flat: true });
       /* the underside, turning over once at about two thirds along */
       A.add('back', plane(BANNER, [[0, 1, 0.05], [0.24, 1, 0.62], [0.44, 1, 0.10],
