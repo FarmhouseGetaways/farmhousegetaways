@@ -64,6 +64,14 @@
     this.koBounce = 0;      // frames left of the squash on impact
     this.koThud = 0;        // impact the game has not consumed yet
 
+    /* SQUASH AND STRETCH. Positive squashes (wider and shorter, landing),
+       negative stretches (taller and narrower, leaving the ground). Draw
+       only — it is the oldest trick in animation and it is what tells you a
+       heavyweight weighs something without changing a single frame of data. */
+    this.squash = 0;
+    this.slamCool = 0;      // frames before the corner can slam again
+    this.squashShook = false;
+
     this.state = 'intro';
     this.stateFrame = 0;
     this.move = null;
@@ -544,6 +552,7 @@
         this.jumpAttackUsed = false;
         this.airDashUsed = false;
         this.vy = this.stats.jumpVy;
+      this.squash = -0.20;                 /* stretch: the push off the floor */
         this.jumpDir = (d === 6 || d === 3 || d === 9) ? 1 : ((d === 4 || d === 1 || d === 7) ? -1 : 0);
         this.vx = this.jumpDir * this.facing * this.stats.jumpVx;
         this.state = 'jump';
@@ -573,6 +582,7 @@
       this.jumpAttackUsed = false;
       this.airDashUsed = false;
       this.vy = this.stats.jumpVy;
+      this.squash = -0.20;                 /* stretch: the push off the floor */
       this.jumpDir = (d === 9) ? 1 : (d === 7 ? -1 : 0);
       this.vx = this.jumpDir * this.facing * this.stats.jumpVx;
       this.state = 'jump';
@@ -935,6 +945,13 @@
   /* ---- physics ----------------------------------------------------------- */
 
   Fighter.prototype.physics = function () {
+    /* Springs back rather than easing back: a squash that decays smoothly
+       looks like a balloon inflating, one that overshoots looks like weight
+       coming off a leg. */
+    if (this.squash !== 0) {
+      this.squash *= 0.74;
+      if (Math.abs(this.squash) < 0.004) this.squash = 0;
+    }
     this.x += this.vx;
     if (!this.grounded) {
       this.y += this.vy;
@@ -973,6 +990,11 @@
         this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 5 });
         CF.Audio.play('land');
         }
+        /* A heavyweight lands harder than a lightweight from the same
+           height. `pushed` is already the weight class inverted — a light
+           cat is pushed further — so it is the right multiplier upside
+           down. */
+        this.squash = Math.min(0.30, Math.abs(vyIn) * 0.030) / this.cls.pushed;
         if (this.state === 'jump') { this.setState('idle'); this.landFrames = 4; }
         else if (this.state === 'hitstun') { this.knockdownTimer = 30; this.setState('knockdown'); }
         else if (this.state === 'thrown') { /* handled by updateThrown */ }

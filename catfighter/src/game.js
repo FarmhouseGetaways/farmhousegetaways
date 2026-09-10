@@ -146,6 +146,7 @@
       f.hitstop = 0; f.superFreeze = 0;
       f.hitstunTimer = 0; f.blockstunTimer = 0; f.knockdownTimer = 0; f.dizzyTimer = 0;
       f.koSpin = 0; f.koSpinV = 0; f.koLanded = false; f.koBounce = 0; f.koThud = 0;
+      f.squash = 0; f.slamCool = 0; f.squashShook = false;
       f.move = null; f.moveFrame = 0;
       f.setState('intro');
       f.inputBuf.length = 0;
@@ -726,6 +727,19 @@
 
     /* The body hitting the floor. Reported by the fighter, spent here,
        because the camera belongs to the game. */
+    /* Weight in the camera. A heavyweight coming down from a jump should be
+       felt as well as heard — small enough that a normal jump does not judder
+       the screen, big enough that Mario landing is an event. */
+    for (var lw = 0; lw < 2; lw++) {
+      var lf = lw ? p2 : p1;
+      if (lf.squash > 0.17 && !lf.squashShook) {
+        lf.squashShook = true;
+        this.shake(lf.squash * 9);
+      } else if (lf.squash < 0.05) {
+        lf.squashShook = false;
+      }
+    }
+
     for (var th = 0; th < 2; th++) {
       var tf = th ? p2 : p1;
       if (tf.koThud > 0) {
@@ -778,8 +792,26 @@
     var cam = U.clamp(mid - W / 2, WALL_L, WALL_R - W);
     var lo = Math.max(WALL_L + EDGE, cam + EDGE);
     var hi = Math.min(WALL_R - EDGE, cam + W - EDGE);
-    this.p1.x = U.clamp(this.p1.x, lo, hi);
-    this.p2.x = U.clamp(this.p2.x, lo, hi);
+    /* Being driven into the corner should FEEL like hitting something. The
+       wall is invisible, so without this a fighter flung across the stage
+       simply stops dead an inch from the edge and the hit that put them
+       there loses half its weight. */
+    for (var w = 0; w < 2; w++) {
+      var f = w ? this.p2 : this.p1;
+      var was = f.x;
+      f.x = U.clamp(f.x, lo, hi);
+      var into = Math.abs(f.vx);
+      if (was !== f.x && into > 3.2 && f.slamCool <= 0) {
+        f.slamCool = 18;
+        f.squash = Math.min(0.26, into * 0.030);
+        f.vx = -f.vx * 0.22;                 /* a little rebound off the wall */
+        this.shake(Math.min(8, into * 0.9));
+        this.excite(0.25);
+        f.fx.push({ kind: 'dust', x: f.x, y: 2, t: 0, n: 6 });
+        CF.Audio.play('land');
+      }
+      if (f.slamCool > 0) f.slamCool--;
+    }
   };
 
   Game.prototype.updateCamera = function () {
@@ -1131,10 +1163,18 @@
      about the feet a falling body pivots like a felled tree, which is a
      different and much worse-looking thing. Draw only: nothing here is ever
      asked for a hurtbox. */
-  function drawFighterAt(ctx, chr, pose, x, yBase, scale, facing, opts, spin) {
+  function drawFighterAt(ctx, chr, pose, x, yBase, scale, facing, opts, spin, squash) {
     var j = CF.Rig.solve(pose, scale, chr.build);
     ctx.save();
     ctx.translate(x, yBase);
+    /* Squash and stretch, about the FEET — the floor is what a landing body
+       is being compressed against, so scaling about the middle would sink
+       the cat into it. Volume is roughly held: what it loses in height it
+       takes back in width, which is what makes it read as a body rather
+       than as the sprite being resized. */
+    if (squash) {
+      ctx.scale(1 + squash * 0.55, 1 - squash);
+    }
     if (spin) {
       var pivot = 42 * scale;
       ctx.translate(0, -pivot);
@@ -1726,7 +1766,7 @@
       }
       drawFighterAt(ctx, ff.chr, ff.drawPose(),
                     ff.x - camX + ff.joltX, FLOOR_Y - ff.y - ff.joltY,
-                    1, ff.facing, opts, ff.koSpin);
+                    1, ff.facing, opts, ff.koSpin, ff.squash);
     }
 
     for (var p = 0; p < this.projectiles.length; p++) {

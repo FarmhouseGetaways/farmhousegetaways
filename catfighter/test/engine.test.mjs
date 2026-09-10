@@ -1770,6 +1770,93 @@ test('the CPU lets a cornered player back out', () => {
 });
 
 /* ==========================================================================
+   Weight — squash, stretch and the corner
+   ========================================================================== */
+
+function fightReady(CF, a = 'mario', b = 'lilly') {
+  const g = headlessGame(CF);
+  g.arcade = { step: 0, order: [] };
+  g.ports[0] = new CF.VirtualPort();
+  g.ports[1] = new CF.VirtualPort();
+  g.startMatch(CF.byId(a), CF.byId(b), 0, 'versus');
+  for (let i = 0; i < 130; i++) g.step();
+  return g;
+}
+
+test('landing squashes a fighter and leaving the ground stretches them', () => {
+  const g = fightReady(CF);
+  const f = g.p1;
+  f.setState('idle');
+  f.grounded = false;
+  f.y = 60; f.vy = -6;
+  let sawSquash = 0;
+  for (let i = 0; i < 40 && !f.grounded; i++) g.step();
+  sawSquash = f.squash;
+  assert.ok(sawSquash > 0.02,
+    `landing should compress the drawing, got ${sawSquash.toFixed(3)}`);
+  /* and it springs back rather than sticking */
+  for (let i = 0; i < 30; i++) g.step();
+  assert.ok(Math.abs(f.squash) < 0.02, 'the squash should relax within half a second');
+});
+
+test('a heavyweight lands harder than a lightweight from the same height', () => {
+  /* This is the whole point of the effect: weight you can see without
+     reading a number. */
+  const drop = (id) => {
+    const g = fightReady(CF, id, 'gracie');
+    const f = g.p1;
+    f.setState('idle');
+    f.grounded = false; f.y = 70; f.vy = 0;
+    for (let i = 0; i < 60 && !f.grounded; i++) g.step();
+    return f.squash;
+  };
+  const heavy = drop('mario'), light = drop('lilly');
+  assert.ok(heavy > light,
+    `Mario (${heavy.toFixed(3)}) should land harder than Lilly (${light.toFixed(3)})`);
+});
+
+test('squash and stretch never reach a hurtbox', () => {
+  /* Draw-only, like the jolt and the death spin. A hurtbox that changed with
+     the animation would make trades depend on how the last landing looked. */
+  const g = fightReady(CF);
+  const before = JSON.stringify(g.p1.hurtboxes());
+  g.p1.squash = 0.3;
+  assert.equal(JSON.stringify(g.p1.hurtboxes()), before,
+    'squashing the drawing moved a hurtbox');
+});
+
+test('being driven into the corner at speed hits something', () => {
+  /* The wall is invisible, so without a reaction a fighter flung across the
+     stage just stops dead an inch from the edge and the hit that put them
+     there loses half its weight. */
+  const g = fightReady(CF);
+  const f = g.p2;
+  f.setState('hitstun');
+  f.x = 300; f.vx = 9;            /* driven hard toward the right wall */
+  let shook = 0, peakSquash = 0;
+  for (let i = 0; i < 20; i++) {
+    const before = g.shakeAmt;
+    g.step();
+    if (g.shakeAmt > before) shook++;
+    peakSquash = Math.max(peakSquash, f.squash);   /* it springs back fast */
+  }
+  assert.ok(shook > 0, 'slamming into the corner should shake the screen');
+  assert.ok(peakSquash > 0.02,
+    `and should compress the fighter against the wall, peaked at ${peakSquash.toFixed(3)}`);
+});
+
+test('walking into the corner does not slam', () => {
+  /* Only a real impact counts. Every fighter spends part of every round
+     against a wall, and a shake each time would be unbearable. */
+  const g = fightReady(CF);
+  const f = g.p2;
+  f.x = 300; f.vx = 1.4;          /* walking pace */
+  g.shakeAmt = 0;
+  for (let i = 0; i < 20; i++) { f.vx = 1.4; g.step(); }
+  assert.ok(g.shakeAmt < 0.2, `walking into the wall shook the screen by ${g.shakeAmt}`);
+});
+
+/* ==========================================================================
    The death
    ========================================================================== */
 

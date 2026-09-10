@@ -79,23 +79,29 @@
      Built once at the origin per (radius, colour) and moved into place
      instead; the rasterising still costs what it costs, but the allocation
      and the colour parsing do not happen forty times a frame. */
-  var glows = {};
+  /* A soft light — except that it is not soft, because nothing in this game
+     is. A radial gradient composited with 'lighter' is a smooth bloom, and
+     Street Fighter II has no bloom anywhere in it: a limited palette cannot
+     express one, so a lamp on those boards is a stack of flat rings and the
+     BANDING between them is the look. This draws four concentric discs at
+     stepped alpha instead, which is the same picture a 16-colour board would
+     have had to make.
+
+     It is also cheaper than what it replaces — no gradient object per
+     (radius, colour), and no compositing mode change per call. */
+  var GLOW_RINGS = [[0.34, 1.00], [0.58, 0.52], [0.79, 0.26], [1.00, 0.11]];
   function glow(ctx, x, y, r, color, alpha) {
-    var key = r + '|' + color;
-    var g = glows[key];
-    if (!g) {
-      g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, color);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      if (Object.keys(glows).length > 200) glows = {};
-      glows[key] = g;
-    }
+    var a = alpha === undefined ? 0.5 : alpha;
     ctx.save();
-    ctx.globalAlpha = alpha === undefined ? 0.5 : alpha;
     ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = color;
     ctx.translate(x, y);
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    for (var i = GLOW_RINGS.length - 1; i >= 0; i--) {
+      ctx.globalAlpha = a * GLOW_RINGS[i][1];
+      ctx.beginPath();
+      ctx.arc(0, 0, r * GLOW_RINGS[i][0], 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
