@@ -189,6 +189,32 @@
                         and could not be made out — see tools/voice.mjs */
   }
 
+  /* K.O. — two letters, said as 'kay oh'. The 'ay' is a DIPHTHONG: it
+     starts as one vowel and finishes as another, which this synth gets for
+     free because consecutive voiced steps ramp between their formants
+     rather than jumping. Said lower and slower than PERFECT; it is the more
+     final of the two. */
+  function sayKO() {
+    speak([
+      ['n', 1900, 1.0, 0.026, 0.12],     /* K */
+      ['v', 'eh', 0.085, 1.00],          /* -ay, opening... */
+      ['v', 'ee', 0.150, 0.95],          /*      ...and closing */
+      ['s', 0.045],
+      ['v', 'oh', 0.260, 1.00]           /* -O, held */
+    ], 104, 0.66);
+  }
+
+  /* FIGHT. The fricative, the wide-to-narrow diphthong, and the stop. */
+  function sayFight() {
+    speak([
+      ['n', 5000, 0.6, 0.070, 0.055],    /* F */
+      ['v', 'ah', 0.105, 1.00],          /* -igh, opening... */
+      ['v', 'ee', 0.130, 0.90],          /*        ...and closing */
+      ['s', 0.028],
+      ['n', 3600, 1.3, 0.030, 0.090]     /* T */
+    ], 118, 0.62);
+  }
+
   /* Every impact is three layers: a crack up top so it cuts through, a body
      in the middle so it has a shape, and a thump underneath so it lands. One
      noise burst on its own is a hiss, which is what these all were. */
@@ -235,6 +261,8 @@
       tone('sawtooth', 460, 55, 0.85, 0.24);
       tone('sine', 230, 40, 0.9, 0.16);
       noise(0.7, 380, 0.5, 0.22);
+      /* the announcer, after the room has stopped ringing */
+      setTimeout(sayKO, 330);
     },
     /* PERFECT. The K.O. is a hit and a room ringing; this is the opposite —
        an upward fanfare, because the round was won cleanly and the sound
@@ -257,6 +285,12 @@
       tone('sine', 760, 320, 0.4, 0.13);
       tone('sine', 980, 430, 0.4, 0.09);
       tone('triangle', 520, 240, 0.45, 0.07);
+    },
+    /* The round starting. The meow is the cat; the announcer is the cabinet. */
+    fight: function () {
+      tone('square', 520, 780, 0.10, 0.13);
+      SFX.meow();
+      setTimeout(sayFight, 120);
     },
     meow: function () {
       tone('sawtooth', vary(600, 0.2), vary(360, 0.2), 0.30, 0.13, null, 0.03);
@@ -378,7 +412,11 @@
        the vowel it was meant to be is to render it offline and look at where
        the formant peaks actually landed. `tools/voice.mjs` does exactly
        that. It is also the hook for any future callout. */
-    speak: speak, speakPerfect: sayPerfect, VOWEL: VOWEL,
+    speak: speak, VOWEL: VOWEL,
+    /* Drops the audio context so a measuring harness can hand us a fresh
+       OfflineAudioContext per word. Nothing in the game calls this. */
+    __resetForTest: function () { ctx = null; master = null; sfxGain = null; musicGain = null; },
+    speakPerfect: sayPerfect, speakKO: sayKO, speakFight: sayFight,
     startMusic: startMusic, stopMusic: stopMusic, toggleMusic: toggleMusic, setKey: setKey,
     toggleSfx: toggleSfx, setVolume: setVolume,
     isMusicOn: function () { return !!musicTimer; },

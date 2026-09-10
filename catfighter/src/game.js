@@ -692,7 +692,10 @@
     if (p1.comboCount >= 3 || p2.comboCount >= 3) this.excite(0.02);
 
     if (this.roundState === 'intro') {
-      if (this.roundTimer === 62) { this.say('FIGHT!', 50, 40, '#ff7a4a'); CF.Audio.play('meow'); }
+      if (this.roundTimer === 62) {
+        this.say('FIGHT!', 50, 40, '#ff7a4a');
+        CF.Audio.play('fight');
+      }
       if (this.roundTimer > 62) {
         this.roundState = 'fight';
         p1.setState('idle'); p2.setState('idle');

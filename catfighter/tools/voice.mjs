@@ -25,15 +25,38 @@ page.on('pageerror', e => errs.push(e.message));
 await page.goto('file://' + join(ROOT, 'index.html'), { waitUntil: 'load' });
 await page.waitForTimeout(400);
 
-const out = await page.evaluate(async () => {
+/* Every callout, and the vowels each one is aiming at. A diphthong is
+   listed by the vowel it FINISHES on, because that is what the measurement
+   window at the end of the syllable will see. */
+const WORDS = [
+  { call: 'speakPerfect', name: 'PERFECT',
+    at: [['PER', 0.075, 0.16, 'er'], ['FECT', 0.375, 0.10, 'eh']] },
+  { call: 'speakKO', name: 'K.O.',
+    at: [['KAY', 0.150, 0.08, 'ee'], ['OH', 0.330, 0.20, 'oh']] },
+  { call: 'speakFight', name: 'FIGHT',
+    at: [['FIGH', 0.075, 0.08, 'ah'], ['-T', 0.150, 0.07, 'ee']] }
+];
+
+const out = await page.evaluate(async (WORDS) => {
   const SR = 48000, LEN = Math.floor(SR * 1.0);
+  const results = [];
+  for (const w of WORDS) {
+    const r = await one(w);
+    results.push(r);
+  }
+  return { results, vowels: CF.Audio.VOWEL };
+
+  async function one(w) {
   const off = new OfflineAudioContext(1, LEN, SR);
   /* audio.js builds its context from window.AudioContext on first use, so
-     handing it the offline one is enough to capture the whole graph. */
+     handing it the offline one is enough to capture the whole graph. Each
+     word needs a fresh module state, which `__resetForTest` gives us — see
+     the note in audio.js. */
   window.AudioContext = function () { return off; };
   window.webkitAudioContext = window.AudioContext;
+  CF.Audio.__resetForTest();
   CF.Audio.init();
-  CF.Audio.speakPerfect();
+  CF.Audio[w.call]();
   const buf = await off.startRendering();
   const d = Array.from(buf.getChannelData(0));
 
@@ -74,30 +97,36 @@ const out = await page.evaluate(async () => {
   }
 
   const peak = Math.max(...env.map(e => e.rms));
+  const voiced = env.filter(e => e.rms > peak * 0.25).map(e => +e.t.toFixed(3));
   return {
-    peak,
-    voiced: env.filter(e => e.rms > peak * 0.25).map(e => +e.t.toFixed(3)),
-    per:  peaks(0.075, 0.16),   /* inside the long first syllable */
-    fect: peaks(0.375, 0.10),   /* inside the short second syllable */
-    vowels: CF.Audio.VOWEL
+    name: w.name, peak,
+    span: voiced.length ? [voiced[0], voiced[voiced.length - 1]] : null,
+    syllables: w.at.map(([label, t, dur, vowel]) => ({
+      label, vowel, peaks: peaks(t, dur)
+    }))
   };
-});
+  }
+}, WORDS);
 await browser.close();
 if (errs.length) { console.error('page errors:', errs); process.exit(1); }
 
 const near = (got, want, tol) => Math.abs(got - want) <= tol;
-console.log('peak amplitude:', out.peak.toFixed(4));
-if (out.peak < 0.005) { console.error('THE VOICE IS SILENT'); process.exit(1); }
-
-const span = out.voiced.length ? `${out.voiced[0]}s .. ${out.voiced[out.voiced.length - 1]}s` : 'none';
-console.log('voiced from', span);
-
-for (const [name, want] of [['PER', out.vowels.er], ['FECT', out.vowels.eh]]) {
-  const got = (name === 'PER' ? out.per : out.fect);
-  console.log(`\n${name}: aimed F1=${want[0]} F2=${want[1]}`);
-  console.log('  peaks found:', got.map(p => `${p.f}Hz`).join(', '));
-  const f1 = got.find(p => near(p.f, want[0], 160));
-  const f2 = got.find(p => near(p.f, want[1], 300));
-  console.log('  F1', f1 ? `OK (${f1.f}Hz)` : 'NOT FOUND');
-  console.log('  F2', f2 ? `OK (${f2.f}Hz)` : 'NOT FOUND');
+let bad = 0;
+for (const r of out.results) {
+  console.log(`\n== ${r.name} ==`);
+  console.log('  peak amplitude:', r.peak.toFixed(4),
+              r.peak < 0.005 ? '  *** SILENT ***' : '');
+  if (r.peak < 0.005) { bad++; continue; }
+  console.log('  voiced', r.span ? `${r.span[0]}s .. ${r.span[1]}s` : 'never');
+  for (const sy of r.syllables) {
+    const want = out.vowels[sy.vowel];
+    const f1 = sy.peaks.find(p => near(p.f, want[0], 170));
+    const f2 = sy.peaks.find(p => near(p.f, want[1], 320));
+    console.log(`  ${sy.label.padEnd(5)} aimed F1=${String(want[0]).padStart(4)} ` +
+                `F2=${String(want[1]).padStart(4)}   ` +
+                `F1 ${f1 ? 'OK ' + f1.f : 'MISSING'}   F2 ${f2 ? 'OK ' + f2.f : 'MISSING'}`);
+    if (!f1 || !f2) bad++;
+  }
 }
+if (bad) { console.error(`\n${bad} formant(s) did not land where they were aimed`); process.exit(1); }
+console.log('\nevery callout is audible and says the vowels it meant to');
