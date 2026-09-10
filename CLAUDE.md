@@ -870,6 +870,69 @@ Three things a later session needs to know:
   It is what makes hitstop read as an impact rather than the game stuttering.
   A test asserts it never reaches a hurtbox — if it did, whether a trade came
   out would depend on how hard the last hit landed.
+- **There is a `far` costume layer**, added 22 Aug 2026. The `look` block can
+  add geometry at five points now, not four: `back`, **`far`**, `body`,
+  `front`, `head`. `far` is for kit belonging to the FAR arm or leg — in
+  `back` the limb is painted over it, in `body` it lands on the belly, which
+  is how Mario's far wrist wrap became a crimson blob and got dropped. A test
+  asserts the order with a sentinel colour per layer, because a piece in the
+  wrong bin does not look like a bug, it looks like a piece somewhere else.
+- **THE GAME HAS A VOICE, AND IT IS SYNTHESISED.** Added 10 Sep 2026. There is
+  still not one recorded sample in this project and there must not be — it
+  ships as a single HTML file off a `file://` URL. The announcer is FORMANT
+  SYNTHESIS: one sawtooth at the pitch of the voice through three parallel
+  bandpass filters whose frequencies are automated along the word. Two
+  formants identify a vowel (F1 ≈ how open the jaw is, F2 ≈ how far forward
+  the tongue is); consonants are not voiced at all, they are the noise bursts
+  the file already made. Formants must be RAMPED between vowels, never
+  stepped — a step clicks, and the glide is most of what makes two syllables
+  sound like one word. It says PERFECT, K.O. and FIGHT.
+  **Nobody working on this can hear it, so it is MEASURED.**
+  `node tools/voice.mjs` renders each word through an `OfflineAudioContext`,
+  finds the voiced stretches with an RMS envelope and runs a Goertzel sweep
+  over each one to check the formant peaks landed where they were aimed. It
+  is in `verify.sh`. It caught the first version being inaudible under its
+  own fanfare. Do not tune this by ear you do not have — change the numbers
+  and read the measurement.
+- **PERFECT is a ROUND award, not a match one.** Won without giving up a
+  single point of health. It is queued behind K.O. through `sayLater` rather
+  than said directly, because both words on screen together is a mess and
+  PERFECT first spoils the K.O. it is a reward for. The queue is counted down
+  in `step()`, so it obeys hitstop and slow motion — timed in real
+  milliseconds it lands halfway through the finish.
+- **The death is a cinematic and it has rules.** The loser tumbles
+  (`koSpin`, a whole-sprite rotation about the MIDDLE of the figure — about
+  the feet a falling body pivots like a felled tree), leaves three
+  afterimages along its own velocity, bounces once on landing and eases to
+  the nearest half-turn so it comes to rest flat. The slow motion RAMPS from
+  one frame in five back to real time; a flat divisor reads as the game
+  stuttering. The camera holds BOTH fighters until the body lands and only
+  then drifts onto the winner — pushing straight in threw the loser off the
+  side of the screen at the exact moment you wanted to watch them fly. The
+  push is 1.26x; at 1.78x a cat is taller than the frame.
+  `node tools/shot.mjs ko out.png` renders the whole thing cel by cel, and
+  both of those mistakes were found that way and neither was visible in the
+  code.
+- **Squash and stretch is scaled about the FEET**, and roughly preserves
+  volume. About the middle it sinks the cat into the floor. It springs back
+  rather than easing back, because a squash that decays smoothly looks like a
+  balloon inflating. It is scaled by weight class, so a heavyweight visibly
+  lands harder than a lightweight from the same height.
+- **Draw-only means draw-only.** `joltX/joltY`, `koSpin` and `squash` are all
+  presentation and every one of them has a test asserting it never moves a
+  hurtbox. If any of them reached the boxes, whether a trade came out would
+  depend on how the last animation happened to look.
+- **`K.glow` is a stack of flat rings, not a bloom.** A limited-palette
+  arcade board cannot express a smooth radial gradient, so a lamp on one is
+  concentric bands and the BANDING is the look. Four flat-alpha discs. An art
+  judge called the old radial version the single softest, most modern element
+  in the game's backgrounds and was right. It is also cheaper than what it
+  replaced.
+- **Dizzy has stars.** It had a pose and a sound and nothing you could see,
+  which matters because it is the only signal telling the player the opponent
+  is stunned and now is the moment. Four stars on an ellipse — a circle reads
+  flat-on and the head is in profile — drawn after both fighters so one is
+  never painted over by whoever is standing in front.
 - **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**
