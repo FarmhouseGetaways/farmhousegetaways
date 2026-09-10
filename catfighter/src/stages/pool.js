@@ -489,6 +489,84 @@
     }
   }
 
+  /* ---- THE LOUNGER, and the nap that goes wrong every twenty seconds ----
+
+     The far-deck comment above promised "parasols, loungers and the crowd"
+     and only ever built two of the three. This is the lounger: someone dozes
+     off across it and slides slowly towards the foot of it, a little further
+     gone each frame, until they nearly slide off the end — and wake with a
+     start, sit bolt upright, and settle back at the top to start again.
+
+     Same depth as the lifeguard chair (world 40) and the high board's own
+     anchor (world 92): at depth 0.34 the screen gap between any two of them
+     is worldA − worldB, constant whatever the camera does, because both
+     terms scale by the same camX. World 64 sits a clear 24 short of the
+     board and 24 clear of the lifeguard, and neither gap ever closes.
+
+     Cheap on purpose: two flat K.mass planks (no clip), a couple of strokes
+     for the legs, and one K.spectator — the same figure the crowd is built
+     from. The startle reuses spectator's own "excited" pose (paws up, eyes
+     wide) rather than drawing a second face for the wake-up beat. */
+  var LOUNGE_WORLD = 64, LOUNGE_T = 1250;
+
+  function lounger(ctx, camX, t) {
+    var lx = K.at(camX, 0.34, LOUNGE_WORLD), ly = 132;
+    var k = (t % LOUNGE_T) / LOUNGE_T;
+    var wake = k > 0.95;
+    var slouch = wake ? 0 : Math.min(1, k / 0.92);
+
+    /* the frame: a long flat seat and a raised headrest end, both K.mass so
+       they carry the same lit-top as every other plank in the stage */
+    ctx.strokeStyle = '#b08f56'; ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(lx - 11, ly + 9); ctx.lineTo(lx - 9, ly + 3);
+    ctx.moveTo(lx + 12, ly + 9); ctx.lineTo(lx + 10, ly + 3);
+    ctx.stroke();
+    K.mass(ctx, lx - 11, ly, 23, 3, '#e8d29c', { top: 1, side: 2, foot: false, edgeW: 1 });
+    ctx.save();
+    ctx.translate(lx - 10, ly);
+    ctx.rotate(-0.62);
+    K.mass(ctx, -1.5, -8, 3, 8, '#e8d29c', { top: 1, side: 1, foot: false, edgeW: 1 });
+    ctx.restore();
+
+    /* the sleeper — a little further down the plank and lolling a little
+       more with every pass, then bolt upright for one frame on the wake */
+    ctx.save();
+    ctx.translate(lx - 3 + slouch * 8, ly - 2 + slouch * 2.4);
+    ctx.rotate(-0.34 - slouch * 0.24);
+    K.spectator(ctx, 0, 0, 0.54, 771, wake ? t * 3.4 : t * 0.22, wake ? 1 : null);
+    ctx.restore();
+  }
+
+  /* ---- A CAT PADDLING A LILO ACROSS, every fourteen seconds or so --------
+
+     The floats already bob in place; nothing on the water actually GOES
+     anywhere except the beach ball passing overhead. This crosses at water
+     level instead, screen-pinned like the ball rather than parallaxed —
+     one lane of the pool, always the same width, never fighting the camera
+     for it. The paddling arm is a single flat dab flicked side to side, not
+     a drawn arm; at this size the flick reads as a stroke and a drawn limb
+     would not read as anything at all. */
+  var PADDLE_T = 850;
+
+  function loPaddle(ctx, t) {
+    var k = (t % PADDLE_T) / PADDLE_T;
+    if (k > 0.64) return;
+    var u = k / 0.64;
+    var x = -20 + u * 300, y = 153 + Math.sin(u * Math.PI * 3) * 1.1;
+    var side = Math.sin(t * 0.5) > 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#f0c93c';
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#c79a1e'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 4, 0, 0, Math.PI); ctx.stroke();
+    K.spectator(ctx, 0, -2, 0.54, 344, t * 0.4, null);
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    ctx.beginPath(); ctx.ellipse(side * 10, 2.4, 3, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   CF.StageDefs = CF.StageDefs || {};
   CF.StageDefs.pool = {
     id: 'pool', name: 'THE POOL DECK',
@@ -854,6 +932,7 @@
       K.crowdRow(ctx, camX, 0.34, 27, 132, t, mood,
                  { seed: 140, gap: 0.34, min: 0.52, max: 0.74 });
       shakeDry(ctx, camX, t, mood);
+      lounger(ctx, camX, t);
 
       /* --- the pool. It reaches from the far rail almost to the fighters'
              feet, so the fight happens on the lip of it. --- */
@@ -876,6 +955,7 @@
                 0.24, t, i * 1.7);
       });
       reflect(ctx, K.at(camX, 0.34, 34), 14, '#f2ece0', 0.26, t, 2.1);
+      reflect(ctx, K.at(camX, 0.34, LOUNGE_WORLD) - 4, 18, '#e8d29c', 0.22, t, 3.6);
       reflect(ctx, K.at(camX, 0, 296) - camX * 0.03 - 6, 56, '#0d4f78', 0.26, t, 0.4);
       ctx.restore();
 
@@ -914,6 +994,7 @@
 
       highBoard(ctx, camX, t);
       beachBall(ctx, t);
+      loPaddle(ctx, t);
 
       var wake = diveState(t).splash;
       wake = wake >= 0 ? Math.max(0, 1 - wake * 1.6) : 0;

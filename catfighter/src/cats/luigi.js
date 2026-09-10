@@ -248,6 +248,47 @@
         }
       }, f.furBack, { flat: true });
 
+      /* ---- the diving hole -------------------------------------------------
+
+         The flying body attack throws the tail up past the shoulder blade
+         far enough that the bare rig — tail capsule against torso capsule,
+         nothing of mine involved — leaves a diamond of daylight sealed on
+         every side: a true enclosed hole, found with `node tools/shot.mjs
+         silhouette` is stand-pose only and does NOT catch it; it only shows
+         up on `flyBody` (and `superFly`, which reuses the same cel). Neither
+         `rig.js` nor the pose is mine to touch, so it is closed the same way
+         everything else on this cat reaches past the body: a tuft of fur,
+         grown from the tail towards the back, in the one pose where the two
+         are close enough to need it.
+
+         Checked by DISTANCE, not by pose name — the gate below only fires
+         when a sampled point on the tail curve and a sampled point on the
+         torso's back line actually land near each other, so a retimed move
+         or a different build stays correct without touching this again, and
+         every other pose pays nothing (the loop is cheap; the shape itself
+         is skipped entirely when nothing is close). This is the far side of
+         the tail from the scarf's own crossing, so it cannot reopen the
+         lasso the scarf was tuned against above. */
+      (function () {
+        var backPts = [T(0.60, -f.chestW * 0.95), T(0.80, -f.chestW * 0.68)];
+        var bestT = null, bestB = null, bestD = 1e9;
+        for (var tt = 0.30; tt <= 0.95; tt += 0.065) {
+          var tp = tailAt(tt);
+          for (var bp = 0; bp < backPts.length; bp++) {
+            var d = Math.hypot(tp.x - backPts[bp].x, tp.y - backPts[bp].y);
+            if (d < bestD) { bestD = d; bestT = tp; bestB = backPts[bp]; }
+          }
+        }
+        var GAP = 15 * S;
+        if (bestD < GAP) {
+          A.add('back', function (cx) {
+            cx.beginPath();
+            tuft(cx, bestT.x, bestT.y, bestB.x - bestT.x, bestB.y - bestT.y,
+                 bestD * 0.92, bestD * 0.40, 0);
+          }, f.furBack, { flat: true });
+        }
+      })();
+
       /* ---- the head --------------------------------------------------------
 
          `headShape: 'long'` gives him a cheek of 0.18 against a broad cat's
