@@ -10,6 +10,7 @@
  *   node tools/shot.mjs kit    out.png                  the silhouette primitives
  *   node tools/shot.mjs silhouette out.png [scale]       every cat, flat black
  *   node tools/shot.mjs fight  out.png [stageIdx] [frames]  the real game
+ *   node tools/shot.mjs ko     out.png [loserId] [n] [every]  the death, cel by cel
  *   node tools/shot.mjs screen out.png [names]            menus: title, select,
  *                                  stage, card, roster, options, result
  *
@@ -245,7 +246,7 @@ stages: () => `
 };
 
 const scene = SCENES[mode];
-const live = mode === 'fight' || mode === 'screen';
+const live = mode === 'fight' || mode === 'screen' || mode === 'ko';
 if (!scene && !live) { console.error('unknown mode: ' + mode + ' — try ' + Object.keys(SCENES).concat('fight').join(', ')); process.exit(1); }
 
 const body = live ? '' : scene(rest);
@@ -286,9 +287,53 @@ try {
         g.render();
         return document.getElementById('screen').toDataURL('image/png');
       }, { idx, frames });
+    } else if (mode === 'ko') {
+      /* The death, cel by cel. Drive a real match to a real finishing blow
+         and grab a strip across the whole cinematic, because the only way to
+         judge an animation is to see the frames next to each other.
+           node tools/shot.mjs ko out.png [loserId] [count] [every] */
+      const loser = rest[0] || 'figuro';
+      const count = Number(rest[1]) || 10;
+      const every = Number(rest[2]) || 7;
+      url = await page.evaluate(({ loser, count, every }) => {
+        const g = window.CF.game, W = 384, H = 224;
+        const src = document.getElementById('screen');
+        const Z = 2, COLS = 2;
+        const rows = Math.ceil(count / COLS);
+        const out = document.createElement('canvas');
+        out.width = W * Z * COLS; out.height = H * Z * rows;
+        const o = out.getContext('2d');
+        o.imageSmoothingEnabled = false;
+        o.fillStyle = '#222'; o.fillRect(0, 0, out.width, out.height);
+
+        g.startMatch(CF.byId('ruby'), CF.byId(loser), 0, 'versus');
+        for (let k = 0; k < 130; k++) g.step();
+        /* one round from the match, so the next K.O. is decisive */
+        g.p1.roundWins = g.settings.rounds - 1;
+        /* put the loser on his last legs and hit him with something heavy */
+        g.p2.health = 1;
+        g.p1.x = g.p2.x - 46;
+        g.p1.setState('idle');
+        g.p1.startMove(g.p1.chr.moves.stHP, 2);
+        /* run to the finishing blow */
+        let guard = 0;
+        while (!g.finish && guard++ < 400) g.step();
+        for (let i = 0; i < count; i++) {
+          for (let k = 0; k < every; k++) g.step();
+          g.render();
+          const cx = (i % COLS) * W * Z, cy = Math.floor(i / COLS) * H * Z;
+          o.drawImage(src, 0, 0, src.width, src.height, cx, cy, W * Z, H * Z);
+          o.fillStyle = 'rgba(0,0,0,.6)'; o.fillRect(cx + 2, cy + 2, 62, 15);
+          o.fillStyle = '#8f8'; o.font = '700 11px monospace';
+          o.fillText('t+' + ((i + 1) * every), cx + 6, cy + 13);
+          o.strokeStyle = 'rgba(255,255,255,.25)';
+          o.strokeRect(cx + 0.5, cy + 0.5, W * Z - 1, H * Z - 1);
+        }
+        return out.toDataURL('image/png');
+      }, { loser, count, every });
     } else {
       /* A menu screen, stacked if several are asked for:
-           node tools/shot.mjs screen out.png title,select,card,stage,options,result */
+           node tools/shot.mjs screen out.png title,select,card,stage,options,result,perfect */
       const which = (rest[0] || 'title,select,card,options').split(',');
       url = await page.evaluate((which) => {
         const g = window.CF.game, W = 384, H = 224;
@@ -312,6 +357,17 @@ try {
           } else if (name === 'roster') {
             g.scene = 'roster'; g.roster = { cat: 2, pick: 0 };
           } else if (name === 'options') { g.scene = 'options'; g.optIndex = 0; }
+          else if (name === 'perfect') {
+            /* The PERFECT banner, caught a few frames after it slams in.
+               It is queued behind K.O., so the round has to actually end and
+               the queue has to be allowed to drain. */
+            g.startMatch(CF.ROSTER[0], CF.ROSTER[4], 0, 'versus');
+            for (let k = 0; k < 130; k++) g.step();
+            g.p2.health = 0;
+            g.endRound(g.p1, 'ko');
+            while (!(g.announce && g.announce.style === 'perfect')) g.step();
+            for (let k = 0; k < 6; k++) g.step();
+          }
           else if (name === 'result') {
             g.startMatch(CF.ROSTER[1], CF.ROSTER[3], 0, 'arcade');
             for (let k = 0; k < 160; k++) g.step();

@@ -52,7 +52,14 @@
     this.ghost = [0, 0];
     this.announce = null;
     this.announceT = 0;
+    /* Announcements that have to WAIT for another one. PERFECT lands after
+       K.O. has had its moment, the way it does in the original — the two of
+       them on screen together is a mess, and PERFECT first spoils the K.O. */
+    this.announceQueue = [];
+    /* the fighter who took the last round untouched, or null */
+    this.perfect = null;
     this.slowmo = 0;
+    this.slowmoMax = 1;
     this.crowdMood = 0;
     /* set on the blow that ends a match — see the KO handler */
     this.finish = null;
@@ -75,15 +82,24 @@
   Game.prototype.excite = function (n) {
     this.crowdMood = U.clamp(this.crowdMood + n, 0, 1);
   };
-  Game.prototype.say = function (str, frames, size, color) {
-    this.announce = { str: str, size: size || 34, color: color || '#ffe07a' };
+  Game.prototype.say = function (str, frames, size, color, style) {
+    this.announce = { str: str, size: size || 34, color: color || '#ffe07a',
+                      style: style || null, t: 0 };
     this.announceT = frames || 70;
+  };
+  /* The same thing, `delay` frames from now. Counted down in step(), so it
+     obeys hitstop and slow motion like everything else — a PERFECT timed in
+     real milliseconds would arrive halfway through the slow-motion K.O. */
+  Game.prototype.sayLater = function (delay, str, frames, size, color, style, fire) {
+    this.announceQueue.push({ in: delay, str: str, frames: frames,
+                              size: size, color: color, style: style, fire: fire });
   };
 
   /* ---- match set-up ------------------------------------------------------ */
   Game.prototype.startMatch = function (c1, c2, stageIdx, mode) {
     this.finish = null;
     this.slowmo = 0;
+    this.announceQueue.length = 0;
     if (CF.Audio.setKey) CF.Audio.setKey([0, 5, 3, -2, 7, -4][(stageIdx | 0) % 6]);
     var m = mode || this.settings.mode;
     this.settings.mode = m;
@@ -120,6 +136,8 @@
   Game.prototype.resetRound = function (first) {
     this.finish = null;
     this.slowmo = 0;
+    this.announceQueue.length = 0;
+    this.perfect = null;
     var p1 = this.p1, p2 = this.p2;
     p1.x = -START_GAP; p2.x = START_GAP;
     [p1, p2].forEach(function (f) {
@@ -127,6 +145,7 @@
       f.health = f.maxHealth; f.stun = 0; f.comboCount = 0;
       f.hitstop = 0; f.superFreeze = 0;
       f.hitstunTimer = 0; f.blockstunTimer = 0; f.knockdownTimer = 0; f.dizzyTimer = 0;
+      f.koSpin = 0; f.koSpinV = 0; f.koLanded = false; f.koBounce = 0; f.koThud = 0;
       f.move = null; f.moveFrame = 0;
       f.setState('intro');
       f.inputBuf.length = 0;
@@ -150,16 +169,35 @@
     this.t++;
 
     /* Slow motion, and it is real: the simulation simply does not advance on
-       two frames in three. The finishing blow of a match is the moment the
-       whole round was for, and at full speed you miss it. */
+       the frames it skips. The finishing blow of a match is the moment the
+       whole round was for, and at full speed you miss it.
+
+       It RAMPS. A flat two-in-three for the whole finish reads as the game
+       stuttering rather than as slow motion — the eye needs to feel it bite
+       and then let go. So the divisor starts at one frame in five, holds
+       while the body is in the air, and eases back to real time by the end.
+       `slowmo` counts DOWN, so `1 - slowmo/slowmoMax` is how far through the
+       finish we are. */
     if (this.slowmo > 0) {
       this.slowmo--;
       if (this.finish) this.finish.t++;
-      if (this.slowmo % 3) return;
+      var through = 1 - this.slowmo / Math.max(1, this.slowmoMax);
+      /* 5 -> 1 over the back half; the first half stays at its slowest */
+      var div = through < 0.45 ? 5
+              : Math.max(1, Math.round(5 - (through - 0.45) / 0.55 * 4));
+      if (div > 1 && (this.slowmo % div)) return;
     }
 
     for (var i = 0; i < this.ports.length; i++) this.ports[i].poll();
     if (this.announceT > 0) this.announceT--;
+    if (this.announce) this.announce.t++;
+    for (var aq = this.announceQueue.length - 1; aq >= 0; aq--) {
+      var qa = this.announceQueue[aq];
+      if (--qa.in > 0) continue;
+      this.announceQueue.splice(aq, 1);
+      if (qa.str) this.say(qa.str, qa.frames, qa.size, qa.color, qa.style);
+      if (qa.fire) qa.fire();
+    }
     if (this.shakeAmt > 0) this.shakeAmt *= 0.86;
     if (this.shakeAmt < 0.15) this.shakeAmt = 0;
 
@@ -686,6 +724,18 @@
       if (p2.stun >= p2.stunMax) p2.stun = 0;
     }
 
+    /* The body hitting the floor. Reported by the fighter, spent here,
+       because the camera belongs to the game. */
+    for (var th = 0; th < 2; th++) {
+      var tf = th ? p2 : p1;
+      if (tf.koThud > 0) {
+        this.shake(tf.koThud);
+        this.excite(0.6);
+        if (this.finish) this.finish.landed = this.finish.landed || this.finish.t;
+        tf.koThud = 0;
+      }
+    }
+
     this.separate();
     this.clampToStage();
     this.resolveHits();
@@ -824,6 +874,7 @@
           var decisive = (atk.roundWins + 1) >= this.settings.rounds;
           this.shake(decisive ? 17 : 12);
           this.slowmo = decisive ? 170 : 46;
+          this.slowmoMax = this.slowmo;
           this.excite(1);
           if (decisive) this.finish = { t: 0, win: atk, lose: def, at: mid };
           def.port.rumble(1, decisive ? 800 : 500);
@@ -915,6 +966,26 @@
     if (winner && winner !== 'draw') winner.roundWins++;
     else { this.p1.roundWins++; this.p2.roundWins++; }
     CF.Audio.play('ko');
+
+    /* PERFECT. Won the round without giving up a single point — which in this
+       game means the health bar, not the stun bar, and not the ghost bar
+       still draining behind it.
+
+       It is a ROUND award, not a match one: taking the first round clean and
+       the second one bloody still earns it for the first, exactly as it does
+       in the original. A double K.O. cannot earn it because nobody won, and
+       the draw branch above has already sent `winner` to 'draw'.
+
+       Queued rather than said, so K.O. keeps the screen for a beat first. */
+    if (winner && winner !== 'draw' && winner.health >= winner.maxHealth) {
+      this.perfect = winner;
+      var g = this;
+      this.sayLater(52, 'PERFECT', 96, 40, '#ffe9a8', 'perfect', function () {
+        CF.Audio.play('perfect');
+        g.excite(1);
+        g.shake(5);
+      });
+    }
   };
 
   Game.prototype.afterRound = function () {
@@ -1056,10 +1127,20 @@
   };
 
   /* ---- a cat, drawn at an arbitrary place and size ------------------------ */
-  function drawFighterAt(ctx, chr, pose, x, yBase, scale, facing, opts) {
+  /* `spin` tumbles the whole figure about its middle rather than its feet —
+     about the feet a falling body pivots like a felled tree, which is a
+     different and much worse-looking thing. Draw only: nothing here is ever
+     asked for a hurtbox. */
+  function drawFighterAt(ctx, chr, pose, x, yBase, scale, facing, opts, spin) {
     var j = CF.Rig.solve(pose, scale, chr.build);
     ctx.save();
     ctx.translate(x, yBase);
+    if (spin) {
+      var pivot = 42 * scale;
+      ctx.translate(0, -pivot);
+      ctx.rotate(spin);
+      ctx.translate(0, pivot);
+    }
     ctx.scale(facing, -1);
     CF.Rig.drawCat(ctx, j, chr.palette, opts || {});
     ctx.restore();
@@ -1578,9 +1659,21 @@
        sprite getting bigger. */
     var fin = this.finish;
     if (fin) {
+      /* A gentle push. It was 1.78x, which crammed both cats against the
+         edges of the frame and threw away the tumble the shot exists to
+         show — at that magnification a cat is taller than the screen. */
       var kz = U.clamp(fin.t / 46, 0, 1);
-      var zoom = 1 + 0.78 * (kz * kz * (3 - 2 * kz));
-      var fx2 = fin.win.x - camX, fy2 = FLOOR_Y - 62;
+      var zoom = 1 + 0.26 * (kz * kz * (3 - 2 * kz));
+      /* Hold BOTH of them until the body lands, then drift onto the winner.
+         Pushing straight in on the winner threw the loser off the side of
+         the screen at the exact moment the player wanted to watch them fly,
+         which is the whole point of the shot. */
+      var wx = fin.win.x - camX, lx = fin.lose.x - camX;
+      var settle = fin.landed ? U.clamp((fin.t - fin.landed) / 40, 0, 1) : 0;
+      var fx2 = lx + (wx - lx) * (0.5 + 0.5 * settle);
+      var fy2 = FLOOR_Y - 62;
+      /* never let the push shove the pair out of frame */
+      fx2 = U.clamp(fx2, W * 0.28, W * 0.72);
       ctx.translate(fx2, fy2);
       ctx.scale(zoom, zoom);
       ctx.translate(-fx2, -fy2);
@@ -1610,9 +1703,30 @@
       if (ff.state === 'move' && ff.move && ff.move.kind === 'super' && ff.superFreeze > 0) {
         opts.flash = (this.t % 4 < 2) ? 'white' : null;
       }
+      /* A body thrown across the screen in slow motion leaves a trail. Three
+         copies of the same drawing, behind it along its own velocity, at a
+         low alpha — it costs three extra figures for a few dozen frames once
+         a match and it is most of what makes the finish read as speed. */
+      if (ff.state === 'ko' && !ff.grounded && Math.abs(ff.vx) > 1.2) {
+        /* The first version tinted these with `silhouette`, which at three
+           overlapping copies came out as a brown smear across half the
+           stage. The real drawing at a low alpha reads as an afterimage;
+           a flat tint reads as mud. */
+        var tOpts = { eyes: ff.eyeState(), mouth: ff.mouthState(), t: this.t,
+                      vx: ff.vx, air: true, facing: ff.facing };
+        for (var gh = 3; gh >= 1; gh--) {
+          ctx.save();
+          ctx.globalAlpha = 0.26 - gh * 0.06;
+          drawFighterAt(ctx, ff.chr, ff.drawPose(),
+                        ff.x - camX - ff.vx * gh,
+                        FLOOR_Y - (ff.y - ff.vy * gh),
+                        1, ff.facing, tOpts, ff.koSpin - ff.koSpinV * gh);
+          ctx.restore();
+        }
+      }
       drawFighterAt(ctx, ff.chr, ff.drawPose(),
                     ff.x - camX + ff.joltX, FLOOR_Y - ff.y - ff.joltY,
-                    1, ff.facing, opts);
+                    1, ff.facing, opts, ff.koSpin);
     }
 
     for (var p = 0; p < this.projectiles.length; p++) {
@@ -1651,12 +1765,38 @@
 
     if (this.announceT > 0 && this.announce) {
       var a = this.announce;
-      var k2 = U.clamp((90 - this.announceT) / 8, 0, 1);
       ctx.save();
-      ctx.translate(W / 2, H / 2 - 14);
-      ctx.scale(1 + (1 - k2) * 0.5, 1 + (1 - k2) * 0.5);
-      ctx.globalAlpha = U.clamp(this.announceT / 18, 0, 1);
-      HUD.outlineText(ctx, a.str, 0, 0, a.size, a.color, '#2a0e18', 'center');
+      if (a.style === 'perfect') {
+        /* PERFECT gets a banner rather than a word floating in the middle of
+           the picture. It is the one thing on the screen at that moment and
+           it should look like a reward: a dark band so the letters read over
+           whatever stage is behind them, a hard rule top and bottom, and a
+           slam-in that overshoots and settles rather than a fade. */
+        var pt = a.t;
+        var slam = U.clamp(pt / 7, 0, 1);
+        var ease = 1 - Math.pow(1 - slam, 3);
+        var sc = 2.1 - 1.1 * ease;                 /* 2.1x down to 1x */
+        var bandH = Math.round(30 * ease);
+        var by = Math.round(H / 2 - 20);
+        ctx.globalAlpha = U.clamp(this.announceT / 16, 0, 1);
+        ctx.fillStyle = 'rgba(24,10,20,.82)';
+        ctx.fillRect(0, by, W, bandH);
+        ctx.fillStyle = 'rgba(255,205,110,.85)';
+        ctx.fillRect(0, by, W, 1);
+        ctx.fillRect(0, by + bandH - 1, W, 1);
+        /* the first three frames blow out white, which is what sells the hit
+           of it arriving */
+        if (pt < 3) { ctx.fillStyle = 'rgba(255,245,220,' + (0.5 - pt * 0.16) + ')'; ctx.fillRect(0, 0, W, H); }
+        ctx.translate(W / 2, by + bandH / 2 + 5);
+        ctx.scale(sc, sc);
+        HUD.outlineText(ctx, a.str, 0, 0, a.size, a.color, '#2a0e18', 'center');
+      } else {
+        var k2 = U.clamp((90 - this.announceT) / 8, 0, 1);
+        ctx.translate(W / 2, H / 2 - 14);
+        ctx.scale(1 + (1 - k2) * 0.5, 1 + (1 - k2) * 0.5);
+        ctx.globalAlpha = U.clamp(this.announceT / 18, 0, 1);
+        HUD.outlineText(ctx, a.str, 0, 0, a.size, a.color, '#2a0e18', 'center');
+      }
       ctx.restore();
     }
 

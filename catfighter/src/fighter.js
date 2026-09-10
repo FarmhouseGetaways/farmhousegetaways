@@ -56,6 +56,14 @@
     this.facing = side === 0 ? 1 : -1;
     this.grounded = true;
 
+    /* The death animation. All four are draw-only or read by the game's
+       camera; none of them may ever reach a hurtbox. */
+    this.koSpin = 0;        // whole-sprite rotation, radians
+    this.koSpinV = 0;       // how fast it is tumbling
+    this.koLanded = false;  // has the body hit the floor once already
+    this.koBounce = 0;      // frames left of the squash on impact
+    this.koThud = 0;        // impact the game has not consumed yet
+
     this.state = 'intro';
     this.stateFrame = 0;
     this.move = null;
@@ -458,8 +466,28 @@
     if (this.stateFrame > 1) this.setState('idle');
   };
 
+  /* THE DEATH. Everything here is presentation — the round is already over
+     and nothing below can reach a hurtbox — but it is the last thing the
+     player sees before the result screen and it is worth the frames.
+
+     The loser tumbles. `koSpin` is a whole-sprite rotation applied in the
+     draw only, spinning fastest at the top of the arc and dragging to a stop
+     as they slide, so they come to rest lying down rather than at whatever
+     angle the clock happened to land on. */
   Fighter.prototype.updateKO = function () {
-    this.vx *= 0.9;
+    if (this.grounded) {
+      /* friction on the floor, and the spin dies faster than the slide */
+      this.vx *= 0.86;
+      this.koSpinV *= 0.72;
+      /* settle flat: ease whatever angle is left back to the nearest
+         half-turn so nobody comes to rest wedged at forty degrees */
+      var target = Math.round(this.koSpin / Math.PI) * Math.PI;
+      this.koSpin += (target - this.koSpin) * 0.18;
+    } else {
+      this.vx *= 0.995;
+      this.koSpin += this.koSpinV;
+    }
+    if (this.koBounce > 0) this.koBounce--;
   };
 
   /* ---- free states ------------------------------------------------------- */
@@ -810,9 +838,24 @@
     var kd = hit.knockdown;
     if (this.health <= 0) {
       this.setState('ko');
-      this.vx = -this.facing * 4.2;
-      this.vy = 6.0;
+      /* The last blow throws further than any other, and a heavy one throws
+         further than a light one — the finish should look like the thing
+         that caused it. Lightweights fly, per their weight class. */
+      var big = 1 + Math.min(0.55, (hit.damage || 10) / 55);
+      /* The drama is in the DISTANCE travelled, not the height. Scaling both
+         by the blow threw a lightweight clean out of the top of the frame,
+         where there is nothing to see and nothing to land on — so the hit
+         size mostly buys horizontal travel, and the arc stays in shot. */
+      this.vx = -this.facing * 4.2 * big * this.cls.pushed;
+      this.vy = 6.0 + 1.6 * (big - 1);
       this.grounded = false;
+      /* Tumbling AWAY from the blow. Faster off a heavier hit, and never so
+         fast it becomes a blur — about a turn and a half at the top end. */
+      this.koSpin = 0;
+      this.koSpinV = -this.facing * (0.052 + 0.030 * (big - 1)) *
+                     (this.cls.pushed > 1 ? 1.25 : 1);
+      this.koLanded = false;
+      this.koBounce = 0;
       CF.Audio.play('ko');
       return 'ko';
     }
@@ -897,13 +940,39 @@
       this.y += this.vy;
       this.vy -= this.stats.gravity;
       if (this.y <= GROUND) {
+        /* how hard they arrived, before it is thrown away — the KO landing
+           below needs it to know whether this is the fall or the bounce */
+        var vyIn = this.vy;
         this.y = GROUND;
         this.vy = 0;
         this.grounded = true;
         this.jumpAttackUsed = false;
         this.airDashUsed = false;
+        if (this.state === 'ko') {
+          /* The body landing is its own event, and a loud one. It bounces
+             once — a dead weight does, and without it the tumble simply
+             stops, which reads as the animation running out rather than as
+             an impact. The second landing is quiet. */
+          if (!this.koLanded && Math.abs(vyIn) > 2.4) {
+            this.koLanded = true;
+            this.vy = Math.abs(vyIn) * 0.34;
+            this.vx *= 0.55;
+            this.grounded = false;
+            this.y = GROUND + 0.01;
+            this.koBounce = 10;
+            this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 11 });
+            /* The game owns the camera, so the body reports the impact and
+               lets it decide — the same way `fx` carries the dust. */
+            this.koThud = Math.min(14, 5 + Math.abs(vyIn) * 0.9);
+            CF.Audio.play('heavy');
+          } else {
+            this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 5 });
+            CF.Audio.play('land');
+          }
+        } else {
         this.fx.push({ kind: 'dust', x: this.x, y: 2, t: 0, n: 5 });
         CF.Audio.play('land');
+        }
         if (this.state === 'jump') { this.setState('idle'); this.landFrames = 4; }
         else if (this.state === 'hitstun') { this.knockdownTimer = 30; this.setState('knockdown'); }
         else if (this.state === 'thrown') { /* handled by updateThrown */ }

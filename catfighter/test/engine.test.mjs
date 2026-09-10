@@ -1770,6 +1770,152 @@ test('the CPU lets a cornered player back out', () => {
 });
 
 /* ==========================================================================
+   The death
+   ========================================================================== */
+
+function koTheLoser(CF) {
+  const g = headlessGame(CF);
+  g.arcade = { step: 0, order: [] };
+  g.startMatch(CF.byId('ruby'), CF.byId('figuro'), 0, 'versus');
+  for (let i = 0; i < 130; i++) g.step();
+  g.p1.roundWins = g.settings.rounds - 1;      /* make the next K.O. decisive */
+  g.p2.health = 1;
+  g.p1.x = g.p2.x - 46;
+  g.p1.setState('idle');
+  g.p1.startMove(g.p1.chr.moves.stHP, 2);
+  let guard = 0;
+  while (!g.finish && guard++ < 400) g.step();
+  assert.ok(g.finish, 'the finishing blow never landed');
+  return g;
+}
+
+test('the finishing blow throws the loser into a tumble', () => {
+  const g = koTheLoser(CF);
+  assert.equal(g.p2.state, 'ko');
+  assert.ok(!g.p2.grounded, 'a K.O. should leave the floor');
+  assert.ok(Math.abs(g.p2.koSpinV) > 0.01,
+    `the body should be spinning, got ${g.p2.koSpinV}`);
+  /* thrown AWAY from the winner, not into them */
+  assert.ok(Math.sign(g.p2.vx) === Math.sign(g.p2.x - g.p1.x),
+    'the loser should be thrown away from the winner');
+});
+
+test('the body lands, reports the impact once, and comes to rest lying down', () => {
+  const g = koTheLoser(CF);
+  let thuds = 0;
+  for (let i = 0; i < 1400; i++) {
+    g.step();
+    if (g.p2.koThud > 0) thuds++;       /* stepFight spends it the same frame */
+    if (g.scene !== 'fight') break;
+  }
+  assert.ok(g.p2.grounded, 'the body never came down');
+  /* Face up or face down, but FLAT — a body resting at forty degrees is the
+     animation having run out of frames, not a fighter who has been knocked
+     out. */
+  const off = Math.abs(g.p2.koSpin - Math.round(g.p2.koSpin / Math.PI) * Math.PI);
+  assert.ok(off < 0.12,
+    `settled ${off.toFixed(2)} rad off flat — it should ease to a half-turn`);
+});
+
+test('the tumble is draw-only and never moves a hurtbox', () => {
+  /* Same rule as the hit jolt. If the spin reached the boxes, whether a
+     trade came out would depend on how the last animation happened to look. */
+  const g = koTheLoser(CF);
+  const before = JSON.stringify(g.p2.hurtboxes());
+  g.p2.koSpin += 1.4;
+  assert.equal(JSON.stringify(g.p2.hurtboxes()), before,
+    'rotating the drawing moved a hurtbox');
+});
+
+test('slow motion ramps back to real time instead of holding one divisor', () => {
+  /* A flat two-in-three for the whole finish reads as the game stuttering.
+     Measured by how many simulation steps actually run per rendered frame:
+     the back of the finish must run more of them than the front. */
+  const g = koTheLoser(CF);
+  const sample = (n) => {
+    let ran = 0;
+    for (let i = 0; i < n; i++) { const t = g.p2.stateFrame; g.step(); if (g.p2.stateFrame !== t) ran++; }
+    return ran;
+  };
+  const early = sample(40);
+  for (let i = 0; i < 60; i++) g.step();
+  const late = sample(40);
+  assert.ok(late > early,
+    `slow motion should let go: ${early} steps early vs ${late} late`);
+});
+
+/* ==========================================================================
+   PERFECT
+   ========================================================================== */
+
+function roundEndedWith(CF, setup) {
+  const g = headlessGame(CF);
+  g.arcade = { step: 0, order: [] };
+  g.startMatch(CF.byId('gracie'), CF.byId('mario'), 0, 'versus');
+  for (let i = 0; i < 130; i++) g.step();   /* let the intro finish */
+  setup(g);
+  return g;
+}
+
+/* Drain the delayed-announce queue without waiting out the real delay. */
+function flushAnnounce(g, frames = 200) {
+  const seen = [];
+  for (let i = 0; i < frames; i++) {
+    g.step();
+    if (g.announce && g.announce.t === 0) seen.push(g.announce.str);
+  }
+  return seen;
+}
+
+test('winning a round untouched says PERFECT', () => {
+  const g = roundEndedWith(CF, (g) => {
+    g.p2.health = 0;
+    g.endRound(g.p1, 'ko');
+  });
+  assert.equal(g.perfect, g.p1, 'a full-health winner should be flagged perfect');
+  const said = flushAnnounce(g);
+  assert.ok(said.includes('PERFECT'),
+    `expected PERFECT to be announced, got: ${said.join(', ') || '(nothing)'}`);
+});
+
+test('PERFECT comes after K.O., never instead of it or over it', () => {
+  /* Both words on screen at once is a mess, and PERFECT first spoils the
+     K.O. it is meant to be a reward for. */
+  const g = roundEndedWith(CF, (g) => { g.p2.health = 0; g.endRound(g.p1, 'ko'); });
+  assert.equal(g.announce.str, 'K.O.', 'K.O. should have the screen first');
+  const said = flushAnnounce(g);
+  const ko = said.indexOf('K.O.'), pf = said.indexOf('PERFECT');
+  assert.ok(pf >= 0, 'PERFECT never arrived');
+  assert.ok(ko === -1 || ko < pf, 'PERFECT must not land before K.O.');
+});
+
+test('taking a single point of damage loses PERFECT', () => {
+  const g = roundEndedWith(CF, (g) => {
+    g.p1.health = g.p1.maxHealth - 1;
+    g.p2.health = 0;
+    g.endRound(g.p1, 'ko');
+  });
+  assert.equal(g.perfect, null, 'one point of chip damage is still damage');
+  assert.ok(!flushAnnounce(g).includes('PERFECT'), 'PERFECT should not have been said');
+});
+
+test('a double K.O. earns nobody a PERFECT', () => {
+  /* Nobody won, so nobody won cleanly — even though both bars can be full in
+     the frame the draw is declared. */
+  const g = roundEndedWith(CF, (g) => { g.endRound('draw', 'ko'); });
+  assert.equal(g.perfect, null);
+  assert.ok(!flushAnnounce(g).includes('PERFECT'));
+});
+
+test('the next round starts with PERFECT cleared and nothing queued', () => {
+  const g = roundEndedWith(CF, (g) => { g.p2.health = 0; g.endRound(g.p1, 'ko'); });
+  g.resetRound(false);
+  assert.equal(g.perfect, null, 'the flag should not survive into the next round');
+  assert.equal(g.announceQueue.length, 0,
+    'a queued PERFECT firing during the next round would be a ghost from the last one');
+});
+
+/* ==========================================================================
    Getting out, going on, and hitting out of a lunge
    ========================================================================== */
 

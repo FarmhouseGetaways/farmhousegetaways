@@ -122,6 +122,20 @@
       tone('sine', 230, 40, 0.9, 0.16);
       noise(0.7, 380, 0.5, 0.22);
     },
+    /* PERFECT. The K.O. is a hit and a room ringing; this is the opposite —
+       an upward fanfare, because the round was won cleanly and the sound
+       should feel like a reward rather than an impact. Same synthesised
+       announcer family as everything else: square leads over a sine body, no
+       samples anywhere in this game. */
+    perfect: function () {
+      tone('square', 660, 660, 0.10, 0.15);
+      tone('square', 880, 880, 0.10, 0.14, null, 0.09);
+      tone('square', 1320, 1320, 0.26, 0.15, null, 0.18);
+      tone('sine', 330, 330, 0.30, 0.10, null, 0.02);
+      tone('sine', 440, 660, 0.42, 0.09, null, 0.18);
+      /* a little air under it so it does not sound like a menu beep */
+      noise(0.30, 2600, 1.4, 0.07);
+    },
     dizzy: function () {
       tone('sine', 760, 320, 0.4, 0.13);
       tone('sine', 980, 430, 0.4, 0.09);
