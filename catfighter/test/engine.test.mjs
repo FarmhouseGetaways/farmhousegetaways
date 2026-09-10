@@ -1904,6 +1904,21 @@ test('the body lands, reports the impact once, and comes to rest lying down', ()
     `settled ${off.toFixed(2)} rad off flat — it should ease to a half-turn`);
 });
 
+test('a fighter knocked out against the wall still settles flat', () => {
+  /* The corner slam and the death tumble both push the same body around. A
+     K.O. in the corner is common — it is where most rounds end — and the two
+     of them fighting each other would leave the loser vibrating against the
+     wall or standing up at an angle. */
+  const g = koTheLoser(CF);
+  g.p2.x = 360;                    /* jammed against the right wall */
+  g.p2.vx = 10;
+  for (let i = 0; i < 1400; i++) { g.step(); if (g.scene !== 'fight') break; }
+  assert.ok(g.p2.grounded, 'the body never came down');
+  const off = Math.abs(g.p2.koSpin - Math.round(g.p2.koSpin / Math.PI) * Math.PI);
+  assert.ok(off < 0.12, `settled ${off.toFixed(2)} rad off flat in the corner`);
+  assert.ok(Math.abs(g.p2.vx) < 0.3, `still sliding at ${g.p2.vx.toFixed(2)}`);
+});
+
 test('the tumble is draw-only and never moves a hurtbox', () => {
   /* Same rule as the hit jolt. If the spin reached the boxes, whether a
      trade came out would depend on how the last animation happened to look. */
