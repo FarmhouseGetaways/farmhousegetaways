@@ -442,6 +442,29 @@
           cx.restore();
         }, BOOT, opt);
 
+        /* THE SPECULAR, on the near boot only, same trick as the near
+           glove and for the same reason. Boots are leather too — the brief
+           asks for four materials on him and four treatments, and up to
+           here boots got the ordinary cel-shaded `band`, which is exactly
+           what the satin trunks get. A soft lit crescent reads as cloth
+           whichever part it is on; what makes the gloves read as taut
+           leather is that their highlight is a small HARD-EDGED patch
+           rather than a band along the whole edge, and a boot is the same
+           stuff. One flat ellipse on the toe cap, where a boot actually
+           catches a lamp, aimed along the same LUX/LUY every other hard
+           highlight on him uses so it belongs to the same picture.
+
+           Paid for by the towel roll losing its `band` — see the note up
+           there. A shine on folded cloth was undermining the "towel is
+           matte" case the rest of the file makes, so that fill was pure
+           cost; this one earns its keep on the material the brief named. */
+        if (collar) A.add(layer, function (cx) {
+          var lx = f.FOOT_X * 1.08, ly = f.FOOT_Y * 1.18;
+          var tx = foot.x + lx * 1.06, ty = foot.y - ly * 0.52;
+          A.ellipse(cx, tx + LUX * lx * 0.16, ty + LUY * ly * 0.16,
+                        lx * 0.26, ly * 0.15, LANG);
+        }, A.lit(BOOT, 0.36), { flat: true });
+
         /* THE SOLE. Without it a boot is a red sock with a toe on it, which
            is exactly what these were: one shape, one colour, bottom to top.
            A sole is a different piece of leather from the upper and it is
@@ -717,12 +740,21 @@
          inside the outline and, in black, he was one smooth dome from ear to
          hip with nothing happening at the top of him. Tipped up it puts a
          hump behind the skull with a notch between the two, which is the
-         cheapest silhouette feature available and the most boxer-ish. */
+         cheapest silhouette feature available and the most boxer-ish.
+
+         It was `band: true` — a lit crescent along the roll — which is the
+         one place on the whole towel that argued against its own material.
+         The slab lower down had a bright stripe deleted from it for exactly
+         this reason (see the "ironing board" note above): a gym towel is
+         the MATTE thing in this picture and the gloves beside it are the
+         shiny one. Two tones, matching the rest of the cloth, and it pays
+         for the boot specular below — one fewer fill on a small shape
+         nobody was going to see shine anyway. */
       A.add('back', function (cx) {
         A.capsule(cx, { x: nk.x - cw * 0.02, y: nk.y + cw * 0.80 },
                       { x: nk.x - cw * 1.10, y: nk.y + cw * 1.06 },
                   cw * 0.26, cw * 0.34);
-      }, TOWEL, { band: true, edge: true });
+      }, TOWEL, { edge: true });
 
       /* A short end of the towel hanging over the FRONT of that shoulder
          was tried, to say draped rather than hung on a hook. It landed on
