@@ -65,20 +65,41 @@
     ctx.fillRect(x + 3.2 * s, yy + 0.4 * s, 2.4 * s, 2 * s);
   }
 
-  /* K.glow builds a radial gradient and rasterises it on the spot, and this
-     stage asks for thirty-six of them a frame — string lights, marquees,
-     screens, lanterns, two signs and the moon. Measured with the calls
-     stubbed out it was 2.2ms of a 9.4ms frame, comfortably the most
-     expensive thing in the barn and more than the whole floor costs.
+  /* A LAMP IN A DARK ROOM, WHICH IS THE BEST THING THIS STAGE HAS.
 
-     Every one of them is the same handful of soft discs over and over, so
-     they are baked once into little canvases and blitted from then on. The
-     picture is identical; the gradient work happens about sixteen times for
-     the life of the process instead of thirty-six times a second.
+     Nothing here is soft. `K.glow` was rewritten to four concentric discs at
+     stepped alpha because a limited-palette arcade board could not express a
+     smooth bloom, and the BANDING is the look — a lamp on those boards is a
+     stack of flat rings with visible steps between them. This is the same
+     recipe, and every glow in the barn now goes through it: string lights,
+     marquees, screens, lanterns, the moon, both signs and the work lamp.
+
+     It keeps the sprite cache it had. This stage asks for about forty glows
+     a frame, and four arc fills apiece is a hundred and sixty fills of up to
+     a fifty-pixel disc; baked once per (radius, colour) into a little canvas
+     it is one blit each.
+
+     The rings are painted OVER one another rather than added. Added is what
+     `K.glow` does — it composites each ring onto the picture with `lighter`,
+     so the four of them stack up to nearly twice the colour's own alpha in
+     the middle — and baked that way every string light in the barn came out
+     as a blown white ball with a coloured ring round it, forty of them, and
+     the room lost its darkness altogether. Four flat bands at the colour's
+     own alpha and down: same steps, same hard edges, a lamp instead of a
+     flashbulb.
 
      Blitted 1:1 with the logical pixel grid deliberately. A glow sprite
      drawn at a fractional scale is exactly the place smoothing would creep
      back into a game whose whole art direction is nearest-neighbour. */
+  /* `K.glow`'s own steps are [0.34, 1], [0.58, .52], [0.79, .26], [1, .11],
+     and those are right for a stage with a lamp or two in it. The barn has
+     forty, half of them in the FOREGROUND layer where the string lights hang
+     in front of everything, and a flat eleven-percent band running all the
+     way out to the full radius on forty lights is a haze over the whole
+     room — the picture lost its darkness and the mid tones came up with it.
+     The outer two bands are pulled in and taken down; the four steps and
+     their hard edges are exactly as they were. */
+  var GLOW_RINGS = [[0.30, 1.00], [0.55, 0.46], [0.78, 0.20], [1.00, 0.07]];
   var glowCache = {};
   function softGlow(ctx, x, y, r, colour, alpha) {
     /* Canvas silently IGNORES a negative globalAlpha and keeps the previous
@@ -92,11 +113,13 @@
       g = document.createElement('canvas');
       g.width = d; g.height = d;
       var gx = g.getContext('2d');
-      var grad = gx.createRadialGradient(r, r, 0, r, r, r);
-      grad.addColorStop(0, colour);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      gx.fillStyle = grad;
-      gx.fillRect(0, 0, d, d);
+      gx.fillStyle = colour;
+      for (var ri = GLOW_RINGS.length - 1; ri >= 0; ri--) {
+        gx.globalAlpha = GLOW_RINGS[ri][1];
+        gx.beginPath();
+        gx.arc(r, r, r * GLOW_RINGS[ri][0], 0, Math.PI * 2);
+        gx.fill();
+      }
       glowCache[key] = g;
     }
     ctx.save();
@@ -132,8 +155,12 @@
     ctx.moveTo(x + 11, y); ctx.lineTo(x + 11, y + h);
     ctx.moveTo(x + w - 11, y); ctx.lineTo(x + w - 11, y + h);
     ctx.stroke();
+    /* Three loose straws off the top edge, not five. There are up to twenty
+       bales on screen and the straws are the most numerous stroke in the
+       stage; what they are for is breaking the perfectly straight lit line
+       along the top, and three break it as well as five do. */
     ctx.strokeStyle = 'rgba(214,176,78,.75)'; ctx.lineWidth = 1;
-    for (var st = 0; st < 5; st++) {
+    for (var st = 0; st < 3; st++) {
       var sx = x + K.vary(i * 5 + st, 63, 2, w - 2);
       ctx.beginPath();
       ctx.moveTo(sx, y);
@@ -197,8 +224,16 @@
          it is paid for in full and never seen. Skipping those is a third of
          this layer for no change to the picture at all. */
       var loftX = 252 - camX * 0.03;
+      /* And where the claw machine will land. It is a hundred and four
+         pixels of solid red from the roof beam to the floor, pinned to the
+         left of the screen, and it is drawn over this layer — a wagon wheel
+         behind it is paid for in full and never seen. Only items that fall
+         WHOLLY inside it are skipped: an item is at most eighteen across
+         from its centre, so the test is deliberately conservative. */
+      var clawL = -camX * 0.02 + 16, clawR = clawL + 104;
       K.layer(ctx, camX, 0.3, function () {
         K.repeatX(camX, 0, 46, function (x, i) {
+          if (x - 18 > clawL && x + 18 < clawR) return;
           /* The margin is deliberately tighter than the opening's own 91:
              an item is up to 28 across and drawn centred, and at 105 the
              skip was eating the rosette board that fills the strip of wall
@@ -517,13 +552,21 @@
                holes is what the whole cabinet bank looked like. */
             var sc = K.pick(i, 44, ['#1c3a6e', '#3a1c4e', '#123c34', '#4a2410']);
             ctx.fillStyle = sc; ctx.fillRect(x + 4, top + 13, sw, sh);
-            ctx.save();
-            ctx.beginPath(); ctx.rect(x + 4, top + 13, sw, sh); ctx.clip();
+            /* NO CLIP. `clip()` is the expensive call, not the fills — the
+               same lesson the cats learned — and there are seven lit
+               cabinets on screen every frame, so this was seven clips and
+               seven save/restores for four sprites apiece. Everything drawn
+               on the glass below is inside the glass by construction; the
+               one thing that was not is the scrolling shooter's bars, whose
+               last row wraps past the bottom edge, and that one is trimmed
+               by hand. */
             if (kind === 0) {                 /* a scrolling shooter */
               for (var b2 = 0; b2 < 5; b2++) {
                 ctx.globalAlpha = 0.95;
                 ctx.fillStyle = K.pick(i * 5 + b2, 37, ['#ff5b7a', '#ffd166', '#6fe3a0', '#7ab6ff']);
-                ctx.fillRect(x + 5, top + 14 + ((b2 * 6 + t * (0.4 + h)) % sh), sw - 2, 3);
+                var by2 = top + 14 + ((b2 * 6 + t * (0.4 + h)) % sh);
+                var bhh = Math.min(3, top + 13 + sh - by2);
+                if (bhh > 0) ctx.fillRect(x + 5, by2, sw - 2, bhh);
               }
               ctx.globalAlpha = 1; ctx.fillStyle = '#fff6d8';
               ctx.fillRect(x + 4 + sw / 2 - 2, top + 11 + sh - 8, 4, 4);
@@ -532,7 +575,8 @@
                 ctx.globalAlpha = 0.92;
                 ctx.fillStyle = K.pick(i * 12 + q, 38, ['#4ad0ff', '#ffd166', '#ff6b8a']);
                 ctx.fillRect(x + 5 + (q % 4) * (sw / 4),
-                             top + 14 + Math.floor(q / 4) * (sh / 3), sw / 4 - 1.5, sh / 3 - 1.5);
+                             top + 14 + Math.floor(q / 4) * ((sh - 2) / 3),
+                             sw / 4 - 1.5, (sh - 2) / 3 - 1.5);
               }
             } else {                          /* two paddles and a dot */
               ctx.globalAlpha = 1;
@@ -551,7 +595,6 @@
             ctx.globalAlpha = 1;
             ctx.fillStyle = 'rgba(0,0,0,.22)';
             for (var sl = 2; sl < sh; sl += 4) ctx.fillRect(x + 4, top + 13 + sl, sw, 1);
-            ctx.restore();
             ctx.globalAlpha = 1;
             softGlow(ctx, x + 4 + sw / 2, top + 13 + sh / 2, 26, 'rgba(150,185,255,.6)', 0.26);
             spills.push([x + wdt / 2, mc]);

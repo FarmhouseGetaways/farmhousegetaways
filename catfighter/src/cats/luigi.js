@@ -63,7 +63,12 @@
 
      Bare feet, deliberately: Mario has cream socks and cream feet, so
      Luigi's legs run black all the way to the floor and read as one long
-     line. Same coat, opposite leg.                                      */
+     line. Same coat, opposite leg.
+
+     AND THE FUR ITSELF IS A PIECE OF KIT. Added when the owner asked for
+     more detail and realism. See the long note over `tuft` below: on a
+     lean cat the outline is the character, and a smooth outline is a
+     stick.                                                              */
   look: {
     pieces: function (A, j, f) {
       /* A clean jade. It has to survive being a mid-tone shape on a
@@ -73,7 +78,16 @@
          has: red on Gracie, crimson on Mario, blue on Lilly. */
       var SCARF = '#2f9e63';
       var SCARF_D = A.shade(SCARF, 0.26);
+      /* The two tones the CLOTH is planed with. They are deliberately the
+         same numbers `celFill` uses on the fur — shadow is the base mixed
+         0.46 towards the one cool dark, the highlight 0.36 towards the
+         light — so the scarf is lit by the same lamp as the shoulder it
+         sits on even though it is not shaded by the same recipe. */
+      var CLOTH_SH = A.shade(SCARF, 0.40);
+      var CLOTH_LT = A.lit(SCARF, 0.36);
       var BONE = '#f2ecdc';
+      var BONE_D = A.shade(BONE, 0.34);
+      var S = f.s;
 
       /* the spine frame: t runs pelvis(0) to neck(1), w across it and
          positive forward. Same trick as Gracie's gi and Mario's mawashi. */
@@ -81,21 +95,218 @@
       var dx = n.x - p.x, dy = n.y - p.y;
       var L = Math.hypot(dx, dy) || 1;
       var fx = dy / L, fy = -dx / L;
+      var upx = dx / L, upy = dy / L;            /* along the spine, towards the head */
       function T(t, w) { return { x: p.x + dx * t + fx * w, y: p.y + dy * t + fy * w }; }
+
+      /* ==== FUR ON THE SILHOUETTE ==========================================
+
+         The single biggest thing missing from this cat, and it took the
+         owner asking for "more detail" to see it: every edge on him was a
+         SMOOTH CURVE. A smooth outline is what vector art looks like. A
+         drawn animal has notched, tufted, irregular edges — at the nape, the
+         rump, the back of the thigh, the jaw, the length of the tail — and
+         on a LEAN cat that is where the whole character lives. A thin figure
+         with a smooth outline is a stick; a thin figure with a ragged one is
+         a whippet.
+
+         HOW IT IS DONE. Each tuft is a lobe whose root is sunk INTO the
+         body and which is added to the `back` layer, so the torso, the limb
+         or the skull is painted over it afterwards and the only thing that
+         survives is the part standing proud of the outline — exactly the
+         mechanism `A.mane` uses. The contour pass has already stroked it, so
+         what comes out is fur welded into the silhouette rather than a shape
+         stuck on top of it.
+
+         HOW BIG, and this is the whole trick. At game scale a unit is about
+         a pixel and the contour is 1.8 units wide on EVERY side of EVERY
+         shape, so two tufts four units apart weld into one lump and a tuft
+         four units long is swallowed by its own outline. Nothing under about
+         five units long reads, and nothing closer together than about eight
+         units reads as two. So these are FEW AND LARGE — three jags on a
+         forty-unit tail, not a sawtooth. An even comb of little teeth was
+         the first thing tried and at 1x it is a furry blur, which is noise,
+         which is worse than the smooth curve it replaced.
+
+         And no two are the same. Lengths, spacing and lean are all hand-set
+         and deliberately uneven: a real animal is not mirrored, and a row of
+         identical spikes reads as machined.
+
+         A LOBE, NOT A SPIKE, and this was the first thing that had to be
+         thrown away. The first version drew each tuft as a narrow triangle
+         standing straight out of the surface — four of them along the tail,
+         three down the back — and it came out a stegosaurus. Fur is not
+         thorns: what a drawn cat has is a BROAD, SHALLOW scallop that leans
+         hard along the body, wider at the root than it is deep. So `wide` is
+         about the same as `out` here and never much less, and `sweep` lays
+         the tip over: down the back at the nape, down the leg at the thigh,
+         out towards the tip on the tail.                                  */
+      function tuft(cx, px, py, dxv, dyv, out, wide, sweep) {
+        var l2 = Math.hypot(dxv, dyv) || 1;
+        var ux = dxv / l2, uy = dyv / l2;      /* out of the body */
+        var vx = -uy, vy = ux;                 /* along the surface */
+        /* the roots sit behind the surface, so the tuft grows out of the
+           body rather than balancing on it */
+        var r1x = px + vx * wide - ux * wide * 0.85, r1y = py + vy * wide - uy * wide * 0.85;
+        var r2x = px - vx * wide - ux * wide * 0.85, r2y = py - vy * wide - uy * wide * 0.85;
+        var tx = px + ux * out + vx * sweep, ty = py + uy * out + vy * sweep;
+        cx.moveTo(r1x, r1y);
+        cx.quadraticCurveTo(px + vx * wide * 0.70 + ux * out * 0.62,
+                            py + vy * wide * 0.70 + uy * out * 0.62, tx, ty);
+        cx.quadraticCurveTo(px - vx * wide * 0.44 + ux * out * 0.30,
+                            py - vy * wide * 0.44 + uy * out * 0.30, r2x, r2y);
+        cx.closePath();
+      }
+
+      /* A point on the edge of a limb and the direction out of it. `t` runs
+         0 at `a` to 1 at `b`, `r0`/`r1` are the limb's radii at each end and
+         `side` picks which edge: -1 is the trailing one, which is the back
+         of a thigh or the point of an elbow whichever way the joint is
+         swung. */
+      function edge(a, b, t, r0, r1, side) {
+        var ex = b.x - a.x, ey = b.y - a.y, el = Math.hypot(ex, ey) || 1;
+        var nx = -ey / el * side, ny = ex / el * side;
+        var r = r0 + (r1 - r0) * t;
+        return { x: a.x + ex * t + nx * r, y: a.y + ey * t + ny * r, nx: nx, ny: ny,
+                 ux: ex / el, uy: ey / el };
+      }
+      function limbTuft(cx, a, b, t, r0, r1, side, out, wide, sweep) {
+        var e = edge(a, b, t, r0, r1, side);
+        /* `sweep` is given along the limb, so it has to be resolved against
+           the limb's own direction rather than the tuft's */
+        var sw = (e.ux * -e.ny + e.uy * e.nx) * (sweep || 0);
+        tuft(cx, e.x, e.y, e.nx, e.ny, out * S, wide * S, sw * S);
+      }
+
+      /* ---- the trunk and the legs -----------------------------------------
+
+         The nape and the shoulder blade break the long smooth back; the two
+         at the rump are where the tail leaves and are the ones that stop the
+         hindquarters reading as a bag; the britches on the far thigh are the
+         classic cat trouser, and they are on the FAR leg because in a
+         standing guard that is the leg on the outline — the near one's back
+         edge faces into the gap between his feet, where a tuft is a smudge
+         nobody can read. The near knee gets one anyway because in the sweep
+         and both kicks that leg is thrown out and its underside becomes the
+         whole bottom of the silhouette.                                   */
+      var RT = f.R_TOP, RM = f.R_MID, RE = f.R_END;
+      A.add('back', function (cx) {
+        cx.beginPath();
+        var q;
+        /* the nape and the shoulder blade. Two, not three: the middle one
+           made an even row and an even row is a comb. */
+        var nape = [[0.88, 0.86, 4.2, 4.0, -1.15], [0.63, 0.98, 3.4, 4.6, -1.30]];
+        for (q = 0; q < nape.length; q++) {
+          var nb = T(nape[q][0], -f.chestW * nape[q][1]);
+          tuft(cx, nb.x, nb.y, -fx, -fy, nape[q][2] * S, nape[q][3] * S,
+               nape[q][4] * S);
+        }
+        /* the rump, where the tail leaves it */
+        var rp = T(0.02, -f.hipW * 1.02);
+        tuft(cx, rp.x, rp.y, -fx, -fy, 4.0 * S, 4.4 * S, -1.4 * S);
+        /* britches on the far thigh */
+        limbTuft(cx, j.hipB, j.kneeB, 0.34, RT * 1.10, RM * 0.80, -1, 4.4, 4.6, 1.6);
+        /* the near leg, for the poses that throw it out in front, and the
+           spring of the calf high on the back of the shin */
+        limbTuft(cx, j.hipF, j.kneeF, 0.36, RT * 1.24, RM * 0.86, -1, 3.2, 4.2, 1.4);
+        limbTuft(cx, j.kneeF, j.footF, 0.16, RM * 0.86, RE * 0.80, -1, 2.8, 3.6, 1.1);
+      }, f.furBack, { flat: true });
+
+      /* ---- the tail --------------------------------------------------------
+
+         A forty-unit smooth banana was the loudest remaining curve on him,
+         and it sat right next to the scarf — two smooth arcs of the same
+         length making a V, and the eye read them as one piece of kit. Three
+         jags on the OUTER edge and a heavier tip fix both at once: the tail
+         becomes an animal and the scarf stays cloth.
+
+         Outer edge only, and never the inner one. A tuft on the inside is
+         pointing at either the rump or the scarf, and closing either gap is
+         how the lasso came back the last three times.                     */
+      var TW = 4.0 * S * f.GW;                  /* the rig's own tail width */
+      function tailAt(t) {
+        var P = j.tail, u = 1 - t;
+        var gx = 3 * u * u * (P[1].x - P[0].x) + 6 * u * t * (P[2].x - P[1].x) + 3 * t * t * (P[3].x - P[2].x);
+        var gy = 3 * u * u * (P[1].y - P[0].y) + 6 * u * t * (P[2].y - P[1].y) + 3 * t * t * (P[3].y - P[2].y);
+        var gl = Math.hypot(gx, gy) || 1;
+        var w = TW + (TW * 0.52 - TW) * (t * t * (3 - 2 * t));
+        var nx = -gy / gl, ny = gx / gl;         /* the outer side of the curl */
+        return { x: u * u * u * P[0].x + 3 * u * u * t * P[1].x + 3 * u * t * t * P[2].x + t * t * t * P[3].x + nx * w,
+                 y: u * u * u * P[0].y + 3 * u * u * t * P[1].y + 3 * u * t * t * P[2].y + t * t * t * P[3].y + ny * w,
+                 nx: nx, ny: ny, ux: gx / gl, uy: gy / gl };
+      }
+      A.add('back', function (cx) {
+        cx.beginPath();
+        /* A thick furry root, a small notch at the waist of the curl and a
+           fuller tip — which is how a real tail reads, and NOT three of the
+           same lobe evenly spread, which is a fish fin. Uneven spacing does
+           most of the work here. */
+        var jag = [[0.14, 4.0, 5.6, 1.8], [0.46, 2.0, 3.4, 0.5], [0.80, 3.0, 4.2, 1.5]];
+        for (var q = 0; q < jag.length; q++) {
+          var e = tailAt(jag[q][0]);
+          var sw = (e.ux * -e.ny + e.uy * e.nx) * jag[q][3];
+          tuft(cx, e.x, e.y, e.nx, e.ny, jag[q][1] * S, jag[q][2] * S, sw * S);
+        }
+      }, f.furBack, { flat: true });
+
+      /* ---- the head --------------------------------------------------------
+
+         `headShape: 'long'` gives him a cheek of 0.18 against a broad cat's
+         0.86, which is right for a lean face and leaves the skull a smooth
+         egg with two ears on it. Two tufts off the back of it and one under
+         the jaw put a CAT in the outline; without them he is a ball with a
+         face drawn on, which is the exact failure ART.md warns about.
+
+         Drawn in the head's own frame — the skull turns as far as 84 degrees
+         on a knockdown and fur painted in body space would slide off the
+         face. The frame is rebuilt here rather than asked for because the
+         `back` layer is in body coordinates: everything in it has to carry
+         its own transform.
+
+         The ear furnishing is on the NEAR ear only. A matched pair is a
+         costume; one is an animal.                                       */
+      var DEG = Math.PI / 180;
+      A.add('back', function (cx) {
+        cx.save();
+        cx.translate(j.head.x, j.head.y);
+        cx.rotate(-(j.headRot || 0) * DEG);
+        cx.beginPath();
+        var r = j.headR;
+        /* the skull is an ellipse rx 0.90, ry 1.34 of headR; the outward
+           direction at an angle is (cos/rx, sin/ry), not (cos, sin) */
+        var ruff = [[172, 3.4, 3.6, -1.1], [208, 3.8, 3.4, -0.9], [244, 2.8, 2.8, -0.7]];
+        for (var q = 0; q < ruff.length; q++) {
+          var a2 = ruff[q][0] * DEG, ca = Math.cos(a2), sa = Math.sin(a2);
+          tuft(cx, r * 0.90 * ca, r * 1.34 * sa, ca / 0.90, sa / 1.34,
+               ruff[q][1] * S, ruff[q][2] * S, ruff[q][3] * S);
+        }
+        /* the near ear, halfway up its leading edge */
+        tuft(cx, r * 0.70, r * 1.34, 0.94, -0.34, 2.8 * S, 2.6 * S, 1.2 * S);
+        cx.restore();
+      }, f.fur, { flat: true });
 
       /* A tapering ribbon through a list of {x,y,w}. Built by walking the
          centre line and pushing each point out along the normal, because a
          stroked line cannot taper and a scarf that does not taper is a
          plank. */
+      /* The unit normal at a sample, and the cloth's half-width on each side
+         of it. They are separate because one point along the banner carries a
+         TEAR — see `scarfPts` — and a tear is a bite out of one edge only. */
+      function nrm(pts, q) {
+        var a = pts[Math.max(0, q - 1)], b = pts[Math.min(pts.length - 1, q + 1)];
+        var ux = b.x - a.x, uy = b.y - a.y, ul = Math.hypot(ux, uy) || 1;
+        return { x: -uy / ul, y: ux / ul };
+      }
+      function halfW(pt, side) {
+        return side >= 0 ? (pt.wf === undefined ? pt.w : pt.wf)
+                         : (pt.wb === undefined ? pt.w : pt.wb);
+      }
       function ribbon(pts, notch) {
         return function (cx) {
           var fwd = [], bwd = [], q;
           for (q = 0; q < pts.length; q++) {
-            var a = pts[Math.max(0, q - 1)], b = pts[Math.min(pts.length - 1, q + 1)];
-            var ux = b.x - a.x, uy = b.y - a.y, ul = Math.hypot(ux, uy) || 1;
-            var nx = -uy / ul * pts[q].w, ny = ux / ul * pts[q].w;
-            fwd.push({ x: pts[q].x + nx, y: pts[q].y + ny });
-            bwd.push({ x: pts[q].x - nx, y: pts[q].y - ny });
+            var u2 = nrm(pts, q);
+            fwd.push({ x: pts[q].x + u2.x * halfW(pts[q], 1), y: pts[q].y + u2.y * halfW(pts[q], 1) });
+            bwd.push({ x: pts[q].x - u2.x * halfW(pts[q], -1), y: pts[q].y - u2.y * halfW(pts[q], -1) });
           }
           cx.beginPath();
           cx.moveTo(fwd[0].x, fwd[0].y);
@@ -129,7 +340,58 @@
          straight out behind him. */
       var SW = f.sway;
 
-      function scarfTail(len, rise, drop, wid, phase, ripple) {
+      /* ---- CLOTH IS NOT FUR, AND MUST NOT BE SHADED LIKE IT -----------------
+
+         `celFill` fills a part in shadow and lays the base back over it
+         shifted towards the light, so what survives is a crescent of shadow
+         along one edge. That is exactly right for a limb — it is a tube and
+         it should read as one — and it is exactly wrong for a scarf, which
+         is why the banner came out looking like a bent green pipe. Light
+         cloth does not have a rounded form; it has FLAT PLANES with a crisp
+         fold between them, and the fold wanders across the width as the
+         cloth turns over.
+
+         So the banner is filled FLAT and two planes are laid on it by hand:
+         a shadow along the trailing edge and a highlight along the leading
+         one, both with a boundary that pinches and swells and crosses the
+         middle once. Three tones, same as everything else, but they are
+         planes rather than crescents — and at ninety pixels tall that
+         difference is the whole difference between cloth and hosepipe.
+
+         It is cheaper as well as better: three flat fills and no clip
+         against one clipped four-fill band pass.                          */
+      function frac(prof, t) {
+        var q = 0;
+        while (q < prof.length - 2 && prof[q + 1][0] < t) q++;
+        var a = prof[q], b = prof[q + 1];
+        var k = (t - a[0]) / ((b[0] - a[0]) || 1);
+        if (k < 0) k = 0; else if (k > 1) k = 1;
+        return [a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+      }
+      /* A strip of a ribbon between two across-fractions: +1 is the trailing
+         edge, -1 the leading one. Both run right out to the edge — the plane's
+         own contour lands inside the ribbon's, so it leaves no line. */
+      function plane(pts, prof, from, to) {
+        return function (cx) {
+          var q, lo = [], hi = [], N2 = pts.length - 1;
+          for (q = 0; q <= N2; q++) {
+            var t = q / N2;
+            if (t < from || t > to) continue;
+            var u2 = nrm(pts, q);
+            var k = frac(prof, t);
+            var w0 = halfW(pts[q], k[0]), w1 = halfW(pts[q], k[1]);
+            lo.push({ x: pts[q].x + u2.x * w0 * k[0], y: pts[q].y + u2.y * w0 * k[0] });
+            hi.push({ x: pts[q].x + u2.x * w1 * k[1], y: pts[q].y + u2.y * w1 * k[1] });
+          }
+          cx.beginPath();
+          cx.moveTo(hi[0].x, hi[0].y);
+          for (q = 1; q < hi.length; q++) cx.lineTo(hi[q].x, hi[q].y);
+          for (q = lo.length - 1; q >= 0; q--) cx.lineTo(lo[q].x, lo[q].y);
+          cx.closePath();
+        };
+      }
+
+      function scarfPts(len, rise, drop, wid, phase, ripple) {
         var pts = [], N = 9;
         var ex = nk.x - len * f.s;
         var ey = nk.y - drop * f.s + SW * 2.6 * f.s;
@@ -156,7 +418,20 @@
              read and still narrows continuously. */
           pts.push({ x: px, y: py, w: wid * f.s * (1 - 0.66 * Math.pow(t, 1.35)) });
         }
-        return ribbon(pts, 6.4 * f.s);
+        /* A TEAR, on one edge, at one station. A bite out of the trailing
+           edge is a detail that survives the drop to game size because it is
+           cut into the SILHOUETTE rather than drawn inside it — the same
+           argument as the swallowtail at the tip and the torn cuff on the
+           sleeve, and the same language: nothing on this cat is hemmed.
+
+           One edge only. Taking the same bite out of both edges at the same
+           station pinches the ribbon to a waist, and a scarf with a waist in
+           it reads as a modelling error rather than as damage. The second
+           point is half the bite, so the tear has a torn SLOPE back to full
+           width instead of a square step. */
+        pts[5].wf = pts[5].w * 0.46;
+        pts[6].wf = pts[6].w * 0.80;
+        return pts;
       }
 
       /* ONE tail, and it took four rounds of the silhouette test to get
@@ -201,7 +476,16 @@
          again, and it will not show up in colour — `node tools/shot.mjs
          silhouette`, and check the other five poses too, because stand is
          the one pose where the tail is furthest out of the way. */
-      A.add('back', scarfTail(44, 20.0, -24.0, 5.6, 0.0, 3.2), SCARF, { band: true, edge: true });
+      var BANNER = scarfPts(44, 20.0, -24.0, 5.6, 0.0, 3.2);
+      A.add('back', ribbon(BANNER, 6.4 * S), SCARF, { edge: true, flat: true });
+      /* the underside, turning over once at about two thirds along */
+      A.add('back', plane(BANNER, [[0, 1, 0.05], [0.24, 1, 0.62], [0.44, 1, 0.10],
+                                   [0.66, 1, -0.42], [0.84, 1, 0.34], [1, 1, 0.55]],
+                          0, 0.97), CLOTH_SH, { flat: true });
+      /* and the plane that faces the light, which is doing the opposite */
+      A.add('back', plane(BANNER, [[0, -1, -0.62], [0.24, -1, -0.90], [0.44, -1, -0.30],
+                                   [0.66, -1, -0.78], [0.84, -1, -0.26], [1, -1, -0.50]],
+                          0, 0.97), CLOTH_LT, { flat: true });
 
       /* The collar the banner is tied to. Without it the cloth grew straight
          out of the fur, which reads as a mistake rather than as a garment. */
@@ -225,16 +509,25 @@
         var sl = Math.hypot(sx, sy) || 1;
         var nx2 = -sy / sl, ny2 = sx / sl;
         var W = f.chestW * 0.62;
-        function S(t, k) {
+        function SP(t, k) {
           return { x: top.x + sx * t + nx2 * W * k,
                    y: top.y + sy * t + ny2 * W * k };
         }
         A.add('body', function (cx) {
           /* bowed out a little at the middle: a sash lies on a chest, and
              a chest is round. Dead straight it read as tape. */
-          A.smooth(cx, [S(0, 1), S(0.5, 1.16), S(1, 1),
-                        S(1, -1), S(0.5, -1.16), S(0, -1)]);
-        }, SCARF, { band: true, edge: true });
+          A.smooth(cx, [SP(0, 1), SP(0.5, 1.16), SP(1, 1),
+                        SP(1, -1), SP(0.5, -1.16), SP(0, -1)]);
+        }, SCARF, { edge: true, flat: true });
+        /* Same cloth, same treatment: a flat plane along the trailing edge
+           with one crisp fold where it crosses the pectoral, instead of the
+           soft crescent the band pass gave it. Two tones is enough here —
+           the sash is eleven pixels across and a highlight on it as well
+           came out as three stripes and read as corrugated iron. */
+        A.add('body', function (cx) {
+          A.smooth(cx, [SP(0.02, 1.02), SP(0.34, 1.10), SP(0.62, 1.06), SP(0.98, 1.02),
+                        SP(0.98, 0.10), SP(0.62, -0.34), SP(0.34, 0.40), SP(0.02, 0.05)]);
+        }, CLOTH_SH, { flat: true });
       })();
 
       /* the knot where the sash meets the hip, with one short end hanging
@@ -294,6 +587,27 @@
           return { x: j.elbF.x + ux * along * f.s + px2 * across,
                    y: j.elbF.y + uy * along * f.s + py2 * across };
         }
+        /* GATHERS, and they are the reason the sleeve is not the same
+           material as the banner. Heavy cloth bunches where it is held —
+           here at the bell past the elbow — and a crease in a sprite is a
+           SHAPE, never a line: a stroked one-pixel crease disappears, and a
+           two-pixel one reads as a scratch. So each is a tapered wedge in a
+           bone shadow, cut straight across the sleeve, hard-edged. Two, at
+           different angles and different lengths, because a matched pair
+           reads as printed stripes. */
+        function crease(cx, a0, k0, a1, k1, wid) {
+          var p0 = E(a0, W * k0), p1 = E(a1, W * k1);
+          var q1 = E(a1 + wid * 0.30, W * k1), q0 = E(a0 + wid, W * k0);
+          cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y);
+          cx.lineTo(q1.x, q1.y); cx.lineTo(q0.x, q0.y);
+          cx.closePath();
+        }
+        A.add('front', function (cx) {
+          cx.beginPath();
+          crease(cx, -6.4, 1.00, -4.0, -0.34, 2.3);
+          crease(cx, -2.6, 0.98, -1.4, 0.18, 1.5);
+        }, BONE_D, { flat: true });
+
         /* The cuff, torn rather than sewn, cut with lineTo and never
            smoothed — A.smooth rounds a two-pixel tooth away to nothing and
            the tear is the whole reason the sleeve is not a bandage.

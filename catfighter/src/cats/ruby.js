@@ -65,8 +65,9 @@
          thing on the roster. Everything under about six pixels — studs,
          rivets, spikes, the lit facets, the ankle bands — is flat now, and
          at 384x224 not one of them shows a tone it lost. */
-      var HIDE = '#2e1d18', HIDE2 = '#4a2e24', STUD = '#cfcabc',
-          TROU = '#443f36', TROU2 = '#2c2924',
+      var HIDE = '#2e1d18', HIDE2 = '#4a2e24', HIDE3 = '#6d4432',
+          STUD = '#cfcabc',
+          TROU = '#413c33', TROU2 = '#282520', TROU3 = '#706753',
           HACKLE = '#7a3f26';
       /* The pauldron is STEEL, not more leather. Drawn in the same near-
          black hide as the cut it merged straight into it and the two
@@ -85,7 +86,21 @@
          has to stay UNDER the muzzle. So the lit facet now sits just below
          the ginger's mid tone and a hard dark facet does the work the pale
          one used to. */
-      var PLATE = '#55545a', PLATE2 = '#74737d', PLATE3 = '#2f2e36';
+      /* 23 Aug 2026 — the third correction, and the one that finally made it
+         read as metal. The plate was PLATE '#55545a' with the LIT facet
+         '#74737d' covering half of it, so the whole thing averaged out as one
+         mid-light slab: a piece of grey card the size of her skull with a
+         slightly lighter half. Steel does not do that. Steel is dark
+         everywhere except where a plane happens to point at the lamp, and
+         there it is nearly white.
+         So: the base is darker than the old base, the dark facet is a real
+         black-blue and takes the whole underside, and the lit facet is much
+         BRIGHTER and much SMALLER — a ridge along the top edge about three
+         pixels deep. Average value goes DOWN, which is what stops it
+         out-shouting the face, while the range goes from 116:90 to 167:35,
+         which is the biggest spread on the figure by a long way. That range
+         is the only thing on this cat that says "hard". */
+      var PLATE = '#4a4954', PLATE2 = '#aeadbb', PLATE3 = '#201f27';
 
       function frame(a, b) {
         var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
@@ -114,6 +129,63 @@
       function N(w, h) {
         return { x: nk.x + sfx * cw * w + UPX * cw * h,
                  y: nk.y + sfy * cw * w + UPY * cw * h };
+      }
+
+      /* ================= FUR ON THE OUTLINE =========================
+
+         23 Aug 2026. Everything above this line was costume, and a costume
+         only ever gets you a costume: every edge of her that was FUR was a
+         smooth curve, which is the single loudest thing that says "vector
+         art" rather than "somebody drew this". A real animal has a notched,
+         tufted, uneven edge, and on a heavyweight it matters double — the
+         bigger the shape, the more obviously synthetic a clean curve on it
+         looks.
+
+         These are ordinary A.tuft crests in the FUR tones with no `edge`,
+         so no material line is drawn: the roots are buried inside the limb
+         they grow out of and vanish (same colour, painted over), and the
+         only thing that survives is the part standing proud of the outline,
+         picked up by the shared contour pass. That is a notch in the black
+         shape for one flat fill each.
+
+         `off` is how far the roots are pushed back INTO the body. Too little
+         and a gap of background opens between the spikes and the cat, which
+         is exactly what went wrong with the hackle before it was pulled in
+         to the nape. 0.4 of the spike length is the number that holds up in
+         every pose.
+
+         `jag` is on for all of them, and the pairs are deliberately not
+         matched — three spikes on the near elbow and two on the far one,
+         a big crest on the back of the skull and a small one on the jowl.
+         A mirrored pair reads as a machine part.
+
+         `at` is a point ON THE SURFACE the fur grows out of, not the joint
+         underneath it — the first pass handed it j.elbF and got three ginger
+         fangs standing in the middle of her forearm, because a joint on this
+         rig is buried half a limb deep. `rad` is how far out from the joint
+         the surface is, so the caller says "the outside of the elbow" and
+         not "wherever the elbow bone happens to be".                      */
+      function ang(dx, dy) { return Math.atan2(dy, dx) * 180 / Math.PI; }
+      function furTuft(layer, at, dx, dy, n, len, spread, col, off, rad) {
+        var L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+        var out = (rad || 0) - len * (off === undefined ? 0.40 : off);
+        var root = { x: at.x + ux * out, y: at.y + uy * out };
+        var a = ang(ux, uy);
+        A.add(layer, function (cx) {
+          A.tuft(cx, root, n, len, spread, a, true);
+        }, col, { flat: true });
+      }
+      /* the outside of a bend — where an elbow's fur actually sticks out.
+         Adding the two directions leaving the joint gives the INSIDE of the
+         bend (that is how rig.js finds where to draw a crease), so this is
+         the negative of it. A straight limb has no outside, and the fallback
+         keeps the tuft pointing sideways rather than collapsing to nothing. */
+      function outside(a, b, c) {
+        var ax = a.x - b.x, ay = a.y - b.y, al = Math.hypot(ax, ay) || 1;
+        var cx2 = c.x - b.x, cy2 = c.y - b.y, cl = Math.hypot(cx2, cy2) || 1;
+        var mx = ax / al + cx2 / cl, my = ay / al + cy2 / cl;
+        if (Math.hypot(mx, my) < 0.30) { mx = -ay / al; my = ax / al; }
+        return { x: -mx, y: -my };
       }
 
       /* ================= THE SCRUFF =================================
@@ -182,6 +254,12 @@
         seg(cx, 1.36, -f.chestW * 0.72);
         seg(cx, 1.12, -f.chestW * 1.46);
         seg(cx, 0.74, -f.chestW * 1.60);
+        /* one bite out of the back edge, at the shoulder blade. A cut is
+           the one garment on earth that is SUPPOSED to look chewed, and a
+           single asymmetric notch on a long edge is worth more than a
+           regular scallop down the whole of it. */
+        seg(cx, 0.56, -f.hipW * 1.46);
+        seg(cx, 0.44, -f.hipW * 1.72);
         seg(cx, 0.30, -f.hipW * 1.64);
         seg(cx, -0.26, -f.hipW * 1.50);                         /* the long back hem */
         seg(cx, -0.34, -f.hipW * 0.66);
@@ -208,13 +286,24 @@
          moves is a plank; f.sway already folds her speed and a slow idle
          drift into one number, so the tail of the cut lifts when she walks
          in and hangs when she stops. */
+      /* And the hem is CHEWED. 23 Aug 2026: the whole back of her — the far
+         arm, the cut, this hem — was one dark mass with a perfectly smooth
+         outline running from her shoulder to her heel, which is the longest
+         clean curve on the roster and the loudest single thing saying
+         "drawn by a computer". Three teeth cut into the bottom edge cost
+         nothing at all: they are points on a path that already existed.
+         They swing on `f.sway` with the rest of the hem, so the tear is
+         part of the leather rather than a pattern printed on it. */
       A.add('back', function (cx) {
         cx.beginPath();
         var d = f.sway * 0.55;
         var a = T(0.16, -f.hipW * 1.30); cx.moveTo(a.x, a.y);
-        seg(cx, -0.30, -f.hipW * 1.52 - d);
-        seg(cx, -0.46, -f.hipW * 1.06 - d * 1.4);
-        seg(cx, -0.38, -f.hipW * 0.52 - d);
+        seg(cx, -0.30, -f.hipW * 1.54 - d);
+        seg(cx, -0.46, -f.hipW * 1.28 - d * 1.4);
+        seg(cx, -0.33, -f.hipW * 1.12 - d * 1.2);
+        seg(cx, -0.50, -f.hipW * 0.94 - d * 1.4);
+        seg(cx, -0.34, -f.hipW * 0.76 - d * 1.2);
+        seg(cx, -0.42, -f.hipW * 0.56 - d * 1.3);
         seg(cx, 0.04, -f.hipW * 0.40);
         cx.closePath();
       }, HIDE, { band: true, edge: true });
@@ -274,39 +363,79 @@
          than the leg inside it. The TEETH are cut along the leg, varying
          the length of the hem, not across it — swinging them sideways is
          what made the sawtooth read as pinking shears.                  */
-      function trouser(layer, hip, knee, foot, wh, wk, ws) {
+      /* 23 Aug 2026 — CLOTH IS PAINTED, NOT SHADED.
+         The leg used to be one `band: true` fill, which is celFill's soft
+         four-step recipe, and at game size it came out as a mid-grey wedge
+         with a wide pale strip down it: the biggest, palest, blandest mass
+         on the cat after the pauldron, and the two of them were the same
+         value family, so she read grey-and-ginger. It is three explicit
+         planes now — a flat base, a dark plane down the BACK, a narrow lit
+         plane down the FRONT where this picture's lamp is — with hard edges
+         between them and nothing soft anywhere. Exactly three tones, and it
+         drops the clip on the biggest shape in the costume, so it is
+         cheaper than what it replaces as well as harder.
+
+         `tear` is per leg. The two hems used to be cut with the identical
+         set of teeth, which on a pair of legs a few pixels apart reads as a
+         stencil; the near one is chewed deeper than the far one now.      */
+      function trouser(layer, hip, knee, foot, wh, wk, ws, tear, fold) {
         var a = frame(hip, knee), b = frame(knee, foot);
         A.add(layer, function (cx) {
           cx.beginPath();
           var s0 = P(a, hip, -a.L * 0.30, wh); cx.moveTo(s0.x, s0.y);
           L2(cx, P(a, hip, a.L * 0.96, wk));
-          L2(cx, P(b, knee, b.L * 0.36, ws));
+          L2(cx, P(b, knee, b.L * tear[0], ws));
           /* the tear */
-          L2(cx, P(b, knee, b.L * 0.46, ws * 0.46));
-          L2(cx, P(b, knee, b.L * 0.24, ws * 0.12));
-          L2(cx, P(b, knee, b.L * 0.44, -ws * 0.34));
-          L2(cx, P(b, knee, b.L * 0.26, -ws * 0.74));
-          L2(cx, P(b, knee, b.L * 0.40, -ws));
+          L2(cx, P(b, knee, b.L * tear[1], ws * 0.46));
+          L2(cx, P(b, knee, b.L * tear[2], ws * 0.12));
+          L2(cx, P(b, knee, b.L * tear[3], -ws * 0.34));
+          L2(cx, P(b, knee, b.L * tear[4], -ws * 0.74));
+          L2(cx, P(b, knee, b.L * tear[5], -ws));
           L2(cx, P(a, hip, a.L * 0.96, -wk));
           L2(cx, P(a, hip, -a.L * 0.30, -wh));
           cx.closePath();
-        }, TROU, { band: true, edge: true });
-        /* one dark panel down the back of the leg so it is a trouser with
-           a light on it and not a grey tube */
+        }, TROU, { flat: true, edge: true });
+        /* the dark plane, down the back of the leg */
         A.add(layer, function (cx) {
           cx.beginPath();
           var s1 = P(a, hip, -a.L * 0.26, -wh * 0.96); cx.moveTo(s1.x, s1.y);
           L2(cx, P(a, hip, a.L * 0.96, -wk * 0.98));
-          L2(cx, P(b, knee, b.L * 0.30, -ws * 0.94));
-          L2(cx, P(b, knee, b.L * 0.24, -ws * 0.24));
-          L2(cx, P(a, hip, -a.L * 0.26, -wh * 0.34));
+          L2(cx, P(b, knee, b.L * (tear[5] - 0.06), -ws * 0.94));
+          L2(cx, P(b, knee, b.L * (tear[4] - 0.06), -ws * 0.30));
+          L2(cx, P(a, hip, a.L * 0.96, -wk * 0.28));
+          L2(cx, P(a, hip, -a.L * 0.26, -wh * 0.30));
+          cx.closePath();
+        }, TROU2, { flat: true });
+        /* and the lit plane, down the front, about a fifth of the width */
+        A.add(layer, function (cx) {
+          cx.beginPath();
+          var s2 = P(a, hip, -a.L * 0.24, wh * 0.94); cx.moveTo(s2.x, s2.y);
+          L2(cx, P(a, hip, a.L * 0.96, wk * 0.96));
+          L2(cx, P(b, knee, b.L * (tear[0] - 0.04), ws * 0.92));
+          L2(cx, P(b, knee, b.L * (tear[1] - 0.10), ws * 0.50));
+          L2(cx, P(a, hip, a.L * 0.94, wk * 0.52));
+          L2(cx, P(a, hip, -a.L * 0.24, wh * 0.50));
+          cx.closePath();
+        }, TROU3, { flat: true });
+        /* a fold pulled across the front of the knee, on the near leg only.
+           One hard wedge is what says cloth rather than sheet metal; two
+           was a pattern and read as a knee pad. */
+        if (!fold) return;
+        A.add(layer, function (cx) {
+          cx.beginPath();
+          var s3 = P(a, hip, a.L * 0.98, wk * 0.98); cx.moveTo(s3.x, s3.y);
+          L2(cx, P(a, hip, a.L * 0.72, wk * 0.30));
+          L2(cx, P(a, hip, a.L * 0.80, -wk * 0.20));
+          L2(cx, P(a, hip, a.L * 0.98, wk * 0.30));
           cx.closePath();
         }, TROU2, { flat: true });
       }
       trouser('body', j.hipB, j.kneeB, j.footB,
-              f.R_TOP * 1.06, f.R_MID * 1.36, f.R_MID * 1.24);
+              f.R_TOP * 1.06, f.R_MID * 1.36, f.R_MID * 1.24,
+              [0.34, 0.42, 0.26, 0.40, 0.30, 0.38], false);
       trouser('front', j.hipF, j.kneeF, j.footF,
-              f.R_TOP * 1.12, f.R_MID * 1.44, f.R_MID * 1.30);
+              f.R_TOP * 1.12, f.R_MID * 1.44, f.R_MID * 1.30,
+              [0.36, 0.48, 0.22, 0.46, 0.24, 0.42], true);
 
       /* ================= THE BRACERS ================================
 
@@ -336,10 +465,23 @@
            is the most expensive one to draw and the far side is where the
            savings are free. */
         if (!near) return;
+        /* Leather is matte with ONE soft sheen along the edge that faces the
+           lamp, and the sheen is narrow. This was a wide panel down the
+           middle of the cuff and it read as a grey slug lying on her arm —
+           the wrong shape and in the wrong place, because the middle of a
+           round thing is exactly where a highlight is not. It is a strip
+           along the top edge now, and a second, brighter strip half its
+           width inside it: three tones on the hide, hard edges between
+           them, and the pair of them together is still narrower than the
+           old single panel. */
         A.add(layer, function (cx) {
-          A.smooth(cx, [A2(0.30, w0 * 0.28), A2(0.82, w1 * 0.32),
-                        A2(0.82, w1 * 0.92), A2(0.30, w0 * 0.90)]);
+          A.smooth(cx, [A2(0.30, w0 * 0.42), A2(0.82, w1 * 0.46),
+                        A2(0.84, w1 * 0.98), A2(0.30, w0 * 0.94)]);
         }, HIDE2, { flat: true });
+        A.add(layer, function (cx) {
+          A.smooth(cx, [A2(0.36, w0 * 0.70), A2(0.78, w1 * 0.74),
+                        A2(0.78, w1 * 0.94), A2(0.36, w0 * 0.90)]);
+        }, HIDE3, { flat: true });
         /* two studs, along the cuff. Three sat in a row across it and read
            as a domino tile rather than as rivets. */
         [0.42, 0.68].forEach(function (u) {
@@ -428,16 +570,26 @@
          the rest of the rim is the near-black hide of the cut, and a dark
          shape on that is invisible, which is the correct answer rather
          than a wasted fill. */
+      /* It was a two-pixel sliver hugging the front rim and it did nothing:
+         at game size you cannot see a shadow that is thinner than the
+         outline it sits next to. It is now a band the depth of the shoulder
+         ball, following the whole bottom rim and thrown DOWN AND BACK,
+         which is where this picture's lamp puts it (LX 0.52, LY 0.85 in
+         rig.js — up and forward). Where it crosses the far arm and the top
+         of the chest it reads; where it crosses the near-black cut it does
+         not, and that is the right answer rather than a wasted fill. */
       A.add('body', function (cx) {
         cx.beginPath();
-        var d0 = Q(0.26, 0.48); cx.moveTo(d0.x, d0.y);
-        L2(cx, Q(-0.56, 0.28));
-        L2(cx, Q(-1.02, -0.38));
-        L2(cx, Q(-1.24, -0.52));
-        L2(cx, Q(-0.72, 0.14));
-        L2(cx, Q(0.16, 0.34));
+        var d0 = Q(0.16, 0.54); cx.moveTo(d0.x, d0.y);
+        L2(cx, Q(-0.66, 0.32));
+        L2(cx, Q(-1.16, -0.36));
+        L2(cx, Q(-1.30, -0.96));
+        L2(cx, Q(-1.86, -0.78));
+        L2(cx, Q(-1.62, -0.06));
+        L2(cx, Q(-1.02, 0.52));
+        L2(cx, Q(-0.28, 0.72));
         cx.closePath();
-      }, A.shade(f.fur2, 0.52), { flat: true });
+      }, '#00ff00', { flat: true });
 
       A.add('body', function (cx) {
         /* Cut with lineTo, not A.smooth. Smoothed, this came out as a grey
@@ -492,14 +644,23 @@
          material: PLATE in shadow, PLATE2 catching the light, and PLATE3
          under it. A single flat fill here and the pad reads as a hole cut
          in the cat. */
+      /* A RIDGE, not a half. The old one ran from the top edge down to the
+         middle of the plate, so half the steel was the light tone and the
+         plate averaged out pale. A beaten plate is dark except along the
+         one edge that happens to point at the lamp; make that edge three
+         pixels deep and nearly white and you get metal, make it half the
+         area and a bit lighter and you get card. Deeper at the front, where
+         the lamp is, and tapering towards the back. */
       A.add('body', function (cx) {
         cx.beginPath();
-        var b0 = Q(0.84, 0.26); cx.moveTo(b0.x, b0.y);
-        L2(cx, Q(0.88, -0.42));
-        L2(cx, Q(0.54, -1.22));
-        L2(cx, Q(-0.20, -1.52));
-        L2(cx, Q(-0.34, -0.86));
-        L2(cx, Q(0.10, 0.10));
+        var b0 = Q(0.86, 0.34); cx.moveTo(b0.x, b0.y);
+        L2(cx, Q(0.92, -0.44));
+        L2(cx, Q(0.58, -1.30));
+        L2(cx, Q(-0.24, -1.70));
+        L2(cx, Q(-0.16, -1.40));
+        L2(cx, Q(0.42, -1.08));
+        L2(cx, Q(0.64, -0.44));
+        L2(cx, Q(0.56, 0.24));
         cx.closePath();
       }, PLATE2, { flat: true });
 
@@ -510,13 +671,19 @@
          between beaten steel and a cut-out, and it costs one flat fill. */
       A.add('body', function (cx) {
         cx.beginPath();
-        var c0 = Q(-0.34, -1.62); cx.moveTo(c0.x, c0.y);
-        L2(cx, Q(-0.94, -1.34));
-        L2(cx, Q(-1.10, -0.36));
-        L2(cx, Q(-0.66, 0.30));
-        L2(cx, Q(-0.34, 0.12));
-        L2(cx, Q(-0.74, -0.42));
-        L2(cx, Q(-0.66, -1.16));
+        /* Deep enough to be a plane and no deeper. At half the plate it ate
+           the mid tone and the thing went back to two values — a bright rim
+           and a black lump — which is a different way of being flat. */
+        var c0 = Q(-0.36, -1.66); cx.moveTo(c0.x, c0.y);
+        L2(cx, Q(-0.96, -1.38));
+        L2(cx, Q(-1.14, -0.36));
+        L2(cx, Q(-0.68, 0.34));
+        L2(cx, Q(0.10, 0.56));
+        L2(cx, Q(0.14, 0.30));
+        L2(cx, Q(-0.52, 0.10));
+        L2(cx, Q(-0.86, -0.40));
+        L2(cx, Q(-0.78, -1.14));
+        L2(cx, Q(-0.40, -1.34));
         cx.closePath();
       }, PLATE3, { flat: true });
 
@@ -525,7 +692,7 @@
          spikes are gone: with a clean rim the plate wanted one incident
          along the top as well as the pair on the face of it, and a rivet
          is the one detail on this thing that survives being shrunk. */
-      [[0.22, -1.02], [-0.56, -1.00], [0.62, -0.30]].forEach(function (r) {
+      [[0.20, -1.04], [-0.50, -0.98], [0.38, -0.24]].forEach(function (r) {
         A.add('body', function (cx) {
           var p = Q(r[0], r[1]);
           A.ellipse(cx, p.x, p.y, f.s * 1.5, f.s * 1.5, 0);
@@ -534,6 +701,108 @@
 
       /* The strap that buckled the plate across her chest is gone too:
          it crossed the one part of her that is never visible. */
+
+      /* ---- the fur, where the outline is still fur ---------------------
+         Five crests, chosen because they are the five places on her that
+         are (a) bare ginger rather than leather and (b) on the edge of the
+         black shape in most poses. The chest one is the best of them: an
+         open cut with the chest bursting out of it is a shape, and it
+         happens at the widest, smoothest part of a heavyweight.           */
+      var hrot = -(j.headRot || 0) * Math.PI / 180;
+      var hcos = Math.cos(hrot), hsin = Math.sin(hrot);
+      var hr = f.headR;
+      function H(lx, ly) {         /* head-local to figure space */
+        return { x: j.head.x + lx * hcos - ly * hsin,
+                 y: j.head.y + lx * hsin + ly * hcos };
+      }
+      function HD(lx, ly) {        /* a direction, ditto */
+        return { x: lx * hcos - ly * hsin, y: lx * hsin + ly * hcos };
+      }
+
+      /* the chest, through the front of the open cut. The roots sit inside
+         the leather and the tips reach four pixels past its front edge, so
+         what you see is ginger coming THROUGH the cut and not a fringe
+         sewn onto it.
+
+         TWO NUMBERS DECIDE WHETHER A CREST READS AS FUR OR AS A HIT SPARK,
+         and the first pass got both wrong. A.tuft lays its roots along a
+         line (n-1) * len * 1.05 long, so a crest whose spikes are as long as
+         the limb is wide has its outer roots hanging in the air — and with a
+         wide `spread` on top of that, what you get is a star. On `fierce` it
+         came out as an orange starburst by her fist and read as an impact
+         effect, which is the worst possible thing to have standing on a
+         fighter's arm. So: the root span stays well inside the part, the
+         spread stays under about 35 degrees so every spike leans the same
+         way, and the tips stand two or three pixels proud and no more. A
+         notch, not a sunburst.
+
+         THERE IS NO FUR ON HER TRUNK, and two goes at putting a crest on
+         her chest are what proved it. The cut is cut BIG on purpose — every
+         edge of it sits outside the body — so leather, not fur, is the
+         outline from her collar to her hip on every side. Above t 0.65 the
+         crest had to get out through four pixels of hide and landed beside
+         her fist looking like a claw; below it, where the leather has
+         fallen away, her own upper arm covers the same ground, because she
+         holds her hands low.
+
+         THE FAR ARM IS NO GOOD EITHER, which took a fifth go to establish
+         and is worth writing down so nobody spends a sixth. The cut is on
+         the `body` layer and the far arm on the layers under it, so the
+         leather is painted straight over the arm's whole back edge: what
+         you can see of the far arm is the strip of it in FRONT of the
+         garment, and none of that is silhouette.
+
+         HOW TO SETTLE THIS IN ONE RENDER, rather than by reasoning about
+         the draw order as five of those goes did: give every crest the
+         colour '#00ff00' and take a picture. Anything that does not appear
+         in green is not there in ginger either, and is a contour stroke
+         and a fill a frame for nothing. That test is what deleted the two
+         crests on the far arm and doubled the two on the head.
+
+         So the fur lives in the four places the black shape is still made
+         of cat: the back of the skull, the jaw, the near elbow, the tail.  */
+
+      /* the near elbow. `rad` puts the roots on the OUTSIDE of the joint —
+         the elbow bone is most of a limb-radius in from the skin here, and
+         handed the joint itself the first version stood three ginger fangs
+         up in the middle of her forearm. */
+      var eF = outside(j.shF, j.elbF, j.handF);
+      furTuft('front', j.elbF, eF.x, eF.y, 3, f.R_MID * 0.52, 30,
+              f.furFront, 0.50, f.R_MID * 0.90);
+
+      /* The back of the skull: the longest clean curve on her, and the one
+         crest the eye is guaranteed to be looking at, because it is six
+         pixels from her face. In the head's own frame so it swings with the
+         head rather than sliding about on it.
+
+         It was half this length to begin with and stood one and a half
+         pixels proud of the skull — which the contour pass, being 1.8
+         wide, ate whole. A notch has to CLEAR the outline it is notching:
+         three pixels of ginger past the black is the floor, and below that
+         you have paid for a shape and bought a slightly lumpier line. */
+      var d1 = HD(-0.94, 0.34);
+      furTuft('front', H(-hr * 1.05, hr * 0.34), d1.x, d1.y,
+              3, hr * 0.66, 34, f.fur, 0.42);
+      /* and the jaw, under the cheek — two spikes, and shorter, so the
+         pair of them do not read as a matched set */
+      var d2 = HD(0.14, -0.99);
+      furTuft('front', H(hr * 0.62, -hr * 0.80), d2.x, d2.y,
+              2, hr * 0.70, 26, f.fur, 0.45);
+
+      /* THE TAIL, which is only silhouette in about half the poses — but
+         in those half it is the biggest curve in the picture, sweeping out
+         further than anything else she has. Outward is decided against the
+         pelvis rather than by a fixed sign, because the tail crosses its
+         own root when she turns. */
+      var t1 = j.tail[1], t2 = j.tail[2];
+      var tdx = t2.x - t1.x, tdy = t2.y - t1.y;
+      var tl = Math.hypot(tdx, tdy) || 1;
+      var tpx = -tdy / tl, tpy = tdx / tl;
+      if (tpx * (t1.x - pv.x) + tpy * (t1.y - pv.y) < 0) { tpx = -tpx; tpy = -tpy; }
+      var tailW = 4.0 * f.s * f.GW;
+      furTuft('back', { x: (t1.x + t2.x) / 2, y: (t1.y + t2.y) / 2 },
+              tpx, tpy, 3, tailW * 0.86, 30, f.furBack, 0.46, tailW * 0.74);
+
     },
 
     /* Old damage, in three pale lines. It goes on the bare upper arm and
@@ -591,7 +860,16 @@
        plate the old #a55c34 sat in the same muddy band as the kit and the
        whole cat read brown-on-brown; the ginger has to be the light in the
        picture or there is no picture. */
-    fur: '#b8683a', fur2: '#8d4b2c', belly: '#f0d6b2', marks: '#5d2f1c',
+    /* The belly and the muzzle used to be the same cream, and on a
+       heavyweight that is a mistake: the bib is the biggest single shape on
+       her chest, so the brightest value in the picture was a soft pale blob
+       four times the area of her face and the eye went there first. The bib
+       is a step down and a step warmer now — enough to read as a different
+       material from the ginger, not enough to be a lamp — and `muzzleColor`
+       keeps the old cream where it belongs, on the twenty pixels of snout
+       that the face is built round. */
+    fur: '#b8683a', fur2: '#8d4b2c', belly: '#dcb98d', muzzleColor: '#f2d9b6',
+    marks: '#5d2f1c',
     eye: '#e0b23a', nose: '#c4736a', inner: '#d99a90',
     accent: '#6b2f22', pattern: 'tabby',
     tailTip: '#5d2f1c', line: 'rgba(38,20,14,.6)'

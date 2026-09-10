@@ -1,8 +1,22 @@
 /* =======================================================================
    4 — MOUNTAIN RETREAT
+
    Night on the granite. A moon you could climb, a lit cabin, campfires,
    fireflies, mist off the cold rock. The quiet one — quiet is not the
    same as empty, and the first version of this stage confused the two.
+
+   THE THING THIS STAGE IS FOR. Warm light in a dark picture is the
+   strongest landmark there is, and this is the only stage in the game
+   that is dark. Everything here is arranged so the eye has exactly three
+   places to rest — the moon, the cabin, the camp — and so nothing else
+   in the frame competes with them.
+
+   THE STAGED MOMENTS. See MOMENTS below. The owner's most useful note on
+   this whole project was "I love the cat swinging by the barn lol": what
+   delights is not a painting, it is a character doing something with
+   timing that you catch out of the corner of your eye. Seven things
+   happen here on seven different clocks, all of them prime so they never
+   line up and a player finds them one at a time over several rounds.
    ======================================================================= */
 (function () {
   var K = CF.StageKit;
@@ -14,16 +28,112 @@
      is a night scene with none. */
   var MOON_X = 150, MOON_Y = 46, MOON_R = 31;
 
+  /* ---- MOMENTS -----------------------------------------------------------
+
+     Every period is PRIME, in frames at 60Hz. That is not decoration: with
+     round numbers two moments eventually share a factor and start firing on
+     the same beat, and the moment they do the stage reads as one animation
+     on a loop instead of a place where several unrelated things are going
+     on. Primes never line up.
+
+        761  (12.7s)  the cat on the porch rail stretches
+        977  (16.3s)  the wind gets up — smoke, lanterns, flames, mist
+       1009  (16.8s)  somebody walks the length of the cabin, window to window
+       1103  (18.4s)  eyes open in the treeline, blink twice, go out
+       1699  (28.3s)  a shooting star
+       1811  (30.2s)  a window goes dark and a light comes on upstairs
+       2003  (33.4s)  the owl on the near rock drops off it and flies out
+
+     `beat` returns 0..1 while a moment is running and -1 the rest of the
+     time; `nth` numbers the occurrences so each one can be placed somewhere
+     different without keeping any state. Both are pure functions of the
+     clock — the previous version of this file kept a `this.shoot` object
+     that was initialised and then never read by anything, which is how you
+     end up with a promise in the stage blurb and nothing on the screen. */
+  var P_STRETCH = 761,  L_STRETCH = 132;
+  var P_GUST    = 977,  L_GUST    = 200;
+  var P_WALK    = 1009, L_WALK    = 250;
+  var P_EYES    = 1103, L_EYES    = 214;
+  var P_STAR    = 1699, L_STAR    = 58;
+  var P_UPSTAIRS = 1811, L_UPSTAIRS = 620;
+  var P_OWL     = 2003, L_OWL     = 300;
+
+  function beat(t, period, len) {
+    var k = (t % period) / len;
+    return k < 1 ? k : -1;
+  }
+  function nth(t, period) { return Math.floor(t / period); }
+
+  /* The wind. One number, shared by the smoke, the lanterns, the string
+     lights, the campfires, the waterfall spray and the mist, so a gust is
+     one event in the picture rather than six things twitching. Smooth in
+     and out of zero — anything that jumps here reads as a bug. */
+  function gust(t) {
+    var k = beat(t, P_GUST, L_GUST);
+    if (k < 0) return 0;
+    return Math.sin(k * Math.PI) * (0.66 + 0.34 * Math.sin(k * 19));
+  }
+
+  /* ---- the sky -----------------------------------------------------------
+     STEPPED BANDS, not a ramp. A limited-palette arcade board could not
+     express a smooth vertical fade and never tried to: the sky in the
+     reference is a stack of flat colours and the steps between them ARE the
+     look, the same argument that turned K.glow into four flat rings. The
+     bands are deep at the top and thin towards the horizon, which is what
+     atmospheric compression looks like and what stops eight equal stripes
+     reading as a test card. */
+  var SKY = [
+    [0,   '#060919'], [24,  '#080c21'], [46,  '#0c1129'], [66,  '#111634'],
+    [84,  '#161b3c'], [100, '#1c1e42'], [113, '#231f45'], [124, '#2b2247'],
+    [133, '#332649'], [141, '#3b2b4b'], [148, '#432f4c']
+  ];
+  function nightSky(ctx) {
+    for (var i = 0; i < SKY.length; i++) {
+      var y = SKY[i][0];
+      var h = (i + 1 < SKY.length ? SKY[i + 1][0] : 158) - y;
+      ctx.fillStyle = SKY[i][1];
+      ctx.fillRect(0, y, W, h);
+    }
+  }
+
+  /* ---- cloud bars --------------------------------------------------------
+     Three long clouds drifting across the moon. Each is three flat rows —
+     a lit top, a base, a shaded underside — with the rows inset from each
+     other, so the silhouette comes out chunky and stepped rather than
+     airbrushed. They are the one thing that puts SCALE in the sky: a moon
+     with something passing in front of it is a long way away. */
+  function cloudBar(ctx, x, y, w, h, dark, base, lit) {
+    ctx.fillStyle = dark;
+    ctx.fillRect(x + w * 0.14, y + h, w * 0.74, h);
+    ctx.fillStyle = base;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = lit;
+    ctx.fillRect(x + w * 0.22, y - h, w * 0.56, h);
+    ctx.fillRect(x, y, w, 1);
+  }
+  /*  y   drift  length  row-height  under      base       moonlit top  */
+  var CLOUDS = [
+    [30, 0.020, 122, 4, '#0d1230', '#1a2049', '#2f3a6e'],
+    [58, 0.013, 168, 5, '#0b0f28', '#151b3e', '#28325e'],
+    [92, 0.008, 210, 4, '#090d22', '#111634', '#1e2749']
+  ];
+  function clouds(ctx, camX, t) {
+    for (var i = 0; i < CLOUDS.length; i++) {
+      var c = CLOUDS[i];
+      var span = W + c[2] + 60;
+      var x = ((-t * c[1] - camX * 0.02) % span + span) % span - c[2] - 30;
+      cloudBar(ctx, x, c[0], c[2], c[3], c[4], c[5], c[6]);
+    }
+  }
+
   /* ---- bats over the moon ------------------------------------------------
-     The stage blurb has promised bats since the day it was written and there
-     were never any. They are the loop you wait for: a loose skein crossing
-     right to left, dark against the disc, taking about eleven seconds to
-     clear the frame. Silhouettes only would have made them invisible over
-     the sky, so each one carries a thread of moonlight along the top of the
-     wing — the same trick as the rock. */
+     A loose skein crossing right to left, dark against the disc, taking
+     about eleven seconds to clear the frame. Silhouettes alone would have
+     been invisible over the sky, so each one carries a thread of moonlight
+     along the top of the wing — the same trick as the rock. */
   function bats(ctx, t) {
     var span = W + 200;
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 7; i++) {
       var sp = 0.44 + K.hash(i, 61) * 0.18;
       var x = W + 100 - ((t * sp + i * 51) % span);
       if (x < -20 || x > W + 20) continue;
@@ -52,92 +162,318 @@
     }
   }
 
-  /* A shooting star, roughly every fifteen seconds. Derived straight from
-     the clock rather than kept in a field: the old `this.shoot` object was
-     initialised and then never read by anything, which is how you end up
-     with a promise in the blurb and nothing on the screen. */
+  /* MOMENT · a shooting star, once every twenty-eight seconds.
+     Rare on purpose. Something that happens every fifteen seconds is
+     scenery; something that happens twice a round is the thing a player
+     tells somebody else about.
+
+     The trail is five flat segments at stepped alpha, NOT a gradient. The
+     old one built a createLinearGradient every frame it ran, which is both
+     the one thing this game's art direction forbids and a per-frame
+     allocation for a five-pixel streak. */
+  var STAR_TRAIL = [0.95, 0.62, 0.38, 0.20, 0.09];
   function shootingStar(ctx, t) {
-    var period = 880, k = (t % period) / 46;
-    if (k > 1) return;
-    var n = Math.floor(t / period);
-    var sx = 40 + K.hash(n, 71) * 260, sy = 12 + K.hash(n, 72) * 34;
-    var ex = sx + 110, ey = sy + 54;
-    var hx = sx + (ex - sx) * k, hy = sy + (ey - sy) * k;
-    var g = ctx.createLinearGradient(hx, hy, hx - 46, hy - 23);
+    var k = beat(t, P_STAR, L_STAR);
+    if (k < 0) return;
+    var n = nth(t, P_STAR);
+    var sx = 26 + K.hash(n, 71) * 250, sy = 6 + K.hash(n, 72) * 32;
+    var dx = 92 + K.hash(n, 73) * 62, dy = 40 + K.hash(n, 74) * 30;
+    var hx = sx + dx * k, hy = sy + dy * k;
+    /* the unit vector back up the trail */
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var ux = -dx / len, uy = -dy / len;
     var a = Math.sin(k * Math.PI);
-    g.addColorStop(0, 'rgba(255,255,240,' + (0.9 * a).toFixed(2) + ')');
-    g.addColorStop(1, 'rgba(255,255,240,0)');
-    ctx.strokeStyle = g;
-    ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - 46, hy - 23); ctx.stroke();
+    var seg = 9;
+    ctx.save();
+    ctx.lineCap = 'butt';
+    for (var s = 0; s < STAR_TRAIL.length; s++) {
+      ctx.strokeStyle = 'rgba(255,252,232,' + (STAR_TRAIL[s] * a).toFixed(3) + ')';
+      ctx.lineWidth = s < 2 ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(hx + ux * seg * s, hy + uy * seg * s);
+      ctx.lineTo(hx + ux * seg * (s + 1), hy + uy * seg * (s + 1));
+      ctx.stroke();
+    }
+    /* the head: a hard two-pixel block with one banded ring round it */
+    ctx.fillStyle = 'rgba(255,255,246,' + a.toFixed(2) + ')';
+    ctx.fillRect(hx - 1, hy - 1, 3, 3);
+    K.glow(ctx, hx, hy, 11, 'rgba(226,238,255,.9)', 0.42 * a);
+    ctx.restore();
   }
 
-  /* An owl on a long crossing, in front of the pines. Slow glide, two beats
-     at each end of it. The kind of thing you only catch the third time you
-     fight here, which is exactly what it is for. */
-  function owl(ctx, t) {
-    var period = 660, k = (t % period) / 300;
-    if (k > 1) return;
-    var x = W + 30 - k * (W + 60);
-    var y = 108 + Math.sin(k * Math.PI * 1.4) * -16 + Math.sin(t * 0.05) * 1.5;
-    var beat = (k < 0.18 || k > 0.74) ? Math.sin(t * 0.28) : Math.sin(t * 0.06) * 0.25;
-    ctx.fillStyle = '#191a2e';
+  /* MOMENT · eyes in the treeline, once every eighteen seconds.
+     Two dots of eyeshine open in the dark pines, drift a little, blink
+     twice, and go out. The cheapest moment on the stage and the one most
+     likely to make somebody say "did you see that" — because at 384x224 two
+     lit pixels in a black mass is unmistakably an animal and nothing else. */
+  function treeEyes(ctx, t) {
+    var e = t % P_EYES;
+    if (e > L_EYES) return;
+    var n = nth(t, P_EYES);
+    var a = e < 34 ? e / 34 : (e > L_EYES - 44 ? (L_EYES - e) / 44 : 1);
+    if ((e > 96 && e < 105) || (e > 134 && e < 142)) return;   /* the blinks */
+    if (a <= 0.02) return;
+    var ex = 34 + K.hash(n, 88) * (W - 70) + Math.sin(e * 0.022) * 3;
+    var ey = 128 + K.hash(n, 89) * 24;
+    var gap = 4 + K.hash(n, 90) * 2;
+    ctx.save();
+    ctx.globalAlpha = a;
+    K.glow(ctx, ex, ey, 9, 'rgba(190,236,150,.8)', 0.30 * a);
+    ctx.fillStyle = '#dcf29a';
+    ctx.fillRect(ex - gap, ey - 1, 2, 2);
+    ctx.fillRect(ex + gap - 1, ey - 1, 2, 2);
+    ctx.restore();
+  }
+
+  /* ---- the owl on the near rock -----------------------------------------
+     MOMENT · once every thirty-three seconds it drops off the branch and
+     flies out of the picture, and the branch springs back behind it.
+
+     It is perched on the FOREGROUND slab, which is what makes this the big
+     one: a near-layer silhouette at the edge of frame is the only thing on
+     the stage the eye is guaranteed to catch while a fight is going on. The
+     flight arcs up and out to the right, well above the fighters, so it can
+     never sit on top of the action. */
+  function owlPerched(ctx, x, y, t) {
+    /* body and head, one dark mass with ear tufts, plus a slow blink */
+    ctx.fillStyle = '#0b0d1c';
     ctx.beginPath();
-    ctx.moveTo(x - 13, y + beat * 5);
-    ctx.quadraticCurveTo(x - 5, y - 2.5, x, y - 1);
-    ctx.quadraticCurveTo(x + 5, y - 2.5, x + 13, y + beat * 5);
-    ctx.quadraticCurveTo(x + 4, y + 3, x, y + 3.4);
-    ctx.quadraticCurveTo(x - 4, y + 3, x - 13, y + beat * 5);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#2b2c46';
-    ctx.beginPath(); ctx.ellipse(x, y + 0.6, 3.4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.moveTo(x - 4.5, y + 1);
+    ctx.quadraticCurveTo(x - 5.4, y - 6, x - 3.4, y - 8.4);
+    ctx.lineTo(x - 4.2, y - 11.4);                    /* the ear tufts */
+    ctx.lineTo(x - 1.6, y - 9.6);
+    ctx.lineTo(x + 1.6, y - 9.6);
+    ctx.lineTo(x + 4.2, y - 11.4);
+    ctx.lineTo(x + 3.4, y - 8.4);
+    ctx.quadraticCurveTo(x + 5.4, y - 6, x + 4.5, y + 1);
+    ctx.closePath();
+    ctx.fill();
+    /* the moon down its back, so it is not a hole in the rock */
+    ctx.strokeStyle = 'rgba(186,206,255,.32)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + 3.4, y - 8.4);
+    ctx.quadraticCurveTo(x + 5.4, y - 6, x + 4.5, y + 1);
+    ctx.stroke();
+    var blink = Math.sin(t * 0.021 + 1.3);
+    if (blink > -0.94) {
+      ctx.fillStyle = '#e8b552';
+      ctx.fillRect(x - 2.6, y - 7.4, 2, 2);
+      ctx.fillRect(x + 0.8, y - 7.4, 2, 2);
+    }
+  }
+
+  function owlFlying(ctx, x0, y0, k, t) {
+    /* out to the right and up, dipping once as it leaves the rock */
+    var x = x0 + k * (W + 70 - x0);
+    var y = y0 + Math.sin(k * Math.PI) * 26 - k * 22;
+    var beats = k < 0.16 ? 0.42 : 0.14;               /* hard beats, then a glide */
+    var flap = Math.sin(t * beats * 2.2);
+    var s = 1.5;
+    ctx.fillStyle = '#0b0d1c';
+    ctx.beginPath();
+    ctx.moveTo(x - 11 * s, y + flap * 6 * s);
+    ctx.quadraticCurveTo(x - 4 * s, y - 2 * s, x, y - 1.4 * s);
+    ctx.quadraticCurveTo(x + 4 * s, y - 2 * s, x + 11 * s, y + flap * 6 * s);
+    ctx.quadraticCurveTo(x + 4 * s, y + 3.4 * s, x, y + 4 * s);
+    ctx.quadraticCurveTo(x - 4 * s, y + 3.4 * s, x - 11 * s, y + flap * 6 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,210,255,.34)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - 11 * s, y + flap * 6 * s);
+    ctx.quadraticCurveTo(x - 4 * s, y - 2 * s, x, y - 1.4 * s);
+    ctx.quadraticCurveTo(x + 4 * s, y - 2 * s, x + 11 * s, y + flap * 6 * s);
+    ctx.stroke();
+    ctx.fillStyle = '#171a2e';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 0.4 * s, 3.6, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /* MOMENT · the cat on the porch rail stretches, every twelve and a half
+     seconds. Small, frequent, and the one that is purely for fun. It reads
+     because the SHAPE changes: a sitting cat is a tall lump and a stretching
+     one is a long low one with a hump in the middle, and at ten pixels that
+     difference is the whole animation. */
+  function porchCat(ctx, x, y, t, warm) {
+    var k = beat(t, P_STRETCH, L_STRETCH);
+    var s = 0;
+    if (k >= 0) {
+      var r = Math.sin(k * Math.PI);
+      s = r * r * (3 - 2 * r);                        /* ease in, hold, ease out */
+    }
+    var bw = 4.6 + s * 3.0, bh = 5.6 - s * 2.0;
+    var by = y - 5 + s * 0.6;
+    var hx = x + 1.6 + s * 4.6, hy = y - 11.4 + s * 4.4;
+
+    ctx.save();
+    ctx.fillStyle = '#1d1622';
+    /* the tail, up and curled when it stretches, hanging when it does not */
+    ctx.strokeStyle = '#1d1622';
+    ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - 3.6, by);
+    ctx.quadraticCurveTo(x - 8 - s * 2, by + 4 - s * 12,
+                         x - 6 - s * 4, by + 8 - s * 20 + Math.sin(t * 0.06) * 1.4);
+    ctx.stroke();
+    /* the body */
+    ctx.beginPath();
+    ctx.ellipse(x, by, bw, bh, -s * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    /* the arch over the back, only once it is really stretching */
+    if (s > 0.28) {
+      ctx.beginPath();
+      ctx.moveTo(x - bw, by - bh * 0.3);
+      ctx.quadraticCurveTo(x, by - bh - 3.4 * s, x + bw, by - bh * 0.3);
+      ctx.quadraticCurveTo(x, by - bh * 0.2, x - bw, by - bh * 0.3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    /* the front legs, reaching */
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    ctx.moveTo(x + bw * 0.5, by + bh * 0.5);
+    ctx.lineTo(x + bw * 0.5 + s * 5.4, y + 0.6);
+    ctx.stroke();
+    /* the head, with ears */
+    ctx.beginPath();
+    ctx.moveTo(hx - 3, hy + 0.6); ctx.lineTo(hx - 2.4, hy - 3.8);
+    ctx.lineTo(hx - 0.3, hy - 1.2); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(hx + 3, hy + 0.6); ctx.lineTo(hx + 2.4, hy - 3.8);
+    ctx.lineTo(hx + 0.3, hy - 1.2); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hx, hy, 3.1, 0, Math.PI * 2);
+    ctx.fill();
+    /* the window light down its near side — without this it is a black
+       lump on a dark wall and nobody ever sees it move */
+    ctx.strokeStyle = warm;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(hx, hy, 3.1, -1.5, 0.7);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x, by, bw, bh, -s * 0.16, -1.4, 0.5);
+    ctx.stroke();
+    ctx.restore();
   }
 
   /* ---- the floor ---------------------------------------------------------
-     Granite slabs, not a grey band. K.grain draws boards and this is rock,
-     so the joints run the other way: long cracks converging on the vanishing
-     point, each slab its own shade, quartz picking up the moon. The floor is
-     a third of the picture and it was the flattest part of the stage. */
+     GRANITE SLABS, and specifically not a ramp. This was the largest
+     continuous gradient in the game — a single linear fade across the whole
+     play surface, directly under the fighters — and a ramp reads as an
+     airbrush however carefully it is aimed. Stone reads as flat tones with
+     hard seams between them, so that is what it is now: three bands of
+     value, each seam a dark line with one lit pixel-row above it, exactly
+     the recipe the monolith's strata use. The light lands on the horizontal
+     and misses the vertical.
+
+     The slabs are laid in two courses with the joints offset half a slab,
+     because a paved floor is bonded and a floor of full-width strips is a
+     road. */
+  var SEAM_A = FLOOR_Y + 17, SEAM_B = FLOOR_Y + 34;
   function graniteFloor(ctx, camX) {
-    var g = ctx.createLinearGradient(0, FLOOR_Y, 0, H);
-    g.addColorStop(0, '#565169');
-    g.addColorStop(0.55, '#484461');
-    g.addColorStop(1, '#332f46');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
+    ctx.fillStyle = '#4b4661'; ctx.fillRect(0, FLOOR_Y, W, SEAM_A - FLOOR_Y);
+    ctx.fillStyle = '#413c57'; ctx.fillRect(0, SEAM_A, W, SEAM_B - SEAM_A);
+    ctx.fillStyle = '#36314a'; ctx.fillRect(0, SEAM_B, W, H - SEAM_B);
 
     var BW = 62;
-    K.repeatX(camX, 1, BW, function (x, i) {
-      ctx.beginPath();
-      ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x + BW, FLOOR_Y);
-      ctx.lineTo(x + BW * 0.36, H); ctx.lineTo(x - BW * 0.64, H);
-      ctx.closePath();
-      var tint = K.vary(i, 210, -0.055, 0.075);
-      ctx.fillStyle = tint < 0
-        ? 'rgba(0,0,0,' + (-tint).toFixed(3) + ')'
-        : 'rgba(226,234,255,' + tint.toFixed(3) + ')';
-      ctx.fill();
-      /* the crack down the joint, and a hairline branching off it */
-      ctx.strokeStyle = 'rgba(12,10,22,.42)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, FLOOR_Y); ctx.lineTo(x - BW * 0.64, H); ctx.stroke();
-      if (K.chance(i, 211, 0.55)) {
-        var f = K.vary(i, 212, 0.3, 0.7);
-        var jy = FLOOR_Y + f * (H - FLOOR_Y);
-        ctx.strokeStyle = 'rgba(12,10,22,.26)';
+    function course(top, bot, phase, salt) {
+      K.repeatX(camX, 1, BW, function (x, i) {
+        var lean = 0.64 * ((top - FLOOR_Y) / (H - FLOOR_Y));
+        var lean2 = 0.64 * ((bot - FLOOR_Y) / (H - FLOOR_Y));
+        var x0 = x + phase;
         ctx.beginPath();
-        ctx.moveTo(x - BW * 0.64 * f, jy);
-        ctx.lineTo(x + K.vary(i, 213, 14, 40), jy + K.vary(i, 214, 4, 14));
+        ctx.moveTo(x0 - BW * lean, top);
+        ctx.lineTo(x0 + BW - BW * lean, top);
+        ctx.lineTo(x0 + BW - BW * lean2, bot);
+        ctx.lineTo(x0 - BW * lean2, bot);
+        ctx.closePath();
+        var tint = K.vary(i, salt, -0.05, 0.055);
+        ctx.fillStyle = tint < 0
+          ? 'rgba(0,0,0,' + (-tint).toFixed(3) + ')'
+          : 'rgba(226,234,255,' + tint.toFixed(3) + ')';
+        ctx.fill();
+        /* the joint down the left edge, dark, with the moon on its near lip */
+        ctx.strokeStyle = 'rgba(10,8,20,.46)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x0 - BW * lean, top);
+        ctx.lineTo(x0 - BW * lean2, bot);
         ctx.stroke();
-      }
-    });
-    /* three joints running across, tightening towards the horizon */
-    ctx.strokeStyle = 'rgba(12,10,22,.30)';
-    for (var r = 1; r < 4; r++) {
-      var y = FLOOR_Y + Math.pow(r / 4, 1.7) * (H - FLOOR_Y);
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(206,220,255,.09)';
+        ctx.beginPath();
+        ctx.moveTo(x0 + 1 - BW * lean, top);
+        ctx.lineTo(x0 + 1 - BW * lean2, bot);
+        ctx.stroke();
+      });
     }
+    course(FLOOR_Y, SEAM_A, 0, 210);
+    course(SEAM_A, SEAM_B, 31, 216);
+    course(SEAM_B, H, 0, 218);
+
+    /* the two seams across, hard: a dark line and a lit row above it */
+    ctx.fillStyle = 'rgba(10,8,20,.44)';
+    ctx.fillRect(0, SEAM_A - 1, W, 2);
+    ctx.fillRect(0, SEAM_B - 1, W, 2);
+    ctx.fillStyle = 'rgba(206,220,255,.10)';
+    ctx.fillRect(0, SEAM_A - 2, W, 1);
+    ctx.fillRect(0, SEAM_B - 2, W, 1);
+
+    /* a few fractures running out of the joints, so the courses are not a
+       grid of identical rectangles */
+    ctx.strokeStyle = 'rgba(12,10,22,.26)';
+    K.repeatX(camX, 1, BW, function (x, i) {
+      if (!K.chance(i, 211, 0.5)) return;
+      var f = K.vary(i, 212, 0.25, 0.85);
+      var jy = FLOOR_Y + f * (H - FLOOR_Y);
+      ctx.beginPath();
+      ctx.moveTo(x - BW * 0.64 * f, jy);
+      ctx.lineTo(x + K.vary(i, 213, 12, 38), jy + K.vary(i, 214, 3, 11));
+      ctx.stroke();
+    });
+  }
+
+  /* The moon on the wet granite. K.floorPool is a radial gradient and this
+     stage cannot have one: it is stepped ellipses instead, the same four
+     flat rings K.glow uses, so the pool of light bands exactly like every
+     other light in the picture. */
+  var POOL = [[164, 0.05], [116, 0.055], [72, 0.06], [36, 0.06]];
+  function moonPool(ctx) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(184,202,248,1)';
+    for (var i = 0; i < POOL.length; i++) {
+      ctx.globalAlpha = POOL[i][1];
+      ctx.beginPath();
+      ctx.ellipse(MOON_X, FLOOR_Y + 26, POOL[i][0], POOL[i][0] * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* Light falling out of a window onto the ground, in three flat steps.
+     K.spill ramps to transparent, which is the airbrush again. Stepped, the
+     edge of the light has a shape — and a shape is what tells you there is a
+     window casting it. */
+  function spillSteps(ctx, x, y, w, h, colour, alpha) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = colour;
+    for (var s = 3; s >= 1; s--) {
+      var f = s / 3;
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(x + w - w * 0.20 * f, y + h * f);
+      ctx.lineTo(x - w * 0.16 * f, y + h * f);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   CF.StageDefs = CF.StageDefs || {};
@@ -180,13 +516,9 @@
                             color2: 'rgba(255,220,140,1)', wobble: 1.6 });
     },
     drawBack: function (ctx, camX, t, mood) {
-      /* The horizon glow used to run up to #5b4468, and that turned out to be
-         the single brightest thing in the band the fighters stand in — a
-         purple wash at value 75 behind their shoulders. Pretty on its own and
-         the wrong end of the scale for a night stage: the moon is meant to be
-         the only place the eye rests. Both lower stops are down about a third,
-         which keeps the warmth in the horizon without lifting it. */
-      K.sky(ctx, [[0, '#080c26'], [0.42, '#151a3c'], [0.78, '#272045'], [1, '#3b2b49']], 0, 150);
+      var gu = gust(t);
+
+      nightSky(ctx);
 
       /* stars, of three different brightnesses, some of them twinkling */
       K.layer(ctx, camX, 0.03, function () {
@@ -208,13 +540,14 @@
          a coin, not a moon. At thirty-one it is the brightest thing in the
          picture and the only place the eye can rest between the two dark
          masses — and it gives the bats something to be seen against. */
-      /* The halo was 0.36 over a 96-pixel radius, which reaches y=142 — the
-         middle of the picture, and it was quietly lifting the whole band the
-         fighters stand in. Down to 0.26 and pulled in a little: the disc is
-         still the brightest thing on the stage and now it is the ONLY bright
-         thing up there, which is what makes it read as the light source
-         rather than as a lamp behind frosted glass. */
-      K.glow(ctx, MOON_X, MOON_Y, MOON_R * 2.6, 'rgba(206,222,255,.75)', 0.26);
+      /* The halo is small and hard. K.glow is four flat rings now, so a big
+         radius does not fade out at the edge — it lays a pale DISC across a
+         third of the sky, which is what this was doing at 2.6 radii: the
+         moon read as a lamp behind frosted glass and the whole upper picture
+         came up in value. At 1.75 radii the rings sit tight round the disc
+         and read as a corona, which is what a banded palette does with a
+         bright light and what this stage wanted all along. */
+      K.glow(ctx, MOON_X, MOON_Y, MOON_R * 1.75, 'rgba(206,222,255,.75)', 0.30);
       ctx.fillStyle = '#f2f5ff';
       ctx.beginPath(); ctx.arc(MOON_X, MOON_Y, MOON_R, 0, Math.PI * 2); ctx.fill();
       /* the terminator: a sliver of the disc in shadow down the far side,
@@ -233,6 +566,7 @@
           ctx.fill();
         });
       ctx.restore();
+      clouds(ctx, camX, t);
       bats(ctx, t);
 
       /* an aurora, slow enough that you only notice it if you look */
@@ -250,16 +584,21 @@
         }
       });
 
-      /* --- two ranges: snow catching the moon, then the black wall in
-             front of it. One ridge alone reads as a cardboard cut-out. --- */
+      /* --- THREE ranges, each flatter, cooler and paler than the one in
+             front of it, at three different rates. Two ridges read as a
+             backdrop with a cut-out in front of it; three read as distance,
+             because the eye gets the RATE of the change as well as the
+             change. The farthest is nearly a straight line, which is what a
+             mountain forty miles off actually looks like. --- */
+      K.ridge(ctx, camX, 0.035, '#2e3565', 122, 22, 29);
       K.layer(ctx, camX, 0.07, function () {
-        K.ridge(ctx, camX, 0.07, '#2a3057', 132, 52, 5);
+        K.ridge(ctx, camX, 0.07, '#242a52', 134, 50, 5);
         /* snow on the tops, offset up-right towards the moon */
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, W, 132); ctx.clip();
         ctx.globalAlpha = 0.5;
-        K.ridge(ctx, camX, 0.07, '#7183b4', 128, 52, 5);
+        K.ridge(ctx, camX, 0.07, '#6b7db0', 130, 50, 5);
         ctx.restore();
       });
       K.ridge(ctx, camX, 0.14, '#131934', 152, 34, 17);
@@ -373,20 +712,21 @@
              first version of this was */
           for (wy = 58; wy < FLOOR_Y - 4; wy += 6) {
             var k2 = (wy - 58) / (FLOOR_Y - 62);
-            var wob = Math.sin(wy * 0.13 + t * 0.09) * 1.8;
+            var wob = Math.sin(wy * 0.13 + t * 0.09) * (1.8 + gu * 2.6);
             ctx.lineTo(fx + wob - (2.2 + k2 * 5.5) * band[0], wy);
           }
           for (wy = FLOOR_Y - 4; wy > 58; wy -= 6) {
             var k3 = (wy - 58) / (FLOOR_Y - 62);
-            var wob2 = Math.sin(wy * 0.13 + t * 0.09) * 1.8;
+            var wob2 = Math.sin(wy * 0.13 + t * 0.09) * (1.8 + gu * 2.6);
             ctx.lineTo(fx + wob2 + (2.2 + k3 * 5.5) * band[0], wy);
           }
           ctx.closePath(); ctx.fill();
         });
-        K.plume(ctx, fx, FLOOR_Y - 12, t, { count: 5, rise: 26, drift: 7,
+        K.plume(ctx, fx, FLOOR_Y - 12, t, { count: 5, rise: 26,
+                                            drift: 7 + gu * 18,
                                             size: 5, alpha: 0.22,
                                             color: 'rgba(206,226,255,.9)' });
-        K.glow(ctx, fx, FLOOR_Y - 10, 30, 'rgba(190,220,255,.7)', 0.20);
+        K.glow(ctx, fx, FLOOR_Y - 10, 26, 'rgba(190,220,255,.7)', 0.22);
       });
 
       /* --- pines, in two bands at different rates, each its own height --- */
@@ -401,7 +741,6 @@
           ctx.closePath(); ctx.fill();
         });
       });
-      owl(ctx, t);
       K.layer(ctx, camX, 0.32, function () {
         K.repeatX(camX, 0, 25, function (x, i) {
           if (K.chance(i, 115, 0.18)) return;
@@ -409,16 +748,20 @@
           var col = K.pick(i, 118, ['#0a0e1e', '#0d1226', '#070b19']);
           /* three tiers rather than one triangle — a pine is a stack of
              skirts and the notches are what stop a row of them reading as
-             bunting */
+             bunting. They lean with the gust: a still tree in a wind that is
+             moving the smoke and the lanterns is the thing that gives away
+             that the wind is a trick. */
+          var lean = gu * 1.9 * Math.sin(i * 1.7);
           ctx.fillStyle = col;
           for (var tier = 0; tier < 3; tier++) {
             var f = tier / 3;
             var ty = 164 - ph * (1 - f * 0.62);
             var tw = pw * (0.42 + f * 0.58);
+            var lx = x + lean * (1 - f);
             ctx.beginPath();
-            ctx.moveTo(x, ty);
-            ctx.lineTo(x - tw, ty + ph * 0.42);
-            ctx.lineTo(x + tw, ty + ph * 0.42);
+            ctx.moveTo(lx, ty);
+            ctx.lineTo(lx - tw, ty + ph * 0.42);
+            ctx.lineTo(lx + tw, ty + ph * 0.42);
             ctx.closePath(); ctx.fill();
           }
           /* Moonlight down the right-hand edge of the nearer ones. Lifted
@@ -429,20 +772,43 @@
           ctx.strokeStyle = 'rgba(150,172,225,.28)';
           ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.moveTo(x + 1, 164 - ph); ctx.lineTo(x + pw * 0.9, 164 - ph * 0.16);
+          ctx.moveTo(x + lean + 1, 164 - ph);
+          ctx.lineTo(x + pw * 0.9, 164 - ph * 0.16);
           ctx.stroke();
         });
       });
+      treeEyes(ctx, t);
 
       /* --- THE CABIN. Warm light in a cold picture is the strongest
              landmark there is, and this one was too small to do the job:
              a hundred pixels of it at the very edge of frame, half cropped.
              It is now a third of the width and half the height, up on its
              own granite shelf, and it drifts a little so it is not a decal
-             stuck to the glass. --- */
+             stuck to the glass.
+
+             It is also where three of the seven moments live, because a lit
+             window is the only place on a night stage where a silhouette
+             reads at all. --- */
       K.layer(ctx, camX, 0.42, function () {
         var hx = K.at(camX, 0, 306) - camX * 0.05;
         var flick = 0.78 + 0.22 * Math.sin(t * 0.13) * Math.sin(t * 0.31);
+
+        /* MOMENT · somebody goes upstairs. A window goes dark, a beat later
+           a light comes on in the gable, and after a while it all reverses.
+           Slow, undramatic and completely legible — the cabin is a different
+           cabin for ten seconds in every thirty. */
+        var e = t % P_UPSTAIRS;
+        var downstairsOut = (e > 10 && e < 520);
+        var gable = (e > 86 && e < 470);
+
+        /* MOMENT · somebody walks the length of the cabin. The figure is
+           tracked in the cabin's own coordinates and each window asks
+           whether it is currently behind it, so the same walk lights up
+           three windows in turn instead of one shape jittering in one pane.
+           The pane dims a little as the body passes, which is the half of
+           this that sells it. */
+        var wk = t % P_WALK;
+        var walkX = wk < L_WALK ? -104 + (wk / L_WALK) * 176 : null;
 
         /* the shelf it stands on, so it is not floating on the floor line */
         K.mass(ctx, hx - 104, 158, 190, 20, '#2c2a3d', { top: 4, side: 6, foot: false });
@@ -455,13 +821,15 @@
           ctx.moveTo(hx + 58, 62 + st2 * 12); ctx.lineTo(hx + 82, 62 + st2 * 12);
           ctx.stroke();
         }
-        /* smoke, rising and spreading */
+        /* smoke, rising and spreading — and laid flat when the wind gets up,
+           which is the most readable thing a gust can do to a picture */
         for (var sm = 0; sm < 7; sm++) {
           var sp2 = ((t * 0.5 + sm * 19) % 133) / 133;
           ctx.globalAlpha = 0.20 * (1 - sp2);
           ctx.fillStyle = '#c9cbe0';
           ctx.beginPath();
-          ctx.arc(hx + 70 + Math.sin(sp2 * 4 + sm) * 11, 50 - sp2 * 54,
+          ctx.arc(hx + 70 + Math.sin(sp2 * 4 + sm) * 11 + gu * sp2 * 38,
+                  50 - sp2 * 54 + gu * sp2 * 16,
                   3.5 + sp2 * 11, 0, Math.PI * 2);
           ctx.fill();
         }
@@ -499,19 +867,52 @@
         ctx.beginPath();
         ctx.moveTo(hx - 104, 98); ctx.lineTo(hx - 12, 54); ctx.stroke();
 
-        /* windows: three big ones and a door, all lit, one with somebody
-           moving past it */
+        /* the gable window, up under the roof peak. Dark almost all the
+           time, which is exactly the point: a window that is only ever lit
+           has nothing to say, and one that comes on has a story in it. */
+        ctx.fillStyle = '#120f1c';
+        ctx.fillRect(hx - 22, 74, 20, 15);
+        if (gable) {
+          ctx.fillStyle = 'rgba(255,198,116,' + (0.62 + 0.24 * flick).toFixed(2) + ')';
+          ctx.fillRect(hx - 20, 76, 16, 11);
+          ctx.strokeStyle = 'rgba(30,22,16,.85)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(hx - 12, 76); ctx.lineTo(hx - 12, 87); ctx.stroke();
+          K.glow(ctx, hx - 12, 82, 22, 'rgba(255,186,90,.9)', 0.26 * flick);
+        } else {
+          ctx.fillStyle = 'rgba(150,168,210,.10)';   /* moon on cold glass */
+          ctx.fillRect(hx - 20, 76, 16, 11);
+        }
+
+        /* the three big windows, and whoever is walking past them */
         [[-72, 104, 24, 20], [-38, 104, 24, 20], [22, 104, 24, 20]]
           .forEach(function (wp, wi) {
+            var out = (wi === 2 && downstairsOut);
             ctx.fillStyle = '#171325';
             ctx.fillRect(hx + wp[0] - 2, wp[1] - 2, wp[2] + 4, wp[3] + 4);
-            ctx.fillStyle = 'rgba(255,206,130,' + (0.62 + 0.26 * flick).toFixed(2) + ')';
-            ctx.fillRect(hx + wp[0], wp[1], wp[2], wp[3]);
-            if (wi === 1) {                       /* a shape crossing the light */
-              var pw2 = ((t * 0.7) % 210) / 210;
-              if (pw2 < 0.4) {
-                ctx.fillStyle = 'rgba(40,26,20,.78)';
-                ctx.fillRect(hx + wp[0] + pw2 * 54 - 5, wp[1] + 2, 9, 18);
+            if (out) {
+              ctx.fillStyle = 'rgba(150,168,210,.12)';
+              ctx.fillRect(hx + wp[0], wp[1], wp[2], wp[3]);
+            } else {
+              /* the pane dims while a body is in front of it */
+              var shade = 1;
+              if (walkX !== null && walkX > wp[0] - 12 && walkX < wp[0] + wp[2] + 12) shade = 0.82;
+              ctx.fillStyle = 'rgba(255,206,130,'
+                + ((0.62 + 0.26 * flick) * shade).toFixed(2) + ')';
+              ctx.fillRect(hx + wp[0], wp[1], wp[2], wp[3]);
+              if (walkX !== null && walkX > wp[0] - 10 && walkX < wp[0] + wp[2] + 10) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(hx + wp[0], wp[1], wp[2], wp[3]);
+                ctx.clip();
+                var px = hx + walkX;
+                var bobY = wp[1] + 3 + Math.abs(Math.sin(wk * 0.20)) * 1.2;
+                ctx.fillStyle = 'rgba(36,22,16,.86)';
+                ctx.fillRect(px - 4, bobY + 5, 9, 13);      /* body */
+                ctx.beginPath();
+                ctx.arc(px + 0.5, bobY + 3.4, 3.4, 0, Math.PI * 2);
+                ctx.fill();                                  /* head */
+                ctx.restore();
               }
             }
             ctx.strokeStyle = 'rgba(30,22,16,.85)'; ctx.lineWidth = 1;
@@ -521,8 +922,10 @@
             ctx.moveTo(hx + wp[0], wp[1] + wp[3] / 2);
             ctx.lineTo(hx + wp[0] + wp[2], wp[1] + wp[3] / 2);
             ctx.stroke();
-            K.glow(ctx, hx + wp[0] + wp[2] / 2, wp[1] + wp[3] / 2, 30,
-                   'rgba(255,186,90,.9)', 0.26 * flick);
+            if (!out) {
+              K.glow(ctx, hx + wp[0] + wp[2] / 2, wp[1] + wp[3] / 2, 22,
+                     'rgba(255,186,90,.9)', 0.24 * flick);
+            }
           });
         /* the door, stood open, with the hall light behind it */
         ctx.fillStyle = '#171325';
@@ -531,7 +934,7 @@
         ctx.fillRect(hx - 8, 120, 14, 40);
         ctx.fillStyle = '#2e2338';
         ctx.fillRect(hx + 6, 118, 8, 42);
-        K.glow(ctx, hx - 1, 142, 34, 'rgba(255,178,84,.9)', 0.30 * flick);
+        K.glow(ctx, hx - 1, 142, 26, 'rgba(255,178,84,.9)', 0.30 * flick);
 
         /* the porch, its rail, a hanging lantern and somebody out watching */
         ctx.fillStyle = '#241e30';
@@ -542,18 +945,22 @@
         ctx.moveTo(hx + 70, 158); ctx.lineTo(hx + 70, 106);
         ctx.moveTo(hx - 96, 146); ctx.lineTo(hx + 70, 146);
         ctx.stroke();
-        var lsw = Math.sin(t * 0.028) * 3;
+        var lsw = Math.sin(t * 0.028) * (3 + gu * 7);
         ctx.strokeStyle = '#2b2438'; ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(hx - 52, 108); ctx.lineTo(hx - 52 + lsw, 118); ctx.stroke();
         ctx.fillStyle = 'rgba(255,198,110,' + (0.8 * flick).toFixed(2) + ')';
         ctx.fillRect(hx - 55 + lsw, 118, 6, 8);
-        K.glow(ctx, hx - 52 + lsw, 122, 22, 'rgba(255,180,80,.9)', 0.34 * flick);
-        K.spectator(ctx, hx + 40, 158, 0.8, 511, t, mood);
-        K.spectator(ctx, hx - 78, 158, 0.66, 733, t + 40, mood);
+        K.glow(ctx, hx - 52 + lsw, 122, 18, 'rgba(255,180,80,.9)', 0.36 * flick);
 
-        /* the light it throws down onto the granite */
-        K.spill(ctx, hx - 96, 164, 170, H - 164, 'rgba(255,186,90,.6)', 0.26 * flick);
+        /* MOMENT · the cat on the rail */
+        porchCat(ctx, hx - 60, 146, t, 'rgba(255,196,112,.42)');
+
+        K.spectator(ctx, hx + 40, 158, 0.8, 511, t, mood);
+        K.spectator(ctx, hx - 84, 158, 0.66, 733, t + 40, mood);
+
+        /* the light it throws down onto the granite, in flat steps */
+        spillSteps(ctx, hx - 96, 164, 170, H - 164, 'rgba(255,186,90,.6)', 0.26 * flick);
       });
 
       /* --- STRING LIGHTS between the camp and the cabin. This was a split
@@ -574,35 +981,34 @@
           ctx.fillStyle = 'rgba(206,220,255,.16)';
           ctx.fillRect(x + 2, py, 1, ph);
           /* the wire, sagging to the next pole, with a lantern hung at each
-             of five points along it */
+             of three points along it */
           var nx = x + 92, ny = 158 - K.vary(i + 1, 141, 74, 86);
-          var sagAmt = 26;
+          var sagAmt = 26 + gu * 4;
+          var swing = Math.sin(t * 0.02 + i) * (1.2 + gu * 6);
           ctx.strokeStyle = 'rgba(20,17,30,.85)'; ctx.lineWidth = 1;
           ctx.beginPath();
           for (var q = 0; q <= 8; q++) {
             var u = q / 8;
             var lx2 = x + (nx - x) * u;
-            var ly2 = py + (ny - py) * u + Math.sin(u * Math.PI) * sagAmt
-                      + Math.sin(t * 0.02 + i) * 1.2;
+            var ly2 = py + (ny - py) * u + Math.sin(u * Math.PI) * sagAmt + swing;
             if (q === 0) ctx.moveTo(lx2, ly2); else ctx.lineTo(lx2, ly2);
           }
           ctx.stroke();
           /* Three lamps to a span, not five, and a halo on every other one.
              Five spans are on screen at once, so five lamps each meant
-             twenty-five radial gradients composited with `lighter` every
-             frame — 1.4ms of the stage's budget for lights nobody can count.
-             The bulb itself is a two-pixel ellipse and costs nothing. */
+             twenty-five glows composited with `lighter` every frame — 1.4ms
+             of the stage's budget for lights nobody can count. The bulb
+             itself is a two-pixel ellipse and costs nothing. */
           for (var b = 1; b <= 3; b++) {
             var u2 = b / 4;
             var bx = x + (nx - x) * u2;
-            var by2 = py + (ny - py) * u2 + Math.sin(u2 * Math.PI) * sagAmt
-                      + Math.sin(t * 0.02 + i) * 1.2;
+            var by2 = py + (ny - py) * u2 + Math.sin(u2 * Math.PI) * sagAmt + swing;
             var lf = 0.7 + 0.3 * Math.sin(t * 0.055 + i * 2 + b);
             ctx.fillStyle = 'rgba(255,206,126,' + lf.toFixed(2) + ')';
             ctx.beginPath();
             ctx.ellipse(bx, by2 + 3, 2.4, 3, 0, 0, Math.PI * 2);
             ctx.fill();
-            if (b % 2) K.glow(ctx, bx, by2 + 3, 18, 'rgba(255,176,74,.95)', 0.36 * lf);
+            if (b === 2) K.glow(ctx, bx, by2 + 3, 15, 'rgba(255,176,74,.95)', 0.40 * lf);
           }
         });
       });
@@ -640,24 +1046,36 @@
           ctx.restore();
           lump(ctx);
           ctx.strokeStyle = K.darker(base, 0.72); ctx.lineWidth = 1; ctx.stroke();
+          /* the moon on the two facets that face it. A hard bright edge on
+             the top-right of every near rock is most of what says "there is
+             a moon up there" once the moon itself is out of frame. */
+          ctx.strokeStyle = 'rgba(198,216,255,.34)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pts[6].x + 1, pts[6].y - 2);
+          ctx.lineTo(pts[0].x + 1, pts[0].y - 2);
+          ctx.lineTo(pts[1].x + 1, pts[1].y - 2);
+          ctx.stroke();
           /* a fire on some of them, and somebody sat by it */
           if (K.chance(i, 124, 0.3)) {
             var fx = x + K.vary(i, 125, -14, 14), fy = FLOOR_Y - 10;
             var fl = 0.7 + 0.3 * Math.sin(t * 0.17 + i);
-            K.glow(ctx, fx, fy - 4, 44, 'rgba(255,150,60,.9)', 0.40 * fl);
+            K.glow(ctx, fx, fy - 8, 30, 'rgba(255,150,60,.9)', 0.42 * fl);
             ctx.fillStyle = '#5c4028';
             ctx.fillRect(fx - 9, fy - 1, 18, 3);
             ctx.fillStyle = '#e0762a';
             ctx.beginPath();
-            ctx.moveTo(fx - 7, fy); ctx.quadraticCurveTo(fx, fy - 20 * fl, fx + 7, fy);
+            ctx.moveTo(fx - 7, fy);
+            ctx.quadraticCurveTo(fx + gu * 5, fy - 20 * fl, fx + 7 + gu * 7, fy);
             ctx.closePath(); ctx.fill();
             ctx.fillStyle = '#ffb03a';
             ctx.beginPath();
-            ctx.moveTo(fx - 4, fy); ctx.quadraticCurveTo(fx + 1, fy - 14 * fl, fx + 4, fy);
+            ctx.moveTo(fx - 4, fy);
+            ctx.quadraticCurveTo(fx + 1 + gu * 4, fy - 14 * fl, fx + 4 + gu * 5, fy);
             ctx.closePath(); ctx.fill();
             ctx.fillStyle = '#fff0b0';
             ctx.beginPath();
-            ctx.moveTo(fx - 2, fy); ctx.quadraticCurveTo(fx, fy - 7 * fl, fx + 2, fy);
+            ctx.moveTo(fx - 2, fy);
+            ctx.quadraticCurveTo(fx + gu * 2, fy - 7 * fl, fx + 2 + gu * 3, fy);
             ctx.closePath(); ctx.fill();
           }
           if (K.chance(i, 126, 0.34)) {
@@ -670,9 +1088,7 @@
              Everything on this stage was cold: two shots of it side by side
              and the whole band the fighters stand in was one blue-grey
              value, which is what makes a dark cat vanish. The scattered
-             boulder fires above are seasoning; this is a light source. It is
-             placed with K.at at the layer's own depth, so it is a PLACE you
-             scroll past rather than a decal on the glass. --- */
+             boulder fires above are seasoning; this is a light source. --- */
       K.layer(ctx, camX, 0.66, function () {
         /* Repeated at a wide spacing rather than pinned to one world point.
            Pinned, there was exactly one camp on the whole mountain: scroll
@@ -694,13 +1110,20 @@
                         4.4, 3.2, 0, 0, Math.PI * 2);
             ctx.fill();
           }
-          /* The glow is centred well ABOVE the embers. Centred on the fuel
-             it lands inside the hard shadow K.deepen lays along the floor
-             line and comes out as a dull brown smudge; lifted to the top of
-             the flames it lights the band the fight happens in, which is
-             the whole reason the fire is here. */
-          K.glow(ctx, cx, by - 30, 118, 'rgba(255,146,52,.95)', 0.50 * fl);
-          K.glow(ctx, cx, by - 12, 40, 'rgba(255,230,158,.95)', 0.44 * fl);
+          /* The glow is centred ABOVE the embers, because centred on the
+             fuel it lands inside the hard shadow K.deepen lays along the
+             floor line and comes out as a dull brown smudge.
+
+             And it is HALF the radius it was. K.glow stopped being a soft
+             radial bloom and became four flat rings, and at 118 pixels those
+             rings are not a halo — they are a flat orange disc a third of
+             the screen across, laid over the monolith, the pines and both
+             fighters. It measured as the brightest thing in the picture
+             after the moon and it was lighting nothing. A tight halo at
+             higher alpha throws the same amount of warm light onto the band
+             the fight happens in and leaves the rest of the stage alone. */
+          K.glow(ctx, cx, by - 26, 56, 'rgba(255,146,52,.95)', 0.46 * fl);
+          K.glow(ctx, cx, by - 12, 24, 'rgba(255,230,158,.95)', 0.44 * fl);
 
           /* the bed of it, then three tongues at different rates — one
              flame shape pulsing is a gas ring, three out of phase is a
@@ -720,12 +1143,15 @@
             ctx.fillStyle = fm[2];
             ctx.beginPath();
             ctx.moveTo(cx + fm[0] - 8, by);
-            ctx.quadraticCurveTo(cx + fm[0] - 7, by - h2 * 0.6,
-                                 cx + fm[0] + Math.sin(t * 0.13 + fm[3]) * 4, by - h2);
-            ctx.quadraticCurveTo(cx + fm[0] + 7, by - h2 * 0.6, cx + fm[0] + 8, by);
+            ctx.quadraticCurveTo(cx + fm[0] - 7 + gu * 6, by - h2 * 0.6,
+                                 cx + fm[0] + Math.sin(t * 0.13 + fm[3]) * 4 + gu * 16,
+                                 by - h2 * (1 - gu * 0.22));
+            ctx.quadraticCurveTo(cx + fm[0] + 7 + gu * 8, by - h2 * 0.6,
+                                 cx + fm[0] + 8, by);
             ctx.closePath(); ctx.fill();
           });
-          K.plume(ctx, cx, by - 46, t, { count: 5, rise: 54, drift: 12, size: 5,
+          K.plume(ctx, cx, by - 46, t, { count: 5, rise: 54,
+                                         drift: 12 + gu * 26, size: 5,
                                          alpha: 0.16, dark: true,
                                          color: 'rgba(150,150,175,.9)' });
 
@@ -737,7 +1163,7 @@
           ctx.moveTo(cx + 20, by + 4); ctx.lineTo(cx + 1, by - 44);
           ctx.moveTo(cx + 6, by + 4); ctx.lineTo(cx - 2, by - 44);
           ctx.stroke();
-          var kw = Math.sin(t * 0.045) * 1.6;
+          var kw = Math.sin(t * 0.045) * (1.6 + gu * 3);
           ctx.strokeStyle = '#2b2334'; ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(cx - 1, by - 43); ctx.lineTo(cx - 1 + kw, by - 33); ctx.stroke();
@@ -773,6 +1199,8 @@
              boulder; a frame has to leave the top of the picture. --- */
       K.layer(ctx, camX, 0.86, function () {
         var drift3 = camX * 0.05;
+        var ow = t % P_OWL;
+        var perchX = 0, perchY = 0;
         [[-26, 1], [W + 26, -1]].forEach(function (side) {
           var ex = side[0] - drift3 * side[1], dir = side[1];
           var slab = function (c) {
@@ -813,22 +1241,34 @@
           ctx.moveTo(ex + dir * 26, -18); ctx.lineTo(ex + dir * 62, 48);
           ctx.lineTo(ex + dir * 52, 118); ctx.stroke();
           ctx.restore();
-          /* a scrub pine growing out of the top of it */
+          /* a scrub pine growing out of the top of it. The left one is the
+             owl's branch, and it SPRINGS for half a second after the bird
+             leaves it — a decaying wobble on the trunk. A landing and a
+             take-off both read almost entirely off what the branch does. */
+          var spring = (dir > 0 && ow < 46)
+            ? Math.sin(ow * 0.62) * Math.exp(-ow * 0.06) * 3.4 : 0;
           ctx.fillStyle = '#0d1224';
           for (var tr = 0; tr < 3; tr++) {
             var tw = 9 - tr * 2.4;
+            var lx = ex + dir * 40 + spring * (1 - tr * 0.3);
             ctx.beginPath();
-            ctx.moveTo(ex + dir * 40, 4 + tr * 9);
-            ctx.lineTo(ex + dir * 40 - tw, 20 + tr * 9);
-            ctx.lineTo(ex + dir * 40 + tw, 20 + tr * 9);
+            ctx.moveTo(lx, 4 + tr * 9);
+            ctx.lineTo(lx - tw, 20 + tr * 9);
+            ctx.lineTo(lx + tw, 20 + tr * 9);
             ctx.closePath(); ctx.fill();
           }
+          if (dir > 0) { perchX = ex + dir * 40 + spring; perchY = 8; }
         });
+        /* MOMENT · the owl. Sat on that branch nearly all the time, blinking;
+           once every thirty-three seconds it goes. Drawn last in the layer so
+           it is never behind the rock it is sitting on. */
+        if (ow < L_OWL) owlFlying(ctx, perchX, perchY, ow / L_OWL, t);
+        else owlPerched(ctx, perchX, perchY, t);
       });
 
       /* --- granite underfoot, wet-looking, with the moon on it --- */
       graniteFloor(ctx, camX);
-      K.floorPool(ctx, MOON_X, 150, 'rgba(190,205,245,.5)', 0.24);
+      moonPool(ctx);
       K.litter(ctx, camX, 1, 46,
                ['rgba(170,180,215,.30)', 'rgba(90,88,110,.45)',
                 'rgba(226,236,255,.22)'], 0.8, 2.6);
@@ -838,16 +1278,18 @@
       this.embers.draw(ctx, camX, t);
     },
     drawFore: function (ctx, camX, t) {
+      var gu = gust(t);
       /* Low mist rolling across the fighters' ankles. Many thin, faint bands
          rather than a few fat ones — four big ellipses read as a grey smear,
          which is worse than no mist at all. It also does the job K.deepen
          cannot: it puts a pale layer at shin height so a dark cat has
-         something to be seen against. */
+         something to be seen against. It surges with the gust, which is the
+         cheapest and most legible thing wind can do down here. */
       ctx.save();
       ctx.fillStyle = '#c2cfe8';
       for (var i = 0; i < 10; i++) {
         var span = W + 240;
-        var mx = ((t * (0.13 + i * 0.035) - camX * 1.08) % span + span) % span - 120;
+        var mx = ((t * (0.13 + i * 0.035) + gu * 34 - camX * 1.08) % span + span) % span - 120;
         var my = FLOOR_Y + 4 + i * 5.2;
         ctx.globalAlpha = 0.06 + 0.04 * Math.sin(t * 0.02 + i * 1.7);
         ctx.beginPath();
@@ -860,21 +1302,37 @@
          In the reference something is always crossing the near edge — a
          kerb, a rope, a tuft of grass — because that is what tells you the
          floor carries on towards you rather than stopping at the glass.
-         Near-black, no detail: anything readable down here competes with
-         the fight for no reason. */
-      K.repeatX(camX, 1.24, 43, function (x, i) {
-        if (K.chance(i, 240, 0.34)) return;
-        var gy = H - 2 + K.vary(i, 241, -4, 2);
-        var gh = K.vary(i, 242, 9, 20);
+
+         It was an evenly spaced row of five identical black spikes, which
+         reads as a comb along the bottom of the picture, not as grass. Now
+         it is CLUMPS at irregular spacing, with a blade count and a height
+         that vary, and the tallest blade in each clump takes a thread of
+         moonlight down one side — so the near edge is a shape rather than a
+         black band with teeth. */
+      K.repeatX(camX, 1.24, 37, function (x, i) {
+        if (K.chance(i, 240, 0.30)) return;
+        var gy = H - 1 + K.vary(i, 241, -5, 2);
+        var gh = K.vary(i, 242, 8, 22);
+        var n = 3 + Math.floor(K.hash(i, 245) * 4);
+        var spread = K.vary(i, 246, 2.4, 3.8);
+        var tall = -1, tx = 0, ty = 0, tb = 0;
         ctx.fillStyle = '#0e0c1a';
-        for (var b = 0; b < 5; b++) {
-          var lean = K.vary(i * 5 + b, 243, -6, 6);
+        for (var b = 0; b < n; b++) {
+          var lean = K.vary(i * 5 + b, 243, -6, 6) + gu * 3;
+          var bh = gh * K.vary(i * 5 + b, 244, 0.45, 1);
+          var bx = x + b * spread - n * spread * 0.5;
           ctx.beginPath();
-          ctx.moveTo(x + b * 3.2 - 6, gy);
-          ctx.lineTo(x + b * 3.2 - 6 + lean, gy - gh * K.vary(i * 5 + b, 244, 0.5, 1));
-          ctx.lineTo(x + b * 3.2 - 3.4, gy);
+          ctx.moveTo(bx - 1.6, gy);
+          ctx.lineTo(bx + lean, gy - bh);
+          ctx.lineTo(bx + 1.6, gy);
           ctx.closePath(); ctx.fill();
+          if (bh > tall) { tall = bh; tx = bx; ty = gy; tb = lean; }
         }
+        ctx.strokeStyle = 'rgba(158,180,232,.26)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tx + 1.6, ty); ctx.lineTo(tx + tb, ty - tall);
+        ctx.stroke();
       });
       K.nearLip(ctx, 14, 0.40);
       K.vignette(ctx, 0.34);

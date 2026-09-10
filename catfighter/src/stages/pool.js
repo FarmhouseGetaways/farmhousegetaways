@@ -197,6 +197,298 @@
     }
   }
 
+  /* ---- the water -------------------------------------------------------
+
+     It was `K.water`, which is a vertical GRADIENT with six wavy strokes on
+     it. That helper is fine for a distant creek; for the thing this stage is
+     named after it was the single most expensive mistake in the picture — a
+     smooth ramp of blue reads as coloured plastic, and at 384 across the six
+     hairlines on top of it read as scratches.
+
+     What a limited-palette board does instead, and what this does now: FLAT
+     STEPPED BANDS with hard edges between them. Six tones, darkest at the far
+     wall where the water is deep and in the shade of the deck, brightest at
+     the near lip where it is shallow and the sky is straight overhead. The
+     bands get taller as they come towards you, which is the whole of the
+     perspective — even spacing reads as a flag rather than as a surface.
+
+     The chop is short flat DASHES sitting on each band edge in the tone of
+     the band above, scrolling at a different speed per row. That is what a
+     row of waves catching the light actually looks like at this size, and
+     each row is ONE path of a dozen `rect`s and one fill — twelve fillRects
+     a row measured at four times the cost for the identical picture. */
+  var WATER = ['#0d5580', '#12689a', '#1880b4', '#1f95c8', '#2ca7d8', '#45bce6'];
+  var WATER_TOP = 136, WATER_BOT = 166;
+
+  function bandY(i, n) {
+    return WATER_TOP + Math.pow(i / n, 1.3) * (WATER_BOT - WATER_TOP);
+  }
+
+  function poolWater(ctx, t) {
+    var n = WATER.length, i, y0, y1;
+    for (i = 0; i < n; i++) {
+      y0 = Math.round(bandY(i, n));
+      y1 = Math.round(bandY(i + 1, n));
+      ctx.fillStyle = WATER[i];
+      ctx.fillRect(0, y0, W, Math.max(1, y1 - y0));
+    }
+    /* the far wall of the pool, and the light sitting on the waterline. Two
+       one-pixel rules, and they are what make the water sit IN a basin
+       rather than start where the grass stops. */
+    ctx.fillStyle = '#083a5c';
+    ctx.fillRect(0, WATER_TOP - 1, W, 2);
+    ctx.fillStyle = 'rgba(196,240,255,.5)';
+    ctx.fillRect(0, WATER_TOP + 1, W, 1);
+
+    /* the chop */
+    for (i = 1; i < n - 1; i++) {
+      var yb = Math.round(bandY(i, n));
+      var sp = 27 + i * 11;
+      var dr = (t * (0.20 + i * 0.13)) % sp;
+      ctx.beginPath();
+      for (var cx = -sp + dr; cx < W + sp; cx += sp) {
+        var ww = 5 + i * 2;
+        ctx.rect(Math.round(cx), yb - 1, ww, 1);
+        ctx.rect(Math.round(cx + sp * 0.52), yb, Math.round(ww * 0.6), 1);
+      }
+      ctx.fillStyle = WATER[Math.min(n - 1, i + 2)];
+      ctx.fill();
+    }
+    /* the near lip, where the surface meets the coping */
+    ctx.fillStyle = 'rgba(224,248,255,.45)';
+    ctx.fillRect(0, WATER_BOT - 1, W, 1);
+  }
+
+  /* Something standing on the far deck, upside down in the water under it.
+
+     Four short bars with a sine on each, which is exactly what a reflection
+     in chop is: not a mirror image, a smear of the right colour in the right
+     place. Anything more careful than this at 384 across is wasted, and a
+     mirrored sprite reads as a bug the moment the water moves. */
+  function reflect(ctx, x, w, colour, alpha, t, phase) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = colour;
+    for (var r = 0; r < 4; r++) {
+      ctx.fillRect(Math.round(x + Math.sin(t * 0.045 + r * 0.9 + phase) * (1.4 + r * 0.7)),
+                   WATER_TOP + 2 + r * 3, w, 2);
+    }
+  }
+
+  /* ---- THE HIGH BOARD, and the cat who usually thinks better of it -------
+
+     The stage's second-longest loop and the one meant to be found rather
+     than noticed. Every eleven and a half seconds a cat walks out to the end
+     of the board, leans over, looks at the water, and walks back in. Every
+     THIRD visit — once in about thirty-five seconds — he goes, and the
+     cannonball throws a column of white, a ring across the pool and a hard
+     bob through every float on it.
+
+     One function returns where he is in the visit, because three separate
+     parts of the picture need it: the cat, the flex in the plank under him,
+     and the kick the splash gives the floats. Sampling a loop twice is how
+     the slide rider used to drift off the slide. */
+  /* World 92 at depth 0.34, and the number is not arbitrary. The camera runs
+     from -380 to -4, so anything on this layer sweeps 129 pixels across the
+     frame over a match. The flamingo owns everything left of about 117 and
+     the tower everything right of 266; 92 puts the STAND anywhere in 93..221
+     and the cat on the end of the board in 131..259, which is inside that
+     clear band at every camera position there is. A landmark that hides
+     behind the scenery half the time is not a landmark. */
+  var BOARD_T = 690, BOARD_WORLD = 92;
+
+  /* Where the plank is at the two ends and at the cat's feet. It DESCENDS as
+     it comes towards you, which is the whole reason it reads as a board over
+     the water rather than as a rail along the back of the deck — the first
+     version was level, sat on the grass, and looked like a fence. */
+  var BD_X0 = -24, BD_Y0 = 110, BD_X1 = 46, BD_Y1 = 139;
+
+  function diveState(t) {
+    var k = (t % BOARD_T) / BOARD_T;
+    var s = { jumps: (Math.floor(t / BOARD_T) % 3) === 2,
+              on: false, u: 0, lean: 0, flex: 0, air: -1, splash: -1 };
+    if (k < 0.07 || k > 0.96) return s;
+    if (k < 0.30) {                       /* walking out */
+      s.on = true; s.u = (k - 0.07) / 0.23;
+    } else if (k < 0.60) {                /* out on the end, having a look */
+      var q = (k - 0.30) / 0.30;
+      s.on = true; s.u = 1;
+      s.lean = Math.sin(q * Math.PI) * 0.36;
+      s.flex = 1.4 + Math.sin(q * Math.PI * 3) * 1.5;
+    } else if (!s.jumps) {                /* ...and thinking better of it */
+      if (k < 0.88) { s.on = true; s.u = 1 - (k - 0.60) / 0.28; }
+    } else if (k < 0.655) {               /* the crouch and the spring */
+      s.on = true; s.u = 1; s.lean = 0.16;
+      s.flex = 4.6 - (k - 0.60) / 0.055 * 11;
+    } else if (k < 0.75) {
+      s.air = (k - 0.655) / 0.095;
+    } else {
+      s.splash = (k - 0.75) / 0.21;
+    }
+    return s;
+  }
+
+  function highBoard(ctx, camX, t) {
+    var bx = K.at(camX, 0.34, BOARD_WORLD);
+    var d = diveState(t);
+    var x0 = bx + BD_X0, x1 = bx + BD_X1;
+    var y1 = BD_Y1 + d.flex;
+
+    /* the tower it stands on: a post to the far lip, a brace, and rungs.
+       The rungs are what name it — a bare post is a fence post. */
+    K.mass(ctx, x0 - 4, BD_Y0 + 2, 6, 34, '#cdc7b4', { top: 2, side: 2, foot: false, edgeW: 1 });
+    ctx.strokeStyle = '#9c9684'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x0 - 3, 136); ctx.lineTo(x0 + 12, 116);
+    for (var rg2 = 0; rg2 < 5; rg2++) {
+      ctx.moveTo(x0 - 8, 116 + rg2 * 5); ctx.lineTo(x0 - 3, 116 + rg2 * 5);
+    }
+    ctx.moveTo(x0 - 8, 114); ctx.lineTo(x0 - 8, 136);
+    ctx.stroke();
+
+    /* the plank, foreshortened: thin at the far end, thicker at the tip.
+       Flat-filled with a lit top rule — it is four pixels deep and K.paint
+       would buy it a clip for a crescent nobody can see. */
+    ctx.beginPath();
+    ctx.moveTo(x0, BD_Y0);
+    ctx.quadraticCurveTo((x0 + x1) / 2, (BD_Y0 + y1) / 2 + d.flex * 0.2, x1, y1);
+    ctx.lineTo(x1, y1 + 4.6);
+    ctx.quadraticCurveTo((x0 + x1) / 2, (BD_Y0 + y1) / 2 + 3 + d.flex * 0.2, x0, BD_Y0 + 2.6);
+    ctx.closePath();
+    ctx.fillStyle = '#d8d1bb'; ctx.fill();
+    ctx.strokeStyle = 'rgba(80,74,58,.75)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x0, BD_Y0 + 0.6);
+    ctx.quadraticCurveTo((x0 + x1) / 2, (BD_Y0 + y1) / 2 + 0.6 + d.flex * 0.2, x1, y1 + 0.8);
+    ctx.strokeStyle = 'rgba(255,252,238,.8)'; ctx.stroke();
+
+    if (d.on) {
+      ctx.save();
+      ctx.translate(x0 + 4 + d.u * (BD_X1 - BD_X0 - 6),
+                    BD_Y0 + d.u * (BD_Y1 - BD_Y0) + d.flex * d.u * d.u);
+      ctx.rotate(d.lean);
+      K.spectator(ctx, 0, 0, 0.66, 733, t * (d.u < 0.99 ? 2.4 : 0.5), 0);
+      ctx.restore();
+    }
+
+    if (d.air >= 0) {
+      /* the cannonball. A plain disc is a rock; the knees and the ears out
+         of the tuck are the whole read, and they are three triangles in the
+         same path as the body. */
+      var ax = x1 + 2 + d.air * 12, ay = BD_Y1 - 6 + d.air * d.air * 26;
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(d.air * 4.4);
+      ctx.fillStyle = '#8a6a4f';
+      ctx.beginPath();
+      ctx.moveTo(6, 0); ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.moveTo(-5.4, -1.4); ctx.lineTo(-9.6, -6.4); ctx.lineTo(-3.4, -5.4); ctx.closePath();
+      ctx.moveTo(-1.6, -5); ctx.lineTo(-3.6, -10.4); ctx.lineTo(1.4, -6); ctx.closePath();
+      ctx.moveTo(4.6, 1.6); ctx.lineTo(11.4, 4); ctx.lineTo(4.6, 6.2); ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#f4e7d6';
+      ctx.beginPath(); ctx.arc(1.6, 1.6, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    if (d.splash >= 0) {
+      var sx = x1 + 14, sy = 156, q = d.splash;
+      var up = Math.min(1, q / 0.30), out = Math.max(0, (q - 0.18) / 0.82);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - q * 1.1);
+      ctx.fillStyle = '#f2fbff';
+      ctx.beginPath();
+      ctx.moveTo(sx - 10, sy + 4);
+      ctx.quadraticCurveTo(sx - 7, sy - 24 * up, sx - 1, sy - 36 * up);
+      ctx.quadraticCurveTo(sx + 7, sy - 24 * up, sx + 10, sy + 4);
+      ctx.closePath();
+      for (var dd = 0; dd < 8; dd++) {
+        var aa = -2.95 + dd * 0.41, rr = 7 + out * 44;
+        var dx2 = sx + Math.cos(aa) * rr;
+        var dy2 = sy - 8 + Math.sin(aa) * rr * 0.85 + out * out * 30;
+        var dr2 = Math.max(1, 3 - out * 1.8);
+        ctx.moveTo(dx2 + dr2, dy2); ctx.arc(dx2, dy2, dr2, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.globalAlpha = Math.max(0, 0.55 * (1 - out));
+      ctx.strokeStyle = '#dff4ff'; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy + 4, 9 + out * 54, 3 + out * 14, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    return d;
+  }
+
+  /* ---- a beach ball, lobbed in from off the left ------------------------
+     Seven and a half seconds. It is small and it stays above the water, so
+     it can never be mistaken for something thrown in the fight, and it is
+     the only thing in the stage that crosses the picture horizontally —
+     which is precisely why the eye catches it. */
+  var BALL_T = 470;
+
+  function beachBall(ctx, t) {
+    var k = (t % BALL_T) / BALL_T;
+    if (k > 0.60) return;
+    var u = k / 0.46;
+    if (u <= 1) {
+      var x = -16 + u * 272, y = 152 - Math.sin(u * Math.PI) * 94;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(u * 9);
+      ctx.fillStyle = '#f6f1e6';
+      ctx.beginPath(); ctx.arc(0, 0, 4.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e4574c';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 4.6, -2.2, -1.0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#4aa8c9';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 4.6, 0.5, 1.7); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(70,60,58,.6)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, 4.6, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    } else {
+      var s = (k - 0.46) / 0.14;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 0.7 * (1 - s));
+      ctx.strokeStyle = '#e6f7ff'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(256, 153, 5 + s * 22, 2 + s * 7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ---- a cat shaking itself dry, once every seventeen seconds -----------
+     The longest of the four loops and the smallest event in it: he walks on
+     along the far deck, stops, comes apart for half a second in a ring of
+     water, and walks off. */
+  var SHAKE_T = 1030;
+
+  function shakeDry(ctx, camX, t, mood) {
+    var k = (t % SHAKE_T) / SHAKE_T;
+    if (k > 0.30) return;
+    var x = K.at(camX, 0.34, 236), walk = 0;
+    if (k < 0.02) return;
+    if (k < 0.09) walk = -30 * (1 - (k - 0.02) / 0.07);
+    else if (k > 0.23) walk = 34 * ((k - 0.23) / 0.07);
+    var shaking = k >= 0.11 && k < 0.21;
+    var q = (k - 0.11) / 0.10;
+    var jit = shaking ? Math.sin(t * 1.6) * 2.4 : 0;
+    K.spectator(ctx, x + walk + jit, 133, 0.62, 481,
+                walk ? t * 2.4 : t * 0.5, shaking ? 0 : mood);
+    if (shaking) {
+      ctx.save();
+      ctx.globalAlpha = 0.75 * (1 - Math.abs(q - 0.5) * 2);
+      ctx.fillStyle = '#eaf7ff';
+      ctx.beginPath();
+      for (var i = 0; i < 10; i++) {
+        var a = -Math.PI + i * 0.35, r = 7 + q * 13;
+        var dx = x + walk + Math.cos(a) * r * 1.6, dy = 125 + Math.sin(a) * r * 0.9;
+        ctx.moveTo(dx + 1.4, dy); ctx.arc(dx, dy, 1.4, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   CF.StageDefs = CF.StageDefs || {};
   CF.StageDefs.pool = {
     id: 'pool', name: 'THE POOL DECK',
@@ -207,9 +499,10 @@
       this.sparkle = new P({ count: 20, kind: 'sparkle', depth: 0.9, seed: 22,
                              band: [FLOOR_Y - 22, FLOOR_Y - 4], vx: 0.05, vy: 0,
                              size: 1.5, color: 'rgba(255,255,255,.95)' });
-      this.heat = new P({ count: 14, kind: 'bubble', depth: 0.5, seed: 23,
-                          band: [70, 150], vx: 0.09, vy: -0.04,
-                          size: 2.2, color: 'rgba(255,255,255,.5)' });
+      /* The `heat` bubbles that used to live here are gone. Fourteen stroked
+         circles a frame drifting through the sky and the hills, invisible at
+         1x against clouds and a hazed hillside, and they were the price of
+         the high board and the beach ball. If you add, take away. */
     },
 
     drawBack: function (ctx, camX, t, mood) {
@@ -221,13 +514,17 @@
           var s = K.vary(i, 70, 0.7, 1.5), y = K.vary(i, 71, 16, 54);
           var d = x + t * K.vary(i, 72, 0.02, 0.06);
           ctx.fillStyle = 'rgba(255,255,255,' + K.vary(i, 73, 0.55, 0.95).toFixed(2) + ')';
+          /* one path for the whole cloud, not four. They are the same
+             colour, so four fills bought four times the cost of one for a
+             picture that cannot tell the difference. */
+          ctx.beginPath();
           for (var q = 0; q < 4; q++) {
-            ctx.beginPath();
-            ctx.ellipse(d + q * 13 * s, y + K.vary(i * 4 + q, 74, -4, 4) * s,
-                        K.vary(i * 4 + q, 75, 8, 15) * s,
-                        K.vary(i * 4 + q, 76, 5, 9) * s, 0, 0, Math.PI * 2);
-            ctx.fill();
+            var ex = d + q * 13 * s, ey = y + K.vary(i * 4 + q, 74, -4, 4) * s;
+            var rx2 = K.vary(i * 4 + q, 75, 8, 15) * s;
+            ctx.moveTo(ex + rx2, ey);
+            ctx.ellipse(ex, ey, rx2, K.vary(i * 4 + q, 76, 5, 9) * s, 0, 0, Math.PI * 2);
           }
+          ctx.fill();
         });
       });
       K.glow(ctx, 138, 26, 58, 'rgba(255,246,190,.9)', 0.5);
@@ -556,52 +853,79 @@
       /* the crowd at the far rail, watching the fight rather than the pool */
       K.crowdRow(ctx, camX, 0.34, 27, 132, t, mood,
                  { seed: 140, gap: 0.34, min: 0.52, max: 0.74 });
+      shakeDry(ctx, camX, t, mood);
 
       /* --- the pool. It reaches from the far rail almost to the fighters'
              feet, so the fight happens on the lip of it. --- */
-      K.water(ctx, 0, 136, W, 32, t, '#1d76b0', '#63c3e9', 'rgba(255,255,255,.6)');
-      /* the lane tiles on the bottom of the pool, wobbling through the water */
+      poolWater(ctx, t);
+
+      /* --- what is standing on the far deck, smeared upside down in it.
+             Four things, and they are drawn HERE rather than with the props
+             themselves because the water is painted over the far deck: a
+             reflection laid down before the water is a reflection you cannot
+             see. --- */
       ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = '#0d4f78'; ctx.lineWidth = 2;
-      [146, 156].forEach(function (ly3, n3) {
-        ctx.beginPath();
-        for (var lx3 = 0; lx3 <= W; lx3 += 6) {
-          ctx.lineTo(lx3, ly3 + Math.sin((lx3 + t * 1.2 + n3 * 40) * 0.05) * 1.6);
-        }
-        ctx.stroke();
+      K.repeatX(camX, 0.24, 84, function (x, i) {          /* the palms */
+        if (K.chance(i, 133, 0.16)) return;
+        reflect(ctx, x - 9, 18, '#215c33', 0.30, t, i);
       });
+      K.repeatX(camX, 0.34, 74, function (x, i) {          /* the parasols */
+        if (K.chance(i, 78, 0.3)) return;
+        reflect(ctx, x - 13, 26,
+                K.pick(i, 81, ['#e4574c', '#f0b429', '#4aa8c9', '#e07ab0', '#5bbd7a']),
+                0.24, t, i * 1.7);
+      });
+      reflect(ctx, K.at(camX, 0.34, 34), 14, '#f2ece0', 0.26, t, 2.1);
+      reflect(ctx, K.at(camX, 0, 296) - camX * 0.03 - 6, 56, '#0d4f78', 0.26, t, 0.4);
       ctx.restore();
-      /* the sun's glitter path — a wedge of broken white running towards the
-         viewer from under the sun. One highlight line across the whole band
-         reads as a river; a hot patch under the light reads as a pool. */
+
+      /* --- the sun on the water. A wedge of broken white running towards
+             the viewer from under the sun: one highlight line across the
+             whole band reads as a river, a hot patch under the light reads
+             as a pool.
+
+             THREE alpha levels, chosen per glint, not a continuous sine —
+             the same reason `K.glow` is four flat rings now. A board with
+             sixteen colours could not fade a highlight and did not try; the
+             steps are the look. One path and one fill per level. --- */
+      var LEV = [0.20, 0.46, 0.88];
       ctx.save();
-      for (var gr = 0; gr < 22; gr++) {
-        var gy = 137 + (gr % 8) * 3.9;
-        var spread = 8 + (gy - 137) * 2.2;
-        var gx = 138 + Math.sin(gr * 2.4 + t * 0.05) * spread;
-        ctx.globalAlpha = 0.25 + 0.4 * Math.abs(Math.sin(t * 0.07 + gr));
+      for (var lv = 0; lv < 3; lv++) {
+        ctx.beginPath();
+        for (var gr = 0; gr < 26; gr++) {
+          if (Math.min(2, Math.floor((0.5 + 0.5 * Math.sin(t * 0.07 + gr * 1.7)) * 3)) !== lv) continue;
+          var gy = 138 + (gr % 8) * 3.4;
+          var spread = 7 + (gy - 138) * 2.3;
+          var gx = 138 + Math.sin(gr * 2.4 + t * 0.05) * spread;
+          ctx.rect(Math.round(gx), Math.round(gy), 2 + (gr % 3) * 2.5, 1);
+        }
+        ctx.globalAlpha = LEV[lv];
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(gx, gy, 2 + (gr % 3) * 2.5, 1.4);
+        ctx.fill();
       }
       ctx.restore();
-      /* the wobbling reflection of the tower, on the water under it */
-      K.layer(ctx, camX, 0.30, function () {
-        var rx3 = K.at(camX, 0, 296) - camX * 0.03;
-        ctx.save();
-        ctx.globalAlpha = 0.22;
-        ctx.fillStyle = '#0d4f78';
-        for (var r3 = 0; r3 < 7; r3++) {
-          var yy3 = 138 + r3 * 4;
-          ctx.fillRect(rx3 - 6 + Math.sin(t * 0.05 + r3) * 2.4, yy3, 56, 2.4);
-        }
-        ctx.restore();
-      });
+      /* and the sun's own reflected disc, as flat rings. K.glow clipped to
+         the water so the rings stop dead at the coping — a bloom that runs
+         over the tiles is a lens flare, and this board does not have one. */
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, WATER_TOP, W, WATER_BOT - WATER_TOP); ctx.clip();
+      K.glow(ctx, 138, 152, 30, 'rgba(255,246,206,.9)', 0.16);
+      ctx.restore();
+
+      highBoard(ctx, camX, t);
+      beachBall(ctx, t);
+
+      var wake = diveState(t).splash;
+      wake = wake >= 0 ? Math.max(0, 1 - wake * 1.6) : 0;
 
       K.layer(ctx, camX, 0.5, function () {
         /* floats — three kinds, and never two of a kind next to each other */
         K.repeatX(camX, 0, 92, function (x, i) {
-          var fy = 152 + Math.sin(t * 0.03 + i) * 1.6;
+          /* the cannonball rocks every float in the pool — that is most of
+             what makes it read as a real weight going in rather than as a
+             white shape appearing on top of the water */
+          var fy = 152 + Math.sin(t * 0.03 + i) * 1.6
+                       + (wake ? Math.sin(t * 0.55 + i * 1.3) * 4.2 * wake : 0);
           var kind = Math.floor(K.hash(i, 87) * 3);
           /* Both of these were K.paint too, for the same non-reason: a ring
              ten pixels tall does not have room for a lit rim. Flat fill,
@@ -655,17 +979,22 @@
 
       /* wet paw prints coming up out of the pool and away to the right */
       K.layer(ctx, camX, 1, function () {
+        /* One path per print — the pad and its three toes are the same
+           colour, so four fills each over seven prints was twenty-eight
+           fills for a thing you read as a smudge. */
         K.repeatX(camX, 1, 240, function (x0, i0) {
           for (var s4 = 0; s4 < 7; s4++) {
             var px3 = x0 + s4 * 15, py3 = FLOOR_Y + 6 + s4 * 5.4;
             var side = s4 % 2 ? 5 : -5;
             ctx.fillStyle = 'rgba(150,175,190,' + (0.32 - s4 * 0.035).toFixed(2) + ')';
             ctx.beginPath();
-            ctx.ellipse(px3 + side, py3, 3.4, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.moveTo(px3 + side + 3.4, py3);
+            ctx.ellipse(px3 + side, py3, 3.4, 2.2, 0, 0, Math.PI * 2);
             for (var tq = -1; tq <= 1; tq++) {
-              ctx.beginPath();
-              ctx.ellipse(px3 + side + tq * 2.4, py3 - 2.6, 1, 0.9, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.moveTo(px3 + side + tq * 2.4 + 1, py3 - 2.6);
+              ctx.ellipse(px3 + side + tq * 2.4, py3 - 2.6, 1, 0.9, 0, 0, Math.PI * 2);
             }
+            ctx.fill();
           }
         });
         /* a towel and a pair of flip-flops, dropped where somebody got out */
@@ -741,21 +1070,24 @@
           ctx.restore();
         });
 
-        /* splashed water drying on the hot deck */
+        /* splashed water drying on the hot deck — one path for all of them */
+        ctx.fillStyle = 'rgba(140,190,215,.3)';
+        ctx.beginPath();
         K.repeatX(camX, 1, 74, function (x, i) {
-          ctx.fillStyle = 'rgba(140,190,215,.3)';
-          ctx.beginPath();
-          ctx.ellipse(x + K.vary(i, 92, -20, 20), FLOOR_Y + K.vary(i, 93, 8, 44),
-                      K.vary(i, 94, 6, 16), K.vary(i, 95, 2, 5), 0, 0, Math.PI * 2);
-          ctx.fill();
+          var sx2 = x + K.vary(i, 92, -20, 20), sy2 = FLOOR_Y + K.vary(i, 93, 8, 44);
+          var srx = K.vary(i, 94, 6, 16);
+          ctx.moveTo(sx2 + srx, sy2);
+          ctx.ellipse(sx2, sy2, srx, K.vary(i, 95, 2, 5), 0, 0, Math.PI * 2);
         });
+        ctx.fill();
       });
       K.floorPool(ctx, W * 0.45, 190, 'rgba(255,246,214,.6)', 0.32);
-      K.litter(ctx, camX, 1, 70, ['rgba(120,150,170,.3)', 'rgba(255,255,255,.35)'], 0.8, 2.2);
+      /* The scattered litter is gone. Between the pavers, the mosaic course,
+         two puddles, the towels, the flip-flops, the paw prints and the
+         drying splashes this deck was the busiest floor of the six, and
+         twenty more grey specks on it were noise, not detail. */
       this.sparkle.update();
       this.sparkle.draw(ctx, camX, t);
-      this.heat.update();
-      this.heat.draw(ctx, camX, t);
     },
 
     /* Pavers, in perspective, each one a slightly different tone.
@@ -910,6 +1242,41 @@
           c.bezierCurveTo(fx + 10, 132, fx + 22, 142, fx + 20, 160);
           c.closePath();
         }, PINK, { step: 7, shade: 0.34, hi: 0.24, edgeW: 1.6 });
+
+        /* THE THROAT. The neck is forty pixels across and eleven high, the
+           second-biggest shape in the stage, and all the form on it was the
+           one-step crescent K.paint leaves at the rim — which on a shape
+           this size is a hairline. It read as a pink ribbon cut out and laid
+           down, which is exactly the failure this whole game is built to
+           avoid.
+
+           The fix is one HARD SHADOW EDGE down the inside of the curve. The
+           light is low and from the left, so the throat — the concave side
+           facing away from it — is in shadow to a definite line, and that
+           line is what turns a ribbon into a tube. Built from the same
+           control points as the neck outline, pulled inboard, so it can only
+           ever land inside the bird and needs no clip.
+
+           PINK_SHADE, the same tone K.paint's own crescent leaves, so the
+           two read as one shadow side and not as two different pinks. */
+        ctx.fillStyle = PINK_SHADE;
+        ctx.beginPath();
+        ctx.moveTo(fx + 25, 74);
+        ctx.bezierCurveTo(fx + 10, 70, fx - 2, 92, fx + 4, 112);
+        ctx.bezierCurveTo(fx + 10, 132, fx + 22, 142, fx + 20, 159);
+        ctx.lineTo(fx + 12, 157);
+        ctx.bezierCurveTo(fx + 14, 141, fx + 3, 131, fx - 3, 112);
+        ctx.bezierCurveTo(fx - 8, 94, fx + 6, 77, fx + 22, 80);
+        ctx.closePath();
+        ctx.fill();
+        /* and under the jaw, where the head sits on top of the neck — the
+           one plane on the skull that faces straight away from the light */
+        ctx.beginPath();
+        ctx.moveTo(fx + 34, 72);
+        ctx.bezierCurveTo(fx + 28, 79, fx + 14, 78, fx + 6, 70);
+        ctx.bezierCurveTo(fx + 12, 76, fx + 26, 82, fx + 35, 78);
+        ctx.closePath();
+        ctx.fill();
 
         /* the shadow the head and neck throw across the body. On a shape
            this big the one-step crescent K.paint leaves is not enough form —

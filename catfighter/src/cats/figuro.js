@@ -88,6 +88,16 @@
              axis in the figure's own units. Written once because a glove
              hand-placed in world coordinates slides off the fist the moment
              he throws a punch — which is what the first pass did. --- */
+      /* THE LAMP, in the figure's own coordinates. rig.js offsets every
+         cel-shaded fill along (0.52, 0.85) — up and forward — and nothing on
+         a cat is allowed to be lit from anywhere else. A costume piece that
+         places a highlight by eye instead of by this vector is the thing that
+         makes a figure look assembled, so the two places below that put a
+         hard highlight down (the glove specular and the boot cap) read it
+         from here rather than guessing. */
+      var LUX = 0.5218, LUY = 0.8530;
+      var LANG = Math.atan2(LUY, LUX) + Math.PI / 2;   /* across the light */
+
       function frame(a, b) {
         var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
         return { ux: dx / L, uy: dy / L, px: -dy / L, py: dx / L, L: L };
@@ -104,6 +114,132 @@
       var sfx = sdy / sL, sfy = -sdx / sL;
       function T(t, w) { return { x: pv.x + sdx * t + sfx * w, y: pv.y + sdy * t + sfy * w }; }
       function seg(cx, t, w) { var q = T(t, w); cx.lineTo(q.x, q.y); }
+
+      /* ================= FUR ON THE OUTLINE =========================
+
+         The single most under-used thing available at this resolution, and
+         the reason a cel-shaded figure reads as vector art however well it
+         is lit: SMOOTH CURVES. Every edge on him came out of `limbPath` or
+         `smoothClosed`, so every edge was a clean arc, and a clean arc is
+         what a computer draws. A drawn cat has notches in it — a spur of fur
+         off the point of the elbow, a shag on the back of the thigh, a
+         cowlick at the throat, a cheek that is not a circle.
+
+         THREE of them, and no more. Legibility first: the cat is ninety
+         pixels tall, so a notch has to be two or three pixels deep before it
+         survives at all, and a figure with a dozen three-pixel notches round
+         it does not read as fur, it crawls. Cost second: each is a path and a
+         flat fill on a cat the game draws twice a frame.
+
+         HOW THE THREE WERE CHOSEN, because guessing was wrong twice.
+
+         Attempt one was three `A.tuft` spurs — the point of the near elbow,
+         the haunch, the throat. All three failed the same way: `A.tuft` is a
+         CREST primitive, it makes long separate quills, and a quill parked on
+         a joint whose angle changes every frame ends up somewhere different
+         in every pose. The elbow was the clearest failure. A boxer's guard
+         folds that elbow in behind the mitt, so the spur came out from BEHIND
+         the glove and read as a claw growing out of it; on a frame where the
+         arm straightens there is no outside of the bend to sit on at all and
+         it shot out past the wrist.
+
+         Attempt two was a ragged copy of the whole torso outline in the
+         `back` layer, teeth cut into the ribs, the lats and the rump. In
+         principle the best of the lot — it cannot slide, because it IS the
+         body's own profile. In practice it was invisible. Filled magenta and
+         rendered across four poses it contributed about four pixels in total:
+         the towel takes up the whole of his back and the guard arm takes the
+         ribs, so there was nothing left of it to see. It cost a path and a
+         fill on the second most expensive cat in the game for that. Deleted.
+
+         SO: FLAG EVERY DECORATIVE PIECE IN A COLOUR THAT CANNOT OCCUR AND
+         RENDER IT ACROSS FOUR POSES BEFORE YOU KEEP IT. It takes two minutes
+         and it is the only way to tell a subtle detail from one that is not
+         there. The same test killed a fourth notch on the near upper arm —
+         one sliver, at the shoulder, in one pose out of four — and confirmed
+         the three below, which show in all four.                            */
+
+      /* 1 and 2 — THE BACKS OF THE THIGHS. The two longest unbroken arcs on
+         the figure and the ones the eye follows from the trunks down to the
+         boots. Each is ONE closed shape: a saw-toothed edge down the back of
+         the limb, returning up the middle of it where nothing can see it.
+
+         It has to go UNDER the limb or the flat fill wipes out the limb's own
+         cel shading in a stripe, and the layer that is under a near limb is
+         `body` (poured before them) — not `front`, which is over. Same
+         reasoning puts the far leg's in `back`.
+
+         The tooth depth is a quarter of the limb radius. At half it read as a
+         torn edge on a soft toy; at an eighth it was gone at game scale. */
+      function furEdge(layer, a, b, r, from, to, n, out, col) {
+        var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+        var ux = dx / L, uy = dy / L;
+        /* the BACK of the limb, whichever way round the limb happens to be */
+        var px = -uy, py = ux;
+        if (px > 0) { px = -px; py = -py; }
+        A.add(layer, function (cx) {
+          var i, t, w;
+          cx.beginPath();
+          for (i = 0; i <= n; i++) {
+            t = from + (to - from) * (i / n);
+            w = r * (i % 2 ? 1 + out : 0.90);
+            cx.lineTo(a.x + ux * L * t + px * w, a.y + uy * L * t + py * w);
+          }
+          for (i = n; i >= 0; i--) {
+            t = from + (to - from) * (i / n);
+            cx.lineTo(a.x + ux * L * t - px * r * 0.45, a.y + uy * L * t - py * r * 0.45);
+          }
+          cx.closePath();
+        }, col, { flat: true });
+      }
+      furEdge('body', j.hipF, j.kneeF, f.R_TOP * 1.10, 0.18, 0.86, 5, 0.26, f.furFront);
+      furEdge('back', j.hipB, j.kneeB, f.R_TOP * 1.02, 0.20, 0.88, 5, 0.24, f.furBack);
+
+      /* 3 — THE CHEEK. A head is about twenty-five pixels across at game
+         scale and nothing drawn inside it survives, so the only place a face
+         can be given any texture at all is its OUTLINE. His was a clean dome
+         with two triangles on top.
+
+         TWO THINGS WENT WRONG BEFORE THIS WORKED, and both are worth knowing
+         because neither is obvious from the code:
+
+         1. `A.tuft` on the `head` layer came out as a black scribble down his
+            jaw. A tuft's spikes are a fifth as wide as they are long, the
+            contour pass strokes every shape at twice OUTLINE, and at this
+            size that stroke is wider than the spike — so the fill has nothing
+            left to cover and all you see is the outline. Anything on a cat
+            has to be FATTER than about four pixels or the contour eats it.
+         2. The `head` layer is drawn AFTER the skull is painted, so a piece
+            there paints over the face and carries a hard line round its inner
+            edge — across the cheek, where fur meets fur and a line is exactly
+            what turns a part into a sticker.
+
+         So the ruff goes in `front`, which is drawn BEFORE the head: the
+         skull lands on top of it and all that survives is the three teeth
+         standing proud of the jaw, contoured into the silhouette with no
+         line anywhere near the face. It costs the head's own frame being
+         rebuilt here by hand, which is the eight lines below. */
+      var hrot = -(j.headRot || 0) * Math.PI / 180;
+      var hc = Math.cos(hrot), hs = Math.sin(hrot);
+      function H(lx, ly) {
+        return { x: j.head.x + lx * hc - ly * hs, y: j.head.y + lx * hs + ly * hc };
+      }
+      A.add('front', function (cx) {
+        var i, a, rr, n = 7, p;
+        cx.beginPath();
+        for (i = 0; i <= n; i++) {
+          a = (188 + 76 * (i / n)) * Math.PI / 180;
+          rr = f.headR * (i % 2 ? 1.30 : 1.02);
+          p = H(Math.cos(a) * rr, Math.sin(a) * rr);
+          if (i) cx.lineTo(p.x, p.y); else cx.moveTo(p.x, p.y);
+        }
+        for (i = n; i >= 0; i--) {
+          a = (188 + 76 * (i / n)) * Math.PI / 180;
+          p = H(Math.cos(a) * f.headR * 0.72, Math.sin(a) * f.headR * 0.72);
+          cx.lineTo(p.x, p.y);
+        }
+        cx.closePath();
+      }, f.fur2, { flat: true });
 
       /* ================= THE GLOVES =================================
 
@@ -135,15 +271,31 @@
       var ring = [[-0.78, 0.44], [-0.26, 0.92], [0.42, 1.06], [1.00, 0.88],
                   [1.30, 0.20], [1.22, -0.48], [0.76, -0.94],
                   [0.06, -1.06], [-0.54, -0.78], [-0.82, -0.30]];
+      /* THE OTHER GLOVE IS A DIFFERENT DRAWING.
+         A real animal is not mirrored and neither is a pair of gloves that
+         has been worn: the two were the same ten numbers at two sizes, which
+         is the giveaway that a machine drew them. This one is squarer across
+         the knuckles, flatter on top and rounder underneath — the same object
+         seen from a slightly different angle, which is what the far one
+         actually is. It is one array; it costs nothing. */
+      var ringB = [[-0.74, 0.50], [-0.20, 0.86], [0.52, 0.96], [1.06, 0.74],
+                   [1.24, 0.10], [1.10, -0.56], [0.62, -1.00],
+                   [-0.04, -1.06], [-0.58, -0.72], [-0.80, -0.22]];
 
-      function glove(layer, hand, elb, r, mit, cuf, far) {
+      function glove(layer, hand, elb, r, mit, cuf, far, ringPts, thumbV) {
         var o = frame(elb, hand);
+        var pts = [], i;
+        for (i = 0; i < ringPts.length; i++) pts.push(P(o, hand, ringPts[i][0] * r, ringPts[i][1] * r));
 
+        /* The far mitt is NOT flat. It is the second largest single shape on
+           him — a head-sized red mass held up beside his cheek — and a flat
+           fill on something that size is a paper cut-out, whatever it costs.
+           It gets two tones rather than three: the shadow crescent and the
+           base, no lit band, which is what a thing on the dark side of a
+           figure should have anyway. Its little pieces stay flat. */
         A.add(layer, function (cx) {
-          var pts = [], i;
-          for (i = 0; i < ring.length; i++) pts.push(P(o, hand, ring[i][0] * r, ring[i][1] * r));
           A.smooth(cx, pts);
-        }, mit, far ? { flat: true, edge: true } : { band: true, edge: true });
+        }, mit, far ? { edge: true } : { band: true, edge: true });
 
         /* THE THUMB. A round lobe standing proud of the leading edge with a
            notch between it and the mass — the same trick fistPath uses, and
@@ -152,10 +304,48 @@
            smaller rounded rectangle parked beside the first. Flat because it
            is about five pixels across in the finished picture and the clip a
            cel-shaded fill costs buys nothing at that size. */
+        var th = P(o, hand, thumbV[0] * r, thumbV[1] * r);
         A.add(layer, function (cx) {
-          A.ellipse(cx, P(o, hand, 0.30 * r, -0.94 * r).x,
-                        P(o, hand, 0.30 * r, -0.94 * r).y, r * 0.46, r * 0.42);
+          A.ellipse(cx, th.x, th.y, r * thumbV[2], r * thumbV[3]);
         }, mit, { flat: true, edge: true });
+
+        /* THE SPECULAR, on the near mitt only.
+
+           This is what makes the leather leather. Everything else on him is
+           lit by `celFill`, which lays a band of the lit tone down the whole
+           edge that faces the lamp — and a broad soft-edged band is what a
+           MATTE surface does with a light. Taut leather does the opposite: it
+           throws the lamp back as one small, hard-edged, brightly lit patch,
+           and everything around that patch stays base tone. So the glove gets
+           the same three tones as the towel does and reads as the shiny thing
+           beside it purely because its highlight is a SHAPE and the towel's
+           is a rim.
+
+           It is `A.lit(mit, 0.36)` and not a hair brighter: that is exactly
+           the tone celFill's own band uses, so this is the third tone placed
+           deliberately rather than a fourth one smuggled in. A fourth would
+           be the pale blob the note in celFill warns about, on the one part
+           of the cat the eye goes to first.
+
+           Aimed at the LAMP and placed in WORLD space, not in the glove's.
+           The glove's own frame spins with the arm, so a highlight pinned to
+           the ring's numbers slides round to the underside the moment he
+           throws a hook. The lamp does not move: `LX, LY` in rig.js is up and
+           forward in the figure's own coordinates and every other fill on the
+           cat is offset along it. Putting the specular there too is what
+           makes the glove belong to the same picture as the shoulder above
+           it. Only the CENTRE of the mitt comes out of the glove frame,
+           because the mass sits forward of the wrist joint. */
+        if (!far) {
+          var mid = P(o, hand, 0.24 * r, 0);
+          var sp = { x: mid.x + LUX * r * 0.46, y: mid.y + LUY * r * 0.46 };
+          A.add(layer, function (cx) {
+            /* An oval, not a circle, and laid ACROSS the light rather than
+               along it. A round highlight reads as a ball bearing; a long one
+               reads as a curved surface with a lamp on it. */
+            A.ellipse(cx, sp.x, sp.y, r * 0.44, r * 0.25, LANG);
+          }, A.lit(mit, 0.36), { flat: true });
+        }
 
         /* THE CUFF. Half the width of the mitt, so the outline steps IN at
            the wrist. Matching the mitt's width — which is what it did — the
@@ -201,8 +391,12 @@
          the costume's front layer, so at that size the far mitt was cut in
          half by it and read as a stray dark chip rather than the other
          glove. 0.84 clears the patch. */
-      glove('front', j.handB, j.elbB, gr * 0.84, GLOVE_B, CUFF_B, true);
-      glove('front', j.handF, j.elbF, gr, GLOVE, CUFF);
+      /* The far one gets its own ring and its thumb tucked further under, so
+         the pair reads as two gloves rather than one glove and its shadow. */
+      glove('front', j.handB, j.elbB, gr * 0.84, GLOVE_B, CUFF_B, true,
+            ringB, [0.16, -0.92, 0.42, 0.38]);
+      glove('front', j.handF, j.elbF, gr, GLOVE, CUFF, false,
+            ring, [0.30, -0.94, 0.46, 0.42]);
 
       /* ================= THE BOOTS ==================================
 
@@ -215,7 +409,16 @@
         var top = { x: knee.x + (foot.x - knee.x) * 0.40,
                     y: knee.y + (foot.y - knee.y) * 0.40 };
 
-        var opt = collar ? { band: true, edge: true } : { flat: true, edge: true };
+        /* The FAR boot used to be `flat` — one fill, no shading at all — on
+           the grounds that it is behind the near leg and cost is cost. Look
+           at it: it is a third of the height of the cat and it was a solid
+           red slug in every pose in the game. It gets two tones now (shadow
+           crescent and base, no lit band, because it is on the dark side of
+           the figure), which is one clip and one more fill. That was paid for
+           by deleting the ragged torso copy above, which the flag test proved
+           nobody could see. Trading an invisible shape for a visible one is
+           always the right way round. */
+        var opt = collar ? { band: true, edge: true } : { edge: true };
         A.add(layer, function (cx) {
           A.limb(cx, top, foot, f.R_MID * 1.22, f.R_END * 1.44, 0.35, 'shin');
         }, BOOT, opt);
@@ -238,6 +441,22 @@
           cx.closePath();
           cx.restore();
         }, BOOT, opt);
+
+        /* THE SOLE. Without it a boot is a red sock with a toe on it, which
+           is exactly what these were: one shape, one colour, bottom to top.
+           A sole is a different piece of leather from the upper and it is
+           always the darkest thing on the shoe, so it gets the collar's dark
+           red rather than a fourth tone of the boot's own — the trim on this
+           kit is a material, not a shade.
+
+           Near boot only. The far one is four pixels of dark red behind a leg
+           and a sole on it is a fill nobody will ever see. */
+        if (collar) A.add(layer, function (cx) {
+          var lean = (foot.x - knee.x) * 0.16;
+          var lx = f.FOOT_X * 1.08, ly = f.FOOT_Y * 1.18;
+          A.ellipse(cx, foot.x + lean + lx * 0.26, foot.y - ly * 0.78,
+                        lx * 0.99, ly * 0.26);
+        }, BOOTTOP, { flat: true, edge: true });
 
         if (collar) A.add(layer, function (cx) {
           A.smooth(cx, [P(o, top, -0.42 * f.R_MID, 1.50 * f.R_MID),
@@ -271,7 +490,51 @@
         seg(cx, 0.28, -f.hipW * 1.48);
         seg(cx, 0.46, -f.hipW * 1.34);
         cx.closePath();
-      }, TRUNK, { band: true, edge: true });
+      }, TRUNK, { edge: true });
+      /* NO `band` ON THE TRUNKS, and this is not an oversight.
+
+         `celFill`'s highlight is an offset copy of the whole path, which is
+         right for a convex form and wrong for this one: the trunks have a
+         re-entrant corner in them — the notch between the legs — and the
+         offset copy turned that corner into a pale CHEVRON across the front
+         of him, an inch wide at game scale, that changed shape with every
+         step he took. It read as a sports logo somebody had printed on, and
+         it was the first thing the eye found on the whole cat.
+
+         So the third tone is placed by hand instead, as a panel down the
+         front of the trunks where the lamp actually falls. Satin is not
+         matte — it is the one cloth on him that does throw some light back —
+         but it does it in a broad soft sheet, which is what this is, and not
+         as the hard little bead the glove leather gives. Same three tones,
+         three different materials, three different behaviours. */
+      A.add('front', function (cx) {
+        cx.beginPath();
+        var a = T(0.30, f.hipW * 1.44); cx.moveTo(a.x, a.y);
+        seg(cx, 0.02, f.hipW * 1.70);
+        seg(cx, -0.20, f.hipW * 1.55);
+        seg(cx, -0.14, f.hipW * 1.02);
+        seg(cx, 0.06, f.hipW * 1.16);
+        seg(cx, 0.30, f.hipW * 1.02);
+        cx.closePath();
+      }, A.lit(TRUNK, 0.36), { flat: true });
+
+      /* THE SIDE STRIPE. Every pair of trunks in every gym has one down the
+         outside seam, and side-on that seam faces the camera — so it lands
+         across the middle of the visible cloth rather than on an edge.
+
+         In the towel's oatmeal rather than the kit red. There are already
+         three reds on him (mitts, waistband, boots) and a fourth, on the one
+         big cool shape holding them apart, closed the trunks up into the same
+         mass as the belt above them. Cream ties the towel to the kit instead,
+         which is the one piece that was orphaned. */
+      A.add('front', function (cx) {
+        cx.beginPath();
+        var a = T(0.28, f.hipW * 0.94); cx.moveTo(a.x, a.y);
+        seg(cx, 0.28, f.hipW * 0.46);
+        seg(cx, -0.115, f.hipW * 0.36);
+        seg(cx, -0.145, f.hipW * 0.82);
+        cx.closePath();
+      }, A.shade(TOWEL, 0.24), { flat: true, edge: true });
 
       /* the waistband. Deliberately enormous — a boxer's rides up over the
          bottom rib, and at this resolution a narrow one is a pencil line
@@ -312,25 +575,28 @@
 
          The first go used A.streamer. A streamer TAPERS, and a tapering
          white shape leaving a shoulder at forty degrees is a sword — that
-         is exactly what it looked like, in every pose. A towel is a SLAB:
-         near enough the same width the whole way down, blunt at the end,
-         with a hem cut square. It is drawn with lineTo for that reason and
-         hung off world-down rather than off the spine, because a towel is
-         held up by nothing but gravity and does not lean when he does.  */
-      function slab(cx, ax, ay, bx, by, w0, w1, hem) {
-        var dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1;
-        var px = -dy / L, py = dx / L;
-        cx.beginPath();
-        cx.moveTo(ax + px * w0, ay + py * w0);
-        cx.lineTo(bx + px * w1, by + py * w1);
-        /* the hem: a squared step across the bottom, not a rounded end */
-        cx.lineTo(bx + px * w1 * 0.30 - dx / L * hem, by + py * w1 * 0.30 - dy / L * hem);
-        cx.lineTo(bx - px * w1 * 0.30 - dx / L * hem, by - py * w1 * 0.30 - dy / L * hem);
-        cx.lineTo(bx - px * w1, by - py * w1);
-        cx.lineTo(ax - px * w0, ay - py * w0);
-        cx.closePath();
-      }
+         is exactly what it looked like, in every pose.
 
+         The second go was a SLAB: two parallel edges and a hem cut square
+         with a lineTo. That fixed the sword and bought a plank. Rendered at
+         3x it was the loudest thing on the cat and it read as an ironing
+         board — because three separate things on it were ruled rather than
+         drawn:
+
+           - the two long edges were exactly parallel over a run three chests
+             long. Nothing made of cloth has two parallel edges that long;
+           - the hem was one straight cut;
+           - it carried `band: true`, so a bright lit stripe ran the whole
+             length of it. That is what varnished wood looks like. A gym
+             towel is the MATTE thing in this picture and the gloves beside
+             it are the shiny one — the contrast between the two is most of
+             what makes either material read at all.
+
+         So it is now built off a bowed spine and offset by a DIFFERENT list
+         of half-widths on each side. No two edges are parallel, the whole
+         thing bends under its own weight, the hem is cut with three teeth of
+         fringe, and it is filled flat-matte in two tones with one hard fold
+         down the back of it. Same silhouette, four times the cloth.      */
       var cw = f.chestW;
       /* Anchored high: the towel has to break the SHOULDER LINE, not start
          under it. In the silhouette test he was a smooth dome from ear to
@@ -348,22 +614,103 @@
          squared hem past the hip, which is the second thing on his outline
          that is not cat-shaped. Swung out further still (1.9 chests) it left
          the figure altogether and read as a diving board. */
-      var te = { x: tw.x - cw * 1.06 + f.sway * 1.3, y: tw.y - cw * 2.80 };
+      var te = { x: tw.x - cw * 1.02 + f.sway * 1.3, y: tw.y - cw * 2.74 };
+
+      /* The spine, bowed. `BOW` is how far the middle is pushed off the
+         straight line between the shoulder and the hem — cloth hanging off a
+         shoulder leaves it almost along the back and only turns to vertical
+         once it is clear, which is a curve, and a curve is the single most
+         cloth-like thing available. */
+      var BOW = 0.13;
+      /* Six half-widths a side and no two the same, the front list and the
+         back list deliberately out of step: the towel is narrow where it is
+         gripped over the shoulder and opens out as it falls, and it does it
+         unevenly. This is the whole difference between cloth and a board. */
+      var TWF = [0.23, 0.34, 0.30, 0.36, 0.31, 0.35];
+      var TWB = [0.20, 0.27, 0.34, 0.28, 0.34, 0.30];
+      var TSEG = 5;
+      function towelEdges() {
+        var dx = te.x - tw.x, dy = te.y - tw.y;
+        var qx = (tw.x + te.x) / 2 - dy * BOW, qy = (tw.y + te.y) / 2 + dx * BOW;
+        var sp = [], i, t, u;
+        for (i = 0; i <= TSEG; i++) {
+          t = i / TSEG; u = 1 - t;
+          sp.push({ x: u * u * tw.x + 2 * u * t * qx + t * t * te.x,
+                    y: u * u * tw.y + 2 * u * t * qy + t * t * te.y });
+        }
+        var fwd = [], bwd = [];
+        for (i = 0; i <= TSEG; i++) {
+          var a = sp[Math.max(0, i - 1)], b = sp[Math.min(TSEG, i + 1)];
+          var ex = b.x - a.x, ey = b.y - a.y, el = Math.hypot(ex, ey) || 1;
+          var nx = -ey / el, ny = ex / el;
+          fwd.push({ x: sp[i].x + nx * TWF[i] * cw, y: sp[i].y + ny * TWF[i] * cw });
+          bwd.push({ x: sp[i].x - nx * TWB[i] * cw, y: sp[i].y - ny * TWB[i] * cw });
+        }
+        return { sp: sp, fwd: fwd, bwd: bwd };
+      }
+      var TE = towelEdges();
+
+      /* THREE teeth of fringe and not five. The hem is about twelve pixels
+         across at game scale; five teeth is a two-pixel sawtooth, which is
+         not fringe, it is a rendering artefact that crawls when he walks. */
+      var TEETH = [0.66, 0.24, 0.54];
       A.add('back', function (cx) {
-        slab(cx, tw.x, tw.y, te.x, te.y, cw * 0.34, cw * 0.30, cw * 0.13);
-      }, TOWEL, { band: true, edge: true });
+        var i, N = TSEG;
+        cx.beginPath();
+        cx.moveTo(TE.fwd[0].x, TE.fwd[0].y);
+        for (i = 1; i <= N; i++) cx.lineTo(TE.fwd[i].x, TE.fwd[i].y);
+        var ex = TE.bwd[N].x - TE.fwd[N].x, ey = TE.bwd[N].y - TE.fwd[N].y;
+        var ux = TE.sp[N].x - TE.sp[N - 1].x, uy = TE.sp[N].y - TE.sp[N - 1].y;
+        var ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+        for (i = 0; i < TEETH.length; i++) {
+          var k = (i + 1) / (TEETH.length + 1);
+          cx.lineTo(TE.fwd[N].x + ex * k + ux * cw * 0.17 * TEETH[i],
+                    TE.fwd[N].y + ey * k + uy * cw * 0.17 * TEETH[i]);
+        }
+        cx.lineTo(TE.bwd[N].x, TE.bwd[N].y);
+        for (i = N - 1; i >= 0; i--) cx.lineTo(TE.bwd[i].x, TE.bwd[i].y);
+        cx.closePath();
+      }, TOWEL, { edge: true });
+
+      /* ONE hard fold down the back third of it. This is where the cloth
+         reads: a towel folded over a shoulder falls in two thicknesses and
+         the far one is in shadow, with a hard edge between them because the
+         fold is a crease and not a curve. It is the same shape the towel is,
+         cut off 0.42 of the way across, so it can never drift off it. */
+      A.add('back', function (cx) {
+        var i, N = TSEG;
+        cx.beginPath();
+        cx.moveTo(TE.bwd[0].x, TE.bwd[0].y);
+        for (i = 1; i <= N; i++) cx.lineTo(TE.bwd[i].x, TE.bwd[i].y);
+        for (i = N; i >= 0; i--) {
+          cx.lineTo(TE.bwd[i].x + (TE.fwd[i].x - TE.bwd[i].x) * 0.42,
+                    TE.bwd[i].y + (TE.fwd[i].y - TE.bwd[i].y) * 0.42);
+        }
+        cx.closePath();
+      }, A.shade(TOWEL, 0.30), { flat: true });
+
       /* one red stripe above the hem. Every towel in every corner of every
          gym has one, it is a solid shape rather than a line so it survives
          the drop to 1:1, and it pulls the towel into the same kit as the
-         gloves instead of leaving it a loose white rag. */
-      /* Laid ALONG the towel at 0.80 of its length rather than at fixed world
-         coordinates — pinned to the screen it stayed put when the towel was
-         flung back and ended up as a red chip floating beside his hip. */
+         gloves instead of leaving it a loose white rag. Laid across the
+         towel's own edges at 0.74 of its length, so it travels with the
+         cloth however the thing swings. */
       A.add('back', function (cx) {
-        var dx = te.x - tw.x, dy = te.y - tw.y;
-        var ax = tw.x + dx * 0.78, ay = tw.y + dy * 0.78;
-        slab(cx, ax, ay, ax + dx * 0.10, ay + dy * 0.10, cw * 0.32, cw * 0.31, 0);
-      }, '#c0392f', { flat: true, edge: true });
+        function across(t, k) {
+          var i = t * TSEG, i0 = Math.floor(i), i1 = Math.min(TSEG, i0 + 1), u = i - i0;
+          var fx = TE.fwd[i0].x + (TE.fwd[i1].x - TE.fwd[i0].x) * u;
+          var fy = TE.fwd[i0].y + (TE.fwd[i1].y - TE.fwd[i0].y) * u;
+          var bx = TE.bwd[i0].x + (TE.bwd[i1].x - TE.bwd[i0].x) * u;
+          var by = TE.bwd[i0].y + (TE.bwd[i1].y - TE.bwd[i0].y) * u;
+          return { x: fx + (bx - fx) * k, y: fy + (by - fy) * k };
+        }
+        var p0 = across(0.70, 0), p1 = across(0.70, 1),
+            p2 = across(0.82, 1), p3 = across(0.82, 0);
+        cx.beginPath();
+        cx.moveTo(p0.x, p0.y); cx.lineTo(p1.x, p1.y);
+        cx.lineTo(p2.x, p2.y); cx.lineTo(p3.x, p3.y);
+        cx.closePath();
+      }, '#b8362c', { flat: true, edge: true });
       /* The roll over the shoulder — what makes the slab read as draped on
          him rather than hung on a hook behind. Its BACK end is lifted well
          above the front one on purpose: laid flat along the shoulder it was

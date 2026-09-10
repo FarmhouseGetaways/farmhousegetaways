@@ -85,6 +85,77 @@
       function T(t, w) { return { x: p.x + dx * t + fx * w, y: p.y + dy * t + fy * w }; }
       function line(cx, t, w) { var q = T(t, w); cx.lineTo(q.x, q.y); }
 
+      /* ===================================================================
+         TWO THINGS THE REST OF THIS FILE LEANS ON, AND THEY ARE BOTH ABOUT
+         WHERE A SHAPE GOES IN THE DRAW ORDER RATHER THAN WHAT IT LOOKS LIKE.
+
+         1. EVERY COSTUME SHAPE GETS A CONTOUR. rig.js strokes the whole
+            shape list at OUTLINE * 2 before it fills any of it, and there is
+            no flag to opt out. So a piece of interior detail — a fold in
+            cloth, a shadow inside a forearm — cannot simply be added: it
+            would come out ringed in black like a sticker.
+
+            It works anyway if the shape is drawn STRICTLY INSIDE something
+            filled BEFORE it. The contour pass lays the ring down on bare
+            canvas; the earlier fill paints straight over it; the detail then
+            goes down clean. Every fold, crease and shadow below is placed
+            with that in mind, which is why the order of the A.add calls in
+            this function is not free to change.
+
+         2. THE SAME RULE BACKWARDS GIVES FUR ON THE SILHOUETTE. A ragged
+            shape added to a layer UNDER the limb it belongs to keeps only
+            the teeth standing proud of it — the roots are painted over, so
+            there is no seam, and what is left is an irregular edge in the
+            contour colour with a core of fur inside the bigger teeth. That
+            is the single biggest thing separating a drawn sprite from a
+            vector figure at this size, and it is why the fur runs go in
+            'back' (under the far limbs and the tail) and 'body' (under the
+            near limbs and the head) rather than in 'front'.
+         =================================================================== */
+
+      /* One run of ragged fur. `ax,ay`→`bx,by` is the root line, `nx,ny` the
+         way the teeth point. Teeth are cut with lineTo and never smoothed —
+         A.smooth rounds a two-pixel tooth away to nothing, and the point of
+         the whole exercise is the tooth. `phase` shifts the length pattern so
+         no two runs on the cat are the same run, which is most of what stops
+         a pair of limbs reading as mirrored. */
+      function saw(cx, ax, ay, bx, by, nx, ny, root, out, count, phase) {
+        cx.moveTo(ax - nx * root, ay - ny * root);
+        for (var i = 0; i < count; i++) {
+          /* THE VALLEYS ARE NOT EVENLY SPACED and the apexes are not centred.
+             Cut on a regular pitch — which is what `i / count` on its own
+             gives you — a run of teeth reads as a COMB: a manufactured edge,
+             and the eye picks the repeat out instantly at any size. Both are
+             jittered off the same cheap wave as the length, so a run is
+             reproducible frame to frame (it must be, or it crawls) and still
+             looks cut by hand. */
+          var jit = Math.sin((i + phase) * 5.31) * 0.16;
+          var u0 = (i + jit * 0.5) / count;
+          var um = (i + 0.30 + jit) / count;
+          cx.lineTo(ax + (bx - ax) * u0, ay + (by - ay) * u0);
+          var g = out * (0.42 + 0.58 * Math.abs(Math.sin((i + phase) * 2.17)));
+          cx.lineTo(ax + (bx - ax) * um + nx * g, ay + (by - ay) * um + ny * g);
+        }
+        cx.lineTo(bx, by);
+        cx.lineTo(bx - nx * root, by - ny * root);
+        cx.closePath();
+      }
+
+      /* Fur along the TRAILING edge of a limb segment — the back of a calf,
+         the back of a forearm, where a cat's feathering actually grows. The
+         side is fixed in the limb's own frame rather than picked from which
+         way is backwards on screen: chosen on screen it flips over as soon as
+         she throws a punch and the whole run jumps to the other side of the
+         arm between two frames. */
+      function furLimb(cx, a, b, t0, t1, r, out, count, phase) {
+        var ux = b.x - a.x, uy = b.y - a.y, l = Math.hypot(ux, uy) || 1;
+        ux /= l; uy /= l;
+        var nx = uy, ny = -ux;                 /* the back of the limb */
+        saw(cx, a.x + (b.x - a.x) * t0 + nx * r, a.y + (b.y - a.y) * t0 + ny * r,
+            a.x + (b.x - a.x) * t1 + nx * r, a.y + (b.y - a.y) * t1 + ny * r,
+            nx, ny, r * 1.05, out, count, phase);
+      }
+
       /* --- the gi top: over the trunk, cut away at the shoulders so the
              deltoids stay in the silhouette. On 'body', which is over the
              far arm and under the near one — a sleeveless top in side view
@@ -143,6 +214,22 @@
         sleeve(cx, j.shF, j.elbF, 0.42, f.R_TOP * 1.22, f.R_TOP * 1.56);
       }, FOLD, { band: true, edge: true });
 
+      /* THE SHADOW THE CUFF THROWS ON THE ARM. A garment that does not cast
+         anything onto what it is worn over is a decal however well it is
+         drawn — the cuff and the bicep were two shapes meeting at a line and
+         nothing said which was in front. One hard band of the fur's own
+         shadow tone, immediately below where the sleeve stops, and the arm
+         goes behind the cloth.
+
+         It carries no contour because it lies inside the upper arm, which
+         rig fills before the 'front' layer is poured; and it is `flat`
+         because an occlusion shadow is one value. Cel-shading a shadow gives
+         you a shadow with a highlight on it, which is not a thing. */
+      A.add('front', function (cx) {
+        cx.beginPath();
+        bandPath(cx, j.shF, j.elbF, 0.42, 0.60, f.R_MID * 1.02, f.R_MID * 0.90, 0.04);
+      }, A.shade(f.furFront, 0.40), { flat: true });
+
       /* THE LAPEL — the shape that says gi and not vest. It runs from the
          collar down the front to the belt, and it is a wide band rather than
          a line because a line is gone at game size.
@@ -166,6 +253,41 @@
           T(1.00, f.chestW * 0.60)
         ]);
       }, LAPEL, { edge: true });
+
+      /* --- WHAT THE GI TOP IS DOING, which until now was nothing ---------
+
+             A gi over a fighter's back is not a flat panel. It is pulled off
+             the shoulder blade, it bags at the small of the back, and it is
+             stuffed into the belt — three creases, and they all run the same
+             way, which is the way the cloth is being pulled. Straight-sided
+             and flat-filled like the skirt's, for the same reason: cloth
+             creases in planes and fur does not.
+
+             Placed after the lapel so the gi top's own fill has already
+             painted out their contours. */
+      function crease(cx, t0, w0, wid0, t1, w1, wid1) {
+        var a = T(t0, w0 - wid0); cx.moveTo(a.x, a.y);
+        line(cx, t0, w0 + wid0);
+        line(cx, t1, w1 + wid1);
+        line(cx, t1, w1 - wid1);
+        cx.closePath();
+      }
+      /* THEY ARE THE DARK TONE, NOT THE MIDDLE ONE, and that is the whole
+         lesson of the first attempt. Drawn in FOLD they were invisible: the
+         cel shading has already laid a crescent of shadow down the BACK of
+         the gi — mixed 46% towards the cool dark — and the back is exactly
+         where a crease off the shoulder blade goes. A mid-tone crease inside
+         a shadow that deep is nothing at all. LAPEL clears it. */
+      A.add('body', function (cx) {
+        cx.beginPath();
+        var C = f.chestW;
+        /* off the far shoulder blade, running down to the waist */
+        crease(cx, 0.92, -C * 0.80, C * 0.13, 0.46, -C * 0.44, C * 0.06);
+        /* the bag at the small of the back, above where the belt takes it */
+        crease(cx, 0.60, -C * 0.14, C * 0.10, 0.38, -C * 0.34, C * 0.05);
+        /* and the gather where the front of it is tucked in */
+        crease(cx, 0.58, C * 0.34, C * 0.09, 0.38, C * 0.24, C * 0.05);
+      }, LAPEL, { flat: true });
 
       /* THE COLLAR, and it is on 'back'.
 
@@ -251,6 +373,68 @@
         panel(cx, f.hipW * 2.34, f.hipW * 0.42, -0.58, 6);
       }, GI, { band: true, edge: true });
 
+      /* --- THE FOLDS IN IT, which is what makes it cloth ------------------
+
+             The skirt is the largest single area on her and until now it had
+             nothing in it at all: two flat cream slabs with a shadow crescent
+             down one side, which at game size is a sheet of paper. Cloth
+             hanging off a belt does not shade like a limb — it breaks into
+             straight-sided PLANES that run from where it is gathered to where
+             it hangs free, and the boundary between two planes is hard.
+
+             So they are wedges, cut with lineTo and filled FLAT: one tone,
+             no cel shading. That is the material difference doing the work.
+             Her fur gets three tones and a soft crescent; her cloth gets flat
+             planes with hard edges; her belt is darker still and gets one lit
+             face. Three materials, three recipes, and none of them is the
+             others turned up or down.
+
+             They carry no contour, and that is not luck. Every costume shape
+             is stroked at OUTLINE * 2 before anything is filled — so a fold
+             added on its own would be ringed in black. These are added AFTER
+             the panels and lie strictly inside them, so the panel's own fill
+             paints the ring out before the fold goes down. Move either A.add
+             above the panels and you get four black wedges.
+
+             Six of them, at four different widths and three lengths, because
+             a fan of evenly spaced folds is a pleated skirt. Cloth gathers
+             unevenly: two close together where the belt has bunched it, one
+             on its own out at the flare.                                 */
+      /* A fold is a TAPER, not a ray. Drawn from a single point at the belt
+         the six of them came out as a sunburst — the eye reads converging
+         lines as radiating from a source, and the source was her navel.
+         Started as a short segment they read as what they are: cloth
+         gathered at the waist and opening as it falls. */
+      function fold(cx, tTop, wTop, tBot, wA, wB) {
+        var w0 = (wB - wA) * 0.16;
+        var a = T(tTop, wTop - w0); cx.moveTo(a.x, a.y);
+        line(cx, tTop - 0.02, wTop + w0);
+        hem(cx, tBot + 0.05, wB);
+        hem(cx, tBot, (wA + wB) / 2);
+        hem(cx, tBot + 0.04, wA);
+        cx.closePath();
+      }
+      A.add('front', function (cx) {
+        cx.beginPath();
+        /* the front panel: one deep gather beside the split, two out at the
+           flare, the outer one shorter because the cloth lifts as it swings */
+        fold(cx, 0.26, f.hipW * 0.66, -0.50, f.hipW * 0.52, f.hipW * 1.00);
+        fold(cx, 0.24, f.hipW * 1.32, -0.54, f.hipW * 1.30, f.hipW * 1.66);
+        fold(cx, 0.22, f.hipW * 1.74, -0.44, f.hipW * 1.96, f.hipW * 2.24);
+        /* the back panel, hanging longer and gathered harder at the top */
+        fold(cx, 0.26, -f.hipW * 0.62, -0.62, -f.hipW * 0.46, -f.hipW * 1.02);
+        fold(cx, 0.24, -f.hipW * 1.26, -0.66, -f.hipW * 1.22, -f.hipW * 1.60);
+        fold(cx, 0.23, -f.hipW * 1.84, -0.58, -f.hipW * 2.00, -f.hipW * 2.32);
+      }, FOLD, { flat: true });
+      /* One crease darker than the rest, in the gather beside the split where
+         two thicknesses of cloth lie over each other. A second value in the
+         same material is what stops the folds reading as printed stripes. */
+      A.add('front', function (cx) {
+        cx.beginPath();
+        fold(cx, 0.25, f.hipW * 0.74, -0.48, f.hipW * 0.66, f.hipW * 0.90);
+        fold(cx, 0.25, -f.hipW * 1.30, -0.64, -f.hipW * 1.30, -f.hipW * 1.46);
+      }, LAPEL, { flat: true });
+
       /* --- the belt. Wider than the gi at that height so it reads as a band
              laid over it, and dark enough to be the one hard value break on
              a cat who is otherwise grey on cream. --- */
@@ -260,6 +444,25 @@
           T(0.36, -f.hipW * 1.22), T(0.12, -f.hipW * 1.34)
         ]);
       }, BELT, { band: true, edge: true });
+
+      /* THE TOP OF THE BELT CATCHES THE LIGHT, and it is the only place on
+         her a third material declares itself. The belt is heavy cloth: it
+         does not crease like the gi and it does not break up like fur, it
+         turns one hard corner where the top face meets the front. So it gets
+         a single narrow lit plane along that corner and nothing else — no
+         folds, no texture. One flat band, laid inside the belt so the belt's
+         own fill has taken its contour out first.
+
+         It is A.lit rather than a colour typed in, so it moves with the same
+         lamp as everything else if that lamp is ever changed. */
+      A.add('front', function (cx) {
+        cx.beginPath();
+        var a = T(0.325, f.hipW * 1.16); cx.moveTo(a.x, a.y);
+        line(cx, 0.345, -f.hipW * 1.20);
+        line(cx, 0.30, -f.hipW * 1.18);
+        line(cx, 0.28, f.hipW * 1.12);
+        cx.closePath();
+      }, A.lit(BELT, 0.30), { flat: true });
 
       /* the knot, sat on the front of the belt where the eye lands */
       A.add('front', function (cx) {
@@ -302,6 +505,136 @@
         A.streamer(cx, T(0.19, f.hipW * 0.74), 18 * f.s, 2.9 * f.s,
                    252, f.sway - 1.0);
       }, BELT, { band: true, edge: true });
+
+      /* --- THE WRAPS, which used to be paint ------------------------------
+
+             `palette.kit.wraps` gets you four flat bands stroked across each
+             forearm AFTER the figure is finished: no contour, no shading, the
+             same four on both arms. On a cat whose whole point is that she
+             has been doing this longer than anybody else, the one piece of
+             kit that says so was a decal — the exact thing every other note
+             in this file is about not doing.
+
+             It is geometry now. A cuff with a contour and three tones like
+             everything else she wears, cut across at the ends because that is
+             where the cloth stops, and it goes THINNER towards the wrist
+             where a real wrap is a single layer over the tendons and thicker
+             at the heel of the hand where it doubles back.
+
+             Different on each arm, deliberately. The near one runs to the
+             wrist and carries the loose end; the far one stops short. Two
+             identical wraps is the mirrored pair the brief warns about, and
+             at this size the eye catches a matched pair faster than it reads
+             any of the detail inside them.
+
+             The far one has no `band`. A lit rim costs two more fills and a
+             wider clip, and it is being spent on a piece of cloth that is
+             already sitting in the far-side tone behind the whole cat: two
+             tones there and three on the near arm is the same call rig makes
+             for the limbs underneath them, and it buys back most of what the
+             near cuff costs.                                             */
+      var WRAP = '#e8e0cf', WRAPC = '#a99f8a';
+      function bandPath(cx, a, b, t0, t1, r0, r1, skew) {
+        var ux = b.x - a.x, uy = b.y - a.y, l = Math.hypot(ux, uy) || 1;
+        ux /= l; uy /= l;
+        var px = -uy, py = ux;                    /* across the limb */
+        function P(t, v) {
+          return { x: a.x + ux * l * t + px * v, y: a.y + uy * l * t + py * v };
+        }
+        var q = P(t0 + skew, r0); cx.moveTo(q.x, q.y);
+        q = P(t1, r1); cx.lineTo(q.x, q.y);
+        q = P(t1 - skew, -r1); cx.lineTo(q.x, q.y);
+        q = P(t0, -r0); cx.lineTo(q.x, q.y);
+        cx.closePath();
+      }
+      /* the turns of cloth, laid across the cuff. Thin, flat and with no
+         contour of their own — they lie inside the cuff, which is filled
+         first and paints the contour pass out from under them. */
+      function turns(cx, a, b, r, ts, wid) {
+        var ux = b.x - a.x, uy = b.y - a.y, l = Math.hypot(ux, uy) || 1;
+        ux /= l; uy /= l;
+        var px = -uy, py = ux;
+        for (var i = 0; i < ts.length; i++) {
+          var t = ts[i];
+          var x0 = a.x + ux * l * t, y0 = a.y + uy * l * t;
+          var sk = ux * wid * 0.9, sky = uy * wid * 0.9;   /* the spiral */
+          cx.moveTo(x0 + px * r + sk, y0 + py * r + sky);
+          cx.lineTo(x0 - px * r, y0 - py * r);
+          cx.lineTo(x0 - px * r - ux * wid, y0 - py * r - uy * wid);
+          cx.lineTo(x0 + px * r + sk - ux * wid, y0 + py * r + sky - uy * wid);
+          cx.closePath();
+        }
+      }
+      A.add('far', function (cx) {
+        cx.beginPath();
+        bandPath(cx, j.elbB, j.handB, 0.36, 0.86, f.R_MID * 0.86, f.R_END * 0.90, 0.07);
+      }, A.shade(WRAP, 0.22), { edge: true });   /* no band: see below */
+      A.add('far', function (cx) {
+        cx.beginPath();
+        turns(cx, j.elbB, j.handB, f.R_MID * 0.86, [0.54, 0.72], 1.5 * f.s);
+      }, A.shade(WRAPC, 0.18), { flat: true });
+      A.add('front', function (cx) {
+        cx.beginPath();
+        bandPath(cx, j.elbF, j.handF, 0.26, 1.04, f.R_MID * 0.96, f.R_END * 0.96, 0.09);
+        /* THE LOOSE END, and it is the only part of the wrap that reaches the
+           silhouette. Everything else here is a shape drawn inside the arm —
+           good detail, and by the rule at the top of this file it changes
+           nothing about her outline. A flap of cloth left hanging off the
+           back of the wrist does, on the near arm only, and it is what says
+           somebody tied this on themselves rather than being issued it. */
+        var ux = j.handF.x - j.elbF.x, uy = j.handF.y - j.elbF.y;
+        var l = Math.hypot(ux, uy) || 1;
+        ux /= l; uy /= l;
+        var px = -uy, py = ux;
+        var bx = j.elbF.x + ux * l * 0.80, by = j.elbF.y + uy * l * 0.80;
+        var R = f.R_END;
+        cx.moveTo(bx - px * R * 0.94, by - py * R * 0.94);
+        cx.lineTo(bx - px * R * 2.30 - ux * R * 0.30, by - py * R * 2.30 - uy * R * 0.30);
+        cx.lineTo(bx - px * R * 2.05 - ux * R * 1.15, by - py * R * 2.05 - uy * R * 1.15);
+        cx.lineTo(bx - px * R * 0.80 - ux * R * 0.62, by - py * R * 0.80 - uy * R * 0.62);
+        cx.closePath();
+      }, WRAP, { band: true, edge: true });
+      A.add('front', function (cx) {
+        cx.beginPath();
+        turns(cx, j.elbF, j.handF, f.R_MID * 0.96, [0.44, 0.62, 0.80], 1.6 * f.s);
+      }, WRAPC, { flat: true });
+
+      /* --- THE NEAR FOOT, which was the flattest thing left on her --------
+
+             `footPath` puts two toe bumps on the leading edge, so the toes
+             are already in the outline — but nothing separates them, so at
+             any size it is one pale mitten with a bobble on the front. Two
+             short dark wedges between the toes, and the sliver of pad you
+             actually see from the side where the foot meets the floor.
+
+             The pad is the one thing on her that is not fur and not cloth:
+             it takes no shading at all, because a paw pad at this size is
+             four pixels of a single dark colour and anything else on it is
+             noise. Three materials on one cat, three recipes.
+
+             Drawn in the figure's own axes because `footPath` is: it
+             translates to the ankle and never rotates, taking only a little
+             of the shin's angle as `lean`. Get that wrong and the toes slide
+             off the front of the foot the moment she kicks.               */
+      var FX = f.FOOT_X * 0.92, FY = f.FOOT_Y;
+      A.add('front', function (cx) {
+        var o = j.footF, lean = (j.footF.x - j.kneeF.x) * 0.16;
+        cx.beginPath();
+        /* between the two toes, and between the near toe and the foot */
+        [[1.06, 0.30], [0.72, 0.44]].forEach(function (t) {
+          cx.moveTo(o.x + lean * 0.2 + FX * t[0] - 0.7 * f.s, o.y - FY * 0.96);
+          cx.lineTo(o.x + lean * 0.2 + FX * t[0] + 0.7 * f.s, o.y - FY * 0.96);
+          cx.lineTo(o.x + lean * 0.2 + FX * (t[0] - 0.06) + 0.6 * f.s, o.y - FY * (0.96 - t[1]));
+          cx.lineTo(o.x + lean * 0.2 + FX * (t[0] - 0.06) - 0.6 * f.s, o.y - FY * (0.96 - t[1]));
+          cx.closePath();
+        });
+        /* the pad, along the ground line */
+        cx.moveTo(o.x - FX * 0.30, o.y - FY * 0.98);
+        cx.lineTo(o.x + FX * 1.16, o.y - FY * 0.92);
+        cx.lineTo(o.x + FX * 1.14, o.y - FY * 0.62);
+        cx.lineTo(o.x - FX * 0.32, o.y - FY * 0.72);
+        cx.closePath();
+      }, '#6a5f60', { flat: true });
 
       /* --- the headband's tails.
 
@@ -394,6 +727,153 @@
         Wq(cx, -r * 1.30, -r * 0.64, 0.30, -r * 0.70, -r * 0.46, 0);
         cx.closePath();
       }, '#8f2422', { edge: true });
+
+      /* ===================================================================
+         THE FUR, ON THE OUTLINE.
+
+         Everything above this line is cloth, and cloth was doing all the
+         work: turned black she was a gi with a cat's head on it, and every
+         edge that was not cloth was a smooth curve — an arm, a calf, a
+         cheek, a tail, all of them drawn with the same rounded capsule the
+         rig hands out. That is what makes a figure read as vector art. A
+         drawn cat is notched: the elbow carries a clump, the back of the
+         calf a shelf of longer hair, the tail is not a hosepipe.
+
+         Nine runs, in three shapes — one for the far side, one for the near,
+         one for the head — because a shape is a contour stroke and a fill
+         apiece and canvas is perfectly happy to hold nine subpaths in one
+         path. Costs a third of a millisecond for the whole lot.
+
+         She is the ELDER, which decides how they are cut: long and slightly
+         unkempt, heaviest at the hocks and the tail, not the tight neat
+         feathering of a young cat.                                      */
+      /* The teeth go on the OUTSIDE of the tail's arc — the side further
+         from the hip. Picked from the geometry rather than fixed, because
+         her tail carries high in some poses and low in others and the inside
+         of the curve is buried in the rump either way. */
+      function furTail(cx, t0, t1, out, count, phase) {
+        var g = tailSide(t0, t1, false);
+        var r0 = TW * (1 - 0.48 * t0), r1 = TW * (1 - 0.48 * t1);
+        saw(cx, g.a.x + g.nx * r0, g.a.y + g.ny * r0,
+                g.b.x + g.nx * r1, g.b.y + g.ny * r1,
+            g.nx, g.ny, TW * 1.2, out, count, phase);
+      }
+
+      /* --- THE TOP OF THE TAIL, WHICH HAD NO LIGHT ON IT AT ALL -----------
+
+             rig fills the tail with ONE flat tone: no band, no crescent,
+             nothing. Every other big form on the cat gets three tones and the
+             tail — which is the longest single shape in her silhouette and
+             the move she is named for — got one, so it read as a length of
+             dark rope laid behind her.
+
+             A lit plane down the upper-forward side fixes it, and it has to
+             be chosen from the geometry rather than fixed: her tail carries
+             high in the idle, whips through the horizontal in Tail Whip and
+             trails under her in a jump, so "the top" is a different side of
+             the curve in each. The lamp is at (0.52, 0.85) in the figure's
+             own axes; the lit side is whichever normal points at it.
+
+             It goes in 'far', which pours after the tail is filled and before
+             the torso — the one layer that can reach it. In 'back' the tail
+             would be painted over the top of it.                          */
+      var TW = 4.0 * f.s * f.GW;              /* the tail, as rig sizes it */
+      function tailAt(t) {
+        var q = j.tail, u = 1 - t;
+        return { x: u * u * u * q[0].x + 3 * u * u * t * q[1].x + 3 * u * t * t * q[2].x + t * t * t * q[3].x,
+                 y: u * u * u * q[0].y + 3 * u * u * t * q[1].y + 3 * u * t * t * q[2].y + t * t * t * q[3].y };
+      }
+      function tailSide(t0, t1, toLight) {
+        var a = tailAt(t0), b = tailAt(t1), m = tailAt((t0 + t1) / 2);
+        var ux = b.x - a.x, uy = b.y - a.y, l = Math.hypot(ux, uy) || 1;
+        ux /= l; uy /= l;
+        var nx = uy, ny = -ux;
+        var d = toLight ? (nx * 0.52 + ny * 0.85)
+                        : ((m.x - j.pelvis.x) * nx + (m.y - j.pelvis.y) * ny);
+        if (d < 0) { nx = -nx; ny = -ny; }
+        return { a: a, b: b, nx: nx, ny: ny };
+      }
+      A.add('far', function (cx) {
+        var g = tailSide(0.14, 0.86, true);
+        var r0 = TW * 0.84, r1 = TW * 0.30;
+        cx.beginPath();
+        cx.moveTo(g.a.x + g.nx * r0, g.a.y + g.ny * r0);
+        cx.lineTo(g.b.x + g.nx * r1, g.b.y + g.ny * r1);
+        cx.lineTo(g.b.x + g.nx * r1 * 0.20, g.b.y + g.ny * r1 * 0.20);
+        cx.lineTo(g.a.x + g.nx * r0 * 0.46, g.a.y + g.ny * r0 * 0.46);
+        cx.closePath();
+        /* IT IS A BAND ALONG THE TOP, NOT THE WHOLE TOP HALF. Taken out to
+           0.92 of the radius and started at 0.30 of it, the lit plane owned
+           two thirds of the tail and turned the darkest shape in her
+           silhouette into a pale one — which cost her the anchor at the back
+           of the picture that the tail is there to be. */
+      }, A.lit(f.furBack, 0.16), { flat: true });
+
+      /* HOW BIG A TOOTH HAS TO BE, which is the whole of what took three
+         goes here. The contour is 1.8 * s wide and it is laid down on BOTH
+         sides of the shape, so a tooth narrower than about 5 * s at the base
+         has no fur left in the middle of it and comes out a solid black
+         spike — a comb, not fur. Four narrow teeth along a shin therefore
+         read worse than two broad ones, and the first version had four
+         everywhere. Two per run, three only where the run is long. */
+
+      /* the far side: the rump, the far hock, the far elbow, and the tail */
+      A.add('back', function (cx) {
+        cx.beginPath();
+        /* the rump, where the back leg leaves the body */
+        saw(cx, T(0.30, -f.hipW * 1.02).x, T(0.30, -f.hipW * 1.02).y,
+                T(-0.10, -f.hipW * 0.88).x, T(-0.10, -f.hipW * 0.88).y,
+                -fx, -fy, f.hipW * 0.5, 3.6 * f.s, 3, 0.7);
+        furLimb(cx, j.kneeB, j.footB, 0.14, 0.78, f.R_MID * 0.78, 3.2 * f.s, 2, 2.1);
+        furLimb(cx, j.elbB, j.handB, 0.18, 0.76, f.R_MID * 0.76, 2.8 * f.s, 2, 1.3);
+        furTail(cx, 0.26, 0.60, 3.2 * f.s, 2, 0.4);
+        furTail(cx, 0.64, 0.94, 2.6 * f.s, 2, 1.9);
+      }, f.furBack, { flat: true });
+
+      /* the near side. In 'body', which is UNDER the near arm and the near
+         leg — so the limb paints its own roots out and only the teeth are
+         left. In 'front' every one of these would have carried a hard line
+         across the middle of the arm it was growing from. */
+      A.add('body', function (cx) {
+        cx.beginPath();
+        furLimb(cx, j.kneeF, j.footF, 0.12, 0.82, f.R_MID * 0.84, 4.0 * f.s, 2, 0.2);
+        furLimb(cx, j.elbF, j.handF, 0.16, 0.80, f.R_MID * 0.82, 3.2 * f.s, 2, 1.6);
+        /* the elbow clump itself, longer than the run below it — an old cat
+           carries a tuft there and it is the one that reads at game size */
+        furLimb(cx, j.shF, j.elbF, 0.70, 1.02, f.R_MID * 0.92, 4.4 * f.s, 1, 2.6);
+      }, f.furFront, { flat: true });
+
+      /* THE HEAD, and it is also in 'body' — under the skull, under the near
+         hand, under everything. A cheek tuft laid OVER the skull would have
+         to carry a line where it met the cheek, and at this size a line
+         across a cheek is a crack in the drawing, not fur.
+
+         Head-local coordinates, turned into the figure's by hand: the head
+         layer would have done that for free but it is drawn on top of the
+         skull, which is the one thing this must not be. */
+      var hr = -(j.headRot || 0) * Math.PI / 180;
+      var hc = Math.cos(hr), hsn = Math.sin(hr);
+      function H(x, y) {
+        return { x: j.head.x + x * hc - y * hsn, y: j.head.y + x * hsn + y * hc };
+      }
+      function furHead(cx, x0, y0, x1, y1, nxl, nyl, out, count, phase) {
+        var a = H(x0, y0), b = H(x1, y1);
+        var nx = nxl * hc - nyl * hsn, ny = nxl * hsn + nyl * hc;
+        saw(cx, a.x, a.y, b.x, b.y, nx, ny, r * 0.55, out, count, phase);
+      }
+      A.add('body', function (cx) {
+        cx.beginPath();
+        /* The cheek ruff. The skull is an ellipse 1.08r by 1.02r and the
+           cheek pushes it out to about 1.28r at eye height, so this hangs off
+           the FRONT of that bulge and points forward and down — where a cat
+           actually carries it, and clear of the muzzle, which reaches 1.05r
+           and would have swallowed anything drawn across it. */
+        furHead(cx, r * 1.16, r * 0.10, r * 1.02, -r * 0.50, 0.94, -0.34, 3.4 * f.s, 2, 0.9);
+        /* the jaw line and the throat, running back under the skull — the
+           longest smooth curve on the head before this and the one that made
+           it read as a ball with a face on it */
+        furHead(cx, r * 0.62, -r * 0.80, -r * 0.52, -r * 0.88, 0.06, -1.00, 3.4 * f.s, 3, 2.3);
+      }, f.furFront, { flat: true });
     },
 
     /* A scar over the leading brow, in one pale line. She has been doing
@@ -425,9 +905,16 @@
   difficulty: 2,
   palette: {
     /* The old master: the wrapped forearms of somebody who has been doing
-       this a long time. The headband is drawn by `look.pieces` rather than
-       by rig's `accessory`, so `band` here is only the colour of record. */
-    kit: { wraps: '#e8e0cf', band: '#b8332f' },
+       this a long time. Both the headband and the wraps are drawn by
+       `look.pieces` now rather than by rig's `kit`, so these two are the
+       colours of record and nothing else reads them.
+
+       `kit.wraps` was set here and it is gone on purpose. rig strokes it as
+       four flat bands over the finished arm — no contour, no shading, the
+       same on both sides — and next to a cuff that is cel-shaded with the
+       rest of her it read as paint on top of the drawing. Putting it back
+       gets you both at once, one over the other. */
+    kit: { band: '#b8332f', wrapCol: '#e8e0cf' },
     fur: '#8d887f', fur2: '#6f6b64', belly: '#b9b3a6', marks: '#5e5a54',
     silver: '#d6d1c4', eye: '#7fc24a', nose: '#7d6f6c', inner: '#b89a95',
     accent: '#8a7f70', pattern: 'solid',
