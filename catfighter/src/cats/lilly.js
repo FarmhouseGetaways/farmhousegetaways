@@ -273,7 +273,49 @@
         fringe(cx, at, sb, f.R_MID * 1.5, f.R_MID * 0.72, [1, 0.64], 0.30, f.s * 1.6);
       }, MARK, { flat: true });
 
-      /* A ribbon: a strip that leaves a point at `ang`, bends by `curl`
+      /* --- and the same two notches on the FAR leg, which had neither —
+             and it is the leg her whole kit is built around. Crane Kick,
+             Flip Attack and her super all throw this leg out straight and
+             full length while the near one plants, so a bare brown tube
+             here was on screen more than the pair built for the other
+             side. 'far' pours right after the back leg is filled and
+             before the torso goes down over it, which is exactly where a
+             piece belonging to that leg has to land so it is not painted
+             out the moment she stands normally.
+
+             Not traced off the near pair — a shorter reach on the thigh,
+             a different spike count on the calf — because a matched left
+             and right is the surest tell that a figure was built out of
+             one half flipped over. */
+      var tdirB = unit(j.kneeB.x - j.hipB.x, j.kneeB.y - j.hipB.y);
+      var tbB = tdirB.y < 0 ? { x: tdirB.y, y: -tdirB.x } : { x: -tdirB.y, y: tdirB.x };
+      if (tbB.x > 0) { tbB = { x: -tbB.x, y: -tbB.y }; }
+      A.add('far', function (cx) {
+        var g = 0.30;
+        var at = { x: j.hipB.x + (j.kneeB.x - j.hipB.x) * g + tbB.x * f.R_TOP * 0.94,
+                   y: j.hipB.y + (j.kneeB.y - j.hipB.y) * g + tbB.y * f.R_TOP * 0.94 };
+        fringe(cx, at, tbB, f.R_TOP * 1.9, f.R_TOP * 0.50, [0.72, 1, 0.56], 0.30, f.s * 1.7);
+      }, MARK, { flat: true });
+
+      var sdirB = unit(j.footB.x - j.kneeB.x, j.footB.y - j.kneeB.y);
+      var sbB = sdirB.y < 0 ? { x: sdirB.y, y: -sdirB.x } : { x: -sdirB.y, y: sdirB.x };
+      if (sbB.x > 0) { sbB = { x: -sbB.x, y: -sbB.y }; }
+      A.add('far', function (cx) {
+        var g = 0.42;
+        var at = { x: j.kneeB.x + (j.footB.x - j.kneeB.x) * g + sbB.x * f.R_MID * 0.74,
+                   y: j.kneeB.y + (j.footB.y - j.kneeB.y) * g + sbB.y * f.R_MID * 0.74 };
+        fringe(cx, at, sbB, f.R_MID * 1.2, f.R_MID * 0.56, [1, 0.60], 0.26, f.s * 1.5);
+      }, MARK, { flat: true });
+
+      /* A tail-base flare was tried here and pulled again: the sash and the
+         long trailing point of the skirt already own this exact patch of
+         her — both drawn in later layers so any fur put down first vanished
+         under gold cloth in every pose that was checked. The costume IS the
+         notch at the root of her tail; a second one under it would be spent
+         detail nobody sees. Left as a note so it is not tried again the
+         same way.
+
+         A ribbon: a strip that leaves a point at `ang`, bends by `curl`
          along its length and tapers to a swallowtail. Built as an outline
          rather than a stroked line because a stroke cannot taper, and a
          ribbon the same width at the tip as at the knot is a length of

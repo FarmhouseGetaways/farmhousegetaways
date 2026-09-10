@@ -714,7 +714,7 @@
              and it is most of what makes this rail read as wood in front of
              a sunset rather than a row of brown ticks. */
           ctx.fillStyle = 'rgba(255,186,116,.6)';
-          ctx.fillRect(x + 2.6, 152, 0.9, 18);
+          ctx.fillRect(x + 2.6, 152, 1, 18);
         });
         /* top and bottom rails, painted rather than filled — the top one is
            the nearest horizontal in the picture and a flat bar across it was
@@ -809,7 +809,7 @@
         }
         chair(5, '#241b2e');
         chair(2.2, '#9c7c58');
-        chair(0.9, 'rgba(255,190,124,.55)');
+        chair(1, 'rgba(255,190,124,.55)');
         /* The sleeper. Drawn in the chair's own tan it was one lump with the
            chair; a dark cat on pale wood is legible at fifteen pixels, which
            is all it gets. */
@@ -955,7 +955,7 @@
             /* the hot pixel down the sun side of each tube — brass at
                sunset, and it flashes as the tube turns */
             ctx.strokeStyle = 'rgba(255,206,150,' + (0.35 + gust * 0.5).toFixed(2) + ')';
-            ctx.lineWidth = 0.9;
+            ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(dx + 1, 40 + c * 2); ctx.lineTo(dx + 1, 54 + c * 4); ctx.stroke();
           }
         });

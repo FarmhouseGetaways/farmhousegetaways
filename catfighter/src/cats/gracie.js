@@ -817,13 +817,22 @@
          read worse than two broad ones, and the first version had four
          everywhere. Two per run, three only where the run is long. */
 
-      /* the far side: the rump, the far hock, the far elbow, and the tail */
+      /* the far side: the rump, the far thigh, the far hock, the far elbow,
+         and the tail */
       A.add('back', function (cx) {
         cx.beginPath();
         /* the rump, where the back leg leaves the body */
         saw(cx, T(0.30, -f.hipW * 1.02).x, T(0.30, -f.hipW * 1.02).y,
                 T(-0.10, -f.hipW * 0.88).x, T(-0.10, -f.hipW * 0.88).y,
                 -fx, -fy, f.hipW * 0.5, 3.6 * f.s, 3, 0.7);
+        /* THE BACK OF THE THIGH — the one run the brief names that she did
+           not have. Under the skirt hem in the idle, so it costs nothing to
+           look at until she kicks, which is exactly when a bare stretch of
+           smooth leg between hip and knee was showing up as the most rounded,
+           least-drawn edge on her. Short — a real cat's feathering here is a
+           shelf at the top of the leg, not a run the length of it — and
+           sat high, close to the rump it grows out of. */
+        furLimb(cx, j.hipB, j.kneeB, 0.10, 0.46, f.R_TOP * 0.58, 3.0 * f.s, 2, 4.1);
         furLimb(cx, j.kneeB, j.footB, 0.14, 0.78, f.R_MID * 0.78, 3.2 * f.s, 2, 2.1);
         furLimb(cx, j.elbB, j.handB, 0.18, 0.76, f.R_MID * 0.76, 2.8 * f.s, 2, 1.3);
         furTail(cx, 0.26, 0.60, 3.2 * f.s, 2, 0.4);
@@ -836,6 +845,12 @@
          across the middle of the arm it was growing from. */
       A.add('body', function (cx) {
         cx.beginPath();
+        /* the back of the NEAR thigh, hip to knee — the same gap as the far
+           side and the same reason. Slightly bigger teeth than the far one
+           (she is closer to the light, and no two runs on her are the same
+           run) and set a little lower on the leg, since the near hip sits a
+           touch further from the rump than the far one does in this stance. */
+        furLimb(cx, j.hipF, j.kneeF, 0.14, 0.52, f.R_TOP * 0.62, 3.6 * f.s, 2, 3.5);
         furLimb(cx, j.kneeF, j.footF, 0.12, 0.82, f.R_MID * 0.84, 4.0 * f.s, 2, 0.2);
         furLimb(cx, j.elbF, j.handF, 0.16, 0.80, f.R_MID * 0.82, 3.2 * f.s, 2, 1.6);
         /* the elbow clump itself, longer than the run below it — an old cat
@@ -895,6 +910,47 @@
       ctx.moveTo(r * 0.34, r * 0.62);
       ctx.lineTo(r * 0.15, r * 0.04);
       ctx.stroke();
+
+      /* Whiskers. The fastest single thing that reads as "cat" and not one
+         cat on the roster has them yet — nothing else here costs so little
+         for what it says. Three strokes, not a fill, so this is the
+         cheapest kind of detail there is: no path, no clip, no contour pass
+         (`overlay` runs after the whole figure, including its outline, is
+         already down).
+
+         They start from the whisker pad beside the nose — rig's own muzzle
+         triangle sits at roughly (0.66r, -0.18r) to (0.90r, -0.06r), so the
+         pad is just behind and below it — and fan forward past the edge of
+         the muzzle, past the width of the head itself, which is what a real
+         whisker does and a short one reads as a crease instead.
+
+         NOT a fan cut with a protractor: three different origins on the
+         pad, three different lengths, three different angles, because a
+         whisker pad is a cluster and evenly spaced lines off one point is
+         the same "comb" the fur runs warn about. Dark and half-transparent
+         rather than pale — the pale scar tone would vanish into her own
+         pale muzzle patch, and a whisker reads by catching a SHADOW, not a
+         highlight. */
+      ctx.globalAlpha = 0.60;
+      ctx.strokeStyle = 'rgba(26,22,18,.85)';
+      ctx.lineWidth = Math.max(1, 0.52 * fig.s);
+      ctx.lineCap = 'round';
+      function whisker(x0, y0, ang, len) {
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len);
+        ctx.stroke();
+      }
+      /* Angled UP more than a real whisker pad, and shorter than the first
+         pass had them. Her stand pose carries the near fist in a low guard
+         right in front of the chin — draw them level and long, as a real
+         whisker pad fans, and they run straight through the glove in her
+         idle, which reads as a rendering fault rather than an animal. Up
+         and short enough to clear it is a compromise a real cat's face
+         would not make, and the one this game's own guard stance forces. */
+      whisker(r * 0.48, r * -0.02, 0.40, r * 0.80);
+      whisker(r * 0.52, r * -0.13, 0.16, r * 0.92);
+      whisker(r * 0.46, r * -0.24, -0.10, r * 0.68);
       ctx.restore();
     }
   },
