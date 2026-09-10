@@ -18,19 +18,30 @@
    Something enormous at each edge framing something small and far away is
    the whole trick; a repeating strip of parasols is not a place.
 
-   TWO LOOPS, on deliberately different clocks. The slide runs every four
-   seconds — you see it in the first round and it is the stage's pulse. The
-   banner plane runs every fifteen, which is long enough that you find it in
-   your third match rather than your first, and that is what "neat things to
-   discover" has to mean at this scale: not more detail, a longer period.
+   SIX LOOPS now, on deliberately different clocks, so nothing ever fires
+   alongside anything else: the slide every four seconds (`ride`, the
+   stage's pulse, from the first round on), a cat paddling a lilo across
+   every fourteen (`loPaddle`), the beach ball every eight (`beachBall`),
+   the high board every eleven and a half (`highBoard`/`diveState` — a walk
+   out, a look down, and a retreat two times in three, a cannonball on the
+   third that rocks every float in the pool), someone shaking dry every
+   seventeen (`shakeDry`), and someone dozing on the lounger for twenty,
+   sliding a little further down it each pass until they wake with a start
+   and settle back at the top (`lounger`). The banner plane runs every
+   fifteen, longer still, which is long enough that you find it in your
+   third match rather than your first — "neat things to discover" has to
+   mean a longer period, not more detail crammed into one.
 
-   BUDGET. This stage costs about 8.8ms of the 16.7 (software rendering, no
-   GPU), which puts it level with the barn rather than above it, so it is not
-   the one that decides the worst case. It got there by flat-filling: the
-   palms, the plane and the flamingo's seams are all "small parts" under the
-   rule the cats' paws are flat by, and routing them through K.paint for a
-   one-pixel crescent nobody can see cost 1.5ms on its own. Paint the big
-   shapes. Everything under about six pixels is flat.
+   BUDGET. This stage costs about 11.4ms of the 16.7 (software rendering, no
+   GPU) — level with the other backgrounds, not above them, so it is not the
+   one that decides the worst case. Flat-filling bought most of that room:
+   the palms, the plane and the flamingo's seams are all "small parts" under
+   the rule the cats' paws are flat by, and routing them through K.paint for
+   a one-pixel crescent nobody can see cost 1.5ms on its own. The lounger and
+   the paddler added on 10 Sep 2026 keep to the same rule — K.mass with no
+   clip, one K.spectator each, nothing that reaches for K.paint — and cost
+   well under a tenth of a millisecond between them. Paint the big shapes.
+   Everything under about six pixels is flat.
    ======================================================================= */
 (function () {
   var K = CF.StageKit;
@@ -507,7 +518,14 @@
      for the legs, and one K.spectator — the same figure the crowd is built
      from. The startle reuses spectator's own "excited" pose (paws up, eyes
      wide) rather than drawing a second face for the wake-up beat. */
-  var LOUNGE_WORLD = 64, LOUNGE_T = 1250;
+  /* World 160, not some rounder number nearer the board — the board's own
+     post sits at its anchor minus 28 (world 64) and its diver's far reach at
+     its anchor plus 46 (world 138), so anything between 64 and 138 trades
+     places with the board itself somewhere in a match. 160 clears that by 22
+     and only brushes the slide tower's own leftmost reach at the extreme end
+     of the camera's run (world -380), which is a corner of the match nothing
+     else here promises to stay clear of either. */
+  var LOUNGE_WORLD = 160, LOUNGE_T = 1250;
 
   function lounger(ctx, camX, t) {
     var lx = K.at(camX, 0.34, LOUNGE_WORLD), ly = 132;

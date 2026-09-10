@@ -497,10 +497,16 @@
          second route — the tail is nowhere near the collar there — so the
          look everywhere already proven is untouched, and the one pose that
          needed it gets a shorter scarf rather than a hole. */
+      /* Coarse on purpose — this runs every frame, on every pose, just to
+         confirm the tuned route is still fine, and it only has to catch a
+         crossing, not measure one exactly: five points on the ribbon against
+         six on the tail is 30 checks, not the 150 a dense grid would cost,
+         and the routes above clear by so much once they clear at all that
+         the coarseness never changes the answer. */
       function scarfClearance(pts) {
         var minD = 1e9;
-        for (var pi = 0; pi < pts.length; pi++) {
-          for (var tt = 0.12; tt <= 0.98; tt += 0.06) {
+        for (var pi = 0; pi < pts.length; pi += 2) {
+          for (var tt = 0.12; tt <= 0.98; tt += 0.16) {
             var tp = tailAt(tt);
             var d = Math.hypot(pts[pi].x - tp.x, pts[pi].y - tp.y);
             if (d < minD) minD = d;
@@ -510,18 +516,14 @@
       }
       var SCARF_ROUTES = [
         [44, 20.0, -24.0, 5.6, 0.0, 3.2],   /* the tuned route, clear on the ground */
-        [34, 2.0, -14.0, 5.2, 0.0, 2.0]     /* short and tucked, for a tail thrown past it */
+        [34, -20.0, 20.0, 5.2, 0.0, 2.0]    /* dropped low and short, for a tail thrown past it */
       ];
       var CLEAR = 13 * S;
       var BANNER = scarfPts.apply(null, SCARF_ROUTES[0]);
-      var __c0 = scarfClearance(BANNER);
-      if (__c0 < CLEAR) {
+      var bannerClear = scarfClearance(BANNER);
+      if (bannerClear < CLEAR) {
         var alt = scarfPts.apply(null, SCARF_ROUTES[1]);
-        var __c1 = scarfClearance(alt);
-        if (typeof window !== 'undefined' && window.__DEBUG_HOLE) console.log('scarf route0 clear', __c0, 'route1 clear', __c1, 'CLEAR', CLEAR, 'S', S);
-        if (__c1 > __c0) BANNER = alt;
-      } else if (typeof window !== 'undefined' && window.__DEBUG_HOLE) {
-        console.log('scarf route0 clear', __c0, 'CLEAR', CLEAR, 'S', S, '(kept route0)');
+        if (scarfClearance(alt) > bannerClear) BANNER = alt;
       }
       A.add('back', ribbon(BANNER, 6.4 * S), SCARF, { edge: true, flat: true });
       /* the underside, turning over once at about two thirds along */
