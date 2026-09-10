@@ -22,6 +22,9 @@ echo
 echo "== the announcer is audible and says the right vowels =="
 node tools/voice.mjs | grep -E "peak amplitude|F1|F2"
 
+echo "== the game stays quiet when it is not the thing on screen =="
+node tools/lifecycle.mjs | tail -1
+
 echo "== bundle =="
 node tools/bundle.mjs | tail -1
 echo

@@ -190,6 +190,43 @@
     window.addEventListener('keydown', wake);
     window.addEventListener('pointerdown', wake);
 
+    /* THE BUG: "I closed the game but I can still hear it in the
+       background." Music runs on a plain `setInterval` (see audio.js) that
+       keeps firing forever, with no regard for whether the page is the
+       thing on screen — a tab pushed to the background, or an artifact
+       panel hidden without the iframe inside it actually being destroyed,
+       both leave it running exactly as loud as before. The simulation is
+       allowed to keep its own clock while hidden (see the comment on `DT`
+       above); sound is not — it has to stop the instant this page is not
+       what the player is looking at.
+
+       `visibilitychange` covers being backgrounded and coming back;
+       `pagehide` covers actually leaving, including the bfcache case a
+       plain 'unload' listener would miss. Pausing the match on the way out
+       is the same call the Start button already makes by hand — coming
+       back finds the pause screen waiting rather than a fight that kept
+       going, unheard, while nobody was there to see it. */
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        CF.Audio.suspend();
+        /* Every roundState within the 'fight' scene — the pre-round
+           countdown, the fight itself, the post-round celebration — has
+           music already playing and gameplay the player is not watching.
+           `game.paused` is read generically at the top of `stepFight`
+           regardless of roundState, so setting it here freezes all of
+           them the same way, not just the part between FIGHT! and K.O. */
+        if (game && game.scene === 'fight') game.paused = true;
+      } else {
+        CF.Audio.resume();
+        /* the stage theme was stopped outright, not merely suspended, so it
+           has to be asked to start again rather than left to resume on its
+           own — silently picking back up is what the pause menu already
+           does when paused by hand, and this should read the same way */
+        if (game && game.scene === 'fight') CF.Audio.startMusic();
+      }
+    });
+    window.addEventListener('pagehide', function () { CF.Audio.shutdown(); });
+
     /* Handy globals while building: F for fullscreen, F1 for hitboxes. */
     window.addEventListener('keydown', function (e) {
       if (e.code === 'F11' || (e.code === 'KeyF' && e.altKey)) {

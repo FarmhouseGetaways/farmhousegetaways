@@ -933,6 +933,32 @@ Three things a later session needs to know:
   is stunned and now is the moment. Four stars on an ellipse — a circle reads
   flat-on and the head is in profile — drawn after both fighters so one is
   never painted over by whoever is standing in front.
+- **"Closed the game, still hear it" was real, and the fix is in `main.js`
+  and `audio.js`, not something a session should reintroduce.** The stage
+  theme runs on a plain `setInterval` — deliberately, so it keeps time
+  whether or not a frame gets drawn — which also means nothing ever stopped
+  it just because the page was backgrounded, minimised, or sitting hidden
+  inside a closed artifact panel with the iframe underneath still alive.
+  `main.js` now listens for `visibilitychange` (suspend audio and
+  auto-pause the match the instant the page is not what's on screen, both
+  back the moment it is again — the same call the Start button already
+  makes by hand) and `pagehide` (a full `CF.Audio.shutdown()`, for actually
+  leaving). Fixing it exposed a second, sharper bug: PERFECT/K.O./FIGHT are
+  all spoken from a `setTimeout` a couple hundred ms after the SFX cue that
+  triggers them (see `speak()`), and a suspended-then-shut-down context by
+  the time one of those fires used to be an unguarded crash — `speak()` now
+  no-ops on a module-level `suspended` flag rather than crashing, and
+  **that flag is not `ctx.state`**: an `OfflineAudioContext`, which
+  `tools/voice.mjs` hands in for the announcer's own offline measurement,
+  spends its whole life in `'suspended'` right up until rendering starts,
+  so testing `ctx.state` here would have silenced the announcer only
+  during that one measurement and looked like the tool was broken.
+  `node tools/lifecycle.mjs` drives a real page through hide/show/pagehide
+  and checks what `audio.js` actually does — mid-round music playing,
+  hidden silences it and freezes the round timer, a pending announcer line
+  survives without crashing, coming back resumes the theme but leaves the
+  match paused for the player, pagehide tears everything down. It's in
+  `verify.sh`.
 - **`MOVES.md` is generated**, by `node tools/gen-moves.mjs`. Edit the character
   data and regenerate; never edit it by hand.
 - **`.github/workflows/catfighter-windows.yml` builds the Windows version.**

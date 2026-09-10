@@ -8,6 +8,15 @@
   var ctx = null, master = null, musicGain = null, sfxGain = null;
   var enabled = true, musicOn = true;
   var musicTimer = null, musicStep = 0;
+  /* Set only by `suspend`/`resume`/`shutdown` below — deliberately NOT the
+     same thing as `ctx.state`. An `OfflineAudioContext`, which the offline
+     measurement in tools/voice.mjs hands in, spends its whole life in
+     'suspended' right up until rendering starts; testing `ctx.state` here
+     would silence the announcer during that measurement and nowhere else,
+     which is the kind of bug that looks like the tool is broken rather than
+     like what it actually is. This flag means one thing only: the page
+     asked audio to stop because it is not the thing on screen right now. */
+  var suspended = false;
 
   function init() {
     if (ctx) return;
@@ -109,6 +118,19 @@
        ['n', freq, Q, dur, gain]      a fricative or a plosive burst
        ['s', dur]                     silence  */
   function speak(word, f0, gain) {
+    /* PERFECT, K.O. and FIGHT are all spoken from a `setTimeout` fired by an
+       SFX cue (see e.g. `sayKO` below), deliberately, so the announcer lands
+       a beat after the hit rather than on top of it — but that means a call
+       into here can arrive well after the moment that triggered it, once
+       the context has been suspended or torn down entirely (the tab went to
+       the background, or the page is on its way out — see main.js). Unlike
+       `play()`, this does NOT resume a suspended context on the way past:
+       a delayed announcer line has already missed the moment it was timed
+       to land on, and there is no correct-feeling way to play it late once
+       the game itself is not visibly happening any more. Silently dropped,
+       same as every other sound cue that never gets the chance to fire
+       while the fight is paused. */
+    if (!enabled || !ctx || suspended) return;
     var t0 = ctx.currentTime, total = 0, i;
     for (i = 0; i < word.length; i++) {
       total += word[i][0] === 'v' ? word[i][2]
@@ -405,6 +427,42 @@
   function toggleSfx() { enabled = !enabled; return enabled; }
   function setVolume(v) { init(); if (master) master.gain.value = v; }
 
+  /* ---- leaving --------------------------------------------------------
+
+     `startMusic` runs on a plain `setInterval`, deliberately — a stage
+     theme has to keep time whether or not a frame gets drawn, so it is not
+     tied to requestAnimationFrame or to the game's own pause. That is
+     correct while the game is being played and wrong the moment it is not:
+     an interval keeps firing forever until something clears it, with no
+     regard for whether the page is on screen, in a background tab, or
+     sitting hidden inside an artifact panel that was closed without the
+     iframe itself being destroyed. "I closed the game but I can still hear
+     it" is exactly that — the page never got told to stop.
+
+     `suspend` silences everything immediately, including sound already in
+     flight, by suspending the shared AudioContext itself rather than
+     hunting down every live oscillator; a suspended context processes
+     nothing. `stopMusic` on top of it stops new notes being scheduled at
+     all, so there is nothing queued to resume into. `shutdown` is the same
+     thing plus closing the context outright, for the moment the page is
+     actually going away — a suspended context can still be resumed by
+     mistake, a closed one cannot produce sound again until the game
+     creates a new one, via `init()`, next time it actually needs to. */
+  function suspend() {
+    suspended = true;
+    stopMusic();
+    if (ctx && ctx.state === 'running') { try { ctx.suspend(); } catch (e) {} }
+  }
+  function resume() {
+    suspended = false;
+    if (ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+  }
+  function shutdown() {
+    suspended = true;
+    stopMusic();
+    if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; master = null; sfxGain = null; musicGain = null; }
+  }
+
   CF.Audio = {
     init: init, play: play,
     /* The announcer, exposed so it can be MEASURED. Nobody working on this
@@ -419,6 +477,7 @@
     speakPerfect: sayPerfect, speakKO: sayKO, speakFight: sayFight,
     startMusic: startMusic, stopMusic: stopMusic, toggleMusic: toggleMusic, setKey: setKey,
     toggleSfx: toggleSfx, setVolume: setVolume,
+    suspend: suspend, resume: resume, shutdown: shutdown,
     isMusicOn: function () { return !!musicTimer; },
     isSfxOn: function () { return enabled; }
   };
