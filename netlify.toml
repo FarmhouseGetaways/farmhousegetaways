@@ -40,6 +40,22 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# admin.farmhousegetaways.com is a domain alias on THIS site (Cory: "Can we
+# make [farmhouse-admin.netlify.app] more easily accessible... maybe at
+# admin.farmhousegetaways.com? Even if it's a redirect that's fine"). A
+# host-matched redirect, not a path-matched one — Netlify only applies this
+# rule to requests actually arriving on that hostname, so farmhousegetaways.com
+# itself is untouched. Deliberately NOT made the primary custom domain on the
+# farmhouse-admin site itself: that would risk an automatic redirect of
+# farmhouse-admin.netlify.app to the new domain, which would turn the three
+# websites' ALERT_WEBHOOK POSTs into dropped GETs (most HTTP clients, Node's
+# fetch included, convert a POST to a GET across a 301 and drop the body).
+[[redirects]]
+  from = "https://admin.farmhousegetaways.com/*"
+  to = "https://farmhouse-admin.netlify.app/:splat"
+  status = 301
+  force = true
+
 # friendly alias for the publish function
 [[redirects]]
   from = "/api/publish"
