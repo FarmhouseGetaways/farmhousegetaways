@@ -312,5 +312,20 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 </footer>
 
 <script src="https://app.lodgify.com/book-now-box/stable/renderBookNowBox.js" defer></script>
+
+<!-- Micro-KPI: phone-link taps. Same idea as begin_checkout/date_picker_opened
+     on the property pages — a call inquiry's page and (via Ads click-through)
+     campaign should be traceable the same way a booking click already is,
+     instead of reconstructing it by hand from GA4 timing after the fact.
+     Delegated on document since tel: links live in the header, footer, and
+     Good-to-know blocks, not one fixed element. -->
+<script>
+document.addEventListener("click", function (e) {
+  var a = e.target.closest('a[href^="tel:"]');
+  if (!a) return;
+  if (window.fbq) fbq('trackCustom', 'PhoneClick', { link_url: a.href });
+  if (window.gtag) gtag('event', 'phone_click', { link_url: a.href });
+});
+</script>
 </body>
 </html>
