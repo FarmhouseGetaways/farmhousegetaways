@@ -23,6 +23,30 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**REV 32 (9/15/2026) — SETBACKS, WHIRLWIND AND THE STORE STATUS CHANGED. This
+supersedes every 40'-front / 35'-exterior-side statement further down (§1,
+§3, §16, §19, §20). Don't re-derive the old figures.**
+- **Two FRONT yards at 60'**: the east P.L., and the west P.L. SOUTH of the
+  Whirlwind Ln bend (`Y_BEND = 215`). Setbacks still come off the property lines.
+- **North of the bend, Whirlwind Ln crosses the NW corner in a road
+  easement.** Owner: "that entire section of our property is Exterior Side
+  Yard", **15' from the road edge**. The road (`WL_EDGE_E`, `WL_EDGE_W`,
+  `WL_CL`) was traced from the owner's wider intersection aerial, then checked
+  on `Verification_Overlay_v5.png`. The easement's legal width there is
+  unknown; the sheet says "ROAD ESMT." with no width.
+- **The store is north of the bend** (owner: "the store starts after the road
+  bends"), so only the 15' applies to it. It clears by 36.5' from the road
+  edge, 52' from the CL and 63' from the north P.L. The build raises
+  `SystemExit` if the store ever leaves the envelope.
+- **Mini Barn Market is AS-BUILT, not proposed or under construction**,
+  everywhere on the sheet. Parking is still proposed.
+- **Fence:** the 6' fence is removed from the drawing, legend and note 10.
+  Note 10 keeps its general line that all fencing is ≤6' with no permit
+  needed. Note 2's "AG-3 stops at the fence" is a different fence.
+- The "30' ROAD ESMT." label (record data) replaces the owner's rev 30 "35'"
+  edit. His 35' was the old setback figure, not an easement width.
+- **Tiny home 240 SF confirmed.** 765 was always wrong. It is being removed.
+
 **Rev 30 was made OUTSIDE this script (8/26/2026).** The owner took the rev 29
 PDF and edited it by hand in a PDF editor. It still reads "REV 29" in its
 title block, but it is filed as `output/..._rev30.pdf` (the owner's copy is in

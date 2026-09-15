@@ -62,7 +62,7 @@ OWNER CORRECTIONS 8/21/2026 (second round) — carried in this file:
 """
 import json, math, os
 import numpy as np
-from shapely.geometry import Polygon as SPoly, LineString, Point
+from shapely.geometry import Polygon as SPoly, LineString, Point, box
 from shapely.ops import unary_union
 import matplotlib
 matplotlib.use('Agg')
@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 31
+REV  = 32
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -92,9 +92,25 @@ STORE_SF   = 1500
 # ZO 4810 Schedule C, designator C. The house fronts HANDLEBAR RD (east), so
 # that is the front yard; Whirlwind Ln on the west is the exterior side yard.
 SB_SIDE  = 15.0    # interior side, from lot line (north and south)
-SB_EXT   = 35.0    # exterior side, from centreline of Whirlwind Ln (drawn at
-                   # the west P.L. per owner, so effectively from the lot line)
-SB_FRONT = 40.0    # FRONT yard, on the EAST line (owner 8/22, rev 27: "the east
+# ---- REV 32 (owner, 9/15/2026) SUPERSEDES the 35' exterior side / 40' front
+# reasoning below. Two front yards at 60': the EAST P.L. and the WEST P.L. south
+# of where Whirlwind Ln bends. North of the bend Whirlwind crosses the NW corner
+# in a road easement, and "that entire section of our property is Exterior
+# Side Yard" at 15', taken from the road edge. The owner confirmed the store
+# sits north of the bend ("the store starts after the road bends"). The road
+# is traced from the owner's wider aerial of the intersection (4.4 px/ft,
+# anchored on the 10'x10' storage roof).
+SB_W_FRONT = 60.0  # west front yard, from the west P.L., south of the bend
+SB_EXT     = 15.0  # exterior side yard, north of the bend, from the road edge
+Y_BEND     = 215.0 # where Whirlwind starts to bend in toward the parcel
+# Whirlwind pavement, parcel ft. East edge enters across the west P.L. at the
+# bend and leaves across the north P.L.; the west edge runs on the west P.L.
+WL_EDGE_E = [(0.0, 226.0), (5.0, 233.0), (15.0, 241.0), (27.0, 251.0), (40.0, 262.0),
+             (50.0, 272.0), (60.0, 283.0), (70.0, 294.1), (82.0, 308.0)]
+WL_EDGE_W = [(0.0, 275.0), (3.0, 281.0), (12.0, 294.1), (22.0, 308.0)]
+WL_CL     = [(0.0, -16.0), (0.0, 232.0), (8.0, 250.0), (18.0, 264.0),
+             (30.0, 280.0), (41.0, 294.1), (52.0, 308.0)]
+SB_FRONT = 60.0    # FRONT yard, on the EAST line (rev 32: 60', owner). Earlier: (owner 8/22, rev 27: "the east
                    # property line should be the front yard because that's the
                    # side where our address road, Handlebar Rd, resides" —
                    # confirmed against research/FINDINGS.md sec 3, "Which line
@@ -147,10 +163,16 @@ LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centrel
 # Buildable envelope: the parcel less everything within each required yard.
 # Subtracting a line buffered by d leaves exactly the ground more than d away
 # from that line, which is the definition of the setback.
+WL_ROAD = SPoly(WL_EDGE_E[:-1] + [(0.0, 300.0)])              # pavement inside the parcel
+W_FRONT_ZONE = box(-10, -60, SB_W_FRONT, Y_BEND)                # 60' front yard, S of the bend
+W_EXT_ZONE   = box(-10, Y_BEND, SB_SIDE, 320)                   # 15' off the west P.L., N of the bend
 ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
-            .difference(LINE_WCL.buffer(SB_EXT))
+            .difference(W_FRONT_ZONE)
+            .difference(W_EXT_ZONE)
+            .difference(WL_ROAD)
+            .difference(LineString(WL_EDGE_E).buffer(SB_EXT))
             .difference(LINE_E.buffer(SB_FRONT)))
 
 # Zone polygons are DRAWN clipped to the parcel boundary (owner, 8/21: "my red
@@ -416,7 +438,7 @@ ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (61
             fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.3, color='0.5'),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
-# ---- PROPOSED SMALL AGRICULTURAL STORE = the NEW 'MINI BARN MARKET', a
+# ---- AS-BUILT SMALL AGRICULTURAL STORE = the 'MINI BARN MARKET' (owner 9/15: as-built, no longer proposed), a
 # 12'x10' building under construction immediately SW of the 10'x10' storage.
 # LOCATION PER THE OWNER'S YELLOW-SQUARE MARKUP (8/22, rev 18) — centred
 # ~(63.5, 224), a few feet off the storage building's SW corner.
@@ -425,7 +447,7 @@ MBM = [(57.5, 219.0), (69.5, 219.0), (69.5, 229.0), (57.5, 229.0)]
 MBM_G = SPoly(MBM)
 MBM_SF = 120
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
-ax.annotate("PROPOSED 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF), UNDER CONSTRUCTION\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
+ax.annotate("AS-BUILT 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF)\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
             (63.5, 219.0), (120, 52), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
@@ -588,7 +610,7 @@ if DRAW_FENCE:
             ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
 ax.annotate("GATE — OPEN DURING BUSINESS\nHOURS (CUSTOMER PARKING ACCESS)",
-            (94.1, 254.7), (38.2, 280.9), fontsize=6.0, ha='center', zorder=7,
+            (94.1, 254.7), (150, 304), fontsize=6.0, ha='center', zorder=7,
             arrowprops=dict(arrowstyle='-', lw=0.7), color='#1a1a1a',
             bbox=dict(fc='white', ec='none', alpha=0.92, pad=1.6))
 
@@ -600,13 +622,25 @@ SB = '#0044aa'
 y_lo, y_hi = -16, 308
 
 # Whirlwind Ln: centreline at the west property line per owner, 30' road esmt.
-ax.plot([WL_CL_X, WL_CL_X], [y_lo, y_hi], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
-ax.plot([ESMT_W, ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
-ax.text(WL_CL_X-9, 250, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
+# Rev 32: north of the bend the road crosses the NW corner — centreline and
+# pavement edges drawn through it (owner's markup + aerial).
+ax.plot([q[0] for q in WL_CL], [q[1] for q in WL_CL], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
+for _edge in (WL_EDGE_E, WL_EDGE_W):
+    ax.plot([q[0] for q in _edge], [q[1] for q in _edge], color='0.25', lw=1.3, zorder=3)
+_esmt_top = LineString([(ESMT_W, y_lo), (ESMT_W, y_hi)]).intersection(LineString(WL_EDGE_E))
+_esmt_y1 = _esmt_top.y if not _esmt_top.is_empty else y_hi
+ax.plot([ESMT_W, ESMT_W], [y_lo, _esmt_y1], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
+ax.text(WL_CL_X-9, 150, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
         ha='center', fontweight='bold')
-ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
-ax.text(ESMT_W+8.7, 258, "35' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
+ax.text(WL_CL_X-9, 90, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
+ax.text(ESMT_W+4, 140, "30' ROAD ESMT.", fontsize=6.0, rotation=90, va='center',
         ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.text(20, 266, "WHIRLWIND LN\n(ROAD ESMT.)", fontsize=6.0, rotation=58, va='center', ha='center',
+        fontweight='bold', color='0.15', zorder=8, bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.annotate("WHIRLWIND LN BEND:\n60' FRONT YD TO S,\n15' EXT. SIDE YD TO N",
+            (0, Y_BEND), (23, 195), fontsize=5.2, ha='center', va='center', color=SB, fontweight='bold',
+            zorder=9, arrowprops=dict(arrowstyle='-', lw=0.7, color=SB),
+            bbox=dict(fc='white', ec=SB, lw=0.5, alpha=0.95, pad=1.2))
 
 # buildable envelope (every yard a straight offset of its property line)
 for ring in rings(ENVELOPE):
@@ -619,12 +653,23 @@ ax.text(150, ENVELOPE.bounds[1]+9.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
         fontsize=6.6, ha='center', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(SB_EXT-13.1, 219.4, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
-        fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
-        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-# All setbacks are measured from the PROPERTY LINES (owner). East = FRONT 40'
-# (rev 27) — the residence fronts the access road/Handlebar direction there.
-ax.text(551, 185, f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM EAST P.L.",
+ax.text(SB_W_FRONT-5, 52, f"FRONT YARD SETBACK {SB_W_FRONT:.0f}' FROM WEST P.L.",
+        fontsize=6.4, rotation=90, va='center', ha='center', color=SB, fontweight='bold',
+        zorder=8, bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
+ax.text(31, 245, f"EXT. SIDE YARD\nSETBACK {SB_EXT:.0f}'", fontsize=5.4, rotation=40,
+        va='center', ha='center', color=SB, fontweight='bold', zorder=8,
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.6))
+# Store clearances for note 5, measured, not typed
+_store = SPoly([(57.5, 219.0), (69.5, 219.0), (69.5, 229.0), (57.5, 229.0)])
+CLR_ROAD = _store.distance(LineString(WL_EDGE_E))
+CLR_CL   = _store.distance(LineString(WL_CL))
+CLR_N    = _store.distance(LINE_N)
+print(f"store clearances: road edge {CLR_ROAD:.1f}', Whirlwind CL {CLR_CL:.1f}', north P.L. {CLR_N:.1f}'")
+if not _store.within(ENVELOPE):
+    raise SystemExit("SETBACK: the store is not inside the buildable envelope.")
+# All setbacks are measured from the PROPERTY LINES (owner). East = FRONT 60'
+# (rev 32) — the residence fronts the access road/Handlebar direction there.
+ax.text(553, 185, f"FRONT YARD SETBACK {SB_FRONT:.0f}' FROM EAST P.L.",
         fontsize=6.4, rotation=90, va='center', ha='center', color=SB,
         fontweight='bold', zorder=8,
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
@@ -741,7 +786,7 @@ for ref, req, prov, ok in crit:
 fy -= 0.004
 fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
-for lab, val in [("STORE = NEW 'MINI BARN MARKET' BLDG 12'x10'", "120 SF"),
+for lab, val in [("STORE = AS-BUILT 'MINI BARN MARKET' BLDG 12'x10'", "120 SF"),
                  ("OPEN ROOFED DISPLAY AREA", "0 SF"),
                  ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "120 SF")]:
     b = lab.startswith("TOTAL")
@@ -757,7 +802,7 @@ for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
     tl(fs_, fy, val, 6.4, lab in ("REQUIRED", "PROVIDED"), x=0.97, ha='right')
     fy -= 0.0250
 fy -= 0.012
-tl(fs_, fy-0.004, "THE STORE IS THE NEW 12'x10' MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.004, "THE STORE IS THE AS-BUILT 12'x10' MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 tl(fs_, fy-0.030, "120 SF AGAINST A 1,500 SF LIMIT. THE ADJACENT 10'x10'", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 tl(fs_, fy-0.056, "BUILDING IS STORAGE ONLY — NO SALES.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 
@@ -766,14 +811,13 @@ la = band_axes(C3, 2.20, CW, 5.35)
 la.text(0.5, 0.962, "LEGEND", 
         fontsize=9.5, fontweight='bold', ha='center', va='top')
 leg_items = [
-    ('store',    "PROPOSED STORE ('MINI BARN MARKET' 12'x10')"),
+    ('store',    "AS-BUILT STORE ('MINI BARN MARKET' 12'x10')"),
     ('parking',  "PROPOSED CUSTOMER PARKING"),
     ('agpatch',  "AGRICULTURAL CROP AREA"),
     ('bgpatch',  "POULTRY AREA (BIRD GARDEN)"),
     ('respatch', "RESIDENTIAL / DOMESTIC AREA"),
     ('struct',   "EXISTING STRUCTURE"),
     ('tinyhome', "STRUCTURE TO BE REMOVED"),
-    ('fence',    "EXISTING 6'-0\" FENCE"),
     ('leach',    "LEACH LINES"),
     ('cl',       "ROAD CENTERLINE"),
     ('esmt',     "ROAD EASEMENT LINE"),
@@ -824,8 +868,8 @@ for kind, desc in leg_items:
 sw = band_axes(C3, 0.45, CW, 1.55)
 sw.text(0.5, 0.93, "STORMWATER (PDS 272)", fontsize=8.5, fontweight='bold', ha='center', va='top')
 swy = 0.70
-for ln in ["NO GRADING OR CLEARING PROPOSED. NEW IMPERVIOUS AREA IS THE",
-           "12'x10' STORE BUILDING ONLY (120 SF) — UNDER PERMIT THRESHOLDS.",
+for ln in ["NO GRADING OR CLEARING PROPOSED. THE AS-BUILT 12'x10' STORE",
+           "(120 SF) IS THE ONLY ADDED IMPERVIOUS AREA; UNDER PERMIT THRESHOLDS.",
            "SD-B: RUNOFF DIRECTED TO PERVIOUS/LANDSCAPED AREAS.",
            "SD-G: EXISTING NATURAL SWALES AND POND CONSERVED.",
            "SD-H: VEGETATED BUFFER MAINTAINED AROUND EXISTING POND."]:
@@ -966,7 +1010,7 @@ hrule(y); y -= 0.0098
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","PROPOSED","120 SF", True),
+srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","120 SF", True),
          ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", False),
          ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", True),
          ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", False),
@@ -997,15 +1041,15 @@ notes = [
  "     DRIVEWAY AND STRUCTURES, AND SCALES TO THE AREA TABULATED FOR IT — THE",
  "     DRAWING AND THE TABLE AGREE. AG-3 STOPS AT THE FENCE ~20' W OF SEPTIC. AG-9",
  "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
- "3.  NO GRADING PROPOSED. THE ONLY NEW CONSTRUCTION IS THE 12'x10' STORE (UNDER",
- "     CONSTR.). PLAN DOCUMENTS EXISTING AG OPERATIONS + PROPOSED STORE (ZO §6157).",
- "4.  SETBACKS PER ZO §4810 SCHEDULE C (ZONING BOX DESIGNATOR C). THE RESIDENCE",
- "     FRONTS THE ACCESS RD./HANDLEBAR DIRECTION (EAST) — FRONT YARD 40' FROM THE",
- "     EAST P.L. PER FOOTNOTE (d) (PRIVATE ESMT. <40' WIDE; NO ON-SITE ℄ TO USE).",
- "     WHIRLWIND LN (WEST) IS THE EXTERIOR SIDE YARD, 35' FROM ℄ AT THE WEST P.L.",
- "     N/S ARE INTERIOR SIDE YARDS, 15'. NO REAR YARD — LOT FRONTS STREETS E + W.",
- "5.  THE PROPOSED STORE SITS IN THE BUILDABLE AREA, CLEAR OF EVERY REQUIRED YARD",
- "     (22' BEYOND THE WHIRLWIND SETBACK, 470'+ FROM THE FRONT (EAST) P.L.). EXIST.",
+ "3.  NO GRADING OR NEW CONSTRUCTION PROPOSED; THE 12'x10' STORE IS AS-BUILT. PLAN",
+ "     DOCUMENTS EXISTING AG OPERATIONS + THE AS-BUILT SMALL AG. STORE (ZO §6157).",
+ "4.  SETBACKS PER ZO §4810 SCHEDULE C (DESIGNATOR C), FROM THE PROPERTY LINES.",
+ "     FRONT YARDS 60': THE EAST P.L. (HANDLEBAR RD DIRECTION) AND THE WEST P.L.",
+ "     SOUTH OF THE WHIRLWIND LN BEND. NORTH OF THE BEND, WHERE WHIRLWIND CROSSES",
+ "     THE NW CORNER IN A ROAD ESMT., EXTERIOR SIDE YARD 15' FROM THE ROAD EDGE.",
+ "     N/S INTERIOR SIDE YARDS 15'. NO REAR YARD — LOT FRONTS STREETS E + W.",
+ "5.  THE AS-BUILT STORE SITS N OF THE WHIRLWIND BEND, CLEAR OF EVERY REQUIRED YARD",
+ f"     ({CLR_ROAD:.0f}' FROM THE ROAD EDGE, {CLR_CL:.0f}' FROM ITS ℄, 470'+ FROM THE EAST P.L.). EXIST.",
  "     TINY HOME (W) IS TO BE REMOVED. WHIRLWIND ℄ IS APPROXIMATE PENDING PM 05062.",
  "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
@@ -1018,13 +1062,13 @@ notes = [
  "     ENDS, DIRT MID-SEGMENT, 12' WIDE; SLOPE 2% DRAINING W. NO OTHER ROAD",
  "     CROSSES THE PARCEL. ALIGNMENT TRACED FROM THE SITE AERIAL.",
  "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
- "     THAT BOUNDARY. HANDLEBAR RD DOES NOT TOUCH THE PARCEL — ACCESS IS BY THE",
- "     DRIVEWAY AND ESMT. OF NOTE 8. ESMT. GEOMETRY PER RECORDED PM 05062, TBD.",
+ "     THAT BOUNDARY; N OF ITS BEND THE ROAD CROSSES THE NW CORNER (TRACED FROM THE",
+ "     AERIAL). HANDLEBAR RD IS OFF-SITE (NOTE 8). ESMT. GEOMETRY PER PM 05062, TBD.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG,",
  "     PERIMETER AND POOL FENCING AND GATES ONLY; ALL ARE 6'-0\" OR LESS IN HEIGHT",
- "     PER OWNER (NORTH AND WEST RUN SHOWN) — NO BLDG. PERMIT REQ'D PER PDS 070.",
- "11. THE PROPOSED SMALL AGRICULTURAL STORE IS THE NEW 'MINI BARN MARKET', A",
- "     12'x10' = 120 SF BUILDING UNDER CONSTRUCTION — WELL UNDER THE 1,500 SF LIMIT",
+ "     PER OWNER — NO BLDG. PERMIT REQ'D PER PDS 070.",
+ "11. THE SMALL AGRICULTURAL STORE IS THE AS-BUILT 'MINI BARN MARKET', A",
+ "     12'x10' = 120 SF BUILDING — WELL UNDER THE 1,500 SF LIMIT",
  "     OF §6157.a.2.e INCL. OPEN ROOFED DISPLAY (NONE). THE ADJACENT 10'x10' BLDG IS",
  "     STORAGE ONLY; NO OTHER STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC-",
  "     ACCESSED AREAS TO BE PERMITTED TO COMM. BLDG. CODE AND DEHQ REQUIREMENTS.",
@@ -1047,7 +1091,7 @@ px_.plot([0, 1], [tb_h*0.74, tb_h*0.74], color='black', lw=0.7, transform=px_.tr
 px_.plot([0, 1], [tb_h*0.46, tb_h*0.46], color='black', lw=0.7, transform=px_.transAxes)
 px_.plot([0.60, 0.60], [0, tb_h*0.46], color='black', lw=0.7, transform=px_.transAxes)
 tline(tb_h*0.99, "AGRICULTURAL OPERATIONS & SMALL AGRICULTURAL STORE", 7.4, True, x=0.5, ha='center')
-tline(tb_h*0.905, "PLOT PLAN — EXISTING CONDITIONS & PROPOSED STORE", 6.8, x=0.5, ha='center')
+tline(tb_h*0.905, "PLOT PLAN — EXISTING CONDITIONS & AS-BUILT STORE", 6.8, x=0.5, ha='center')
 tline(tb_h*0.685, "17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, True, x=0.03)
 tline(tb_h*0.590, "APN 278-361-08-00  ·  ZONE A70", 6.6, x=0.03)
 tline(tb_h*0.395, "SCALE: 1\" = 40'", 7.2, True, x=0.03)
@@ -1056,8 +1100,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-30 8/22-8/26  RECORD DATA, GATE, LABELS", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    9/15/2026  USABLE-FOR-AG % IN SUMMARY", 5.4, x=0.62)
+tline(tb_h*0.170, "17-31 8/22-9/15  RECORD DATA, LABELS, 83.4%", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    9/15/2026  60' FRONTS; WHIRLWIND; AS-BUILT", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

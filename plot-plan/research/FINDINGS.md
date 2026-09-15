@@ -59,6 +59,14 @@ point query at the parcel centroid, 19 Aug 2026). The zoning box returned:
     USEREG A70 · ANIMALREGS L · LOT 2AC · BUILDTYPE C
     HEIGHT G · SETBACK C · SPECIALREGS C
 
+> **SUPERSEDED FOR THE SHEET, 9/15/2026 (rev 32, owner):** the 40' east front
+> and 35' west exterior side argued below no longer apply. The sheet now shows
+> 60' front yards on the east P.L. and on the west P.L. south of the Whirlwind
+> Ln bend. North of the bend, where Whirlwind crosses the NW corner in a road
+> easement, it shows a 15' exterior side yard from the road edge. N/S interior
+> side 15'. The store is north of the bend and clears all of it. The Schedule C
+> citations below are still the source figures.
+
 **Setback designator = C.** Zoning Ordinance **§4810 Schedule C**, row C:
 
 | Yard | Requirement |

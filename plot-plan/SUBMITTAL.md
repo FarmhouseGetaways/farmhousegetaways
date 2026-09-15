@@ -31,7 +31,7 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev31.pdf` (always the
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev32.pdf` (always the
   highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
@@ -76,7 +76,16 @@ The parcel's zoning box, pulled live from SanGIS, is
 The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
-**Every setback on the sheet is measured from the property lines** — the thick
+**REV 32 (owner, 9/15/2026) supersedes the next paragraph.** Two front yards
+at **60'**: the east property line, and the west property line **south of the
+Whirlwind Ln bend**. North of the bend, Whirlwind crosses the parcel's NW corner
+in a road easement, and that whole section is **exterior side yard, 15' from
+the road edge**. North and south stay interior side yards at 15'. There is no
+rear yard. **The store is north of the bend**, so it clears: 36' from the road
+edge (15' required), 52' from Whirlwind's centreline and 63' from the north
+line. The tiny home sits in the west 60' front yard and is being removed.
+
+~~Superseded:~~ Every setback on the sheet is measured from the property lines — the thick
 black boundary. The residence fronts the access road/Handlebar direction on
 the **east**, so that is the **front yard: 40' from the east property line**
 (Schedule C footnote (d) — a private easement under 40' wide gets a 40' front
