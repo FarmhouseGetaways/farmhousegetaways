@@ -23,7 +23,15 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Current status: plot plan REV 29 generated — the submittal sheet. The Small
+**Rev 30 (9/15/2026, first rev built locally on Windows after the original
+cloud session was lost):** the AGRICULTURAL USE SUMMARY now carries
+"AREA USABLE FOR AGRICULTURE 137,151 SF = 83.4% OF GROSS" (the §6157.a.2.b.i
+figure) under the 35.1% active-ag line, per the owner. To make room the two
+summary tables' row step went 0.0088 → 0.0082 and the AG-5 footnote became one
+line; notes headroom is now only 0.0047, so the next addition to that panel
+will need space found elsewhere.
+
+**Current status: plot plan REV 30 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking

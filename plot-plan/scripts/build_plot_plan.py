@@ -77,8 +77,8 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 29
-DATE = "8/22/2026"
+REV  = 30
+DATE = "9/15/2026"
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
 # Areas are COMPUTED from the geometry below, not typed in, so the tables and
@@ -945,12 +945,15 @@ rows = [(f"AG-{k}", crop_name[k], f"{ZONE_SF[k]:,.0f} SF") for k in ZONE_KEYS]
 rows.append(("BG", "BIRD GARDEN (POULTRY)", f"{POULTRY_SF:,.0f} SF"))
 for r in rows:
     tline(y, r[0], 6.5, x=0.05); tline(y, r[1], 6.5, x=0.16); tline(y, r[2], 6.5, x=0.95, ha='right')
-    y -= 0.0088
+    y -= 0.0082
 hrule(y+0.002, 0.04, 0.96, 0.5); y -= 0.003
 tline(y, "TOTAL ACTIVE AGRICULTURAL AREA", 7.4, True, x=0.05); tline(y, f"{AG_TOTAL:,.0f} SF", 7.4, True, x=0.95, ha='right'); y -= 0.0122
-tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157.a.2.b.ii REQ.: 25% = {REQ_25_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0115
-tline(y, "AG-5 NOT USED — NUMBERING RETAINED PER OWNER FIELD NOTES. AREAS ARE", 6.0, x=0.05); y -= 0.0098
-tline(y, "FIELD-MEASURED AND PLOT TO SCALE ON THIS SHEET (NOTE 2).", 6.0, x=0.05); y -= 0.0125
+tline(y, f"= {PCT_AG:.1f}% OF GROSS  (ZO §6157.a.2.b.ii REQ.: 25% = {REQ_25_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0135
+# Owner, 9/15/2026: the usable-for-ag share of gross belongs in this summary,
+# not only in the calculation box. Same figure as §6157.a.2.b.i (gross less residential).
+tline(y, "AREA USABLE FOR AGRICULTURE", 7.4, True, x=0.05); tline(y, f"{AVAIL_SF:,.0f} SF", 7.4, True, x=0.95, ha='right'); y -= 0.0122
+tline(y, f"= {PCT_AVAIL:.1f}% OF GROSS  (ZO §6157.a.2.b.i REQ.: 50% = {REQ_50_SF:,} SF)", 6.9, True, x=0.05); y -= 0.0115
+tline(y, "AG-5 NOT USED (NUMBERING PER OWNER FIELD NOTES). AREAS TO SCALE, NOTE 2.", 6.0, x=0.05); y -= 0.0125
 hrule(y); y -= 0.0098
 
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
@@ -970,7 +973,7 @@ srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","PROPOSED","120 SF", Tr
          ("TINY HOME (W)","TO BE REMOVED","765 SF", False)]
 for nm, st, sf, em in srows:
     tline(y, nm, 6.2, em, x=0.05); tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
-    y -= 0.0088
+    y -= 0.0082
 tline(y, "FOOTPRINTS AERIAL-DERIVED, APPROXIMATE (NOTE 2).", 5.7, x=0.05); y -= 0.0115
 hrule(y); y -= 0.0098
 
@@ -1046,8 +1049,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-26 8/22/2026  RECORD DATA, PARKING, FENCE", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  FRONT YARD = EAST; GATE ADDED", 5.4, x=0.62)
+tline(tb_h*0.170, "17-29 8/22-8/26  RECORD DATA, FENCE, GATE", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    {DATE}  USABLE-FOR-AG % IN SUMMARY", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
