@@ -23,15 +23,33 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
-**Rev 30 (9/15/2026, first rev built locally on Windows after the original
-cloud session was lost):** the AGRICULTURAL USE SUMMARY now carries
-"AREA USABLE FOR AGRICULTURE 137,151 SF = 83.4% OF GROSS" (the §6157.a.2.b.i
-figure) under the 35.1% active-ag line, per the owner. To make room the two
-summary tables' row step went 0.0088 → 0.0082 and the AG-5 footnote became one
-line; notes headroom is now only 0.0047, so the next addition to that panel
-will need space found elsewhere.
+**Rev 30 was made OUTSIDE this script (8/26/2026).** The owner took the rev 29
+PDF and edited it by hand in a PDF editor. It still reads "REV 29" in its
+title block, but it is filed as `output/..._rev30.pdf` (the owner's copy is in
+Downloads and on Z:\...\17054 Plot Plan\Production Docs). The session that
+built rev 29 was lost before it saw that file. Its edits, carried into the
+script in rev 31:
+- Fence runs, x marks, gate leaf and the "EXIST. 6'-0" FENCE" label deleted
+  (`DRAW_FENCE = False`; geometry kept).
+- Gate callout moved to the open NW corner, no box, leader on the yard entrance.
+- "30' ROAD ESMT." changed to "35' ROAD ESMT." and moved E of the setback line.
+- Exterior side setback label, storage label and trellis garden label moved.
+- Tiny home outline 10' E; its footprint 765 SF → 240 SF.
+- Sheet DATE 8/06/2026.
+**Left as the owner had them, and inconsistent with the edits — ask before
+changing:** the legend still has the 6' fence entry; note 10 still says
+"(NORTH AND WEST RUN SHOWN)"; note 9 and the BOUNDARY & RECORD DATA box still
+say 30' road esmt.
 
-**Current status: plot plan REV 30 generated — the submittal sheet. The Small
+**Rev 31 (9/15/2026, built locally on Windows):** rev 30's edits, plus
+"AREA USABLE FOR AGRICULTURE 137,151 SF = 83.4% OF GROSS" (§6157.a.2.b.i) in
+the AGRICULTURAL USE SUMMARY under the 35.1% line, per the owner. To make room
+the two summary tables' row step went 0.0088 → 0.0082 and the AG-5 footnote
+became one line. Notes headroom is only 0.0047 now. **Before building, always
+check Downloads and the Z: Production Docs folder for a higher rev than
+`output/`**: the owner edits PDFs by hand.
+
+**Current status: plot plan REV 31 generated — the submittal sheet. The Small
 Agricultural Store is the NEW MINI BARN MARKET — a 12'×10' = 120 SF building
 UNDER CONSTRUCTION just SW of the 10'×10' storage building at the NW (owner
 markup 8/22/2026). The 10'×10' is STORAGE ONLY, no sales. 6 parking

@@ -77,8 +77,8 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 30
-DATE = "9/15/2026"
+REV  = 31
+DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
 # Areas are COMPUTED from the geometry below, not typed in, so the tables and
@@ -412,8 +412,8 @@ ax.annotate("EXIST. BARN — STORAGE\n50'x44' (2,200 SF)", (_bc[0], _bc[1]-22), 
 # round). Drawn grey like every other existing accessory building.
 STG = [(72.1, 230.5), (82.1, 230.5), (82.1, 240.5), (72.1, 240.5)]
 ax.add_patch(MPoly(STG, closed=True, fc='0.82', ec='black', lw=1.1, zorder=5))
-ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (72, 284),
-            fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.6),
+ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (61.6, 249.1),
+            fontsize=5.6, ha='center', zorder=7, arrowprops=dict(arrowstyle='-', lw=0.3, color='0.5'),
             bbox=dict(fc='white', ec='none', alpha=0.9, pad=1))
 
 # ---- PROPOSED SMALL AGRICULTURAL STORE = the NEW 'MINI BARN MARKET', a
@@ -462,7 +462,7 @@ ax.text(168, 231.5, "PROPOSED CUSTOMER PARKING — 6 SPACES\nEXIST. YARD — ACC
 # trellis garden
 tx0, ty0, tw_, th_ = rect_px(862, 608, 966, 704)
 ax.add_patch(Rectangle((tx0, ty0), tw_, th_, fc='none', ec='black', lw=1.0, zorder=4))
-ax.annotate("EXIST. TRELLIS GARDEN", (tx0, ty0+th_/2), (tx0-58, ty0-26), fontsize=5.6, ha='center',
+ax.annotate("EXIST. TRELLIS GARDEN", (tx0, ty0+th_/2), (tx0-35.6, ty0+12.1), fontsize=5.6, ha='center',
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # greenhouse (as-built)
@@ -483,7 +483,7 @@ pcx, pcy = 872*SXX, 294.1-235*SYY
 ax.add_patch(Ellipse((pcx, pcy), 40, 44, fc='none', ec='black', lw=1.1, zorder=4))
 ax.text(pcx, pcy, "EXIST.\nPOOL", fontsize=5.6, ha='center', va='center', zorder=7)
 # tiny home (to be removed) — encroaches the 35' exterior side setback; see Note 12
-th_poly = poly_px([(130,505),(188,520),(165,705),(107,690)])
+th_poly = [(x + 10.0, y) for x, y in poly_px([(130,505),(188,520),(165,705),(107,690)])]   # 10' E per owner's rev 30 edit
 ax.add_patch(MPoly(th_poly, closed=True, fc='white', ec='black', lw=1.1, ls=(0,(4,3)), zorder=4))
 thx = sum(p[0] for p in th_poly)/4; thy = sum(p[1] for p in th_poly)/4
 ax.annotate("EXIST. TINY HOME\n(TO BE REMOVED — NOTE 5)", (thx, thy-14), (106, 80),
@@ -567,23 +567,30 @@ FENCE_N  = _fn
 FENCE_W1 = [(FENCE_OFF, FENCE_JOG_Y), (FENCE_OFF, GATE_Y - GATE_HW)]
 FENCE_W2 = [(FENCE_OFF, GATE_Y + GATE_HW), (FENCE_OFF, _fn[0][1])]
 FENCE_J  = [(FENCE_OFF, FENCE_JOG_Y), (72.1, FENCE_JOG_Y)]   # jog east to STG's west face
-for _seg in (FENCE_W1, FENCE_W2, FENCE_N, FENCE_J):
-    ax.plot([q[0] for q in _seg], [q[1] for q in _seg], color='#1a1a1a', lw=1.0,
-            ls=(0, (10, 4)), zorder=3)
-for _fx, _fy in FENCE_N[1::2]:
-    ax.plot([_fx], [_fy], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
-ax.plot([37.3], [FENCE_JOG_Y], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
-# gate leaf, swung open into the yard
-ax.plot([FENCE_OFF, FENCE_OFF + GATE_HW], [GATE_Y - GATE_HW, GATE_Y - GATE_HW],
-        color='#1a1a1a', lw=0.9, ls=(0, (2, 2)), zorder=3)
-ax.plot([FENCE_OFF], [GATE_Y - GATE_HW], marker='o', ms=2.4, color='#1a1a1a', zorder=3)
+# Owner's hand-edited rev 30 (8/26, made in a PDF editor, never in this script)
+# deleted the fence runs, their x marks, the gate leaf and the "EXIST. 6'-0"
+# FENCE" label, and moved the gate callout to the open NW corner with its
+# leader on the yard entrance. Rev 31 carries that forward: the fence geometry
+# above is kept for reference but not drawn.
+DRAW_FENCE = False
+if DRAW_FENCE:
+    for _seg in (FENCE_W1, FENCE_W2, FENCE_N, FENCE_J):
+        ax.plot([q[0] for q in _seg], [q[1] for q in _seg], color='#1a1a1a', lw=1.0,
+                ls=(0, (10, 4)), zorder=3)
+    for _fx, _fy in FENCE_N[1::2]:
+        ax.plot([_fx], [_fy], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
+    ax.plot([37.3], [FENCE_JOG_Y], marker='x', ms=3.0, mew=0.9, color='#1a1a1a', zorder=3)
+    # gate leaf, swung open into the yard
+    ax.plot([FENCE_OFF, FENCE_OFF + GATE_HW], [GATE_Y - GATE_HW, GATE_Y - GATE_HW],
+            color='#1a1a1a', lw=0.9, ls=(0, (2, 2)), zorder=3)
+    ax.plot([FENCE_OFF], [GATE_Y - GATE_HW], marker='o', ms=2.4, color='#1a1a1a', zorder=3)
+    ax.text(7.5, 210, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
+            ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
+            bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
 ax.annotate("GATE — OPEN DURING BUSINESS\nHOURS (CUSTOMER PARKING ACCESS)",
-            (FENCE_OFF, GATE_Y), (30, 210), fontsize=6.0, ha='center', zorder=7,
+            (94.1, 254.7), (38.2, 280.9), fontsize=6.0, ha='center', zorder=7,
             arrowprops=dict(arrowstyle='-', lw=0.7), color='#1a1a1a',
-            bbox=dict(fc='white', ec='#1a1a1a', lw=0.6, alpha=0.92, pad=1.6))
-ax.text(7.5, 210, "EXIST. 6'-0\" FENCE", fontsize=6.2, rotation=90, va='center',
-        ha='center', color='#1a1a1a', fontweight='bold', zorder=7,
-        bbox=dict(fc='white', ec='none', alpha=0.9, pad=0.8))
+            bbox=dict(fc='white', ec='none', alpha=0.92, pad=1.6))
 
 # ---- SETBACKS per ZO 4810 Schedule C, designator C (zoning box A70/L/2AC/C/G/C/C)
 # ALL measured from the property lines (owner, 8/21 third round): N/S interior
@@ -598,7 +605,7 @@ ax.plot([ESMT_W, ESMT_W], [y_lo, y_hi], color='0.35', lw=0.9, ls=(0,(4,3)), zord
 ax.text(WL_CL_X-9, 250, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
         ha='center', fontweight='bold')
 ax.text(WL_CL_X-9, 150, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
-ax.text(ESMT_W+4, 262, "30' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
+ax.text(ESMT_W+8.7, 258, "35' ROAD ESMT.", fontsize=6.4, rotation=90, va='center',
         ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 
 # buildable envelope (every yard a straight offset of its property line)
@@ -612,7 +619,7 @@ ax.text(150, ENVELOPE.bounds[1]+9.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
         fontsize=6.6, ha='center', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(SB_EXT+4, 190, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
+ax.text(SB_EXT-13.1, 219.4, f"EXTERIOR SIDE YARD SETBACK {SB_EXT:.0f}' FROM $\\mathcal{{C}}$L",
         fontsize=6.4, rotation=90, va='center', ha='left', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
 # All setbacks are measured from the PROPERTY LINES (owner). East = FRONT 40'
@@ -970,7 +977,7 @@ srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","PROPOSED","120 SF", Tr
          ("POULTRY COOP 10'x10'","EXISTING","100 SF", False),
          ("POULTRY RUN 12'x20'","EXISTING","240 SF", False),
          ("POOL","EXISTING","1,380 SF", False),
-         ("TINY HOME (W)","TO BE REMOVED","765 SF", False)]
+         ("TINY HOME (W)","TO BE REMOVED","240 SF", False)]
 for nm, st, sf, em in srows:
     tline(y, nm, 6.2, em, x=0.05); tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
     y -= 0.0082
@@ -1049,8 +1056,8 @@ tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-29 8/22-8/26  RECORD DATA, FENCE, GATE", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    {DATE}  USABLE-FOR-AG % IN SUMMARY", 5.4, x=0.62)
+tline(tb_h*0.170, "17-30 8/22-8/26  RECORD DATA, GATE, LABELS", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    9/15/2026  USABLE-FOR-AG % IN SUMMARY", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
