@@ -6,7 +6,7 @@ the regulatory citations behind every number here.
 ## What you are asking for
 
 A **Small Agricultural Store** at 17054 Handlebar Rd under **Zoning Ordinance
-§6157** — the new **Mini Barn Market** building now under construction at the
+§6157** — the as-built **Mini Barn Market** building at the
 NW of the parcel (12'×10' = 120 SF, just SW of the 10'×10' storage building — location per your yellow-square markup, 8/22),
 with six customer parking spaces in a row against AG-2's bottom line. The
 building is one-twelfth of the 1,500 SF cap. The adjacent 10'×10' is storage
@@ -100,11 +100,12 @@ the only travelled way — east from the residence, then southeast between AG-9
 and AG-12, leaving the parcel near the SE corner and continuing roughly 700'
 to Handlebar Rd through an access easement across the adjacent parcel.
 
-**The store clears every required yard** — it sits 57' from the Whirlwind
-centreline (35' required) and about 64' from the north line (15' required).
+**The store clears every required yard.** It is north of the Whirlwind bend:
+36' from the road edge (15' required) and 63' from the north line (15'
+required).
 
-The tiny home encroaches the 35' exterior side yard; removing it, already
-planned, resolves that.
+The tiny home sits in the west 60' front yard; removing it, already planned,
+resolves that.
 
 ## The two questions to ask at the counter
 
@@ -112,20 +113,16 @@ The store-size question that used to lead this list is **gone**: the store is
 the new 12'×10' Mini Barn Market building, 120 SF against a 1,500 SF limit.
 Nothing to ask about it.
 
-**1. Confirm the yard designations.** The sheet draws every setback from the
-property lines: 15' north and south (interior side), 40' front on the east
-(footnote (d), the residence fronting the access road/Handlebar direction),
-35' exterior side on the west (Whirlwind centreline). Access is by a private
-easement ~700' out to Handlebar Rd across the adjacent parcel; ask whether PDS
-wants the front yard measured from an off-site centreline instead of the
-property line, since none is drawn on this parcel. Nothing about the store
-changes either way — it sits 57' from the west line and ~64' from the north
-line, clear of any answer they give.
+**1. Confirm the yard designations.** The sheet shows 60' front yards on the
+east property line and on the west property line south of the Whirlwind Ln
+bend. North of the bend, where Whirlwind crosses the NW corner in a road
+easement, it shows a 15' exterior side yard from the road edge. North and south
+are interior side yards at 15'. The store is north of the bend, 36' from the
+road edge and 63' from the north line.
 
 **2. Confirm no Zoning Verification Permit is required** for the small store
-post Update 102 — and what the building permit path is for the 12'×10' store
-building now under construction (public-accessed areas go to commercial
-building code).
+post Update 102 — and what the building permit path is for the as-built
+12'×10' store building (public-accessed areas go to commercial building code).
 
 PDS Zoning: **(858) 694-8985**. PDS Building: (858) 565-5920.
 
