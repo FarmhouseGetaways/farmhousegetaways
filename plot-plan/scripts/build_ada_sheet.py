@@ -17,7 +17,7 @@ matplotlib.rcParams['hatch.linewidth'] = 0.5
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon as MPoly, Rectangle, Circle, Wedge, FancyBboxPatch
 
-VERSION = 1
+VERSION = 2
 SHEET_W, SHEET_H = 24.0, 18.0
 BLUE = '#1f56b8'
 DRAFT = True            # the sheet joins the plot plan set as SHEET 2 OF 2 when rev 33 ships
@@ -41,7 +41,12 @@ def quad(t0, t1, d0, d1):
 VAN   = (0.0, 9.0)
 AISLE = (9.0, 17.0)
 STD   = [(17.0 + i*9.0, 26.0 + i*9.0) for i in range(5)]
-PAD   = (-2.0, 17.0, 0.0, 23.0)                  # paved: van stall + aisle + walk behind
+PAD   = (-2.0, 17.0, 0.0, 23.0)                  # stabilized gravel: van stall + aisle + walk behind
+# V2 (owner, 9/15): the county allows gravel for ALL stalls. ZO §6157.a.2.h lets the
+# ag-store parking area be chip seal, gravel or recycled asphalt; the accessible stall,
+# aisle and route just have to be stable, firm and slip-resistant per CBC 11B. The
+# 'concrete or paved' line in PDS 626B is the Building Division's general commercial
+# checklist and yields to the ag-store ordinance. So: compacted, stabilized gravel.
 WALK_D = (18.5, 22.5)                            # 48" walk across the rear of the pad
 MBM = [(57.5, 219.0), (69.5, 219.0), (69.5, 229.0), (57.5, 229.0)]
 STG = [(72.1, 230.5), (82.1, 230.5), (82.1, 240.5), (72.1, 240.5)]
@@ -96,7 +101,7 @@ a.plot([P1[0]-8*U[0], P2[0]+6*U[0]], [P1[1]-8*U[1], P2[1]+6*U[1]], color='#8B000
 a.text(*pt(-30, -5.5), "EDGE OF AG-2 ORCHARD (SEE SHEET 1)", fontsize=6.4, color='#7a0000',
        rotation=math.degrees(math.atan2(U[1], U[0])), ha='center', va='center')
 # paved pad: van stall, aisle and the walk behind them
-a.add_patch(MPoly(quad(PAD[0], PAD[1], PAD[2], PAD[3]), closed=True, fc='#ececec', ec='black',
+a.add_patch(MPoly(quad(PAD[0], PAD[1], PAD[2], PAD[3]), closed=True, fc='#d8d0c0', ec='black',
                   lw=1.2, hatch='..', zorder=2))
 for t0, t1 in STD:
     a.add_patch(MPoly(quad(t0, t1, 0, DEPTH), closed=True, fc='none', ec='black', lw=1.0, zorder=4))
@@ -144,7 +149,7 @@ def call(xy, txt, xyt, ha='center'):
 call(MBM[3], "AS-BUILT STORE ('MINI BARN MARKET') 12'x10'\nACCESSIBLE ENTRANCE — N FACE (FIELD VERIFY)", (80, 214))
 call((77, 240.5), "EXIST. STORAGE 10'x10'", (66, 262))
 call((85, 245.5), "400A PANEL", (92, 266))
-call(pt(8.5, 22.5), "PAVED PAD: VAN STALL + AISLE + 48\" WALK\nCONCRETE, FIRM / STABLE / SLIP-RESISTANT\n2.08% (1:48) MAX SLOPE IN ALL DIRECTIONS\nSEE SECTION E", (126, 212))
+call(pt(8.5, 22.5), "VAN STALL + AISLE + 48\" WALK: COMPACTED, STABILIZED\nGRAVEL — FIRM / STABLE / SLIP-RESISTANT (ZO §6157.a.2.h)\n2.08% (1:48) MAX SLOPE IN ALL DIRECTIONS\nSEE SECTION E", (126, 212))
 call(ROUTE[3], "ACCESSIBLE ROUTE ■■■■ 48\" MIN. CLEAR\nTO STORE ENTRANCE — SEE NOTE 6", (100, 280))
 call(pt(13, 19.5), "36\" DETECTABLE WARNING, FULL WIDTH\nOF AISLE WHERE WALK ADJOINS IT", (162, 228))
 call(pt(21.5, 2.3), "PRECAST WHEEL STOP, TYP. — SEE E", (186, 280))
@@ -163,7 +168,7 @@ BX0, BY0, BW, BH, BSC = 0.55, 0.55, 6.1, 7.75, 4.0           # 1" = 4'
 box_in(BX0, BY0, BW, BH)
 b = detail_axes(BX0+0.1, BY0+0.6, BW-0.2, BH-1.05, (-3.4, -3.4+(BW-0.2)*BSC), (-3.0, -3.0+(BH-1.05)*BSC))
 title(BX0+0.15, BY0+0.22, "B", "VAN STALL & AISLE MARKING", "SCALE: 1\" = 4'-0\"  ·  CBC 11B-502.2, 502.3, 502.6.4")
-b.add_patch(Rectangle((0, 0), 17, 18, fc='#ececec', ec='none', hatch='..', zorder=1))
+b.add_patch(Rectangle((0, 0), 17, 18, fc='#d8d0c0', ec='none', hatch='..', zorder=1))
 b.add_patch(Rectangle((0, 0), 9, 18, fc='none', ec=BLUE, lw=2.6, zorder=3))
 b.add_patch(Rectangle((9, 0), 8, 18, fc='white', ec=BLUE, lw=2.6, zorder=3))
 for k in range(1, 8):
@@ -253,22 +258,22 @@ for i, n_ in enumerate(dn):
 EX0, EY0, EW, EH = 13.9, 0.55, 3.15, 7.75
 box_in(EX0, EY0, EW, EH)
 e = detail_axes(EX0+0.1, EY0+0.6, EW-0.2, EH-1.05, (-17, 44), (-14, -14+(EH-1.05)/(EW-0.2)*61))
-title(EX0+0.1, EY0+0.22, "E", "PAD & WHEEL STOP", "NOT TO SCALE  ·  CBC 11B-302, 502.4, 502.7.2")
-e.add_patch(Rectangle((0, 40), 40, 4, fc='0.85', ec='black', lw=1.0, hatch='..'))       # concrete 4"
+title(EX0+0.1, EY0+0.22, "E", "SURFACE & WHEEL STOP", "NOT TO SCALE  ·  CBC 11B-302, 502.4, 502.7.2")
+e.add_patch(Rectangle((0, 40), 40, 4, fc='#d8d0c0', ec='black', lw=1.0, hatch='..'))    # stabilized gravel 4"
 e.add_patch(Rectangle((0, 36), 40, 4, fc='white', ec='black', lw=0.8, hatch='xx'))       # base 4"
 e.add_patch(Rectangle((0, 30), 40, 6, fc='#d9c7a3', ec='none'))                            # subgrade
 e.add_patch(MPoly([(26, 44), (34, 44), (33, 50), (27, 50)], closed=True, fc='0.55', ec='black', lw=1.0))
 e.text(30, 53, "PRECAST WHEEL STOP\n6'-0\" L x 6\" H,\n2 ANCHOR PINS", fontsize=5.4, ha='center', va='bottom')
-e.text(-2, 42, "4\" CONCRETE", fontsize=5.4, ha='right', va='center')
-e.text(-2, 38, "4\" COMPACTED\nBASE (95%)", fontsize=5.4, ha='right', va='center')
-e.text(20, 27, "2.08% (1:48) MAX. SLOPE ALL DIRECTIONS\nNO CHANGE IN LEVEL ON THE PAD", fontsize=5.6,
+e.text(-2, 42, "4\" STABILIZED\nGRAVEL / DG", fontsize=5.4, ha='right', va='center')
+e.text(-2, 35.5, "4\" COMPACTED\nBASE (95%)", fontsize=5.4, ha='right', va='center')
+e.text(20, 27, "COMPACTED; NO LOOSE STONE ON THE SURFACE\n2.08% (1:48) MAX. SLOPE ALL DIRECTIONS", fontsize=5.6,
        ha='center', va='top')
 e.plot([0, 40], [16, 16], color='black', lw=0.8)
-e.add_patch(Rectangle((0, 12), 22, 4, fc='0.85', ec='black', lw=1.0, hatch='..'))
+e.add_patch(Rectangle((0, 12), 22, 4, fc='#d8d0c0', ec='black', lw=1.0, hatch='..'))
 e.add_patch(Rectangle((22, 12.2), 18, 3.6, fc='#cdb68a', ec='black', lw=0.8, hatch='oo'))
-e.text(11, 9.5, "PAD", fontsize=5.6, ha='center')
-e.text(31, 9.5, "WALK, FLUSH", fontsize=5.6, ha='center')
-e.text(20, 4.5, "PAD-TO-WALK EDGE: FLUSH, 1/4\" MAX.\nVERTICAL CHANGE (11B-303)", fontsize=5.6,
+e.text(11, 9.5, "STALL / AISLE", fontsize=5.6, ha='center')
+e.text(31, 9.5, "STD. GRAVEL", fontsize=5.6, ha='center')
+e.text(20, 4.5, "EDGES FLUSH, 1/4\" MAX.\nVERTICAL CHANGE (11B-303)", fontsize=5.6,
        ha='center', va='top')
 en = ["• WHEEL STOPS AT ALL SIX STALLS, 2' OFF",
       "  THE STALL HEAD, KEEPING BUMPERS OUT OF",
@@ -303,9 +308,9 @@ pl(y, "ACCESSIBILITY NOTES", 9, True); y -= 0.02
 notes = [
  "1.  ONE VAN-ACCESSIBLE STALL, 9'-0\" x 18'-0\" MIN., WITH AN 8'-0\" MIN. ACCESS",
  "     AISLE ON ITS PASSENGER SIDE, FULL STALL LENGTH (CBC 11B-502.2, 502.3).",
- "2.  STALL AND AISLE: CONCRETE, FIRM, STABLE AND SLIP-RESISTANT, NO CHANGES IN",
+ "2.  ALL SIX STALLS GRAVEL PER ZO §6157.a.2.h. THE VAN STALL, AISLE AND ROUTE:",
+ "     COMPACTED, STABILIZED GRAVEL — FIRM, STABLE, SLIP-RESISTANT, NO CHANGES IN",
  "     LEVEL, 2.08% (1:48) MAX. SLOPE IN ANY DIRECTION (11B-302, 11B-502.4).",
- "     THE FIVE STANDARD STALLS STAY GRAVEL (ZO §6157.a.2.h).",
  "3.  SURFACE IDENTIFICATION PER DETAIL B: ISA 36\"x36\" WHITE ON BLUE; BLUE",
  "     AISLE BORDER AND HATCH 36\" O.C. MAX.; \"NO PARKING\" 12\" MIN. LETTERS",
  "     (11B-502.3.3, 11B-502.6.4).",
@@ -316,7 +321,7 @@ notes = [
  "     AND TOWING CONTACT PER 11B-502.8, VISIBLE FROM THE ACCESSIBLE STALL.",
  "6.  ACCESSIBLE ROUTE ■■■■ FROM THE AISLE TO THE STORE ENTRANCE: 48\" MIN.",
  "     CLEAR, RUNNING SLOPE 5% MAX., CROSS SLOPE 2.08% MAX., FIRM, STABLE,",
- "     SLIP-RESISTANT (CONCRETE OR STABILIZED DECOMPOSED GRANITE); CHANGES",
+ "     SLIP-RESISTANT (STABILIZED GRAVEL OR DECOMPOSED GRANITE); CHANGES",
  "     IN LEVEL 1/4\" MAX. (11B-208.3, 11B-302, 11B-303, 11B-402, 11B-403).",
  "7.  THE ROUTE LEAVES THE AISLE AT ITS REAR AND PASSES ONLY BEHIND THE VAN",
  "     STALL IT SERVES (11B-502.7.1).",
@@ -331,7 +336,7 @@ for n_ in notes:
     pl(y, n_, 6.0); y -= 0.0118
 y -= 0.004; rule(y); y -= 0.012
 pl(y, "LEGEND", 9, True); y -= 0.022
-leg = [("pad", "PAVED PAD — CONCRETE (VAN STALL, AISLE, WALK)"),
+leg = [("pad", "STABILIZED GRAVEL (VAN STALL, AISLE, WALK)"),
        ("route", "ACCESSIBLE ROUTE ■■■■ 48\" MIN."),
        ("dw", "DETECTABLE WARNING, 36\" DEEP"),
        ("ws", "PRECAST WHEEL STOP"),
@@ -339,7 +344,7 @@ leg = [("pad", "PAVED PAD — CONCRETE (VAN STALL, AISLE, WALK)"),
 for kind, desc in leg:
     x0, x1, ym = 0.05, 0.16, y-0.006
     if kind == 'pad':
-        p.add_patch(Rectangle((x0, ym-0.006), x1-x0, 0.012, fc='#ececec', ec='black', lw=0.8, hatch='..'))
+        p.add_patch(Rectangle((x0, ym-0.006), x1-x0, 0.012, fc='#d8d0c0', ec='black', lw=0.8, hatch='..'))
     elif kind == 'route':
         p.plot([x0, x1], [ym, ym], color=BLUE, lw=3.2, ls=(0, (1.2, 0.8)), solid_capstyle='butt')
     elif kind == 'dw':
@@ -364,7 +369,8 @@ pl(TB*0.38, "SCALE: AS NOTED", 7.0, True, x=0.03)
 pl(TB*0.26, f"DETAILS V{VERSION}" + ("  ·  DRAFT FOR OWNER REVIEW" if DRAFT else ""), 6.6, x=0.03)
 pl(TB*0.14, "SHEET 2 OF 2", 7.2, True, x=0.03)
 pl(TB*0.38, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
-pl(TB*0.26, f"V{VERSION}    9/15/2026  FIRST ISSUE", 5.4, x=0.62)
+pl(TB*0.26, "V1    9/15/2026  FIRST ISSUE", 5.4, x=0.62)
+pl(TB*0.14, "V2    9/15/2026  GRAVEL FOR ALL STALLS (ZO §6157)", 5.4, x=0.62)
 if y < TB + 0.01:
     raise SystemExit(f"LAYOUT: right panel overruns the title block (y={y:.3f}).")
 
