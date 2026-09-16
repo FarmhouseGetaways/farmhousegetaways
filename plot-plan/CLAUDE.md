@@ -46,6 +46,37 @@ drive it by clicks, and its "Opened From" date defaults to 2006).**
 - Other permits seen: PDS2008-1001-20080997 (residential alteration, 2008),
   PDS2013/2019/2020 residential alterations, PDS2019-RESALT-000616.
 
+**THE WEST SIDE IS NOW FULLY DOCUMENTED — DO NOT RE-ARGUE IT (9/16/2026).**
+- The NW corner's yard TYPE is settled in writing: Angela Padilla, PDS Building
+  Division, **7/2/2026**, cc'd to PDSZoningPermitCounter — *"that corner where
+  you have the farm stand… would be considered an Exterior Side Yard."* Saved in
+  full at `reference/county_correspondence/2026-07-02_Padilla_exterior_side_yard.md`.
+- The NUMBER comes from **PDS-306 page 5** (saved in `reference/`): an exterior
+  side yard is *"35 feet measured from the centerline… or must equal the interior
+  side yard setback, whichever is greater."* Whirlwind's ℄ is 30' west of the
+  P.L., so 35'-from-℄ lands only 5' inside the line while the 15' interior figure
+  lands 15' inside. **The greater is 15' from the P.L.** — exactly what the
+  supervisor drew and what the sheet already has.
+- So the supervisor's 15' was NOT a favour, it is the rule. Note 4 now cites
+  §4810 + PDS-306 p.5 instead of "PER PDS". **Never restore Padilla's 35' as the
+  setback** — it is the lesser figure and quotes only half the rule.
+- Store clearance to that 15' line is **15.7'** (not 30.7' — that is the distance
+  to the road easement edge; I mis-stated it once).
+- **The supervisor's counter markup is undocumented by the county.** He scaled
+  the owner's plot plan by hand and drew the road and setbacks on it. Owner is
+  photographing it; get his NAME and the DATE and label the sheet "revised per
+  PDS supervisor markup, [name], [date]" when known.
+
+**THE REAL REASON FOR THIS JOB (9/16/2026):** a neighbour complained about the
+second Mini Barn Market, PDS opened enforcement, and the store must be permitted.
+To permit it the owner must prove the §6157 25% agricultural test — hence this
+plot plan first, building plans second. Case **PDS2026-ENFGEN-000696**, opened
+5/1/2026, still "In Violation". Every discretionary number on the sheet should
+therefore carry its source (ordinance §, permit number, or written county
+determination) so a checker verifies instead of deciding. The owner's view of the
+counter, worth respecting: answers vary by person and by day, so a phone call is
+worthless and a printed, cited number is what actually governs.
+
 **REV 38 IS BUILT BUT HELD (9/15/2026 evening) — the owner said "don't give me
 a new version yet, hold this thought until tomorrow, I'll have to measure."**
 It carries his inside-wall areas (store 110, house 2,700, garage 1,600 over two
