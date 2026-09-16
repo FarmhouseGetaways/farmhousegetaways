@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 37
+REV  = 38
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -252,7 +252,7 @@ _pool = SPoly([(232.6+20*math.cos(t*math.pi/18), 233.3+22*math.sin(t*math.pi/18)
 KEEPOUT = unary_union([
     DRV_BUF, PARK_BUF,
     SPoly(_px([(1222,103),(1590,138),(1575,300),(1208,262)])),      # SFD
-    SPoly(_px([(1622,152),(1795,157),(1795,342),(1622,347)])),        # garage (30' off N P.L., owner 8/22)
+    SPoly(_px([(1631,132),(1792,136),(1792,278),(1631,282)])),        # garage (30' off N P.L., owner 8/22)
     _rect(112.3, 120.4, 50, 44),                                    # barn
     _rect(72.1, 230.5, 10, 10),                                     # storage
     _rect(57.5, 219.0, 12, 10),                                     # store
@@ -424,7 +424,7 @@ BARN = [(_bc[0]-25, _bc[1]-22), (_bc[0]+25, _bc[1]-22),
 assert abs(SPoly(BARN).area - 2200.0) < 1e-6
 structures = [
  ("EXIST. SFD", poly_px([(1222,103),(1590,138),(1575,300),(1208,262)]), None),
- ("EXIST.\nGARAGE/ACC.", poly_px([(1622,152),(1795,157),(1795,342),(1622,347)]), None),
+ ("EXIST.\nGARAGE/ACC.", poly_px([(1631,132),(1792,136),(1792,278),(1631,282)]), None),
 ]
 for name, poly, lab_at in structures:
     ax.add_patch(MPoly(poly, closed=True, fc='0.82', ec='black', lw=1.1, zorder=4))
@@ -457,9 +457,9 @@ ax.annotate("EXIST. STORAGE 10'x10'\n(NO SALES — NOTE 11)", (77.1, 240.5), (61
 # 120 SF — one-twelfth of the 1,500 SF cap of ZO §6157.a.2.e.
 MBM = [(57.5, 219.0), (69.5, 219.0), (69.5, 229.0), (57.5, 229.0)]
 MBM_G = SPoly(MBM)
-MBM_SF = 120
+MBM_SF = 110      # owner-measured inside the walls, 9/15
 ax.add_patch(MPoly(MBM, closed=True, fc='#ffe9b0', ec='#a05a00', lw=1.8, hatch='//', zorder=5))
-ax.annotate("AS-BUILT 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (120 SF)\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
+ax.annotate("AS-BUILT 'MINI BARN MARKET' — SMALL AGRICULTURAL\nSTORE, 12'x10' (110 SF)\n(ZO §6157 LIMIT 1,500 SF — SEE NOTE 11)",
             (63.5, 219.0), (120, 52), fontsize=6.6, ha='center', color='#8a4a00',
             fontweight='bold', zorder=9, arrowprops=dict(arrowstyle='-|>', lw=1.0, color='#a05a00'),
             bbox=dict(fc='white', alpha=0.95, ec='#a05a00', lw=1.0, pad=2.4))
@@ -777,7 +777,7 @@ crit = [
  ("c", "OPERATED BY OWNER OR TENANT", "OWNER-OPERATED", True),
  ("d", "ONE STORE PER LEGAL LOT; NO EXIST.", "NONE EXISTING", True),
  ("", "AG STAND OR LARGE AG STORE", "", None),
- ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "120 SF — COMPLIES", True),
+ ("e", "STORE ≤1,500 SF INCL. ROOFED DISPLAY", "110 SF — COMPLIES", True),
  ("", "CONFORM TO §4810 SETBACKS", "STORE CLEARS ALL YARDS", True),
  ("", "PUBLIC AREAS TO COMM. BLDG. CODE + DEHQ", "SEE NOTE 11", None),
  ("f", "RETAIL ONLY WITH ON-SITE PRODUCE / EGGS;", "ACKNOWLEDGED", True),
@@ -799,9 +799,9 @@ for ref, req, prov, ok in crit:
 fy -= 0.004
 fs_.plot([0.03, 0.97], [fy+0.006, fy+0.006], color='black', lw=0.7, transform=fs_.transAxes)
 tl(fs_, fy, "STORE AREA SUMMARY", 8, True, x=0.04); fy -= 0.032
-for lab, val in [("STORE = AS-BUILT 'MINI BARN MARKET' BLDG 12'x10'", "120 SF"),
+for lab, val in [("STORE = AS-BUILT 'MINI BARN MARKET' BLDG 12'x10'", "110 SF"),
                  ("OPEN ROOFED DISPLAY AREA", "0 SF"),
-                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "120 SF")]:
+                 ("TOTAL PER §6157.a.2.e — LIMIT 1,500 SF", "110 SF")]:
     b = lab.startswith("TOTAL")
     tl(fs_, fy, lab, 6.4, b, x=0.05); tl(fs_, fy, val, 6.4, b, x=0.97, ha='right')
     fy -= 0.0250
@@ -816,7 +816,7 @@ for lab, val in [("REQUIRED", "6 SPACES"), ("PROVIDED", "6 SPACES"),
     fy -= 0.0250
 fy -= 0.012
 tl(fs_, fy-0.004, "THE STORE IS THE AS-BUILT 12'x10' MINI BARN MARKET BUILDING —", 6.2, True, x=0.5, ha='center', color='#0a6b16')
-tl(fs_, fy-0.030, "120 SF AGAINST A 1,500 SF LIMIT. THE ADJACENT 10'x10'", 6.2, True, x=0.5, ha='center', color='#0a6b16')
+tl(fs_, fy-0.030, "110 SF AGAINST A 1,500 SF LIMIT. THE ADJACENT 10'x10'", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 tl(fs_, fy-0.056, "BUILDING IS STORAGE ONLY — NO SALES.", 6.2, True, x=0.5, ha='center', color='#0a6b16')
 
 # ---- Col 3 top: legend
@@ -882,7 +882,7 @@ sw = band_axes(C3, 0.45, CW, 1.55)
 sw.text(0.5, 0.93, "STORMWATER (PDS 272)", fontsize=8.5, fontweight='bold', ha='center', va='top')
 swy = 0.70
 for ln in ["NO GRADING OR CLEARING PROPOSED. THE AS-BUILT 12'x10' STORE",
-           "(120 SF) IS THE ONLY ADDED IMPERVIOUS AREA; UNDER PERMIT THRESHOLDS.",
+           "(110 SF) IS THE ONLY ADDED IMPERVIOUS AREA; UNDER PERMIT THRESHOLDS.",
            "SD-B: RUNOFF DIRECTED TO PERVIOUS/LANDSCAPED AREAS.",
            "SD-G: EXISTING NATURAL SWALES AND POND CONSERVED.",
            "SD-H: VEGETATED BUFFER MAINTAINED AROUND EXISTING POND."]:
@@ -1021,31 +1021,35 @@ tline(y, "AG-5 NOT USED (NUMBERING PER OWNER FIELD NOTES). AREAS TO SCALE, NOTE 
 hrule(y); y -= 0.0098
 
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
-tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
+tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "AREA", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-# Owner, 9/15: everything stays on the list, but the rows that count as BUILDING
-# floor area are marked (bold + †) and subtotalled. Paved areas and the pool are
-# not buildings; the open ag structures are off the list entirely (note 7).
-srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","120 SF", 120),
-         ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", 100),
+# Owner, 9/15: areas are his inside-wall measurements (store 110, house 2,700,
+# garage 1,600 over two storeys, coop 60). † marks the ZO §6156.g DETACHED
+# ACCESSORY pot — barn, garage, coop — capped at 4,000 SF on a 2-4 ac lot. The
+# store is a §6157 business use and sits outside that pot; the residence and
+# tiny home are habitable; pool and parking are not buildings; the 10'x10'
+# storage shed is not counted per the owner's PDS conversations. Open ag
+# structures are off the list entirely (note 7).
+srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","110 SF", 0),
+         ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", 0),
          ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", 0),
          ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", 2200),
-         ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", 4110),
-         ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", 2270),
-         ("POULTRY COOP 10'x10'","EXISTING","100 SF", 100),
+         ("SFD — RESIDENCE (4BR/2BA)","EXISTING","2,700 SF", 0),
+         ("GARAGE / ACCESSORY BLDG, 2 STORY","EXISTING","1,600 SF", 1600),
+         ("POULTRY COOP","EXISTING","60 SF", 60),
          ("POOL","EXISTING","1,380 SF", 0),
-         ("TINY HOME (W)","TO BE REMOVED","240 SF", 240)]
+         ("TINY HOME (W)","TO BE REMOVED","240 SF", 0)]
 for nm, st, sf, counts in srows:
     em = counts > 0
     tline(y, ("† " if em else "   ") + nm, 6.2, em, x=0.045)
     tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
     y -= 0.0082
-BLDG_SF = sum(c for *_, c in srows)
-BLDG_SF_AFTER = BLDG_SF - 240      # once the tiny home goes
+ACC_SF = sum(c for *_, c in srows)
+ACC_ALLOWED = 4000                 # ZO 6156.g.1, lot 2 ac - <4 ac
 y -= 0.001; hrule(y+0.004, 0.04, 0.96, 0.5)
-tline(y, f"† BUILDING FLOOR AREA ({BLDG_SF_AFTER:,} SF ONCE THE TINY HOME GOES)", 6.4, True, x=0.05)
-tline(y, f"{BLDG_SF:,} SF", 6.4, True, x=0.95, ha='right'); y -= 0.0105
-tline(y, "UNMARKED ROWS ARE NOT BUILDINGS (PARKING, POOL); OPEN AG STRUCTURES — NOTE 7.", 5.7, x=0.05); y -= 0.0115
+tline(y, f"† DETACHED ACCESSORY STRUCTURES, ZO §6156.g ({ACC_ALLOWED:,} SF ALLOWED, 2-4 AC LOT)", 6.4, True, x=0.05)
+tline(y, f"{ACC_SF:,} SF", 6.4, True, x=0.95, ha='right'); y -= 0.0105
+tline(y, "AREAS INSIDE WALLS (OWNER). UNMARKED: STORE (§6157 USE), RESIDENCE, POOL, PARKING.", 5.7, x=0.05); y -= 0.0115
 hrule(y); y -= 0.0098
 
 TB_H = 0.122          # title block height, reserved at the panel foot
@@ -1090,7 +1094,7 @@ notes = [
  "     PERIMETER AND POOL FENCING AND GATES ONLY; ALL ARE 6'-0\" OR LESS IN HEIGHT",
  "     PER OWNER — NO BLDG. PERMIT REQ'D PER PDS 070.",
  "11. THE SMALL AGRICULTURAL STORE IS THE AS-BUILT 'MINI BARN MARKET', A",
- "     12'x10' = 120 SF BUILDING — WELL UNDER THE 1,500 SF LIMIT",
+ "     12'x10' BUILDING, 110 SF INSIDE WALLS — WELL UNDER THE 1,500 SF LIMIT",
  "     OF §6157.a.2.e INCL. OPEN ROOFED DISPLAY (NONE). THE ADJACENT 10'x10' BLDG IS",
  "     STORAGE ONLY; NO OTHER STRUCTURE WILL BE USED FOR ON-SITE SALES. PUBLIC-",
  "     ACCESSED AREAS TO BE PERMITTED TO COMM. BLDG. CODE AND DEHQ REQUIREMENTS.",
@@ -1123,7 +1127,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-37 9/15/2026  WHIRLWIND; AG-6; BLDG AREA", 5.4, x=0.62)
+tline(tb_h*0.095, "33-38 9/15/2026  WHIRLWIND; AG-6; §6156 AREAS", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

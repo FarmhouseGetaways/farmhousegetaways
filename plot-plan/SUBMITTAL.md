@@ -7,7 +7,7 @@ the regulatory citations behind every number here.
 
 A **Small Agricultural Store** at 17054 Handlebar Rd under **Zoning Ordinance
 §6157** — the as-built **Mini Barn Market** building at the
-NW of the parcel (12'×10' = 120 SF, just SW of the 10'×10' storage building — location per your yellow-square markup, 8/22),
+NW of the parcel (12'×10', 110 SF inside the walls, just SW of the 10'×10' storage building — location per your yellow-square markup, 8/22),
 with six customer parking spaces in a row against AG-2's bottom line. The
 building is one-twelfth of the 1,500 SF cap. The adjacent 10'×10' is storage
 only — no sales.
@@ -114,7 +114,7 @@ resolves that.
 ## The two questions to ask at the counter
 
 The store-size question that used to lead this list is **gone**: the store is
-the new 12'×10' Mini Barn Market building, 120 SF against a 1,500 SF limit.
+the new 12'×10' Mini Barn Market building, 110 SF against a 1,500 SF limit.
 Nothing to ask about it.
 
 **1. Confirm the yard designations.** The sheet shows 60' front yards on the
@@ -182,7 +182,7 @@ structure, 400A electrical service, all four yard setbacks, well and leach
 lines, owner name and address, APN and net area, driveways and parking with
 surface and slope, lot drainage with the runoff-fed pond and area of
 inundation, easements with names and centerlines, landscape statement, and
-stormwater per PDS 272 (no grading; the only new impervious area is the 120 SF
+stormwater per PDS 272 (no grading; the only new impervious area is the 110 SF
 store building, with the SD-B/SD-G/SD-H baseline measures).
 
 ## Regenerating the sheet

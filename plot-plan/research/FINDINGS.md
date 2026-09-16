@@ -1,4 +1,4 @@
-# Regulatory findings — 17054 Handlebar Rd small farm store
+﻿# Regulatory findings — 17054 Handlebar Rd small farm store
 
 Researched 19 Aug 2026. These resolve open items §6 and §13.3 of `CLAUDE.md`.
 
@@ -164,8 +164,8 @@ and are off the sheet, and the store is no longer in the barn; see §4.)*
 ## 4. The one real obstacle: building size — **RESOLVED, no obstacle**
 
 **Final state (owner, 8/21/2026, second round): the store is the NEW "Mini Barn
-Market", a 12'×10' = 120 SF building under construction just W of the 10'×10'
-storage building at the NW.** 120 SF against the 1,500 SF cap — nothing below
+Market", a 12'×10' (110 SF inside walls) building under construction just W of the 10'×10'
+storage building at the NW.** 110 SF (inside walls) against the 1,500 SF cap — nothing below
 in this section applies any more; it is kept as the research trail. (First
 round had it as the existing 10'×10'; the owner then designated the new 12'×10'
 as the store and the 10'×10' as storage only, no sales.)

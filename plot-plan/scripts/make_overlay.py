@@ -69,7 +69,7 @@ WL_CL     = [(-10.0, 190.0), (-10.0, 204.0), (-7.0, 218.0), (0.0, 232.0), (10.0,
 for _l, _c, _s in [(WL_EDGE_E, "magenta", "-"), (WL_EDGE_W, "magenta", "-"), (WL_CL, "white", "-.")]:
     ax.plot([q[0] for q in _l], [q[1] for q in _l], color=_c, lw=2.2, ls=_s, zorder=8)
 ax.plot([0, 30, 30], [204.0, 204.0, 0], color="blue", lw=1.5, ls="--", zorder=8)   # 60' from the ℄ = 30' inside the P.L., ends at the bend
-ax.text(50, 214, "AS-BUILT STORE =\nMINI BARN MARKET, 12'x10' (120 SF)", fontsize=9, color="red",
+ax.text(50, 214, "AS-BUILT STORE =\nMINI BARN MARKET, 12'x10' (110 SF)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 ax.annotate("STORAGE 10'x10'\n(NO SALES)", (77.1, 240.5), (105, 262), fontsize=8,
             color="red", ha="center", fontweight="bold", zorder=9,
