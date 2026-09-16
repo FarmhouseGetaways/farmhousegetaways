@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 38
+REV  = 39
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -507,11 +507,10 @@ ax.add_patch(Rectangle((ghx, ghy), 20, 12, fc='none', ec='black', lw=1.0, zorder
 ax.annotate("EXIST. GREENHOUSE", (ghx+10, ghy), (ghx-30, ghy-40),
             fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
-# coop + run
+# coop — 50 SF, owner 9/16. The poultry run is removed and is no longer drawn.
 cpx, cpy = 326.0, 95.0
-ax.add_patch(Rectangle((cpx, cpy), 10, 10, fc='0.82', ec='black', lw=1.0, zorder=4))
-ax.add_patch(Rectangle((cpx, cpy-20), 12, 20, fc='none', ec='black', lw=1.0, zorder=4))
-ax.annotate("EXIST. COOP\n+ POULTRY RUN", (cpx+11, cpy-5), (cpx+58, cpy-30),
+ax.add_patch(Rectangle((cpx, cpy), 10, 5, fc='0.82', ec='black', lw=1.0, zorder=4))
+ax.annotate("EXIST. COOP", (cpx+10, cpy+2.5), (cpx+58, cpy-30),
             fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # pool
@@ -1024,7 +1023,7 @@ tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "AREA", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
 # Owner, 9/15: areas are his inside-wall measurements (store 110, house 2,700,
-# garage 1,600 over two storeys, coop 60). † marks the ZO §6156.g DETACHED
+# garage 1,600 over two storeys, coop 50). † marks the ZO §6156.g DETACHED
 # ACCESSORY pot — barn, garage, coop — capped at 4,000 SF on a 2-4 ac lot. The
 # store is a §6157 business use and sits outside that pot; the residence and
 # tiny home are habitable; pool and parking are not buildings; the 10'x10'
@@ -1036,7 +1035,7 @@ srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","110 SF", 0)
          ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", 2200),
          ("SFD — RESIDENCE (4BR/2BA)","EXISTING","2,700 SF", 0),
          ("GARAGE / ACCESSORY BLDG, 2 STORY","EXISTING","1,600 SF", 1600),
-         ("POULTRY COOP","EXISTING","60 SF", 60),
+         ("POULTRY COOP","EXISTING","50 SF", 50),
          ("POOL","EXISTING","1,380 SF", 0),
          ("TINY HOME (W)","TO BE REMOVED","240 SF", 0)]
 for nm, st, sf, counts in srows:
@@ -1077,10 +1076,9 @@ notes = [
  "     TINY HOME (W) IS TO BE REMOVED. WHIRLWIND ℄ IS APPROXIMATE PENDING PM 05062.",
  "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
- "7.  THE GREENHOUSE, TRELLIS GARDEN AND POULTRY RUN ARE OPEN AG STRUCTURES WITHIN",
- "     THE CROP AREAS AND ARE NOT TABULATED AS BUILDING AREA; THEIR GROUND IS",
- "     COUNTED IN AG-7 AND THE BIRD GARDEN. ELECTRICAL: 400A MAIN PANEL AT THE",
- "     NE COR. OF THE STORAGE BLDG.",
+ "7.  THE GREENHOUSE AND TRELLIS GARDEN ARE OPEN AG STRUCTURES WITHIN THE CROP",
+ "     AREAS AND ARE NOT TABULATED AS BUILDING AREA; THEIR GROUND IS COUNTED IN",
+ "     AG-7. ELECTRICAL: 400A MAIN PANEL AT THE NE COR. OF THE STORAGE BLDG.",
  "8.  DRIVEWAY RUNS FROM THE STORE/PARKING YARD S BETWEEN AG-1 AND AG-4, E",
  "     BETWEEN AG-4 AND THE BARN AND PAST THE RESIDENCE, THEN SE BETWEEN AG-9 AND",
  "     AG-12, LEAVING THE PARCEL NEAR THE SE CORNER AND CONTINUING ±700' TO",
@@ -1127,7 +1125,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-38 9/15/2026  WHIRLWIND; AG-6; §6156 AREAS", 5.4, x=0.62)
+tline(tb_h*0.095, "33-39 9/15-9/16  WHIRLWIND; AG-6; §6156 AREAS", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
