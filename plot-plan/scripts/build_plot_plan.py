@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 36
+REV  = 37
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -1023,19 +1023,29 @@ hrule(y); y -= 0.0098
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "FOOTPRINT", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","120 SF", True),
-         ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", False),
-         ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", True),
-         ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", False),
-         ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
-         ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
-         ("POULTRY COOP 10'x10'","EXISTING","100 SF", False),
-         ("POOL","EXISTING","1,380 SF", False),
-         ("TINY HOME (W)","TO BE REMOVED","240 SF", False)]
-for nm, st, sf, em in srows:
-    tline(y, nm, 6.2, em, x=0.05); tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
+# Owner, 9/15: everything stays on the list, but the rows that count as BUILDING
+# floor area are marked (bold + †) and subtotalled. Paved areas and the pool are
+# not buildings; the open ag structures are off the list entirely (note 7).
+srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","120 SF", 120),
+         ("STORAGE BLDG 10'x10' (ADJ. TO STORE — NO SALES)","EXISTING","100 SF", 100),
+         ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", 0),
+         ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", 2200),
+         ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", 4110),
+         ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", 2270),
+         ("POULTRY COOP 10'x10'","EXISTING","100 SF", 100),
+         ("POOL","EXISTING","1,380 SF", 0),
+         ("TINY HOME (W)","TO BE REMOVED","240 SF", 240)]
+for nm, st, sf, counts in srows:
+    em = counts > 0
+    tline(y, ("† " if em else "   ") + nm, 6.2, em, x=0.045)
+    tline(y, st, 6.2, em, x=0.66); tline(y, sf, 6.2, em, x=0.95, ha='right')
     y -= 0.0082
-tline(y, "FOOTPRINTS AERIAL-DERIVED, APPROXIMATE (NOTE 2).", 5.7, x=0.05); y -= 0.0115
+BLDG_SF = sum(c for *_, c in srows)
+BLDG_SF_AFTER = BLDG_SF - 240      # once the tiny home goes
+y -= 0.001; hrule(y+0.004, 0.04, 0.96, 0.5)
+tline(y, f"† BUILDING FLOOR AREA ({BLDG_SF_AFTER:,} SF ONCE THE TINY HOME GOES)", 6.4, True, x=0.05)
+tline(y, f"{BLDG_SF:,} SF", 6.4, True, x=0.95, ha='right'); y -= 0.0105
+tline(y, "UNMARKED ROWS ARE NOT BUILDINGS (PARKING, POOL); OPEN AG STRUCTURES — NOTE 7.", 5.7, x=0.05); y -= 0.0115
 hrule(y); y -= 0.0098
 
 TB_H = 0.122          # title block height, reserved at the panel foot
@@ -1113,7 +1123,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-36 9/15/2026  WHIRLWIND; AG-6; AG STRUCT.", 5.4, x=0.62)
+tline(tb_h*0.095, "33-37 9/15/2026  WHIRLWIND; AG-6; BLDG AREA", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
