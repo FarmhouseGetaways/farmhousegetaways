@@ -23,6 +23,18 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**REV 38 IS BUILT BUT HELD (9/15/2026 evening) — the owner said "don't give me
+a new version yet, hold this thought until tomorrow, I'll have to measure."**
+It carries his inside-wall areas (store 110, house 2,700, garage 1,600 over two
+storeys, coop 60), the garage trace tightened to the visible roof, and the
+STRUCTURE SUMMARY re-marked so † = the §6156.g detached accessory pot: barn
+2,200 + garage 1,600 + coop 60 = **3,860 SF vs 4,000 allowed**. The 10'x10'
+storage shed is NOT counted (owner, per PDS). Rev 38 is NOT on Z: and was not
+sent; **rev 37 is the live sheet**. When he reports his measurements, update the
+numbers, rebuild as rev 38 (or 39 if anything else changes), verify, then copy
+to Z: and send. Measurement basis (inside vs outside walls) is still an open
+question for PDS — see the definitions note below.
+
 **THE ACCESSORY-STRUCTURE CAP — ZO §6156.g (the "maximum" the county keeps
 citing; the owner was made to cut the barn down to fit it).**
 - §6156.g covers **detached** private garages, carports, storage buildings,
