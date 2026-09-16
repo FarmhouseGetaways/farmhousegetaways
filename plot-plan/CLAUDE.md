@@ -23,6 +23,26 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**THE ACCESSORY-STRUCTURE CAP — ZO §6156.g (the "maximum" the county keeps
+citing; the owner was made to cut the barn down to fit it).**
+- §6156.g covers **detached** private garages, carports, storage buildings,
+  workshops, barns, **agricultural buildings** and similar **non-habitable,
+  NON-BUSINESS** uses. §6156.j puts **coops** in the same total. §6156.e treats
+  **greenhouses** separately — they are NOT in this total.
+- Limit = 25% of the residence's living area OR the lot-size table, whichever is
+  greater. Lot **2 ac – <4 ac → 4,000 SF**. 25% of 2,724 = 681, so **4,000 SF
+  governs**. The residence itself is excluded (habitable).
+- **It is FLOOR AREA, not footprint.** The garage is two storeys: ~35'×25' =
+  875 SF footprint, ~1,750 SF floor area. That is why the county's number for it
+  is ~1,700, and why barn 2,200 + garage 1,750 + coop 100 ≈ the 4,000 cap. The
+  owner is field-measuring the garage (9/15) — its traced footprint on the sheet
+  (46'×50' = 2,330) is WRONG and includes yard.
+- The Mini Barn Market is a **business** use under §6157 with its own 1,500 SF
+  cap, so it stays OUT of the §6156.g total. Pool and gravel parking are not
+  buildings. §6156.g.3 allows extra area by administrative permit.
+- The STRUCTURE SUMMARY needs a FLOOR AREA column beside FOOTPRINT before it can
+  show this total honestly.
+
 **REV 35-36 (9/15/2026) — OPEN AG STRUCTURES ARE NOT BUILDING AREA.** Owner:
 the greenhouse, the trellis/hoop garden and the poultry run are open ag
 structures. They are drawn as plain outlines inside the crop hatch, carry no
