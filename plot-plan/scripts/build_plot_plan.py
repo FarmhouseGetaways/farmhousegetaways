@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 34
+REV  = 35
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -499,10 +499,12 @@ ax.add_patch(Rectangle((tx0, ty0), tw_, th_, fc='none', ec='black', lw=1.0, zord
 ax.annotate("EXIST. TRELLIS GARDEN", (tx0, ty0+th_/2), (tx0-35.6, ty0+12.1), fontsize=5.6, ha='center',
             arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
-# greenhouse (as-built)
+# greenhouse — drawn like the trellis/hoop garden (open ag structure, no fill,
+# no as-built tag, no size; owner 9/15). Its 240 SF is already inside AG-7's
+# tabulated 2,844 SF, and it is deliberately NOT a KEEPOUT so the hatch covers it.
 ghx, ghy = 294.0, 95.9
-ax.add_patch(Rectangle((ghx, ghy), 20, 12, fc='0.82', ec='black', lw=1.1, zorder=4))
-ax.annotate("AS-BUILT GREENHOUSE\n12'x20'", (ghx+10, ghy), (ghx-30, ghy-40),
+ax.add_patch(Rectangle((ghx, ghy), 20, 12, fc='none', ec='black', lw=1.0, zorder=4))
+ax.annotate("EXIST. GREENHOUSE", (ghx+10, ghy), (ghx-30, ghy-40),
             fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # coop + run
@@ -1112,7 +1114,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-34 9/15/2026  WHIRLWIND YARDS; AG-6 GAP FILLED", 5.4, x=0.62)
+tline(tb_h*0.095, "33-35 9/15/2026  WHIRLWIND; AG-6 GAP; GREENHOUSE", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
