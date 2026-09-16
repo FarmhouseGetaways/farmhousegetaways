@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Agricultural Operations & Small Agricultural Store Plot Plan
 17054 Handlebar Rd, Ramona, CA 92065 — APN 278-361-08-00.
 
@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 44
+REV  = 45
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -1047,20 +1047,21 @@ hrule(y); y -= 0.0098
 tline(y, "STRUCTURE SUMMARY", 9, True); y -= 0.0145
 tline(y, "STRUCTURE / USE", 6.5, True, x=0.05); tline(y, "STATUS", 6.5, True, x=0.66); tline(y, "AREA", 6.5, True, x=0.95, ha='right')
 y -= 0.0105; hrule(y+0.002, 0.04, 0.96, 0.5)
-# Owner, 9/15: areas are his inside-wall measurements (store 110, house 2,700,
-# garage 1,600 over two storeys). † marks the ZO §6156.g DETACHED
-# ACCESSORY pot — barn, garage, coop — capped at 4,000 SF on a 2-4 ac lot. The
-# store is a §6157 business use and sits outside that pot; the residence and
+# Owner, 9/16: use the COUNTY PERMIT figures for the garage (934 ground + 822
+# second storey = 1,756) and COUNT THE STORE'S 110 SF, even though §6156.g reads
+# "non business purposes" and the store is a §6157 use. That puts the total OVER
+# the 4,000 cap — see CLAUDE.md. † marks the ZO §6156.g DETACHED
+# ACCESSORY pot — capped at 4,000 SF on a 2-4 ac lot. The residence and
 # tiny home are habitable; pool and parking are not buildings; the 10'x10'
 # 10'x10' storage shed is off the list entirely (owner 9/16, per PDS: not in the
 # totals, no permit required under 120 SF) but stays DRAWN and labelled, because
 # note 11 relies on it to say no other structure is used for sales. Open ag
 # structures are off the list entirely (note 7).
-srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","110 SF", 0),
+srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","110 SF", 110),
          ("CUSTOMER PARKING, 6 SPACES","PROPOSED","1,116 SF", 0),
          ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", 2200),
          ("SFD — RESIDENCE (4BR/2BA)","EXISTING","2,700 SF", 0),
-         ("GARAGE / ACCESSORY BLDG, 2 STORY","EXISTING","1,600 SF", 1600),
+         ("GARAGE / ACCESSORY BLDG, 2 STORY (934 + 822)","EXISTING","1,756 SF", 1756),
          ("POOL","EXISTING","1,380 SF", 0),
          ("TINY HOME (W)","TO BE REMOVED","240 SF", 0)]
 for nm, st, sf, counts in srows:
@@ -1073,7 +1074,8 @@ ACC_ALLOWED = 4000                 # ZO 6156.g.1, lot 2 ac - <4 ac
 y -= 0.001; hrule(y+0.004, 0.04, 0.96, 0.5)
 tline(y, f"† DETACHED ACCESSORY STRUCTURES, ZO §6156.g ({ACC_ALLOWED:,} SF ALLOWED, 2-4 AC LOT)", 6.4, True, x=0.05)
 tline(y, f"{ACC_SF:,} SF", 6.4, True, x=0.95, ha='right'); y -= 0.0105
-tline(y, "AREAS INSIDE WALLS (OWNER). UNMARKED: STORE (§6157 USE), RESIDENCE, POOL, PARKING.", 5.7, x=0.05); y -= 0.0115
+tline(y, "GARAGE AND BARN AREAS PER COUNTY PERMITS PDS2008-1006-20080403 AND", 5.7, x=0.05); y -= 0.0092
+tline(y, "PDS2019-RESACC-000454. UNMARKED ROWS: RESIDENCE, POOL, PARKING.", 5.7, x=0.05); y -= 0.0115
 hrule(y); y -= 0.0098
 
 TB_H = 0.122          # title block height, reserved at the panel foot
