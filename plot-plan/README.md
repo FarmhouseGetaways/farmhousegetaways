@@ -19,7 +19,7 @@ parcel meets the agricultural-use tests the plot plan documents.
 | Test (ZO §6157(b)) | Required | Provided | |
 |---|---:|---:|---|
 | 50% of gross suitable & available for ag/open space | 82,222 SF | 137,151 SF | **83.4% — passes** |
-| 25% of gross in actual active agricultural use | 41,111 SF | 57,696 SF | **35.1% — passes** |
+| 25% of gross in actual active agricultural use | 41,111 SF | 58,154 SF | **35.4% — passes** |
 
 The denominator is **gross** (164,443 SF) because §6157(b)(ii) says "25 percent
 of the total gross area of the premises." Net area (157,251 SF) is stated

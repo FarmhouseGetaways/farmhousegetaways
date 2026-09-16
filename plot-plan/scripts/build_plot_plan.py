@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 33
+REV  = 34
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -1112,7 +1112,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    9/15/2026  YARDS FROM WHIRLWIND ℄; BEND", 5.4, x=0.62)
+tline(tb_h*0.095, "33-34 9/15/2026  WHIRLWIND YARDS; AG-6 GAP FILLED", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.

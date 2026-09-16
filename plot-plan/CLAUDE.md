@@ -23,6 +23,12 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**REV 34 (9/15/2026) — AG-6's east gap filled.** The owner: the notch cut into
+AG-6's right side "all counts". `data/zone_polys.json` zone 6 lost the notch and
+AG-6's tabulated area went 1,896 → **2,354 SF** (+458). Crop subtotal 51,823,
+**ag total 58,154 SF = 35.4% of gross**, margin +17,043, 37.0% on net/record.
+Every doc figure was swept to match.
+
 **REV 33 (9/15/2026) — WHIRLWIND SETTLED BY THE OWNER AND THE COUNTY. Do not
 re-derive this, and do not "correct" the 15'.**
 - **The drawn west P.L. is the EAST EDGE of Whirlwind's 60' road**, on the line
@@ -88,7 +94,7 @@ say 30' road esmt.
 
 **Rev 31 (9/15/2026, built locally on Windows):** rev 30's edits, plus
 "AREA USABLE FOR AGRICULTURE 137,151 SF = 83.4% OF GROSS" (§6157.a.2.b.i) in
-the AGRICULTURAL USE SUMMARY under the 35.1% line, per the owner. To make room
+the AGRICULTURAL USE SUMMARY under the active-ag line, per the owner. To make room
 the two summary tables' row step went 0.0088 → 0.0082 and the AG-5 footnote
 became one line. Notes headroom is only 0.0047 now. **Before building, always
 check Downloads and the Z: Production Docs folder for a higher rev than
@@ -117,7 +123,7 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
   off the sheet.
 - **THE DRAWN HATCH MUST MEASURE WHAT THE TABLE CLAIMS.** This is the rule
   that governs all zone clipping (8/22, rev 22). Clipping alone left the drawn
-  hatch **6,639 SF short** of the 57,696 SF table — a checker scaling the sheet
+  hatch **6,639 SF short** of the then-57,696 SF table — a checker scaling the sheet
   would have found less ag than the application claims, i.e. the drawing
   undercutting its own numbers. (A prior reply called that "conservative in
   your favour"; it was wrong — short is bad, not safe.) Each zone is now grown
@@ -203,7 +209,7 @@ correct (gross) basis, and the store size question is CLOSED — 120 SF against 
 
 1. **Gross vs net (was §6, "unresolved").** ZO §6157.a.2.b.ii says "25 percent of
    the **total gross area** of the premises." The denominator is **gross**:
-   164,443 SF, so the threshold is **41,111 SF**. Ag total **57,696 SF = 35.1%**.
+   164,443 SF, so the threshold is **41,111 SF**. Ag total **58,154 SF = 35.4%**.
 2. **A70 setbacks (was §13.3, "confirm with PDS").** The parcel's zoning box from
    SanGIS is **A70 / L / 2AC / C / G / C / C** — setback designator **C**.
    ZO §4810 Schedule C row C: front **60'** from ℄, interior side **15'** from lot
@@ -261,8 +267,8 @@ boundary**. So the GIS polygon includes the Whirlwind Ln easement strip and the
 record/assessor figure excludes it. That is precisely the county's own
 gross/net split, and it means 164,443 (gross) vs 157,251 (net) is coherent, not
 an error. **ZO §6157 tests are applied to the largest figure**, which is the
-most conservative reading; the parcel passes on gross (35.1%) and on the record
-parcel (36.7%). Do not "fix" the boundary to the record rectangle — the owner
+most conservative reading; the parcel passes on gross (35.4%) and on the record
+parcel (37.0%). Do not "fix" the boundary to the record rectangle — the owner
 confirmed the GIS boundary against the aerial, and the sheet discloses both.
 
 The same assessor's map independently confirms two owner corrections:
@@ -316,20 +322,20 @@ as a false detection — do not renumber** until field measurements are complete
 | AG-3 | North strip — east | Fruit trees (orchard) | 1,814 |
 | AG-4 | Triangle behind Mini Barn Market | Vineyard | 2,074 |
 | 5 | — REMOVED (false detection) | — | — |
-| AG-6 | Patio patch S of residence | Pepper + nut trees | 1,896 |
+| AG-6 | Patio patch S of residence (incl. E gap) | Pepper + nut trees | 2,354 |
 | AG-7 | Trellis garden + greenhouse patch | Loofa + vegetables | 2,844 |
 | AG-8 | Patch E of bird garden | Vegetables + flowers | 2,521 |
 | AG-9 | East field (large) | Orchard 2, fruit trees | 17,125 |
 | AG-10 | West strip (~50' wide) | Fruit trees + pumpkin | 7,530 |
 | AG-11 | South strip | Fruit trees + pumpkin | 8,467 |
 | AG-12 | SE strip along road | Rosemary (herbs) | 1,734 |
-| | **Crop subtotal** | | **51,365** |
+| | **Crop subtotal** | | **51,823** |
 | BG | Bird garden — coop 10'×10', run 12'×20' | Poultry | 6,331 |
-| | **AG TOTAL** | **36.7% of net** | **57,696** |
+| | **AG TOTAL** | **37.0% of net** | **58,154** |
 
 Residential area (excluded from ag calc): 27,292 SF.
 
-**Margin: 57,696 − 39,313 = 18,383 SF over requirement.** Even a 20% haircut
+**Margin: 58,154 − 39,313 = 18,841 SF over requirement.** Even a 20% haircut
 across every zone leaves the parcel compliant. Compliance is not at risk; the
 remaining measurement work is about accuracy, not pass/fail.
 
@@ -374,8 +380,8 @@ of the total gross area of the premises**) shall be in actual active
 agricultural, horticultural, or animal husbandry use."
 
 **Gross is the denominator.** Gross = the county GIS parcel polygon,
-**164,443 SF**, so the requirement is **41,111 SF**. Ag total **57,696 SF =
-35.1% of gross**, margin **+16,585 SF**.
+**164,443 SF**, so the requirement is **41,111 SF**. Ag total **58,154 SF =
+35.4% of gross**, margin **+17,043 SF**.
 
 There is a second test people miss — §6157(b)(i): **50% of gross** must be
 "suitable and available for agricultural, horticultural, animal husbandry or open
@@ -621,7 +627,7 @@ Every criterion is tabulated in the "SMALL AGRICULTURAL STORE COMPLIANCE" box on
 the sheet. The ones with teeth:
 
 - **≥50% of gross suitable/available** and **≥25% of gross in active ag use** —
-  83.4% and 35.1%. Both pass.
+  83.4% and 35.4%. Both pass.
 - **Store ≤1,500 SF** including all open roofed display area, conforming to
   §4810 setbacks. The store is the new 12'×10' = 120 SF Mini Barn Market
   building, under construction at the NW.
@@ -742,7 +748,7 @@ What changed:
   AG-2 and AG-3 extend over the property lines… same with AG-11 and AG-10").
   So the DISPLAY polygons are intersected with the GIS parcel (AG-3 further
   stopped at the fence ~20' W of the septic), while tabulated areas still come
-  from `data/ag_areas.json`: **57,696 SF**. Never recompute the table from the
+  from `data/ag_areas.json`: **58,154 SF**. Never recompute the table from the
   clipped display polygons.
 - **Clearances recomputed** — see §16 above.
 - **Every property line segment is dimensioned**, including the 13.1', 20.0' and

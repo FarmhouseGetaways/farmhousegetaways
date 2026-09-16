@@ -37,12 +37,12 @@ a higher barrier, and not the path being pursued.
 The ordinance says **"25 percent of the total gross area of the premises."**
 The denominator is **gross**, not net. This settles `CLAUDE.md` §6.
 
-| Basis | Area | 25% threshold | Ag 57,696 SF |
+| Basis | Area | 25% threshold | Ag 58,154 SF |
 |---|---:|---:|---|
-| **Gross (GIS polygon)** | **164,443 SF** | **41,111 SF** | **35.1% — PASSES** |
-| Assessor net | 157,251 SF | 39,313 SF | 36.7% — passes |
+| **Gross (GIS polygon)** | **164,443 SF** | **41,111 SF** | **35.4% — PASSES** |
+| Assessor net | 157,251 SF | 39,313 SF | 37.0% — passes |
 
-Margin on the governing gross basis: **+16,585 SF**.
+Margin on the governing gross basis: **+17,043 SF**.
 
 The 50% suitable-and-available test (¶b.i) needs 82,222 SF. Gross less the
 residential/domestic area (27,292 SF) leaves **137,151 SF = 83.4%** — passes
