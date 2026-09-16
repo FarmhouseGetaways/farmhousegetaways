@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 39
+REV  = 42
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -119,11 +119,31 @@ Y_BEND     = 204.0 # owner's tape: the turn starts 20' S of the store's MIDDLE (
                    # was measured from the store's end), at the big tree trunk
 # Whirlwind pavement, parcel ft. East edge enters across the west P.L. at the
 # bend and leaves across the north P.L.; the west edge runs on the west P.L.
-WL_EDGE_E = [(0.0, 212.0), (8.0, 219.0), (18.0, 229.0), (28.0, 241.0), (38.0, 254.0),
-             (46.0, 265.0), (54.0, 277.0), (60.0, 286.0), (66.0, 294.1), (74.0, 308.0)]
-WL_EDGE_W = [(0.0, 246.0), (5.0, 260.0), (14.0, 277.0), (21.0, 291.0), (23.0, 294.1), (29.0, 308.0)]
-WL_CL     = [(-30.0, -16.0), (-30.0, 204.0), (-27.0, 218.0), (-20.0, 232.0), (-10.0, 246.0),
-             (2.0, 259.0), (14.0, 272.0), (26.0, 285.0), (35.0, 294.1), (44.0, 308.0)]
+# Whirlwind's east edge leaves the west P.L. TANGENTIALLY at the bend and sweeps
+# away — no kink where it meets the line (owner, 9/16). Offset x grows as
+# (rise/90)^1.7, so the initial slope is zero and the curve is smooth throughout.
+# The ℄ and the west edge are true parallel offsets of it at 30' and 60', so the
+# 60' road stays a constant width around the curve.
+_BEND_RISE, _BEND_RUN, _BEND_POW = 90.0, 66.0, 1.7
+WL_EDGE_E = [(0.0, Y_BEND)] + [
+    (round(_BEND_RUN * (d / _BEND_RISE) ** _BEND_POW, 2), round(Y_BEND + d, 2))
+    for d in [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90]
+] + [(80.0, Y_BEND + 101.0)]
+
+def _offset_nw(line_pts, dist):
+    """Parallel copy of the road edge, dist feet to its northwest."""
+    off = LineString(line_pts).offset_curve(dist)
+    pts = list(off.coords)
+    if pts[0][1] > pts[-1][1]:
+        pts.reverse()
+    return pts
+
+# South of the bend the road edge IS the west P.L., so the setback buffer is taken
+# off a line extended down it. Without that the buffer rounds off below the bend and
+# the 15' line bulges past where the road actually starts (owner, 9/16).
+WL_EDGE_E_SB = [(0.0, 60.0)] + WL_EDGE_E
+WL_CL     = [(-30.0, -16.0)] + _offset_nw(WL_EDGE_E, 30.0)
+WL_EDGE_W = _offset_nw(WL_EDGE_E, 60.0)
 SB_FRONT = 60.0    # FRONT yard, on the EAST line (rev 32: 60', owner). Earlier: (owner 8/22, rev 27: "the east
                    # property line should be the front yard because that's the
                    # side where our address road, Handlebar Rd, resides" —
@@ -178,13 +198,21 @@ LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centrel
 # Subtracting a line buffered by d leaves exactly the ground more than d away
 # from that line, which is the definition of the setback.
 WL_ROAD = SPoly(WL_EDGE_E[:-1] + [(0.0, 300.0)])              # pavement inside the parcel
-W_FRONT_ZONE = box(-10, -60, W_FRONT_X, Y_BEND)                 # 60' from the ℄ = 30' inside the P.L.
+# The 60' front-yard line runs north until the exterior-side line (15' off the
+# curving road edge) has swung out to meet it, so the buildable edge is ONE
+# continuous line instead of stepping sideways at the bend (owner, 9/16). In the
+# overlap the stricter of the two governs, which is the front-yard line.
+_es = LineString([(0.0, 60.0)] + WL_EDGE_E).buffer(SB_EXT)
+_hit = _es.boundary.intersection(LineString([(W_FRONT_X, Y_BEND), (W_FRONT_X, Y_BEND + 200)]))
+_ys = [g.y for g in (_hit.geoms if _hit.geom_type.startswith('Multi') else [_hit])] if not _hit.is_empty else []
+Y_FRONT_TOP = min(_ys) if _ys else Y_BEND
+W_FRONT_ZONE = box(-10, -60, W_FRONT_X, Y_FRONT_TOP)
 ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
             .difference(W_FRONT_ZONE)
             .difference(WL_ROAD)
-            .difference(LineString(WL_EDGE_E).buffer(SB_EXT))
+            .difference(LineString(WL_EDGE_E_SB).buffer(SB_EXT))
             .difference(LINE_E.buffer(SB_FRONT)))
 
 # Zone polygons are DRAWN clipped to the parcel boundary (owner, 8/21: "my red
@@ -1125,7 +1153,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-39 9/15-9/16  WHIRLWIND; AG-6; §6156 AREAS", 5.4, x=0.62)
+tline(tb_h*0.095, "33-40 9/15-9/16  WHIRLWIND; AG-6; §6156 AREAS", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
