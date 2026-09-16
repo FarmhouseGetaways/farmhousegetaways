@@ -23,6 +23,27 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**REV 33 (9/15/2026) — WHIRLWIND SETTLED BY THE OWNER AND THE COUNTY. Do not
+re-derive this, and do not "correct" the 15'.**
+- **The drawn west P.L. is the EAST EDGE of Whirlwind's 60' road**, on the line
+  of the existing west fence. The county supervisor drew the NW yard 15' off
+  that edge, which is how it was settled: a 15' yard taken from the ℄ would fall
+  inside the pavement and restrict nothing.
+- **Owner's tape: west fence to the middle of Whirlwind = 30'** — the road's
+  half width. So `WL_ROW_CL_X = -30`, and the 60' front yard measured from the ℄
+  lands **30' inside the west P.L.** (`W_FRONT_X = 30`), where the old 30' road
+  esmt. line used to be drawn. That separate 30' line is gone.
+- **N of the bend: exterior side yard 15' from the road easement edge, per PDS.**
+  Schedule C lists 35' from ℄ for an exterior side yard; PDS gave 15' here.
+- I twice argued the P.L. was the road centreline (from a SanGIS aerial reading).
+  It isn't. Don't revisit it from imagery.
+- **`Y_BEND = 204`**: the turn starts 20' south of the store's MIDDLE (the owner
+  first said 25' but had measured from the store's end), at the big tree trunk.
+- Store clearances now 30.7' to the road edge (15' required), 44.6' to the ℄,
+  63.4' to the north P.L. The owner's rule: **the store only has to clear 15'**.
+- Sheet 1 is now **SHEET 1 OF 2**; sheet 2 is the ADA insert from
+  `scripts/build_ada_sheet.py` (`verify_sheet.py` checks the new phrase).
+
 **REV 32 (9/15/2026) — SETBACKS, WHIRLWIND AND THE STORE STATUS CHANGED. This
 supersedes every 40'-front / 35'-exterior-side statement further down (§1,
 §3, §16, §19, §20). Don't re-derive the old figures.**

@@ -31,7 +31,7 @@ You will still need:
   drawing no longer measures at 1"=40' and the plans get rejected.
 - County minimum sheet size is 18"×24", so 24"×18" is compliant.
 - **Bring two complete sets** — PDS 090 item 2 requires two.
-- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev32.pdf` (always the
+- Print the PDF: `output/Ag_Plot_Plan_17054_Handlebar_rev33.pdf` (always the
   highest-numbered rev in `output/` — the number goes up with every update)
 - Check the print with an engineer's scale: the graphic scale bar at the bottom
   left must measure **exactly 3 inches** from 0 to 120. If it does not, the print
@@ -76,14 +76,18 @@ The parcel's zoning box, pulled live from SanGIS, is
 The earlier sheet showed 25' interior side "(VERIFY)". That was wrong — it is
 15'. Corrected on rev 6.
 
-**REV 32 (owner, 9/15/2026) supersedes the next paragraph.** Two front yards
-at **60'**: the east property line, and the west property line **south of the
-Whirlwind Ln bend**. North of the bend, Whirlwind crosses the parcel's NW corner
-in a road easement, and that whole section is **exterior side yard, 15' from
-the road edge**. North and south stay interior side yards at 15'. There is no
-rear yard. **The store is north of the bend**, so it clears: 36' from the road
-edge (15' required), 52' from Whirlwind's centreline and 63' from the north
-line. The tiny home sits in the west 60' front yard and is being removed.
+**REV 33 (owner, 9/15/2026) supersedes the next paragraph.** Two front yards
+at **60'**: from the east property line, and **south of the Whirlwind Ln bend,
+from Whirlwind's centreline**. Whirlwind is a 60' road and **the west property
+line is its east edge**, on the line of your west fence; you measured 30' from
+that fence to the middle of the road, which is the road's half width. So the 60'
+front yard lands **30' inside the west property line**. North of the bend — which
+starts at the big tree, 20' south of the store's middle — Whirlwind arcs across
+the NW corner in its easement, and that whole section is **exterior side yard,
+15' from the easement edge, which is what the county supervisor drew**. North and
+south stay interior side yards at 15'. There is no rear yard. **The store is
+north of the bend** and clears by 31' from the road easement edge, against the
+15' required. The tiny home is inside the west front yard and is being removed.
 
 ~~Superseded:~~ Every setback on the sheet is measured from the property lines — the thick
 black boundary. The residence fronts the access road/Handlebar direction on
@@ -101,10 +105,10 @@ and AG-12, leaving the parcel near the SE corner and continuing roughly 700'
 to Handlebar Rd through an access easement across the adjacent parcel.
 
 **The store clears every required yard.** It is north of the Whirlwind bend:
-36' from the road edge (15' required) and 63' from the north line (15'
+31' from the road edge (15' required) and 63' from the north line (15'
 required).
 
-The tiny home sits in the west 60' front yard; removing it, already planned,
+The tiny home sits inside the west front yard; removing it, already planned,
 resolves that.
 
 ## The two questions to ask at the counter
@@ -117,8 +121,8 @@ Nothing to ask about it.
 east property line and on the west property line south of the Whirlwind Ln
 bend. North of the bend, where Whirlwind crosses the NW corner in a road
 easement, it shows a 15' exterior side yard from the road edge. North and south
-are interior side yards at 15'. The store is north of the bend, 36' from the
-road edge and 63' from the north line.
+are interior side yards at 15'. The store is north of the bend, 31' from the
+road easement edge and 63' from the north line. The west front yard is measured from Whirlwind's centreline, 30' west of the west property line, which is the road's east edge.
 
 **2. Confirm no Zoning Verification Permit is required** for the small store
 post Update 102 — and what the building permit path is for the as-built

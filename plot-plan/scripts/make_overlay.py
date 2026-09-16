@@ -62,13 +62,13 @@ ax.add_patch(Ellipse((pc[0], pc[1]), pc[2], pc[3], fill=False, ec="deepskyblue",
 STORE = [(57.5,219.0),(69.5,219.0),(69.5,229.0),(57.5,229.0)]   # 12'x10' new MBM, per owner markup 8/22
 ax.add_patch(MPoly(STORE, closed=True, fill=False, ec="red", lw=3, zorder=8))
 # Whirlwind Ln across the NW corner (rev 32) — must run down the visible pavement
-WL_EDGE_E = [(0.0, 226.0), (5.0, 233.0), (15.0, 241.0), (27.0, 251.0), (40.0, 262.0),
-             (50.0, 272.0), (60.0, 283.0), (70.0, 294.1)]
-WL_EDGE_W = [(0.0, 275.0), (3.0, 281.0), (12.0, 294.1)]
-WL_CL     = [(0.0, 180.0), (0.0, 232.0), (8.0, 250.0), (18.0, 264.0), (30.0, 280.0), (41.0, 294.1)]
+WL_EDGE_E = [(0.0, 212.0), (8.0, 219.0), (18.0, 229.0), (28.0, 241.0), (38.0, 254.0),
+             (46.0, 265.0), (54.0, 277.0), (60.0, 286.0), (66.0, 294.1)]
+WL_EDGE_W = [(0.0, 246.0), (5.0, 260.0), (14.0, 277.0), (21.0, 291.0), (23.0, 294.1)]
+WL_CL     = [(-10.0, 190.0), (-10.0, 204.0), (-7.0, 218.0), (0.0, 232.0), (10.0, 246.0), (2.0+20, 259.0), (14.0+20, 272.0), (26.0+18, 285.0), (35.0+10, 294.1)]
 for _l, _c, _s in [(WL_EDGE_E, "magenta", "-"), (WL_EDGE_W, "magenta", "-"), (WL_CL, "white", "-.")]:
     ax.plot([q[0] for q in _l], [q[1] for q in _l], color=_c, lw=2.2, ls=_s, zorder=8)
-ax.plot([0, 60, 60], [215, 215, 0], color="blue", lw=1.5, ls="--", zorder=8)   # 60' front yard ends at the bend
+ax.plot([0, 30, 30], [204.0, 204.0, 0], color="blue", lw=1.5, ls="--", zorder=8)   # 60' from the ℄ = 30' inside the P.L., ends at the bend
 ax.text(50, 214, "AS-BUILT STORE =\nMINI BARN MARKET, 12'x10' (120 SF)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 ax.annotate("STORAGE 10'x10'\n(NO SALES)", (77.1, 240.5), (105, 262), fontsize=8,
@@ -88,9 +88,9 @@ for _lab, _t, _w in [("VAN",0,9.0),("AISLE",9.0,8.0)]+[("",17.0+i*9.0,9.0) for i
 ax.text(168, 232, "PROPOSED PARKING - 6 SPACES\n(AGAINST AG-2 BOTTOM LINE)", fontsize=9, color="red",
         ha="center", va="top", fontweight="bold", zorder=9)
 
-ax.set_title("VERIFICATION OVERLAY v5 - plan geometry on registered aerial\n"
+ax.set_title("VERIFICATION OVERLAY v9 - plan geometry on registered aerial\n"
              "RED = as-built store (12'x10' Mini Barn Market) + proposed parking. "
-             "MAGENTA = Whirlwind Ln pavement across the NW corner; BLUE = 60' front yard ending at the bend.",
+             "MAGENTA = Whirlwind Ln pavement across the NW corner; BLUE = 60' front yard from the Whirlwind centreline, ending at the bend.",
              fontsize=13, pad=10)
-fig.savefig("output/Verification_Overlay_v5.png", bbox_inches="tight", dpi=100)
-print("saved output/Verification_Overlay_v5.png")
+fig.savefig("output/Verification_Overlay_v9.png", bbox_inches="tight", dpi=100)
+print("saved output/Verification_Overlay_v9.png")

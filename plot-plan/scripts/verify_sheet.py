@@ -75,7 +75,7 @@ check("fonts embedded", len(page.get_fonts()) > 0,
       f"{len(page.get_fonts())} font(s) subset into the file")
 
 txt = page.get_text()
-for phrase in ['1" = 40', 'APN 278-361-08-00', '§6157', 'SHEET 1 OF 1']:
+for phrase in ['1" = 40', 'APN 278-361-08-00', '§6157', 'SHEET 1 OF 2']:
     check(f"carries {phrase!r}", phrase in txt, "present" if phrase in txt else "MISSING")
 
 print()

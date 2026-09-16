@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 32
+REV  = 33
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -100,16 +100,30 @@ SB_SIDE  = 15.0    # interior side, from lot line (north and south)
 # sits north of the bend ("the store starts after the road bends"). The road
 # is traced from the owner's wider aerial of the intersection (4.4 px/ft,
 # anchored on the 10'x10' storage roof).
-SB_W_FRONT = 60.0  # west front yard, from the west P.L., south of the bend
-SB_EXT     = 15.0  # exterior side yard, north of the bend, from the road edge
-Y_BEND     = 215.0 # where Whirlwind starts to bend in toward the parcel
+SB_W_FRONT = 60.0  # west front yard, FROM WHIRLWIND LN CENTRELINE, south of the bend
+# Rev 33 FINAL (owner, 9/15): the drawn west P.L. is the EAST EDGE of Whirlwind's
+# 60' road — the county supervisor drew the 15' yard off that edge — and it runs
+# essentially along the existing west fence. Owner's tape: fence to the middle of
+# Whirlwind = 30', which is the road's half width, so the ℄ is 30' WEST of the
+# P.L. Both street yards are measured from that ℄: the 60' front yard lands 30'
+# inside the P.L., and the 15' the county gave for the NW corner is taken from the
+# road easement edge. Check: the store sits 57.5' inside the P.L., clearing both.
+WL_ROW_CL_X = -30.0                     # Whirlwind ℄, 30' W of the west P.L.
+W_FRONT_X  = WL_ROW_CL_X + SB_W_FRONT   # 60' from ℄ = 30' inside the west P.L.
+SB_EXT     = 15.0  # exterior side yard N of the bend, 15' FROM THE ROAD ESMT. EDGE —
+                   # the county supervisor's own figure. Measured off the ℄ it would sit
+                   # inside the pavement and restrict nothing, which is what tipped the
+                   # P.L. reading above. Schedule C lists 35' from ℄ for an exterior side
+                   # yard; PDS gave 15' here, so the sheet says 15' per PDS.
+Y_BEND     = 204.0 # owner's tape: the turn starts 20' S of the store's MIDDLE (his 25'
+                   # was measured from the store's end), at the big tree trunk
 # Whirlwind pavement, parcel ft. East edge enters across the west P.L. at the
 # bend and leaves across the north P.L.; the west edge runs on the west P.L.
-WL_EDGE_E = [(0.0, 226.0), (5.0, 233.0), (15.0, 241.0), (27.0, 251.0), (40.0, 262.0),
-             (50.0, 272.0), (60.0, 283.0), (70.0, 294.1), (82.0, 308.0)]
-WL_EDGE_W = [(0.0, 275.0), (3.0, 281.0), (12.0, 294.1), (22.0, 308.0)]
-WL_CL     = [(0.0, -16.0), (0.0, 232.0), (8.0, 250.0), (18.0, 264.0),
-             (30.0, 280.0), (41.0, 294.1), (52.0, 308.0)]
+WL_EDGE_E = [(0.0, 212.0), (8.0, 219.0), (18.0, 229.0), (28.0, 241.0), (38.0, 254.0),
+             (46.0, 265.0), (54.0, 277.0), (60.0, 286.0), (66.0, 294.1), (74.0, 308.0)]
+WL_EDGE_W = [(0.0, 246.0), (5.0, 260.0), (14.0, 277.0), (21.0, 291.0), (23.0, 294.1), (29.0, 308.0)]
+WL_CL     = [(-30.0, -16.0), (-30.0, 204.0), (-27.0, 218.0), (-20.0, 232.0), (-10.0, 246.0),
+             (2.0, 259.0), (14.0, 272.0), (26.0, 285.0), (35.0, 294.1), (44.0, 308.0)]
 SB_FRONT = 60.0    # FRONT yard, on the EAST line (rev 32: 60', owner). Earlier: (owner 8/22, rev 27: "the east
                    # property line should be the front yard because that's the
                    # side where our address road, Handlebar Rd, resides" —
@@ -164,13 +178,11 @@ LINE_WCL = LineString([(WL_CL_X, -60), (WL_CL_X, 360)])   # Whirlwind Ln centrel
 # Subtracting a line buffered by d leaves exactly the ground more than d away
 # from that line, which is the definition of the setback.
 WL_ROAD = SPoly(WL_EDGE_E[:-1] + [(0.0, 300.0)])              # pavement inside the parcel
-W_FRONT_ZONE = box(-10, -60, SB_W_FRONT, Y_BEND)                # 60' front yard, S of the bend
-W_EXT_ZONE   = box(-10, Y_BEND, SB_SIDE, 320)                   # 15' off the west P.L., N of the bend
+W_FRONT_ZONE = box(-10, -60, W_FRONT_X, Y_BEND)                 # 60' from the ℄ = 30' inside the P.L.
 ENVELOPE = (PARCEL
             .difference(LINE_N.buffer(SB_SIDE))
             .difference(LINE_S.buffer(SB_SIDE))
             .difference(W_FRONT_ZONE)
-            .difference(W_EXT_ZONE)
             .difference(WL_ROAD)
             .difference(LineString(WL_EDGE_E).buffer(SB_EXT))
             .difference(LINE_E.buffer(SB_FRONT)))
@@ -546,7 +558,7 @@ ax.annotate("EXIST. LEACH LINES", ((lx0+lx1)/2, ly1+2), ((lx0+lx1)/2+30, 322), f
 # 8/22 — the old "NE of the barn" placement was wrong)
 ex, ey = 85.0, 243.0
 ax.add_patch(Rectangle((ex-2.5, ey-2.5), 5, 5, fc='black', zorder=6))
-ax.annotate("400A MAIN ELEC. PANEL\n(NE COR. OF STORAGE BLDG)", (ex, ey-2.5), (75, 175), fontsize=6,
+ax.annotate("400A MAIN ELEC. PANEL\n(NE COR. OF STORAGE BLDG)", (ex, ey-2.5), (104, 150), fontsize=6,
             ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 
@@ -627,18 +639,17 @@ y_lo, y_hi = -16, 308
 ax.plot([q[0] for q in WL_CL], [q[1] for q in WL_CL], color='black', lw=1.0, ls=(0,(12,4,2,4)), zorder=3)
 for _edge in (WL_EDGE_E, WL_EDGE_W):
     ax.plot([q[0] for q in _edge], [q[1] for q in _edge], color='0.25', lw=1.3, zorder=3)
-_esmt_top = LineString([(ESMT_W, y_lo), (ESMT_W, y_hi)]).intersection(LineString(WL_EDGE_E))
-_esmt_y1 = _esmt_top.y if not _esmt_top.is_empty else y_hi
-ax.plot([ESMT_W, ESMT_W], [y_lo, _esmt_y1], color='0.35', lw=0.9, ls=(0,(4,3)), zorder=3)
-ax.text(WL_CL_X-9, 150, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
+# The west P.L. is the road easement's east edge and the existing west fence sits on
+# it, so no separate 30' line is drawn inside the parcel any more.
+ax.text(-11, 150, "WHIRLWIND LN", fontsize=7.5, rotation=90, va='center',
         ha='center', fontweight='bold')
-ax.text(WL_CL_X-9, 90, "$\\mathcal{C}$L", fontsize=7, rotation=90, va='center', ha='center')
-ax.text(ESMT_W+4, 140, "30' ROAD ESMT.", fontsize=6.0, rotation=90, va='center',
-        ha='center', color='0.25', bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(20, 266, "WHIRLWIND LN\n(ROAD ESMT.)", fontsize=6.0, rotation=58, va='center', ha='center',
+ax.text(WL_ROW_CL_X+4, 95, "℄ (30' W OF P.L. — 60' ROAD)", fontsize=6.0, rotation=90,
+        va='center', ha='center', color='0.25',
+        bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.6))
+ax.text(14, 268, "WHIRLWIND LN\n(ROAD ESMT.)", fontsize=6.0, rotation=60, va='center', ha='center',
         fontweight='bold', color='0.15', zorder=8, bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.annotate("WHIRLWIND LN BEND:\n60' FRONT YD TO S,\n15' EXT. SIDE YD TO N",
-            (0, Y_BEND), (23, 195), fontsize=5.2, ha='center', va='center', color=SB, fontweight='bold',
+ax.annotate("WHIRLWIND LN ℄ BEGINS TO TURN:\n60' FRONT YD TO S,\n15' EXT. SIDE YD TO N",
+            (0, Y_BEND), (46, 181), fontsize=5.2, ha='center', va='center', color=SB, fontweight='bold',
             zorder=9, arrowprops=dict(arrowstyle='-', lw=0.7, color=SB),
             bbox=dict(fc='white', ec=SB, lw=0.5, alpha=0.95, pad=1.2))
 
@@ -653,10 +664,10 @@ ax.text(150, ENVELOPE.bounds[1]+9.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'
 ax.text(330, ENVELOPE.bounds[3]+5.0, f"INTERIOR SIDE YARD SETBACK {SB_SIDE:.0f}'",
         fontsize=6.6, ha='center', color=SB, fontweight='bold',
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(SB_W_FRONT-5, 52, f"FRONT YARD SETBACK {SB_W_FRONT:.0f}' FROM WEST P.L.",
-        fontsize=6.4, rotation=90, va='center', ha='center', color=SB, fontweight='bold',
+ax.text(W_FRONT_X+5, 45, f"FRONT YARD SETBACK {SB_W_FRONT:.0f}' FROM WHIRLWIND ℄ (30' W OF P.L.)",
+        fontsize=5.8, rotation=90, va='center', ha='center', color=SB, fontweight='bold',
         zorder=8, bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.8))
-ax.text(31, 245, f"EXT. SIDE YARD\nSETBACK {SB_EXT:.0f}'", fontsize=5.4, rotation=40,
+ax.text(30, 232, f"EXT. SIDE YARD SETBACK\n{SB_EXT:.0f}' FROM ROAD ESMT. EDGE", fontsize=5.4, rotation=40,
         va='center', ha='center', color=SB, fontweight='bold', zorder=8,
         bbox=dict(fc='white', ec='none', alpha=0.85, pad=0.6))
 # Store clearances for note 5, measured, not typed
@@ -1043,10 +1054,10 @@ notes = [
  "     LEGS MEASURED 200' (W), 130' (N), 190' (E FENCE); W AND N SIDES CURVE OUT.",
  "3.  NO GRADING OR NEW CONSTRUCTION PROPOSED; THE 12'x10' STORE IS AS-BUILT. PLAN",
  "     DOCUMENTS EXISTING AG OPERATIONS + THE AS-BUILT SMALL AG. STORE (ZO §6157).",
- "4.  SETBACKS PER ZO §4810 SCHEDULE C (DESIGNATOR C), FROM THE PROPERTY LINES.",
- "     FRONT YARDS 60': THE EAST P.L. (HANDLEBAR RD DIRECTION) AND THE WEST P.L.",
- "     SOUTH OF THE WHIRLWIND LN BEND. NORTH OF THE BEND, WHERE WHIRLWIND CROSSES",
- "     THE NW CORNER IN A ROAD ESMT., EXTERIOR SIDE YARD 15' FROM THE ROAD EDGE.",
+ "4.  SETBACKS PER ZO §4810 SCHEDULE C (DESIGNATOR C). FRONT YARDS 60': FROM THE",
+ "     EAST P.L., AND S OF THE BEND FROM WHIRLWIND LN ℄, 30' W OF THE WEST P.L.",
+ "     (60' ROAD; THE WEST P.L. IS ITS EAST EDGE). N OF THE BEND, WHERE WHIRLWIND",
+ "     CROSSES THE NW CORNER, EXT. SIDE YARD 15' FROM THE ESMT. EDGE, PER PDS.",
  "     N/S INTERIOR SIDE YARDS 15'. NO REAR YARD — LOT FRONTS STREETS E + W.",
  "5.  THE AS-BUILT STORE SITS N OF THE WHIRLWIND BEND, CLEAR OF EVERY REQUIRED YARD",
  f"     ({CLR_ROAD:.0f}' FROM THE ROAD EDGE, {CLR_CL:.0f}' FROM ITS ℄, 470'+ FROM THE EAST P.L.). EXIST.",
@@ -1061,9 +1072,9 @@ notes = [
  "     HANDLEBAR RD VIA AN ACCESS ESMT. ACROSS THE ADJACENT PARCEL. GRAVEL BOTH",
  "     ENDS, DIRT MID-SEGMENT, 12' WIDE; SLOPE 2% DRAINING W. NO OTHER ROAD",
  "     CROSSES THE PARCEL. ALIGNMENT TRACED FROM THE SITE AERIAL.",
- "9.  WHIRLWIND LN ℄ SHOWN AT THE WEST P.L. PER OWNER, WITH A 30' ROAD ESMT. ALONG",
- "     THAT BOUNDARY; N OF ITS BEND THE ROAD CROSSES THE NW CORNER (TRACED FROM THE",
- "     AERIAL). HANDLEBAR RD IS OFF-SITE (NOTE 8). ESMT. GEOMETRY PER PM 05062, TBD.",
+ "9.  WHIRLWIND LN IS A 60' ROAD. THE WEST P.L. IS ITS EAST EDGE, ON THE EXIST. WEST",
+ "     FENCE; ITS ℄ IS 30' W OF THAT LINE (OWNER-MEASURED FENCE TO ℄ = 30'). N OF THE",
+ "     BEND IT CROSSES THE NW CORNER. HANDLEBAR RD OFF-SITE (NOTE 8); PM 05062 TBD.",
  "10. NO NEW OR MODIFIED LANDSCAPE AREA PROPOSED (PDS 090 ITEM 16). EXISTING AG,",
  "     PERIMETER AND POOL FENCING AND GATES ONLY; ALL ARE 6'-0\" OR LESS IN HEIGHT",
  "     PER OWNER — NO BLDG. PERMIT REQ'D PER PDS 070.",
@@ -1096,12 +1107,12 @@ tline(tb_h*0.685, "17054 HANDLEBAR RD, RAMONA, CA 92065", 6.6, True, x=0.03)
 tline(tb_h*0.590, "APN 278-361-08-00  ·  ZONE A70", 6.6, x=0.03)
 tline(tb_h*0.395, "SCALE: 1\" = 40'", 7.2, True, x=0.03)
 tline(tb_h*0.295, f"DATE: {DATE}", 7.2, x=0.03)
-tline(tb_h*0.190, f"SHEET 1 OF 1  ·  REV {REV}", 7.2, True, x=0.03)
+tline(tb_h*0.190, f"SHEET 1 OF 2  ·  REV {REV}", 7.2, True, x=0.03)
 tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
-tline(tb_h*0.170, "17-31 8/22-9/15  RECORD DATA, LABELS, 83.4%", 5.4, x=0.62)
-tline(tb_h*0.095, f"{REV}    9/15/2026  60' FRONTS; WHIRLWIND; AS-BUILT", 5.4, x=0.62)
+tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
+tline(tb_h*0.095, f"{REV}    9/15/2026  YARDS FROM WHIRLWIND ℄; BEND", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
