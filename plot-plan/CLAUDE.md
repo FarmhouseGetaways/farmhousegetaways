@@ -23,6 +23,16 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**REV 35-36 (9/15/2026) — OPEN AG STRUCTURES ARE NOT BUILDING AREA.** Owner:
+the greenhouse, the trellis/hoop garden and the poultry run are open ag
+structures. They are drawn as plain outlines inside the crop hatch, carry no
+size and no "AS-BUILT" tag, and are **out of the STRUCTURE SUMMARY entirely** —
+they do not count toward the building square footage allowed on the parcel.
+Their ground is already inside AG-7 (greenhouse 240 SF sits within AG-7's
+2,844) and the bird garden. Note 7 says exactly that; the old "greenhouse shown
+as-built / may qualify for the ag building exemption" line is gone. The poultry
+COOP stays in the table at 100 SF. Do not put any of them back.
+
 **REV 34 (9/15/2026) — AG-6's east gap filled.** The owner: the notch cut into
 AG-6's right side "all counts". `data/zone_polys.json` zone 6 lost the notch and
 AG-6's tabulated area went 1,896 → **2,354 SF** (+458). Crop subtotal 51,823,

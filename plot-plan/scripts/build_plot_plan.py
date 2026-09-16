@@ -77,7 +77,7 @@ SHEET_W, SHEET_H = 24.0, 18.0
 # block, and the rev history row all follow this constant automatically, and
 # verify_sheet.py checks the highest-numbered PDF in output/. Revs 8-16 were
 # the 8/21 owner-correction rounds that shipped mislabelled as "rev 7".
-REV  = 35
+REV  = 36
 DATE = "8/06/2026"      # owner set the sheet date to 8/06 in the hand-edited rev 30; rev dates live in the history table
 
 # ---- compliance figures (see research/FINDINGS.md) ------------------------
@@ -511,7 +511,7 @@ ax.annotate("EXIST. GREENHOUSE", (ghx+10, ghy), (ghx-30, ghy-40),
 cpx, cpy = 326.0, 95.0
 ax.add_patch(Rectangle((cpx, cpy), 10, 10, fc='0.82', ec='black', lw=1.0, zorder=4))
 ax.add_patch(Rectangle((cpx, cpy-20), 12, 20, fc='none', ec='black', lw=1.0, zorder=4))
-ax.annotate("EXIST. COOP 10'x10'\n+ RUN 12'x20'", (cpx+11, cpy-5), (cpx+58, cpy-30),
+ax.annotate("EXIST. COOP\n+ POULTRY RUN", (cpx+11, cpy-5), (cpx+58, cpy-30),
             fontsize=5.6, ha='center', arrowprops=dict(arrowstyle='-', lw=0.7), zorder=7,
             bbox=dict(fc='white', ec='none', alpha=0.85, pad=1))
 # pool
@@ -1029,10 +1029,7 @@ srows = [("MINI BARN MARKET — SMALL AG. STORE 12'x10'","AS-BUILT","120 SF", Tr
          ("BARN — STORAGE 50'x44'","EXISTING","2,200 SF", False),
          ("SFD — RESIDENCE (4BR/2BA, 2,724 SF LIV.)","EXISTING","4,110 SF", False),
          ("GARAGE / ACCESSORY BLDG","EXISTING","2,270 SF", False),
-         ("TRELLIS GARDEN (OPEN)","EXISTING","690 SF", False),
-         ("GREENHOUSE 12'x20'","AS-BUILT","240 SF", True),
          ("POULTRY COOP 10'x10'","EXISTING","100 SF", False),
-         ("POULTRY RUN 12'x20'","EXISTING","240 SF", False),
          ("POOL","EXISTING","1,380 SF", False),
          ("TINY HOME (W)","TO BE REMOVED","240 SF", False)]
 for nm, st, sf, em in srows:
@@ -1066,8 +1063,10 @@ notes = [
  "     TINY HOME (W) IS TO BE REMOVED. WHIRLWIND ℄ IS APPROXIMATE PENDING PM 05062.",
  "6.  POND IS RUNOFF-FED (NO PUMP); IRRIGATION SOURCE & AREA OF INUNDATION; LOT",
  "     DRAINS TO POND. WELL, SEPTIC AND LEACH LINES PER OWNER, APPROXIMATE.",
- "7.  GREENHOUSE SHOWN AS-BUILT; MAY QUALIFY FOR THE AG BUILDING EXEMPTION —",
- "     CONFIRM WITH PDS. ELECTRICAL: 400A MAIN PANEL AT NE COR. OF 10'x10' STORAGE.",
+ "7.  THE GREENHOUSE, TRELLIS GARDEN AND POULTRY RUN ARE OPEN AG STRUCTURES WITHIN",
+ "     THE CROP AREAS AND ARE NOT TABULATED AS BUILDING AREA; THEIR GROUND IS",
+ "     COUNTED IN AG-7 AND THE BIRD GARDEN. ELECTRICAL: 400A MAIN PANEL AT THE",
+ "     NE COR. OF THE STORAGE BLDG.",
  "8.  DRIVEWAY RUNS FROM THE STORE/PARKING YARD S BETWEEN AG-1 AND AG-4, E",
  "     BETWEEN AG-4 AND THE BARN AND PAST THE RESIDENCE, THEN SE BETWEEN AG-9 AND",
  "     AG-12, LEAVING THE PARCEL NEAR THE SE CORNER AND CONTINUING ±700' TO",
@@ -1114,7 +1113,7 @@ tline(tb_h*0.400, "REV  DATE       DESCRIPTION", 5.4, True, x=0.62)
 tline(tb_h*0.320, "4-6   8/06-8/19  BASE, SETBACKS, FARM STORE", 5.4, x=0.62)
 tline(tb_h*0.245, "7-16  8/21/2026  OWNER CORRECTION ROUNDS", 5.4, x=0.62)
 tline(tb_h*0.170, "17-32 8/22-9/15  RECORD DATA, SETBACKS, AS-BUILT", 5.4, x=0.62)
-tline(tb_h*0.095, "33-35 9/15/2026  WHIRLWIND; AG-6 GAP; GREENHOUSE", 5.4, x=0.62)
+tline(tb_h*0.095, "33-36 9/15/2026  WHIRLWIND; AG-6; AG STRUCT.", 5.4, x=0.62)
 
 # Write to output/ relative to the project, not the working directory, so the
 # sheet lands in the same place however the script is invoked.
