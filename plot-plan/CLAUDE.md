@@ -23,6 +23,29 @@ follow it, and `verify_sheet.py` checks the highest-numbered PDF in `output/`.
 The 8/21 correction rounds shipped mislabelled "rev 7" nearly ten times, which
 is why the numbering jumps 7 → 17.
 
+**COUNTY PERMIT RECORD FOR THE ACCESSORY STRUCTURES (found 9/15/2026 on the
+county's Accela portal, publicservices.sandiegocounty.gov/CitizenAccess →
+PDS → Search Records → Parcel # 278-361-08-00; the form sits in an iframe, so
+drive it by clicks, and its "Opened From" date defaults to 2006).**
+- **Garage: PDS2008-1006-20080403** (opened 12/23/2008, Completed), "New
+  Residential Detached Accessory Structure": **"934 SQFT DETACHED GARAGE W/ 822
+  SQFT 2ND-STORY REC ROOM W/ AC, 360 SQFT COVERED PORCH, MISC ELEC."** So the
+  county's figure for the garage is 934 + 822 = **1,756 SF**, plus a 360 SF
+  covered porch that the ordinance's floor-area definition (roofed, no walls)
+  could sweep in. The owner's inside-wall tape said ~1,600.
+- **Barn: PDS2019-RESACC-000454** (Completed), "**2200 SQFT DET STEEL STORAGE
+  BUILDING FOR EXISTING SFD**", renewed 8/8/22 and 2/4/23. So 2,200 is the
+  permitted figure, not just the owner's.
+- PDS's own arithmetic when it approved the barn in 2019 was evidently garage
+  1,756 + barn 2,200 = **3,956 SF against 4,000** — the "right on the cusp"
+  the owner remembers. It did not count the porch or a coop.
+- Also on the parcel's record: several PDS enforcement cases, including
+  **PDS2026-ENFGEN-000696, opened 5/1/2026, status "In Violation"**, and
+  PDS2026-ENFCOM-002020 / -001946 (closed). Not investigated; the owner should
+  know it is there before he walks a plot plan into the same counter.
+- Other permits seen: PDS2008-1001-20080997 (residential alteration, 2008),
+  PDS2013/2019/2020 residential alterations, PDS2019-RESALT-000616.
+
 **REV 38 IS BUILT BUT HELD (9/15/2026 evening) — the owner said "don't give me
 a new version yet, hold this thought until tomorrow, I'll have to measure."**
 It carries his inside-wall areas (store 110, house 2,700, garage 1,600 over two
