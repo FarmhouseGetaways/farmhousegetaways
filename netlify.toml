@@ -16,7 +16,7 @@
 # round and is why this is not wrapped in anything cleverer.
 [build]
   publish = "."
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout'"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)workout' ':(exclude)packersraidersbills'"
 
 [functions]
   directory = "netlify/functions"
@@ -95,6 +95,23 @@
 
 [[redirects]]
   from = "/EMAIL.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# PackersRaidersBills lives in packersraidersbills/ and is NOT PART OF THIS
+# SITE either — the same arrangement as workout/ below. It is a separate
+# project, headed for its own Netlify site (base directory
+# `packersraidersbills`) or its own repository. The folder is in this
+# repository only because a cloud session cannot create a GitHub repository,
+# and leaving the work in a container that gets reclaimed was the worse option.
+#
+# Without the forced 404, `publish = "."` would serve the whole thing at
+# farmhousegetaways.com/packersraidersbills/ — on the wrong domain, without its
+# functions, and looking broken. Without the `ignore` exclusion at the top of
+# this file, every commit to it would cost this site a build it does not need.
+[[redirects]]
+  from = "/packersraidersbills/*"
   to = "/404.html"
   status = 404
   force = true

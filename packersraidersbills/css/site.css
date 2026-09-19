@@ -1,0 +1,429 @@
+/* SportsTicker — all styling, one file.
+   Cached immutable for a year. Bump the ?v= string on every page when this
+   file changes, or nobody sees the change. See netlify.toml.
+
+   The look is broadcast graphics: condensed display type, hard diagonals,
+   team colour used as a flood rather than a hint, numbers big enough to read
+   from across a room. The page is a scoreboard, not a spreadsheet. */
+
+:root {
+  --bg: #05070a;
+  --bg-2: #090d13;
+  --panel: #0e131b;
+  --panel-2: #131a24;
+  --line: #1c2533;
+  --line-2: #2b3749;
+  --ink: #f2f5fa;
+  --ink-2: #9dabbd;
+  --ink-3: #64748b;
+
+  /* Overwritten per element by app.js from each club's own colours. */
+  --team: #4a5a70;
+  --team-ink: #ffffff;
+  --team-flood: 13%;   /* lowered per club by app.js for light colours */
+
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --r: 4px;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --max: 82rem;
+}
+
+* { box-sizing: border-box; min-width: 0; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font: 400 1rem/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+  background:
+    /* A faint diagonal weave, the way a broadcast background is never flat. */
+    repeating-linear-gradient(115deg, rgba(255,255,255,.014) 0 1px, transparent 1px 7px),
+    radial-gradient(1200px 620px at 8% -10%, #12202f 0%, transparent 62%),
+    radial-gradient(1000px 560px at 95% -4%, #1b1424 0%, transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Numbers must line up in columns, or the tables jitter as values change. */
+.num, .v, .rank, .record, .bar-val, .sr { font-variant-numeric: tabular-nums; }
+
+h1, h2, h3 { margin: 0; font-family: var(--display); line-height: 1; }
+
+/* ---------------------------------------------------------------- masthead */
+
+.masthead {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(5, 7, 10, .88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+
+.masthead-inner {
+  max-width: var(--max); margin: 0 auto;
+  padding: .7rem var(--gutter);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: .65rem; }
+
+.brand-mark {
+  width: 10px; height: 30px; transform: skewX(-12deg);
+  background: linear-gradient(180deg, #2f7249 0%, #2f7249 33%, #a5acaf 33%, #a5acaf 66%, #0058f3 66%, #0058f3 100%);
+  box-shadow: 0 0 20px rgba(0, 88, 243, .4);
+}
+
+.brand-name {
+  font-family: var(--display); font-size: 1.6rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .01em; line-height: 1;
+}
+/* The name IS the three clubs, so it is set in the three clubs' colours —
+   the same drawn colours the rest of the page uses, not the raw primaries. */
+.bn { font-weight: 700; }
+.bn-gb  { color: #3d8a5b; }
+.bn-lv  { color: #b9c0c4; }
+.bn-buf { color: #2f7bff; }
+.brand-thin { font-weight: 500; color: var(--ink-2); }
+
+.season {
+  margin: 0; color: var(--ink-2); font-size: .78rem;
+  display: flex; align-items: center; gap: .5rem;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+
+.dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #35d07f; flex: none;
+  animation: pulse 2.4s infinite;
+}
+.dot.stale { background: var(--ink-3); animation: none; }
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(53, 208, 127, .5); }
+  70%  { box-shadow: 0 0 0 8px rgba(53, 208, 127, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(53, 208, 127, 0); }
+}
+
+/* ------------------------------------------------------------------ ticker */
+
+.ticker {
+  border-bottom: 1px solid var(--line-2);
+  background: linear-gradient(180deg, #0c121b, #070b10);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.ticker-track { display: flex; width: max-content; animation: scroll 58s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+
+.ticker-list {
+  display: flex; align-items: center; gap: 2.4rem;
+  margin: 0; padding: .6rem 1.2rem .6rem 0; list-style: none;
+  white-space: nowrap;
+}
+
+.ticker-list li { display: flex; align-items: center; gap: .5rem; font-size: .82rem; color: var(--ink-2); }
+
+.ticker-tag {
+  font-family: var(--display); font-weight: 700; font-size: .92rem;
+  letter-spacing: .04em; text-transform: uppercase;
+  padding: .12rem .5rem; transform: skewX(-12deg);
+  background: var(--team); color: var(--team-ink);
+}
+.ticker-tag > span { display: inline-flex; align-items: center; gap: .3rem; transform: skewX(12deg); }
+.ticker-tag img { width: 15px; height: 15px; object-fit: contain; }
+
+.ticker-list b { color: var(--ink); font-weight: 600; }
+.ticker-live {
+  font-family: var(--display); font-weight: 700; letter-spacing: .08em;
+  background: #d81f2a; color: #fff; padding: .12rem .45rem;
+}
+
+@keyframes scroll {
+  from { transform: translateX(0); }
+  /* Exactly half, because the list is present twice. Anything else jumps. */
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .ticker { overflow-x: auto; }
+  .dot { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ------------------------------------------------------------------ layout */
+
+#main { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter) 4rem; }
+
+.status {
+  margin: 4rem 0; text-align: center; color: var(--ink-2);
+  padding: 2.5rem 1.5rem; border: 1px solid var(--line-2);
+}
+.status.error { color: #ffb3a7; border-color: #55282a; background: rgba(110, 30, 34, .18); }
+
+.section { margin: 3.4rem 0 0; }
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+.section-title {
+  font-size: clamp(1.75rem, 4.5vw, 2.6rem); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .005em;
+  display: flex; align-items: center; gap: .75rem;
+}
+/* The skewed tick is the page's one repeated motif — masthead, tags, panels. */
+.section-title::before {
+  content: ""; width: 7px; height: .85em; transform: skewX(-12deg);
+  background: linear-gradient(180deg, #2f7249, #a5acaf 50%, #0058f3);
+  flex: none;
+}
+
+.section-note { margin: 0; color: var(--ink-3); font-size: .8rem; max-width: 40rem; line-height: 1.5; }
+
+/* -------------------------------------------------------------- scoreboard */
+
+.scoreboard-wrap { margin: 1.6rem 0 0; }
+
+.teams { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr)); }
+
+.team-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  background: linear-gradient(150deg, var(--panel-2) 0%, var(--panel) 55%, #0a0e14 100%);
+  border: 1px solid var(--line);
+  padding: 1.1rem 1.15rem 1rem;
+}
+
+/* The club's colour as a hard diagonal flood behind the panel. This is the
+   change that makes three panels read as three clubs at a glance rather than
+   three identical cards with a coloured line on top. */
+.team-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -2;
+  background: linear-gradient(118deg, var(--team) 0%, var(--team) 34%, transparent 34.4%);
+  opacity: .20;
+}
+
+/* The logo, huge and faint, bled off the corner. */
+.team-watermark {
+  position: absolute; right: -22px; bottom: -26px; width: 150px; height: 150px;
+  object-fit: contain; opacity: .09; z-index: -1; pointer-events: none;
+}
+
+.team-abbr {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 3.6rem); line-height: .85;
+  letter-spacing: -.01em; color: var(--team);
+  text-shadow: 0 0 34px color-mix(in srgb, var(--team) 45%, transparent);
+}
+
+.team-top { display: flex; align-items: flex-start; gap: .8rem; margin-bottom: .75rem; }
+.team-logo { width: 42px; height: 42px; object-fit: contain; flex: none; }
+.team-name { font-family: var(--display); font-size: 1.15rem; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+.team-standing { color: var(--ink-3); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; margin-top: .2rem; }
+
+.record { display: flex; align-items: baseline; gap: .55rem; margin: .1rem 0 .9rem; }
+.record-big { font-family: var(--display); font-size: 2.9rem; font-weight: 700; line-height: .85; }
+.record-label { color: var(--ink-3); font-size: .66rem; text-transform: uppercase; letter-spacing: .14em; }
+
+.team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .9rem; }
+
+.kv { border-top: 1px solid var(--line); padding-top: .4rem; }
+.kv .k { display: block; color: var(--ink-3); font-size: .62rem; text-transform: uppercase; letter-spacing: .1em; }
+.kv .v { font-family: var(--display); font-weight: 600; font-size: 1.3rem; line-height: 1.1; }
+
+.team-next {
+  margin: .85rem 0 0; padding-top: .65rem; border-top: 1px solid var(--line);
+  color: var(--ink-3); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em;
+}
+.team-next b { color: var(--ink); font-weight: 600; letter-spacing: .02em; }
+
+/* ------------------------------------------------------------- categories */
+
+.cat { border: 1px solid var(--line); background: rgba(9, 13, 19, .7); margin-bottom: .55rem; }
+.cat[open] { border-color: var(--line-2); }
+
+.cat > summary {
+  display: flex; align-items: center; gap: .6rem; cursor: pointer;
+  padding: .65rem .9rem;
+  font-family: var(--display); font-size: 1.3rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .03em;
+  list-style: none;   /* Firefox */
+  user-select: none;
+}
+/* Safari and Chrome draw their own triangle; ours is the SVG chevron. */
+.cat > summary::-webkit-details-marker { display: none; }
+.cat > summary::marker { content: ''; }
+.cat > summary:hover { background: rgba(255, 255, 255, .025); }
+.cat > summary:focus-visible { outline: 2px solid #4b8dff; outline-offset: -2px; }
+
+.cat-arrow { flex: none; color: var(--ink-3); transition: transform .18s ease; }
+.cat[open] .cat-arrow { transform: rotate(90deg); color: var(--ink-2); }
+
+.cat-count {
+  margin-left: auto; color: var(--ink-3);
+  font-family: var(--body); font-size: .64rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: .1em;
+}
+
+.cat-note { margin: 0; padding: 0 .9rem .7rem; color: var(--ink-3); font-size: .76rem; max-width: 46rem; }
+.cat-body { border-top: 1px solid var(--line); padding-top: .1rem; }
+.cat .rows { border: 0; background: none; }
+
+@media (prefers-reduced-motion: reduce) { .cat-arrow { transition: none; } }
+
+/* ------------------------------------------------------- comparison rows */
+
+.rows { border: 1px solid var(--line); background: rgba(9, 13, 19, .75); }
+
+.rows-head { display: grid; grid-template-columns: 13rem repeat(3, 1fr); background: #0b1017; border-bottom: 1px solid var(--line-2); }
+.rows-head div { padding: .5rem .85rem; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); border-right: 1px solid var(--line); display: flex; align-items: center; gap: .45rem; }
+.rows-head div:last-child { border-right: 0; }
+.rows-head .th-team { color: var(--ink); font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: .04em; }
+.rows-head .th-team::before { content: ""; width: 5px; height: 1em; transform: skewX(-12deg); background: var(--team); flex: none; }
+.th-logo { width: 20px; height: 20px; object-fit: contain; flex: none; }
+.th-gp { color: var(--ink-3); font-family: var(--body); font-weight: 400; font-size: .62rem; letter-spacing: .06em; margin-left: auto; }
+
+.row { display: grid; grid-template-columns: 13rem repeat(3, 1fr); border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+
+.row-label {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  padding: .6rem .85rem; color: var(--ink-2); font-size: .8rem;
+  border-right: 1px solid var(--line);
+}
+.row-label > span:first-child { flex: 1 0 100%; }
+
+.row-hint { color: var(--ink-3); font-size: .6rem; text-transform: uppercase; letter-spacing: .06em; border: 1px solid var(--line-2); padding: .05rem .3rem; white-space: nowrap; }
+
+.cell { padding: .55rem .85rem; border-right: 1px solid var(--line); position: relative; }
+.cell:last-child { border-right: 0; }
+
+/* The leading cell is flooded in the club's colour rather than merely
+   outlined — on a table this dense, a 3px edge is not enough to find. */
+.cell.lead { background: color-mix(in srgb, var(--team) var(--team-flood), transparent); }
+.cell.lead::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--team); }
+
+.cell-top { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.bar-val { font-family: var(--display); font-weight: 600; font-size: 1.45rem; line-height: 1; }
+.cell.lead .bar-val { color: var(--team); font-weight: 700; }
+.cell.empty .bar-val { color: var(--ink-3); }
+
+.rank { font-size: .62rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+
+.bar { height: 4px; background: rgba(255, 255, 255, .055); margin-top: .4rem; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--team); opacity: .5; transition: width .5s ease; }
+.cell.lead .bar > i { opacity: 1; box-shadow: 0 0 14px -1px var(--team); }
+
+/* --------------------------------------------------------------- head2head */
+
+.h2h { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); }
+
+.h2h-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  background: var(--panel); border: 1px solid var(--line); padding: 1rem 1.05rem;
+}
+/* Split diagonally, one club's colour each side. */
+.h2h-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .17;
+  background: linear-gradient(105deg, var(--a) 0%, var(--a) 40%, transparent 40.3%, transparent 59.7%, var(--b) 60%, var(--b) 100%);
+}
+
+.h2h-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .55rem; }
+.h2h-side { display: flex; align-items: center; gap: .4rem; font-family: var(--display); font-weight: 700; font-size: 1.25rem; letter-spacing: .03em; }
+.h2h-side img { width: 26px; height: 26px; object-fit: contain; }
+.h2h-v { font-family: var(--display); color: var(--ink-3); font-size: .8rem; letter-spacing: .14em; }
+
+.h2h-score { display: flex; align-items: baseline; justify-content: center; gap: .7rem; margin-bottom: .6rem; font-family: var(--display); }
+.h2h-score b { font-size: 3rem; font-weight: 700; line-height: .85; }
+.h2h-score .sep { color: var(--ink-3); font-size: 1.6rem; }
+
+.h2h-bar { display: flex; height: 6px; overflow: hidden; background: rgba(255,255,255,.06); }
+.h2h-bar i { display: block; height: 100%; }
+
+.h2h-meta { color: var(--ink-3); font-size: .7rem; margin: .55rem 0 .4rem; text-transform: uppercase; letter-spacing: .07em; }
+
+.meetings { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.meetings li { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid var(--line); font-size: .78rem; color: var(--ink-2); }
+.meetings li:last-child { border-bottom: 0; }
+.meetings .yr { color: var(--ink-3); font-size: .68rem; width: 2.4rem; flex: none; font-variant-numeric: tabular-nums; }
+.meetings .res { margin-left: auto; font-family: var(--display); font-weight: 700; font-size: .78rem; letter-spacing: .05em; padding: .05rem .4rem; transform: skewX(-12deg); }
+.meetings .res > span { display: inline-flex; align-items: center; gap: .25rem; transform: skewX(12deg); }
+.meetings .res img { width: 13px; height: 13px; object-fit: contain; }
+.meetings .sched { margin-left: auto; font-size: .66rem; color: var(--ink-3); border: 1px solid var(--line-2); padding: .05rem .4rem; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ----------------------------------------------------------- quarterbacks */
+
+.qbs { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); margin-bottom: .8rem; }
+
+.qb-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: .85rem;
+  background: var(--panel); border: 1px solid var(--line); padding: .8rem .95rem;
+}
+.qb-card::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .2;
+  background: linear-gradient(118deg, var(--team) 0%, var(--team) 26%, transparent 26.3%);
+}
+.qb-shot { width: 66px; height: 66px; border-radius: 50%; object-fit: cover; object-position: top center; background: color-mix(in srgb, var(--team) 60%, #0a0e14); flex: none; border: 2px solid var(--team); }
+.qb-name { font-family: var(--display); font-weight: 700; font-size: 1.35rem; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+.qb-meta { color: var(--ink-3); font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; margin-top: .2rem; display: flex; align-items: center; gap: .3rem; }
+.qb-team-logo { width: 16px; height: 16px; object-fit: contain; }
+.qb-line { color: var(--ink-2); font-size: .76rem; margin-top: .3rem; font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------- history */
+
+.history { display: grid; gap: .8rem; }
+
+.hist-row { position: relative; overflow: hidden; isolation: isolate; background: var(--panel); border: 1px solid var(--line); padding: .85rem 1rem; }
+.hist-row::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .14;
+  background: linear-gradient(118deg, var(--team) 0%, var(--team) 20%, transparent 20.3%);
+}
+.hist-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .7rem; }
+.hist-head img { width: 26px; height: 26px; object-fit: contain; }
+.hist-name { font-family: var(--display); font-weight: 700; font-size: 1.15rem; text-transform: uppercase; letter-spacing: .03em; }
+.hist-summary { margin-left: auto; color: var(--ink-3); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-variant-numeric: tabular-nums; }
+
+.seasons { display: flex; align-items: flex-end; gap: 3px; height: 78px; }
+.season-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: .2rem; height: 100%; }
+.season-col .sb { width: 100%; background: var(--team); opacity: .42; min-height: 2px; transition: opacity .2s; }
+.season-col.winning .sb { opacity: 1; }
+.season-col .sy { font-size: .56rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.season-col .sr { font-size: .58rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.season-col.none .sb { background: var(--line-2); opacity: 1; }
+.seasons:hover .season-col .sb { opacity: .28; }
+.seasons .season-col:hover .sb { opacity: 1; }
+
+/* ------------------------------------------------------------------- foot */
+
+.foot {
+  max-width: var(--max); margin: 0 auto; padding: 2rem var(--gutter) 3rem;
+  border-top: 1px solid var(--line); color: var(--ink-3); font-size: .76rem;
+}
+.foot p { margin: .2rem 0; }
+
+/* ------------------------------------------------------------ small screens */
+
+@media (max-width: 56rem) {
+  /* A 13rem label track forces the grid wider than a phone screen. Stack:
+     label on its own line, three equal cells beneath it. */
+  .row, .rows-head { grid-template-columns: repeat(3, 1fr); }
+  .row-label { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--line); padding: .45rem .85rem; }
+  .rows-head .th-label { display: none; }
+  .th-gp { margin-left: .3rem; }
+  .seasons { height: 62px; }
+  .season-col .sr { display: none; }
+  .bar-val { font-size: 1.25rem; }
+  /* Three cells across a phone leaves no room for the rank beside the value —
+     "419.0" and "6th in NFL" ran together into "419.06th in NFL". */
+  .cell-top { display: block; }
+  .rank { display: block; margin-top: .1rem; }
+}
+
+@media (max-width: 30rem) {
+  .season-col .sy { font-size: .48rem; }
+  .record-big { font-size: 2.4rem; }
+  .h2h-score b { font-size: 2.4rem; }
+}

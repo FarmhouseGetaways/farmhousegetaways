@@ -1,0 +1,71 @@
+# SportsTicker — Netlify config
+# Static site. No build step, no dependencies, no npm.
+#
+# `publish = "."` serves every file in this repository exactly as it is
+# committed. That is deliberate and is how all four of the other sites work:
+# a change is a commit, and there is no build output to drift from the source.
+# It also means anything committed here is on the open web — see the 404
+# redirects at the bottom before adding working files.
+[build]
+  publish = "."
+
+# Nothing uses this yet. It is here so the first function added does not
+# also need a config change to be found.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cached for a year, so the filename has to change when the file does.
+# Every page links the stylesheet as site.css?v=XXXXXXXX and that string
+# MUST be bumped whenever css/site.css changes, or nobody sees the change:
+#
+#   NEW=$(md5sum css/site.css | cut -c1-8); sed -i "s/site\.css?v=[a-z0-9]*/site.css?v=$NEW/g" *.html
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# `publish = "."` would otherwise serve the handover notes on the open web.
+# They hold no password and must not, but they are working notes, not pages.
+# README.md stays public; it is a normal repo readme.
+#
+# force = true is REQUIRED on every rule below. Netlify serves a real file in
+# preference to a redirect that matches it — "shadowing" — so without it these
+# rules parse fine, deploy fine, and do absolutely nothing.
+[[redirects]]
+  from = "/CLAUDE.md"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# Friendly aliases for the two data functions. The page calls these, not the
+# .netlify/functions paths, so the function layout can change without a page
+# edit.
+[[redirects]]
+  from = "/api/stats"
+  to = "/.netlify/functions/stats"
+  status = 200
+
+[[redirects]]
+  from = "/api/history"
+  to = "/.netlify/functions/history"
+  status = 200
+
+# The dev server is a working file, not a page.
+[[redirects]]
+  from = "/tools/*"
+  to = "/404.html"
+  status = 404
+  force = true
