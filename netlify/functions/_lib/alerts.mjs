@@ -74,6 +74,8 @@ function summariseSignup(data) {
   if (email) lines.push(`Email: ${email}`);
   lines.push(`Source: ${tag || "Site"} email signup form below the booking form`);
   if (page) lines.push(`On: ${page}`);
+  const arrived = (data["arrived-from"] || "").toString().trim();
+  if (arrived) lines.push(`Arrived from: ${arrived}`);
 
   return {
     title: `${tag ? tag + " " : ""}Customer Email Signup - Booking Widget Form`,
@@ -120,6 +122,10 @@ function summarise(formName, data) {
   for (const [key, value] of Object.entries(data)) {
     if (INTERESTING.includes(key) || JOINED.includes(key)) continue;
     if (key === "bot-field" || key === "company" || key === "form-name") continue;
+    // Six attribution fields ride along on every form (js/attribution.js). The
+    // one-line "arrived-from" is the only one worth a lock screen; the raw
+    // parts stay in the saved submission and the email.
+    if (/^(arrived-|first-visit-)/.test(key) && key !== "arrived-from") continue;
     const v = (value || "").toString().trim();
     if (v) lines.push(`${label(key)}: ${v}`);
   }
