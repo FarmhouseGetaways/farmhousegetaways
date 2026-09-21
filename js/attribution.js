@@ -20,7 +20,7 @@
  */
 (function () {
   var KEY = "fg_arrival_v1";
-  var OWN = /(^|\.)farmhousegetaways\.com$/i;
+  var OWN = location.hostname.replace(/^www\./, "");
 
   function read() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
@@ -35,7 +35,8 @@
 
   /* One readable line for "how they got here". */
   function label(t) {
-    if (t.click) return "Google Ads" + (t.campaign ? " - " + t.campaign : "");
+    if (t.click) return "Google Ads" + (t.campaign ? " - " + t.campaign : "") + (t.term ? " - keyword: " + t.term : "");
+    if (t.fb) return "Facebook / Instagram ad";
     if (t.src) return t.src + (t.medium ? " / " + t.medium : "") + (t.campaign ? " - " + t.campaign : "");
     var h = t.ref;
     if (!h) return "Direct or unknown";
@@ -51,7 +52,7 @@
 
   var q = new URLSearchParams(location.search);
   var ref = host(document.referrer);
-  if (OWN.test(ref)) ref = "";                     // our own pages are not a source
+  if (ref === OWN) ref = "";                       // our own pages are not a source
   var click = q.get("gclid") || q.get("gbraid") || q.get("wbraid") || "";
 
   var now = {
@@ -62,8 +63,10 @@
     medium: q.get("utm_medium") || "",
     campaign: q.get("utm_campaign") || "",
     click: click,
+    term: q.get("utm_term") || "",
+    fb: q.get("fbclid") ? 1 : 0,
   };
-  var signal = !!(now.click || now.src || now.ref);
+  var signal = !!(now.click || now.fb || now.src || now.ref);
 
   var store = read();
   if (!store.first) store.first = now;
