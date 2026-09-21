@@ -81,7 +81,9 @@
       "arrived-campaign": last.campaign || last.src,
       "arrived-click-id": last.click,
     };
-    var forms = document.querySelectorAll("form[data-netlify]");
+    // Netlify strips data-netlify from the published HTML, so forms are found by
+    // the arrived-from field they carry, not by that attribute.
+    var forms = document.querySelectorAll("form");
     for (var i = 0; i < forms.length; i++) {
       for (var name in values) {
         var el = forms[i].querySelector('input[name="' + name + '"]');
