@@ -79,9 +79,8 @@ Netlify UI offered to overwrite it.
 
 Boulder Oak is the three-hole course at Mountain Retreat, added 30 Sep 2026.
 `discgolf` and `disc-golf` were taken on netlify.app, hence the long name. Its
-first deploy went up through the Netlify connector because a cloud session
-cannot link a repository in the Netlify UI. **Check its README for whether the
-repo has been linked since.** Until it is, a push there does not go live.
+repo was linked in Netlify the same day, and a push to `main` deploys itself
+like the others (checked by pushing a change and fetching it live).
 
 All four are on the same Netlify team and the same GitHub account, all deploy
 `main` automatically on push, all use `publish = "."`.
