@@ -75,12 +75,13 @@ Netlify UI offered to overwrite it.
 | **Mini Barn Market** | `FarmhouseGetaways/minibarnmarket` | minibarnmarket.com | Hand-written HTML, no build step |
 | **Farmstand.TV** | `FarmhouseGetaways/farmstandtv` | farmstand.tv and farmstandtv.com (same site) | Hand-written HTML, no build step |
 | **The app** | `FarmhouseGetaways/farmhouse-app` | farmhousegetawaysapp.netlify.app | **Generated — see below** |
-| **Boulder Oak Disc Golf** | `FarmhouseGetaways/boulderoakdiscgolf` | boulderoakdiscgolf.netlify.app | Hand-written HTML, no build step |
+| **Boulder Oak Disc Golf** | `FarmhouseGetaways/boulderoakdiscgolf` | boulderoakdiscgolf.com (boulderoakdiscgolf.netlify.app still resolves) | Hand-written HTML, no build step |
 
 Boulder Oak is the three-hole course at Mountain Retreat, added 30 Sep 2026.
 `discgolf` and `disc-golf` were taken on netlify.app, hence the long name. Its
 repo was linked in Netlify the same day, and a push to `main` deploys itself
 like the others (checked by pushing a change and fetching it live).
+boulderoakdiscgolf.com went live 1 Oct 2026. It's on Directnic DNS, set up like farmhousegetaways.com.
 
 All four are on the same Netlify team and the same GitHub account, all deploy
 `main` automatically on push, all use `publish = "."`.
