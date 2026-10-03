@@ -443,6 +443,11 @@ a { color: inherit; }
   border: 1px solid var(--sage-line); background: #fff; color: var(--plum);
   border-radius: var(--radius); width: 100%;
 }
+/* Dropdowns start on an empty "Choose one" so a default never reads as the
+   guest's answer (an inquiry arrived as "Family reunion / Both" untouched,
+   3 Oct 2026). Grey while unanswered, to match the text-box placeholders. */
+.field select:has(option[value=""]:checked) { color: #9a9499; }
+.field select option { color: var(--plum); }
 .field textarea { min-height: 8rem; resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--sage); outline: none; box-shadow: 0 0 0 3px var(--sage-pale); }
 .field-pair { display: grid; gap: 1.3rem; }
