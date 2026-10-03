@@ -204,7 +204,8 @@ an invitation. There are granite boulders and uneven ground out there. Removed
 9 Aug 2026. Sell the space, never the absence of an adult.
 
 The exception is a **material fact that affects whether the trip works at all**
-— Mountain Retreat's spa sitting under a locked cover rather than behind a gate,
+— Mountain Retreat's spa sitting under a cover (not locked: corrected by Cory,
+2 Oct 2026) rather than behind a gate,
 for instance. That is not a rule, it is something a family travelling with
 toddlers must know before booking, and it stays on the page.
 
