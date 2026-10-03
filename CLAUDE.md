@@ -738,8 +738,20 @@ in one pass across all nine pages. The site is public and indexable now — see
 simply outstanding, and every day it waits is a day of not ranking. Target
 capacity terms: large group vacation rental San Diego, **sleeps 20**, family
 reunion. Both property titles now carry the capacity ("Vacation Rental Sleeps
-20", "Sleeps 14"); the other seven pages do not. `mountain-retreat.html`'s JSON-LD is also
-missing `occupancy`, which the ranch has.
+20", "Sleeps 14"); the other seven pages do not. `mountain-retreat.html`'s JSON-LD
+now has `occupancy` too.
+
+**3 Oct 2026 title pass, aimed at the page-2 terms in Search Console** (a
+URL-prefix property, `https://farmhousegetaways.com/`, verified 29 Aug — the
+`sc-domain:` version does not exist). Positions on the day: "ramona ca vacation
+rentals" 16, "ramona vacation rentals" 18, "farm stay san diego" 19, "rent a
+ranch" 16, "things to do in ramona california" 22; zero impressions at all for
+"vacation rentals san diego", which belongs to beach property managers, Vrbo and
+Marriott. Homepage title/tag line/description now say "vacation rentals in
+Ramona, CA" and "farm-stay"; ranch title "Ranch Rental Sleeps 20 near San
+Diego"; Mountain Retreat "Mountain Cabin Rental" (Cory approved "cabin" for the
+ads on 27 Sep); `ramona.html` "Things to Do in Ramona, CA — and Where to Stay".
+Re-check positions in Search Console around 1 Nov 2026.
 
 ## The visual editor at `/edit.html`
 
