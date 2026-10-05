@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700">
+  <!-- Light caustics for the pool. Rendered once as an image, then drifted with
+       CSS transforms on the page, so no live filter runs while it moves. -->
+  <defs>
+    <filter id="c" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.011 0.016" numOctaves="2" seed="11" result="n1"/>
+      <feColorMatrix in="n1" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0" result="a1"/>
+      <feComponentTransfer in="a1" result="l1">
+        <feFuncA type="table" tableValues="0 0 0 0 0 .15 1 .15 0 0 0 0 0"/>
+      </feComponentTransfer>
+      <feTurbulence type="fractalNoise" baseFrequency="0.016 0.022" numOctaves="2" seed="4" result="n2"/>
+      <feColorMatrix in="n2" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 1 0 0 0" result="a2"/>
+      <feComponentTransfer in="a2" result="l2">
+        <feFuncA type="table" tableValues="0 0 0 0 0 .1 .8 .1 0 0 0 0 0"/>
+      </feComponentTransfer>
+      <feMerge result="m"><feMergeNode in="l1"/><feMergeNode in="l2"/></feMerge>
+      <feGaussianBlur in="m" stdDeviation="0.9"/>
+    </filter>
+  </defs>
+  <rect width="1400" height="700" fill="#fff" filter="url(#c)"/>
+</svg>
