@@ -80,7 +80,7 @@ ul, ol { margin: 0; padding: 0; }
   --stone: #b9a58e; --stone2: #9c8770;
   --fence: #7a5136; --rail: #8d603f; --mesh: rgba(70,45,30,.32);
   --leaf1: #4d8d3a; --leaf2: #6aa84a; --ff-leaf: #5e9a52; --cane: #6b4a2e; --grape: #5c2f61; --grape-hl: #b07fb5;
-  --gate: #8d603f; --latch: #f2b450;
+  --gate: #3d4247; --latch: #f2b450;
   --chair: #2ab3c0; --umb1: #d0603a; --umb2: #fbf1e3;
   position: relative; isolation: isolate; overflow: hidden;
   color: var(--hero-ink);
@@ -103,7 +103,7 @@ ul, ol { margin: 0; padding: 0; }
   --stone: #5b4a55; --stone2: #4a3c47;
   --fence: #2b2230; --rail: #34293a; --mesh: rgba(255,255,255,.12);
   --leaf1: #22402f; --leaf2: #2b4d38; --ff-leaf: #262f40; --cane: #2a2026; --grape: #3b2346; --grape-hl: #6d4c79;
-  --gate: #36293a; --latch: #f6c177;
+  --gate: #1f1c26; --latch: #f6c177;
   --chair: #1d7682; --umb1: #6e3536; --umb2: #a99091;
 }
 /* The sky itself crossfades through a second layer, since gradients do not transition. */
@@ -190,6 +190,10 @@ ul, ol { margin: 0; padding: 0; }
 .scene .glint { fill: #fff; opacity: .9; }
 .scene .mesh-line { fill: none; stroke: var(--mesh); stroke-width: 1.2; }
 .scene .rail { fill: var(--rail); }
+.scene .rail-line { fill: none; stroke: var(--rail); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.scene .rail-thin { stroke-width: 2.5; }
+.scene .fence-back .mesh, .scene .fence-back .rail-line, .scene .fence-back .post { opacity: .7; }
+.scene .gate-post { fill: var(--gate); }
 .scene .post { fill: var(--fence); }
 .scene .post-cap { fill: var(--rail); }
 .scene .v-cane { fill: none; stroke: var(--cane); stroke-width: 2.4; stroke-linecap: round; }
