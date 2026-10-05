@@ -58,20 +58,26 @@
   var board = document.getElementById("board");
   if (!board) return;
   var KEY = "fg-horseshoes-v1";
-  var COLORS = ["#3f7fa3", "#b0502a", "#6f8a67", "#c99a45"];
+  // The pit's four sets of shoes. Each player throws one colour; picking a colour
+  // another player has swaps the two, so no two players ever share a set.
+  var SHOES = [["white", "White"], ["green", "Green"], ["red", "Red"], ["blue", "Blue"]];
+  var TARGETS = [11, 21, 40];
   var $ = function (id) { return document.getElementById(id); };
   var list = $("players"), logEl = $("log"), winBox = $("winner");
 
   function fresh(keep) {
-    return { v: 1, to: keep ? keep.to : 21, n: keep ? keep.n : 2, names: keep ? keep.names.slice() : ["", "", "", ""], log: [] };
+    return { v: 1, to: keep ? keep.to : 21, n: keep ? keep.n : 2, names: keep ? keep.names.slice() : ["", "", "", ""],
+             colors: keep && keep.colors ? keep.colors.slice() : ["white", "green", "red", "blue"], log: [] };
   }
   var state = (function () {
     try {
       var s = JSON.parse(localStorage.getItem(KEY) || "null");
       if (s && s.v === 1 && Array.isArray(s.log) && Array.isArray(s.names)) {
-        s.to = s.to === 40 ? 40 : 21;
-        s.n = Math.min(4, Math.max(2, s.n | 0));
+        s.to = TARGETS.indexOf(s.to) >= 0 ? s.to : 21;
+        s.n = Math.min(4, Math.max(1, s.n | 0));
         while (s.names.length < 4) s.names.push("");
+        var ok = Array.isArray(s.colors) && s.colors.length === 4 && SHOES.every(function (c) { return s.colors.indexOf(c[0]) >= 0; });
+        if (!ok) s.colors = ["white", "green", "red", "blue"];
         return s;
       }
     } catch (e) { /* no storage: start clean */ }
@@ -105,8 +111,7 @@
     rows = [];
     for (var i = 0; i < state.n; i++) {
       var li = document.createElement("li");
-      li.className = "player";
-      li.style.setProperty("--c", COLORS[i]);
+      li.className = "player shoe-" + state.colors[i];
 
       var tag = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       tag.setAttribute("viewBox", "0 0 100 150");
@@ -143,16 +148,33 @@
 
       var btns = document.createElement("div");
       btns.className = "p-btns";
-      var r = mk("pill btn-ringer", "+3", "Ringer"), c = mk("pill btn-close", "+1", "Close");
+      var r = mk("pill btn-shoe btn-ringer", "+3", "Ringer"), c = mk("pill btn-shoe btn-close", "+1", "Close");
       (function (idx) {
         r.addEventListener("click", function () { add(idx, 3); });
         c.addEventListener("click", function () { add(idx, 1); });
       })(i);
       btns.appendChild(r); btns.appendChild(c);
 
-      li.appendChild(tag); li.appendChild(input); li.appendChild(score); li.appendChild(track); li.appendChild(btns);
+      var pick = document.createElement("div");
+      pick.className = "p-colors";
+      pick.setAttribute("role", "group");
+      pick.setAttribute("aria-label", "Shoe colour for player " + (i + 1));
+      var lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "Shoes";
+      pick.appendChild(lbl);
+      var sw = [];
+      SHOES.forEach(function (shoe) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "swatch shoe-" + shoe[0];
+        b.setAttribute("aria-label", shoe[1] + " shoes");
+        b.setAttribute("data-shoe", shoe[0]);
+        (function (idx, col) { b.addEventListener("click", function () { choose(idx, col); }); })(i, shoe[0]);
+        pick.appendChild(b); sw.push(b);
+      });
+
+      li.appendChild(tag); li.appendChild(input); li.appendChild(score); li.appendChild(pick); li.appendChild(track); li.appendChild(btns);
       list.appendChild(li);
-      rows.push({ li: li, num: num, of: of, bar: bar, r: r, c: c, input: input });
+      rows.push({ li: li, num: num, of: of, bar: bar, r: r, c: c, input: input, sw: sw });
     }
   }
   function mk(cls, big, small) {
@@ -169,10 +191,11 @@
   function render(bumpIdx) {
     var s = scores(), w = winner(), top = Math.max.apply(null, s.slice(0, state.n));
     rows.forEach(function (row, i) {
+      row.li.className = "player shoe-" + state.colors[i] + (top > 0 && s[i] === top && state.n > 1 ? " leading" : "");
+      row.sw.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-shoe") === state.colors[i])); });
       row.num.textContent = s[i];
       row.of.textContent = "of " + state.to;
       row.bar.style.width = Math.min(100, (s[i] / state.to) * 100) + "%";
-      row.li.classList.toggle("leading", top > 0 && s[i] === top);
       row.r.disabled = row.c.disabled = w >= 0;
       var who = nameOf(i);
       row.r.setAttribute("aria-label", "Ringer, 3 points for " + who);
@@ -183,7 +206,6 @@
         row.num.parentNode.classList.add("bump");
       }
     });
-    $("cancel").disabled = w >= 0;
     $("undo").disabled = state.log.length === 0;
     if (w >= 0) {
       winBox.hidden = false;
@@ -197,6 +219,16 @@
     last = s;
   }
   function say(text) { logEl.textContent = text; }
+  function shoeName(col) { for (var k = 0; k < SHOES.length; k++) if (SHOES[k][0] === col) return SHOES[k][1]; return col; }
+  function choose(i, col) {
+    var other = state.colors.indexOf(col);
+    if (other === i) return;
+    state.colors[other] = state.colors[i];
+    state.colors[i] = col;
+    save(); render();
+    say(nameOf(i) + " throws the " + shoeName(col).toLowerCase() + " shoes" +
+        (other < state.n ? ", " + nameOf(other) + " takes the " + shoeName(state.colors[other]).toLowerCase() : "") + ".");
+  }
   function standings() {
     var s = scores(), out = [];
     for (var i = 0; i < state.n; i++) out.push(nameOf(i) + " " + s[i]);
@@ -214,12 +246,6 @@
     else say((pts === 3 ? "Ringer for " : "One point for ") + nameOf(i) + ". " + standings() + ".");
   }
 
-  $("cancel").addEventListener("click", function () {
-    if (winner() >= 0) return;
-    state.log.push({ p: -1, pts: 0 });
-    save(); render();
-    say("Frame cancelled, no score. " + standings() + ".");
-  });
   $("undo").addEventListener("click", function () {
     var e = state.log.pop();
     if (!e) return;
@@ -261,7 +287,7 @@
       if (n === state.n) return;
       state.n = n;
       save(); build(); render();
-      say(n + " players or teams.");
+      say(n === 1 ? "One player. Keep your own count." : n + " players or teams.");
     });
   });
 

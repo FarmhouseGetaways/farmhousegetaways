@@ -216,10 +216,27 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 .seg-label { font-family: var(--label); font-weight: 700; font-size: .85rem; letter-spacing: .16em; text-transform: uppercase; color: var(--sand-soft); margin-right: .2rem; }
 .seg-btn { min-width: 3rem; min-height: 2.75rem; padding: .4rem .95rem; background: transparent; color: var(--paper); border-color: #6b5c55; font-size: 1.05rem; }
 .seg-btn[aria-pressed="true"] { background: var(--sand); color: var(--ink); border-color: var(--sand); }
+.seg-to { flex-direction: column; gap: 0; line-height: 1.05; padding: .35rem .9rem; }
+.seg-to small { font-family: var(--body); font-weight: 600; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+/* Shoe colours. Each player picks one; the row, the bar and the scoring pills follow it. */
+.player.shoe-white, .swatch.shoe-white { --c: #f4f1ea; --c-ink: #2b221e; --c-edge: #b9ada0; --c-shadow: #cfc6b8; }
+.player.shoe-green, .swatch.shoe-green { --c: #2f7d4f; --c-ink: #fff; --c-edge: #2f7d4f; --c-shadow: #1f5a37; }
+.player.shoe-red, .swatch.shoe-red   { --c: #b8322a; --c-ink: #fff; --c-edge: #b8322a; --c-shadow: #86231d; }
+.player.shoe-blue, .swatch.shoe-blue  { --c: #2f6fb0; --c-ink: #fff; --c-edge: #2f6fb0; --c-shadow: #214f80; }
+.p-colors { grid-area: colors; display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; }
+.p-colors .lbl { font-family: var(--label); font-weight: 700; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-right: .1rem; }
+.swatch { width: 2.4rem; height: 2.4rem; min-height: 0; padding: 0; border-radius: 999px; background: var(--c); border: 2px solid var(--c-edge); box-shadow: inset 0 0 0 3px var(--paper); cursor: pointer; }
+.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--paper), 0 0 0 3px var(--ink); }
+.swatch:focus-visible { outline: 3px solid var(--sand); outline-offset: 3px; }
+.p-btns .btn-shoe { background: var(--c); color: var(--c-ink); border: 2px solid var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
+.p-btns .btn-shoe.btn-close { background: var(--paper); color: var(--ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
+.p-btns .btn-shoe.btn-close span { color: var(--c-shadow); }
+.shoe-white .p-btns .btn-shoe.btn-close span { color: var(--ink); }
+@media (hover: hover) { .p-btns .btn-shoe:hover { filter: brightness(1.06); } }
 @media (hover: hover) { .seg-btn[aria-pressed="false"]:hover { border-color: var(--sand); } }
 
 .players { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; }
-.player { --c: var(--creek); background: var(--paper); color: var(--ink); border-radius: 1.1rem; padding: .9rem 1rem 1rem; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "tag name score" "track track track" "btns btns btns"; gap: .55rem .7rem; align-items: center; border-left: 8px solid var(--c); }
+.player { --c: var(--creek); background: var(--paper); color: var(--ink); border-radius: 1.1rem; padding: .9rem 1rem 1rem; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "tag name score" "colors colors colors" "track track track" "btns btns btns"; gap: .55rem .7rem; align-items: center; border-left: 8px solid var(--c); }
 .player.leading { box-shadow: 0 0 0 3px var(--sand); }
 .p-tag { grid-area: tag; width: 1.9rem; height: 2.85rem; color: var(--c); display: block; }
 .p-name { grid-area: name; min-width: 0; width: 100%; min-height: 2.6rem; font-family: var(--label); font-weight: 700; font-size: 1.2rem; color: var(--ink); background: var(--paper-2); border: 2px dashed var(--line); padding: .3rem .9rem; border-radius: 999px; }
@@ -277,8 +294,8 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 .stream-grid { display: grid; gap: 1.2rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .stream-text { grid-column: 1 / -1; max-width: 40rem; margin-bottom: 1rem; }
 .stream-text p:not(.eyebrow) { color: #2f4450; }
-.sp3, .sp4, .sp5 { grid-column: 1 / -1; }
-@media (min-width: 40rem) { .sp4 { grid-column: 1; } .sp5 { grid-column: 2; } .sp4 img, .sp5 img { aspect-ratio: 4 / 3; object-fit: cover; width: 100%; } }
+.sp5 { grid-column: 1 / -1; }
+
 @media (min-width: 60rem) {
   .stream-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.4rem; align-items: start; }
   .stream-text { grid-column: 1 / 6; grid-row: 1 / 3; }
@@ -286,7 +303,7 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
   .sp2 { grid-column: 9 / 13; grid-row: 1; margin-top: 3rem; }
   .sp3 { grid-column: 1 / 6; grid-row: 2; margin-top: 1rem; }
   .sp4 { grid-column: 6 / 9; grid-row: 2; margin-top: 2rem; }
-  .sp5 { grid-column: 9 / 13; grid-row: 2; margin-top: 4rem; }
+  .sp5 { grid-column: 3 / 11; grid-row: 2; margin-top: 2rem; }
 }
 
 /* ---------- Program ---------- */
@@ -340,3 +357,18 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 .foot-h { font-family: var(--label); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-size: .85rem; color: var(--sand); margin-bottom: .6rem; }
 .copy { margin-top: 2.4rem; font-size: .85rem; opacity: .7; }
 @media (min-width: 52rem) { .foot-grid { grid-template-columns: 1.4fr 1fr 1fr; } }
+
+/* The basics: a pill on the scorecard that opens the rules. Plain <details>, so it works without JavaScript. */
+.basics { margin: .2rem 0 1rem; }
+.basics-pill { list-style: none; display: inline-flex; cursor: pointer; background: transparent; color: var(--paper); border: 2px solid var(--sand); min-height: 2.75rem; padding: .45rem 1.2rem; }
+.basics-pill::-webkit-details-marker { display: none; }
+.basics-pill::before { content: "+"; margin-right: .45rem; font-weight: 700; color: var(--sand); }
+.basics[open] .basics-pill { background: var(--sand); color: var(--ink); }
+.basics[open] .basics-pill::before { content: "2"; color: var(--ink); }
+.basics-body { margin-top: .8rem; background: var(--paper); color: var(--ink); border-radius: 1.1rem; padding: 1.1rem 1.2rem .6rem; }
+.basics-body h3 { font-family: var(--display); font-size: 1.5rem; margin: 0 0 .6rem; color: var(--rust-deep); }
+.basics-body dl { margin: 0; }
+.basics-body dt { font-family: var(--label); font-weight: 700; letter-spacing: .04em; color: var(--ink); margin-top: .7rem; }
+.basics-body dd { margin: .15rem 0 0; color: var(--ink-soft); line-height: 1.5; }
+.basics-body b { color: var(--rust-deep); }
+@media (hover: hover) { .basics-pill:hover { background: rgba(220,174,85,.18); } }
