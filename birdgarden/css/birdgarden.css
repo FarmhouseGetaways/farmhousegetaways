@@ -256,7 +256,7 @@ figcaption { font-family: var(--label); font-size: 1rem; color: var(--ink-soft);
 /* ---------- Stay ---------- */
 .stay { position: relative; padding: clamp(3rem, 10vw, 7rem) var(--gutter); isolation: isolate; overflow: hidden; }
 .stay-photo { position: absolute; inset: 0; z-index: -2; }
-.stay-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; }
+.stay-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; }
 .stay::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(10,62,69,.45); }
 .stay-card { max-width: 36rem; margin: 0 auto; background: var(--paper-hi) var(--grain); padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid var(--ink); box-shadow: inset 0 0 0 6px var(--paper-hi), inset 0 0 0 7px var(--rule), 0 1.5rem 3.5rem rgba(0,0,0,.4); }
 .stay-card p:not(.eyebrow) { color: var(--ink-soft); }

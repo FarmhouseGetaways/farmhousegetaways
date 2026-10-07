@@ -214,7 +214,7 @@ figcaption { font-family: var(--mono); font-size: .76rem; letter-spacing: .04em;
 
 /* ---------- Details strip ---------- */
 .details { padding: clamp(3rem, 8vw, 5.5rem) 0 clamp(2rem, 5vw, 3.5rem); }
-.strip { display: grid; grid-auto-flow: column; grid-auto-columns: min(70vw, 19rem); gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: .4rem var(--gutter) 1.2rem; scrollbar-color: var(--rust) transparent; }
+.strip { display: grid; grid-auto-flow: column; grid-auto-columns: min(70vw, 19rem); gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter); padding: .4rem var(--gutter) 1.2rem; scrollbar-color: var(--rust) transparent; }
 .strip figure { scroll-snap-align: start; }
 .strip img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 @media (min-width: 64rem) { .strip { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); max-width: 72rem; margin: 0 auto; overflow: visible; } }

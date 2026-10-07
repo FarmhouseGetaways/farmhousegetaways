@@ -10,3 +10,15 @@
   });
   io.observe(art);
 })();
+
+/* On a phone the map is shown 5:4 (see dospicos.css), framed on the part
+   from the house to the playground so every labelled landmark stays in view. */
+(function () {
+  var svg = document.querySelector(".hero-art svg");
+  if (!svg || !window.matchMedia) return;
+  var mq = window.matchMedia("(max-width: 39.99rem)");
+  function fit() { svg.setAttribute("viewBox", mq.matches ? "350 0 1200 900" : "0 0 1600 900"); }
+  fit();
+  if (mq.addEventListener) mq.addEventListener("change", fit);
+  else if (mq.addListener) mq.addListener(fit);
+})();

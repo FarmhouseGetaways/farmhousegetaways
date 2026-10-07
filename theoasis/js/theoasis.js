@@ -12,7 +12,7 @@
 })();
 
 /* Afternoon or evening. The page is drawn by day; this button, and an
-   evening visit, swap the scene to dusk with the pool lights on. */
+   evening visit, swap the scene to dusk with the Oasis lights on. */
 (function () {
   var hero = document.querySelector(".hero");
   var btn = document.getElementById("time-toggle");
