@@ -725,12 +725,21 @@ photograph of the owners anywhere on the site, which is the largest gap on it �
 - Seasonal pool heating rates. The site now says to ask, which holds until she
   has winter pricing.
 
-**The barn paragraph on `red-barn-ranch.html` was rewritten by the owner** on
-10 Aug 2026, through the editor. It no longer names the pinewood derby track,
-but the gallery directly beneath it still carries a photograph captioned "Derby
-track" and the board still says "Derby track and putting green — Yes". Not a
-contradiction, but the owner was asked whether the derby track should go back
-into the prose and has not answered.
+**The barn's game list, from Cory, 4 Oct 2026. This supersedes earlier wording.**
+- 8-foot billiards table under the custom beam Edison light.
+- Mini-bowling. The shuffleboard is gone.
+- Air hockey.
+- Darts. iVizhin Darts is coming.
+- **Legend's Stadium Basketball:** built from scratch, with their own graphics, games and sounds. The hoops photo shows it.
+- **Legend's Dragway:** a 1/24 scale drag race with computerized timing, race videos and two screens. It was built for Legend's third birthday. The four-lane track photo shows it.
+- Putting green.
+- Xbox Series S with 4 controllers.
+- 150" screen.
+- Half a dozen arcade games.
+
+There is **no foosball and no giant Connect 4** in the barn. Never use `rbr-shuffleboard.jpg`, which shows the old table.
+
+The barn also has its own micro-site draft at `/thebarn` on the `microsites` branch.
 
 **SEO comes last.** Titles, meta descriptions and structured data should be done
 in one pass across all nine pages. The site is public and indexable now — see
