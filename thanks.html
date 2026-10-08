@@ -10,6 +10,13 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-MFZXQL6BJ2');
+
+  // A group inquiry (book-both, wedding-groups) is the most valuable lead the
+  // site takes, and until 7 Oct 2026 it fired nothing: generate_lead lived only
+  // on thanks-list.html, so Google Ads never saw an inquiry from an ad click.
+  // Same event name as the list signups, because that is what Ads imports as
+  // "Submit lead forms"; the form param tells the two apart in GA4.
+  gtag('event', 'generate_lead', { form: 'group-inquiry', property: 'unspecified', source: 'group-inquiry' });
 </script>
 
 <!-- Meta Pixel Code -->
