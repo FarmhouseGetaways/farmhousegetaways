@@ -522,12 +522,12 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
         <g class="pin pin-house" transform="translate(108 459)">
           <circle r="26" fill="#3f5a36" stroke="#fffaf0" stroke-width="6"/>
           <path d="M-12 2 0 -10 12 2 V13 H4 V5 H-4 V13 H-12 Z" fill="#fffaf0"/>
-          <g transform="translate(36 6)"><rect x="0" y="-26" width="300" height="46" rx="23" fill="#fffaf0"/><text x="22" y="6" class="pin-t">Mountain Retreat</text></g>
+          <g class="pin-label" data-anchor="left" transform="translate(36 6)"><rect x="0" y="-26" width="340" height="46" rx="23" fill="#fffaf0"/><text x="22" y="6" class="pin-t">Mountain Retreat</text></g>
         </g>
         <g class="pin pin-park" transform="translate(1012 217)">
           <circle r="26" fill="#b5552f" stroke="#fffaf0" stroke-width="6"/>
           <path d="M0 -14c-7 0-11 5-11 10 0 4 2.5 7 6 8.5L-2 6v9h4V6l3-1.5c3.5-1.5 6-4.5 6-8.5 0-5-4-10-11-10z" fill="#fffaf0"/>
-          <g transform="translate(-30 52)"><rect x="-372" y="-26" width="402" height="46" rx="23" fill="#fffaf0"/><text x="-350" y="6" class="pin-t">Dos Picos County Park</text></g>
+          <g class="pin-label" data-anchor="right" transform="translate(30 52)"><rect x="-440" y="-26" width="440" height="46" rx="23" fill="#fffaf0"/><text x="-418" y="6" class="pin-t">Dos Picos County Park</text></g>
         </g>
         <g class="north" transform="translate(84 84)">
           <circle r="30" fill="#fffaf0" opacity=".92"/>
@@ -535,6 +535,22 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
           <text y="22" text-anchor="middle" class="north-t">N</text>
         </g>
       </svg>
+
+      <script>
+      /* Size each label's pill to its lettering once the fonts are in, since the width varies by browser
+         (Cory's Chrome drew "Mountain Retreat" wider than the fixed pill). The pill keeps its pinned edge. */
+      (function () {
+        function fit() {
+          document.querySelectorAll('.walk-map-svg .pin-label').forEach(function (g) {
+            var t = g.querySelector('text'), r = g.querySelector('rect'), w = t.getBBox().width + 44;
+            if (!w || w < 60) return;
+            r.setAttribute('width', w);
+            if (g.dataset.anchor === 'right') { r.setAttribute('x', -w); t.setAttribute('x', -w + 22); }
+          });
+        }
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else window.addEventListener('load', fit);
+      })();
+      </script>
       <ol class="route">
         <li><span class="route-dot" aria-hidden="true">1</span><div><h3>The driveway</h3><p>Out the front and down the driveway.</p></div></li>
         <li><span class="route-dot" aria-hidden="true">2</span><div><h3>The private road</h3><p>The same road you drove in on.</p></div></li>
