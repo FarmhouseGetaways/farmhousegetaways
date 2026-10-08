@@ -202,12 +202,10 @@ section { scroll-margin-top: 1rem; }
 .family h2 { color: var(--pine); }
 .family-text p:not(.eyebrow) { color: var(--ink-soft); max-width: 36rem; }
 .family-actions { margin-top: 1.6rem; }
-.patches { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .4rem; max-width: 34rem; margin: 0 auto; width: 100%; }
-.patch { width: 100%; height: auto; filter: drop-shadow(0 .7rem 1.1rem rgba(27,38,32,.28)); }
-.patch-mbm { transform: rotate(-5deg); }
-.patch-lodge { transform: rotate(4deg); }
-.trailline { width: clamp(2.6rem, 9vw, 4.5rem); height: auto; }
-@media (min-width: 60rem) { .family-grid { grid-template-columns: 1.05fr .95fr; gap: 4rem; } }
+.patches { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .6rem; max-width: 44rem; margin: 0 auto; width: 100%; }
+.patches img { display: block; width: 100%; height: auto; }
+.trailline { width: clamp(2.4rem, 7vw, 3.6rem); min-width: 2.4rem; height: auto; }
+@media (min-width: 60rem) { .family-grid { grid-template-columns: .9fr 1.1fr; gap: 3rem; } }
 
 /* ---------- The setting ---------- */
 .setting { background: var(--pine-deep); color: var(--paper); padding: clamp(3.5rem, 8vw, 6rem) 0; position: relative; }
