@@ -246,7 +246,7 @@ h3 { font-family: var(--poster); font-weight: 700; font-size: 1.15rem; line-heig
 .route-card figcaption { margin: 1rem .3rem .1rem; padding-top: .9rem; border-top: 2px dashed var(--line); font-family: var(--hand); font-size: 1.1rem; color: var(--oak-deep); }
 .route-card figcaption b { font-family: var(--poster); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--rust); margin-right: .35rem; }
 @media (min-width: 40rem) { .route { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (prefers-reduced-motion: reduce) { .walk-route { animation: none; } .walker { display: none; } }
+@media (prefers-reduced-motion: reduce) { .walk-route { animation: none; } .walkers { display: none; } }
 /* The map wants width: the words across the top, the map the full width under them. */
 @media (min-width: 56rem) { .walk-grid { grid-template-columns: 1fr; gap: 2rem; } .walk-text { max-width: 46rem; } }
 
