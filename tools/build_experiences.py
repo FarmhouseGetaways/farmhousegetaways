@@ -51,8 +51,8 @@ for prop, items in SITES.items():
     page = "/red-barn-ranch.html" if slug == "rbr" else "/mountain-retreat.html"
     groups.append(f'''  <section class="band xp-band xp-{slug}" aria-labelledby="xp-{slug}-h">
     <div class="wrap">
-      <span class="tag">At {prop}</span>
-      <h2 class="headline" id="xp-{slug}-h">{"Four acres of things to do." if slug == "rbr" else "Eight acres at the foot of Iron Mountain."}</h2>
+      <h2 class="xp-prop" id="xp-{slug}-h">{prop}</h2>
+      <p class="xp-prop-sub">{"Four acres of things to do." if slug == "rbr" else "Eight acres at the foot of Iron Mountain."}</p>
       <ul class="xp-grid">
 {chr(10).join(card(*i) for i in items)}
       </ul>
@@ -65,7 +65,7 @@ main = f'''<main id="main">
     <div class="wrap">
       <span class="tag tag-on-dark">Our places, up close</span>
       <h1 class="headline xp-h1">Experience the Farmhouse Getaways magic.</h1>
-      <p class="xp-lede">Each of these has its own page. Tap one and look around.</p>
+      <p class="xp-lede">A closer look at the places our guests love most at Red Barn Ranch and Mountain Retreat.</p>
     </div>
   </section>
 
@@ -92,6 +92,11 @@ STYLE = '''<style>
   .xp-go { white-space: nowrap; }
   .xp-stay { margin: 2.2rem 0 0; text-align: center; }
   .xp-mr { background: var(--sage-pale); }
+  /* The property name is the section title, big, centred and in the house colour (Cory, 10 Oct 2026) */
+  .xp-prop { margin: 0; text-align: center; font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: clamp(2.8rem, 7vw, 5rem); line-height: 1; }
+  .xp-rbr .xp-prop { color: var(--rbr); }
+  .xp-mr .xp-prop { color: var(--mr); }
+  .xp-prop-sub { margin: .7rem auto 0; text-align: center; font-size: 1.15rem; color: var(--plum-soft); }
   /* site.css hovers these to white, which is made for a dark band; these bands are light */
   .xp-stay .btn-rbr:hover { background: var(--rbr); border-color: var(--rbr); color: #fff; }
   .xp-stay .btn-mr:hover { background: var(--mr); border-color: var(--mr); color: #fff; }
