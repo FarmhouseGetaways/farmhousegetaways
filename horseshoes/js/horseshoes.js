@@ -1,297 +1,144 @@
-/* Hillside Horseshoes: the pitch in the hero, and the scorekeeper. */
+/* Hillside Horseshoes: the pitch in the hero. The scorecard has its own page now, /horseshoes/score/
+   (js/score.js); the old in-page scorekeeper that lived here is gone. */
 
-/* The pitch. The page is drawn with the shoe already ringing the far stake.
-   Only once animation frames are actually running does the shoe leave it and
-   fly the dotted arc back onto the stake; a frozen timeline, a background tab
-   or reduced motion simply leaves the ringer where it is. The timer below
-   lands the shoe regardless, so it is never left hidden mid-air. */
+/* The pitch. The page is drawn with the shoe already ringing the far stake. Only once animation frames are
+   actually running does the shoe leave it: the page opens with a ringer, and then the "Pitch another" pill
+   goes round three throws, in order (Cory, 9 Oct 2026): one that bounces out, one close enough for a point,
+   and a ringer.
+
+   Motion: the flight is a true throw. The arc is a quadratic curve stepped evenly in time, so the shoe
+   crosses at a steady speed and rises and falls under constant gravity. A bounce is a quick hop, about .2s
+   up slowing to the top (quad ease-out) and .2s down speeding up (quad ease-in); a smaller hop is shorter,
+   as it would be. Never floaty, never linear. A frozen timeline, a background tab or reduced motion leaves
+   the ringer where it is; the timer below lands each throw regardless, so a shoe is never left mid-air. */
 (function () {
   var scene = document.querySelector(".scene");
   if (!scene) return;
-  var path = scene.querySelector("#flight");
   var flyer = scene.querySelector("#flyer");
+  var tag = scene.querySelector("#tag");
+  var tagText = tag && tag.querySelector("text");
+  var tagBox = tag && tag.querySelector("rect");
   var btn = document.querySelector(".pitch");
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduce || !path || !flyer || !path.getTotalLength) return;
+  if (reduce || !flyer) return;
+
+  var HAND = [514, 452], STAKE = [1083.5, 536];
+  var outQ = function (u) { return 1 - (1 - u) * (1 - u); };
+  var inQ = function (u) { return u * u; };
+
+  function put(x, y, rot, sy) {
+    flyer.setAttribute("transform", "translate(" + x.toFixed(1) + " " + y.toFixed(1) + ")" +
+      (rot ? " rotate(" + rot.toFixed(1) + ")" : "") + (sy != null && sy !== 1 ? " scale(1 " + sy.toFixed(3) + ")" : ""));
+  }
+  // The arc from the thrower's hand to `end`, bending through `ctrl`. Even steps in time: a real throw.
+  function flight(end, ctrl, dur) {
+    return { dur: dur, step: function (k) {
+      var u = 1 - k;
+      put(u * u * HAND[0] + 2 * u * k * ctrl[0] + k * k * end[0],
+          u * u * HAND[1] + 2 * u * k * ctrl[1] + k * k * end[1], k * 720);
+    } };
+  }
+  // One hop along the ground from `a` to `b`, `h` high: rising over `half` ms, then falling over `half` ms.
+  function hop(a, b, h, half, r0, r1, start) {
+    function at(f, lift) {
+      put(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f - h * lift, r0 + (r1 - r0) * f);
+    }
+    return [
+      { dur: half, start: start, step: function (k) { at(k / 2, outQ(k)); } },
+      { dur: half, step: function (k) { at(0.5 + k / 2, 1 - inQ(k)); } }
+    ];
+  }
+  // The shoe tips over and lies flat: seen from the side, it squashes to a sliver.
+  var FLAT = 0.38;
+
+  var THROWS = {
+    // Hits the sand in front of the stake, clangs it, hops back twice and skids out of the pit. No score.
+    bounce: {
+      segs: [flight([1080, 543], [797, 30], 1100)]
+        .concat(hop([1080, 543], [1038, 543], 30, 200, 0, -360, function () { scene.classList.add("clang"); }))
+        .concat(hop([1038, 543], [1004, 552], 12, 130, -360, -720))
+        .concat([{ dur: 260, step: function (k) {
+          var e = outQ(k);
+          put(1004 - 24 * e, 552 + 3 * e, 0, 1 - (1 - FLAT) * outQ(Math.min(1, k * 2.5)));
+        } }]),
+      land: function () { scene.classList.add("off"); }
+    },
+    // Lands short of the stake, within a shoe-width, and lies flat there. One point.
+    point: {
+      segs: [flight([1054, 543], [784, 36], 1080),
+        { dur: 110, step: function (k) { var e = outQ(k); put(1054, 543 + 6 * e, 0, 1 - (1 - FLAT) * e); } }],
+      land: function () { scene.classList.add("off"); showTag("Close +1", 1054); }
+    },
+    // Around the stake: the ring, the ripples, the ding. Three points.
+    ringer: {
+      segs: [flight(STAKE, [800, 30], 1100)],
+      land: function () {
+        put(STAKE[0], STAKE[1]);
+        void scene.getBoundingClientRect();
+        scene.classList.add("rang");
+        showTag("Ringer +3", STAKE[0]);
+      }
+    }
+  };
+
+  function showTag(text, x) {
+    if (!tag || !tagText) return;
+    tagText.textContent = text;
+    var w = 96;
+    try { w = Math.max(80, tagText.getComputedTextLength() + 30); } catch (e) { /* not laid out yet */ }
+    if (tagBox) { tagBox.setAttribute("width", w.toFixed(0)); tagBox.setAttribute("x", (-w / 2).toFixed(1)); }
+    tag.setAttribute("transform", "translate(" + x + " 476)");
+    scene.classList.remove("tagged");
+    void scene.getBoundingClientRect();
+    scene.classList.add("tagged");
+  }
 
   var busy = false;
-  function pitch() {
-    if (busy) return;
+  function pitch(name) {
+    if (busy) return false;
     busy = true;
-    var len = path.getTotalLength(), dur = 1500, t0 = null, done = false;
-    var safety = setTimeout(finish, dur + 1500);
+    var T = THROWS[name], segs = T.segs, cur = 0, started = -1, segStart = 0, t0 = null, done = false;
+    var total = segs.reduce(function (a, s) { return a + s.dur; }, 0);
+    var safety = setTimeout(finish, total + 1500);
+    function begin() {
+      scene.classList.remove("rang", "off", "clang", "tagged");
+      scene.classList.add("throwing");
+    }
     function finish() {
       if (done) return;
       done = true; busy = false;
       clearTimeout(safety);
-      flyer.setAttribute("transform", "translate(1083.5 536)");
-      scene.classList.remove("throwing", "rang");
-      void scene.getBoundingClientRect();
-      scene.classList.add("rang");
+      if (t0 === null) begin();
+      for (; cur < segs.length; cur++) {
+        if (started !== cur && segs[cur].start) segs[cur].start();
+        segs[cur].step(1);
+      }
+      scene.classList.remove("throwing");
+      T.land();
     }
-    function step(ts) {
+    function frame(ts) {
       if (done) return;
-      if (t0 === null) { t0 = ts; scene.classList.remove("rang"); scene.classList.add("throwing"); }
-      var k = Math.min(1, (ts - t0) / dur);
-      var e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-      e = 0.35 * k + 0.65 * e; // mostly eased, never stalls at the ends
-      var p = path.getPointAtLength(len * e);
-      flyer.setAttribute("transform", "translate(" + p.x.toFixed(1) + " " + p.y.toFixed(1) + ") rotate(" + (e * 720).toFixed(1) + ")");
-      if (k < 1) requestAnimationFrame(step); else finish();
+      if (t0 === null) { t0 = ts; begin(); }
+      var el = ts - t0;
+      while (cur < segs.length) {
+        var s = segs[cur];
+        if (started !== cur) { started = cur; if (s.start) s.start(); }
+        var k = s.dur ? (el - segStart) / s.dur : 1;
+        if (k < 1) { s.step(Math.max(0, k)); break; }
+        s.step(1); segStart += s.dur; cur++;
+      }
+      if (cur >= segs.length) finish(); else requestAnimationFrame(frame);
     }
-    requestAnimationFrame(step);
+    requestAnimationFrame(frame);
+    return true;
   }
 
-  setTimeout(pitch, 900);
+  setTimeout(function () { pitch("ringer"); }, 900);
+  var ORDER = ["bounce", "point", "ringer"], next = 0;
   if (btn) {
     btn.hidden = false;
-    btn.addEventListener("click", pitch);
-  }
-})();
-
-/* The scorekeeper. Every tap is one entry in a log; the scores are worked out
-   from the log, so Undo is just "take the last entry off". The game lives in
-   localStorage after every change (wrapped, so private browsing still works,
-   just without the memory). The key is namespaced because every micro-site
-   shares the farmhousegetaways.com origin. */
-(function () {
-  var board = document.getElementById("board");
-  if (!board) return;
-  var KEY = "fg-horseshoes-v1";
-  // The pit's four sets of shoes. Each player throws one colour; picking a colour
-  // another player has swaps the two, so no two players ever share a set.
-  var SHOES = [["white", "White"], ["green", "Green"], ["red", "Red"], ["blue", "Blue"]];
-  var TARGETS = [11, 21, 40];
-  var $ = function (id) { return document.getElementById(id); };
-  var list = $("players"), logEl = $("log"), winBox = $("winner");
-
-  function fresh(keep) {
-    return { v: 1, to: keep ? keep.to : 21, n: keep ? keep.n : 2, names: keep ? keep.names.slice() : ["", "", "", ""],
-             colors: keep && keep.colors ? keep.colors.slice() : ["white", "green", "red", "blue"], log: [] };
-  }
-  var state = (function () {
-    try {
-      var s = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (s && s.v === 1 && Array.isArray(s.log) && Array.isArray(s.names)) {
-        s.to = TARGETS.indexOf(s.to) >= 0 ? s.to : 21;
-        s.n = Math.min(4, Math.max(1, s.n | 0));
-        while (s.names.length < 4) s.names.push("");
-        var ok = Array.isArray(s.colors) && s.colors.length === 4 && SHOES.every(function (c) { return s.colors.indexOf(c[0]) >= 0; });
-        if (!ok) s.colors = ["white", "green", "red", "blue"];
-        return s;
-      }
-    } catch (e) { /* no storage: start clean */ }
-    return fresh();
-  })();
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* keep going without it */ }
-  }
-
-  function nameOf(i) { return (state.names[i] || "").trim() || "Player " + (i + 1); }
-  function scores() {
-    var s = [0, 0, 0, 0];
-    state.log.forEach(function (e) { if (e.p >= 0 && e.p < 4) s[e.p] += e.pts; });
-    return s;
-  }
-  function winner() {
-    // The first player to reach the target, in the order the points were scored.
-    var s = [0, 0, 0, 0];
-    for (var i = 0; i < state.log.length; i++) {
-      var e = state.log[i];
-      if (e.p < 0 || e.p >= state.n) continue;
-      s[e.p] += e.pts;
-      if (s[e.p] >= state.to) return e.p;
-    }
-    return -1;
-  }
-
-  var rows = [];
-  function build() {
-    list.textContent = "";
-    rows = [];
-    for (var i = 0; i < state.n; i++) {
-      var li = document.createElement("li");
-      li.className = "player shoe-" + state.colors[i];
-
-      var tag = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      tag.setAttribute("viewBox", "0 0 100 150");
-      tag.setAttribute("class", "p-tag");
-      tag.setAttribute("aria-hidden", "true");
-      var use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-      use.setAttribute("href", "#rosette");
-      tag.appendChild(use);
-
-      var input = document.createElement("input");
-      input.className = "p-name";
-      input.type = "text";
-      input.maxLength = 18;
-      input.autocomplete = "off";
-      input.placeholder = "Player " + (i + 1);
-      input.value = state.names[i] || "";
-      input.setAttribute("aria-label", "Name for player or team " + (i + 1));
-      (function (idx) {
-        input.addEventListener("input", function () { state.names[idx] = this.value; save(); });
-      })(i);
-
-      var score = document.createElement("div");
-      score.className = "p-score";
-      score.setAttribute("aria-hidden", "true");
-      var num = document.createElement("span");
-      var of = document.createElement("small");
-      score.appendChild(num); score.appendChild(of);
-
-      var track = document.createElement("div");
-      track.className = "p-track";
-      track.setAttribute("aria-hidden", "true");
-      var bar = document.createElement("span");
-      track.appendChild(bar);
-
-      var btns = document.createElement("div");
-      btns.className = "p-btns";
-      var r = mk("pill btn-shoe btn-ringer", "+3", "Ringer"), c = mk("pill btn-shoe btn-close", "+1", "Close");
-      (function (idx) {
-        r.addEventListener("click", function () { add(idx, 3); });
-        c.addEventListener("click", function () { add(idx, 1); });
-      })(i);
-      btns.appendChild(r); btns.appendChild(c);
-
-      var pick = document.createElement("div");
-      pick.className = "p-colors";
-      pick.setAttribute("role", "group");
-      pick.setAttribute("aria-label", "Shoe colour for player " + (i + 1));
-      var lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "Shoes";
-      pick.appendChild(lbl);
-      var sw = [];
-      SHOES.forEach(function (shoe) {
-        var b = document.createElement("button");
-        b.type = "button";
-        b.className = "swatch shoe-" + shoe[0];
-        b.setAttribute("aria-label", shoe[1] + " shoes");
-        b.setAttribute("data-shoe", shoe[0]);
-        (function (idx, col) { b.addEventListener("click", function () { choose(idx, col); }); })(i, shoe[0]);
-        pick.appendChild(b); sw.push(b);
-      });
-
-      li.appendChild(tag); li.appendChild(input); li.appendChild(score); li.appendChild(pick); li.appendChild(track); li.appendChild(btns);
-      list.appendChild(li);
-      rows.push({ li: li, num: num, of: of, bar: bar, r: r, c: c, input: input, sw: sw });
-    }
-  }
-  function mk(cls, big, small) {
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = cls;
-    var t = document.createElement("span"); t.textContent = big;
-    var s = document.createElement("small"); s.textContent = small;
-    b.appendChild(t); b.appendChild(s);
-    return b;
-  }
-
-  var last = [0, 0, 0, 0];
-  function render(bumpIdx) {
-    var s = scores(), w = winner(), top = Math.max.apply(null, s.slice(0, state.n));
-    rows.forEach(function (row, i) {
-      row.li.className = "player shoe-" + state.colors[i] + (top > 0 && s[i] === top && state.n > 1 ? " leading" : "");
-      row.sw.forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-shoe") === state.colors[i])); });
-      row.num.textContent = s[i];
-      row.of.textContent = "of " + state.to;
-      row.bar.style.width = Math.min(100, (s[i] / state.to) * 100) + "%";
-      row.r.disabled = row.c.disabled = w >= 0;
-      var who = nameOf(i);
-      row.r.setAttribute("aria-label", "Ringer, 3 points for " + who);
-      row.c.setAttribute("aria-label", "Close, 1 point for " + who);
-      if (i === bumpIdx) {
-        row.num.parentNode.classList.remove("bump");
-        void row.num.parentNode.offsetWidth;
-        row.num.parentNode.classList.add("bump");
-      }
+    btn.addEventListener("click", function () {
+      if (pitch(ORDER[next])) next = (next + 1) % ORDER.length;
     });
-    $("undo").disabled = state.log.length === 0;
-    if (w >= 0) {
-      winBox.hidden = false;
-      $("winner-name").textContent = nameOf(w);
-      $("winner-line").textContent = "First to " + state.to + ", with " + s[w] + ".";
-    } else {
-      winBox.hidden = true;
-    }
-    board.querySelectorAll("[data-to]").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-to") === state.to)); });
-    board.querySelectorAll("[data-n]").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-n") === state.n)); });
-    last = s;
   }
-  function say(text) { logEl.textContent = text; }
-  function shoeName(col) { for (var k = 0; k < SHOES.length; k++) if (SHOES[k][0] === col) return SHOES[k][1]; return col; }
-  function choose(i, col) {
-    var other = state.colors.indexOf(col);
-    if (other === i) return;
-    state.colors[other] = state.colors[i];
-    state.colors[i] = col;
-    save(); render();
-    say(nameOf(i) + " throws the " + shoeName(col).toLowerCase() + " shoes" +
-        (other < state.n ? ", " + nameOf(other) + " takes the " + shoeName(state.colors[other]).toLowerCase() : "") + ".");
-  }
-  function standings() {
-    var s = scores(), out = [];
-    for (var i = 0; i < state.n; i++) out.push(nameOf(i) + " " + s[i]);
-    return out.join(", ");
-  }
-
-  function add(i, pts) {
-    if (winner() >= 0) return;
-    state.log.push({ p: i, pts: pts });
-    if (state.log.length > 600) state.log.shift();
-    save();
-    render(i);
-    var w = winner();
-    if (w >= 0) say(nameOf(w) + " reaches " + state.to + " and takes the blue ribbon.");
-    else say((pts === 3 ? "Ringer for " : "One point for ") + nameOf(i) + ". " + standings() + ".");
-  }
-
-  $("undo").addEventListener("click", function () {
-    var e = state.log.pop();
-    if (!e) return;
-    save(); render(e.p >= 0 ? e.p : undefined);
-    if (e.p < 0) say("Took back the cancelled frame. " + standings() + ".");
-    else say("Took back " + (e.pts === 3 ? "a ringer" : "a point") + " for " + nameOf(e.p) + ". " + standings() + ".");
-  });
-
-  // New game asks for a second tap instead of a dialog box.
-  var armed = null, newBtn = $("new");
-  newBtn.addEventListener("click", function () {
-    if (!armed) {
-      newBtn.classList.add("armed");
-      newBtn.textContent = "Tap again to clear";
-      armed = setTimeout(disarm, 3500);
-      return;
-    }
-    disarm();
-    state = fresh(state);
-    save(); render();
-    say("New game to " + state.to + ". Good luck, everyone.");
-  });
-  function disarm() {
-    clearTimeout(armed); armed = null;
-    newBtn.classList.remove("armed");
-    newBtn.textContent = "New game";
-  }
-
-  board.querySelectorAll("[data-to]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      state.to = +b.getAttribute("data-to");
-      save(); render();
-      say("Playing to " + state.to + ".");
-    });
-  });
-  board.querySelectorAll("[data-n]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var n = +b.getAttribute("data-n");
-      if (n === state.n) return;
-      state.n = n;
-      save(); build(); render();
-      say(n === 1 ? "One player. Keep your own count." : n + " players or teams.");
-    });
-  });
-
-  build();
-  render();
-  board.hidden = false;
 })();

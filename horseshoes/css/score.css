@@ -1,0 +1,239 @@
+/* The Hillside Horseshoes scorecard, /horseshoes/score/.
+   Used outdoors on a phone, one hand, in sun, so it is always this light look with big targets, whatever the
+   phone's own theme: fair-paper cream, white cards, iron ink, and the iron bar with the lucky-shoe mark on top.
+   Same palette and fonts as the Hillside Horseshoes page (css/horseshoes.css), copied here so the two pages
+   can change independently. Each player's card, chip and scoring pills wear their shoe colour. */
+
+@font-face { font-family: "Rye"; src: url("/horseshoes/fonts/rye.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Zilla Slab"; src: url("/horseshoes/fonts/zilla-slab-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Zilla Slab"; src: url("/horseshoes/fonts/zilla-slab-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Libre Franklin"; src: url("/horseshoes/fonts/libre-franklin.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+
+:root {
+  color-scheme: light;
+  --rust: #94431f;
+  --rust-deep: #6c2f15;
+  --rust-bright: #b0502a;
+  --iron: #2f2724;
+  --iron-soft: #5a4d47;
+  --sage-deep: #4f6549;
+  --sand: #dcae55;
+  --sand-deep: #b88a33;
+  --sand-soft: #efd8a0;
+  --creek: #3f7fa3;
+  --creek-deep: #2b5f7e;
+  --paper: #f7efdf;
+  --paper-2: #efe3cb;
+  --card: #fffaf0;
+  --ink: #2b221e;
+  --ink-soft: #5b4d45;
+  --line: #e0cfae;
+  --display: "Rye", "Rockwell Extra Bold", Georgia, serif;
+  --label: "Zilla Slab", Rockwell, Georgia, serif;
+  --body: "Libre Franklin", system-ui, sans-serif;
+  --gutter: 16px;
+  --up: cubic-bezier(.5, 1, .89, 1);   /* quad ease-out: rising, slowing to the top */
+  --down: cubic-bezier(.11, 0, .5, 0); /* quad ease-in: falling, speeding up */
+}
+@media (min-width: 40rem) { :root { --gutter: clamp(1rem, 4vw, 2.5rem); } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 1.0625rem; line-height: 1.5; min-height: 100svh; overflow-x: hidden; }
+h1, h2, h3 { margin: 0; font-weight: 400; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+
+/* Shoe colours: the four sets at the pit. */
+.shoe-white { --c: #f4f1ea; --c-ink: #2b221e; --c-edge: #b9ada0; --c-shadow: #cfc6b8; --c-text: #5b4d45; }
+.shoe-green { --c: #2f7d4f; --c-ink: #fff; --c-edge: #2f7d4f; --c-shadow: #1f5a37; --c-text: #2f7d4f; }
+.shoe-red   { --c: #b8322a; --c-ink: #fff; --c-edge: #b8322a; --c-shadow: #86231d; --c-text: #b8322a; }
+.shoe-blue  { --c: #2f6fb0; --c-ink: #fff; --c-edge: #2f6fb0; --c-shadow: #214f80; --c-text: #2f6fb0; }
+
+/* ---------- Pills and buttons: every control is a pill ---------- */
+.pill, .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  min-height: 3rem; padding: .65rem 1.3rem; border-radius: 999px; border: 2px solid transparent;
+  font-family: var(--label); font-weight: 700; font-size: 1.02rem; letter-spacing: .06em; text-transform: uppercase;
+  text-decoration: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, background-color .15s ease, color .15s ease, box-shadow .12s ease, border-color .15s ease;
+}
+.btn { background: var(--rust); color: var(--paper); box-shadow: 0 3px 0 var(--rust-deep); min-height: 3.5rem; font-size: 1.1rem; }
+.pill-quiet { background: var(--card); color: var(--ink); border-color: var(--line); }
+.pill-wide { width: 100%; }
+.pill:active, .btn:active { transform: translateY(2px); box-shadow: none; }
+.pill:disabled, .btn:disabled { opacity: .4; cursor: default; transform: none; box-shadow: none; }
+.pill.armed { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+@media (hover: hover) {
+  .btn:not(:disabled):hover { background: var(--rust-bright); }
+  .pill-quiet:not(:disabled):hover { border-color: var(--rust); }
+}
+.pill:focus-visible, .btn:focus-visible, a:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--creek); outline-offset: 3px; }
+
+/* ---------- The bar ---------- */
+.hs-bar {
+  display: flex; align-items: center; gap: .8rem;
+  padding: max(.7rem, env(safe-area-inset-top)) var(--gutter) .7rem;
+  background: var(--iron); color: var(--paper);
+  background-image: radial-gradient(rgba(239,216,160,.08) 1px, transparent 1.4px); background-size: 14px 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: .55rem; min-width: 0; text-decoration: none; font-family: var(--display); font-size: 1.08rem; line-height: 1.1; color: var(--paper); }
+.brand span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mark { width: 2.2rem; height: 2.2rem; flex: none; }
+.pill-bar { margin-left: auto; flex: none; min-height: 2.6rem; padding: .4rem 1.1rem; font-size: .9rem; background: transparent; color: var(--sand-soft); border-color: rgba(239,216,160,.45); }
+@media (hover: hover) { .pill-bar:hover { border-color: var(--sand); color: var(--paper); } }
+
+.hs-main { width: min(100% - 2 * var(--gutter), 36rem); margin: 0 auto; padding: 1.6rem 0 max(3rem, env(safe-area-inset-bottom)); }
+.eyebrow { font-family: var(--label); font-weight: 700; font-size: .85rem; letter-spacing: .2em; text-transform: uppercase; color: var(--rust); margin-bottom: .4rem; }
+.hs-screen h1 { font-family: var(--display); font-size: clamp(2.3rem, 10vw, 3.2rem); line-height: 1.02; color: var(--rust-deep); overflow-wrap: anywhere; }
+.hs-lede { margin-top: .6rem; color: var(--ink-soft); }
+.hs-h2 { font-family: var(--label); font-weight: 700; font-size: .9rem; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); margin: 1.8rem 0 .6rem; }
+.hs-go { width: 100%; margin-top: 1.6rem; }
+
+/* A chip: the player's shoe colour with a lucky shoe on it. */
+.chip { width: 2.4rem; height: 2.4rem; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: var(--c-ink); box-shadow: inset 0 0 0 2px var(--c-edge); }
+.chip svg { width: 1.45rem; height: 1.45rem; display: block; }
+
+/* ---------- 1. Who is playing ---------- */
+.roster { list-style: none; margin: 1.4rem 0 .9rem; padding: 0; display: grid; gap: .75rem; }
+.ro {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .65rem .7rem; align-items: center;
+  padding: .85rem .85rem .85rem 1rem; border-radius: 1.1rem; background: var(--card); border: 1px solid var(--line); border-left: 8px solid var(--c-edge);
+}
+.ro input {
+  width: 100%; min-width: 0; min-height: 2.9rem; padding: .45rem 1rem; border-radius: 999px;
+  border: 2px dashed var(--line); background: var(--paper); color: var(--ink);
+  font-family: var(--label); font-weight: 700; font-size: 1.2rem;
+}
+.ro input::placeholder { color: #9b8b7e; }
+.ro input:focus { border-style: solid; border-color: var(--creek); outline: none; }
+.remove { width: 2.75rem; height: 2.75rem; border-radius: 999px; border: 0; background: transparent; color: var(--ink-soft); font-size: 1.7rem; line-height: 1; cursor: pointer; }
+@media (hover: hover) { .remove:hover { background: var(--paper-2); } }
+.ro-colors { grid-column: 1 / -1; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ro-colors .lbl { font-family: var(--label); font-weight: 700; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-right: .2rem; }
+.swatch { width: 2.75rem; height: 2.75rem; padding: 0; border-radius: 999px; background: var(--c); border: 2px solid var(--c-edge); box-shadow: inset 0 0 0 3px var(--card); cursor: pointer; touch-action: manipulation; }
+.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--card), 0 0 0 3px var(--ink); }
+
+.games { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.game { flex-direction: column; gap: .15rem; min-height: 4.6rem; padding: .5rem .7rem; border-radius: 999px; background: var(--card); color: var(--ink); border-color: var(--line); text-transform: none; letter-spacing: 0; }
+.game b { font-family: var(--display); font-weight: 400; font-size: 1.9rem; line-height: 1; }
+.game small { font-family: var(--label); font-weight: 700; font-size: .82rem; letter-spacing: .04em; line-height: 1.1; text-align: center; color: var(--ink-soft); }
+.game[aria-pressed="true"] { background: var(--sand); border-color: var(--sand-deep); box-shadow: 0 3px 0 var(--sand-deep); }
+.game[aria-pressed="true"] small { color: var(--ink); }
+@media (hover: hover) { .game[aria-pressed="false"]:hover { border-color: var(--sand-deep); } }
+
+/* The basics, a pill that opens the rules. Plain <details>, so it works without JavaScript. */
+.basics { margin-top: 1.4rem; }
+.basics-pill { list-style: none; display: inline-flex; background: var(--card); color: var(--ink); border-color: var(--line); min-height: 2.75rem; padding: .45rem 1.2rem; font-size: .92rem; }
+.basics-pill::-webkit-details-marker { display: none; }
+.basics-pill::before { content: "+"; font-weight: 700; color: var(--rust); }
+.basics[open] .basics-pill { background: var(--iron); color: var(--paper); border-color: var(--iron); }
+.basics[open] .basics-pill::before { content: "\2212"; color: var(--sand); }
+@media (hover: hover) { .basics-pill:hover { border-color: var(--rust); } }
+.basics-body { margin-top: .8rem; background: var(--card); border: 1px solid var(--line); border-radius: 1.1rem; padding: 1rem 1.15rem .9rem; background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(63,127,163,.07) 27px 28px); }
+.basics-body h3 { font-family: var(--display); font-size: 1.45rem; margin: 0 0 .3rem; color: var(--rust-deep); }
+.basics-body dl { margin: 0; }
+.basics-body dt { font-family: var(--label); font-weight: 700; color: var(--ink); margin-top: .7rem; }
+.basics-body dt:first-child { margin-top: 0; }
+.basics-body dd { margin: .15rem 0 0; color: var(--ink-soft); line-height: 1.5; font-size: 1rem; }
+.basics-body b { color: var(--rust-deep); }
+
+/* ---------- 2. The round ---------- */
+.board {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .2rem 1.2rem; align-items: end;
+  padding: 1rem 1.2rem 1.1rem; border-radius: 1.3rem; background: var(--iron); color: var(--paper);
+  background-image: radial-gradient(rgba(239,216,160,.08) 1px, transparent 1.4px); background-size: 14px 14px;
+  box-shadow: 0 1rem 2rem -1.2rem rgba(43,34,30,.7);
+}
+.board-k { display: block; font-family: var(--label); font-weight: 700; font-size: .78rem; letter-spacing: .2em; text-transform: uppercase; color: var(--sand-soft); }
+.board-num { display: inline-block; font-family: var(--display); font-size: 4.2rem; line-height: .95; color: var(--sand); }
+.board-to { justify-self: end; text-align: right; padding-bottom: .35rem; }
+.board-target { display: block; font-family: var(--display); font-size: 2.2rem; line-height: 1; color: var(--paper); }
+.board-game { display: block; font-family: var(--label); font-weight: 500; font-size: .95rem; color: #d9cdb9; }
+.board-lead { grid-column: 1 / -1; margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed rgba(239,216,160,.3); font-family: var(--label); font-weight: 700; font-size: 1.1rem; line-height: 1.3; color: var(--paper); }
+
+.cards { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .8rem; }
+.pc {
+  padding: .85rem .85rem .9rem 1rem; border-radius: 1.2rem; background: var(--card); border: 1px solid var(--line); border-left: 8px solid var(--c-edge);
+  display: grid; gap: .6rem; transition: box-shadow .2s ease;
+}
+.pc.leading { box-shadow: 0 0 0 3px var(--sand); }
+.pc-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .7rem; align-items: center; }
+.pc-who b { display: block; font-family: var(--label); font-weight: 700; font-size: 1.3rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-meta { display: block; font-size: .85rem; color: var(--ink-soft); }
+.pc-total { text-align: right; }
+.pc-num { display: block; font-family: var(--display); font-size: 2.8rem; line-height: 1; color: var(--rust-deep); }
+.pc-go { display: block; font-family: var(--label); font-weight: 700; font-size: .8rem; letter-spacing: .04em; color: var(--ink-soft); margin-top: .1rem; white-space: nowrap; }
+.pc-track { position: relative; height: .6rem; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
+.pc-track span { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; background: var(--c); box-shadow: inset 0 0 0 1px var(--c-edge); transition: width .3s ease; }
+.pc-btns { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: .55rem; }
+.pc-btns .pill { flex-direction: column; gap: .1rem; min-height: 4.2rem; padding: .45rem .6rem; line-height: 1; }
+.pc-btns .pill b { font-family: var(--display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0; line-height: 1; }
+.pc-btns .pill small { font-family: var(--label); font-weight: 700; font-size: .85rem; letter-spacing: .1em; }
+.pc-ringer { background: var(--c); color: var(--c-ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
+.pc-close { background: var(--card); color: var(--ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
+.pc-close b { color: var(--c-text); }
+.pc-minus {
+  width: 3.3rem; min-height: 4.2rem; border-radius: 999px; border: 2px solid var(--line); background: var(--paper);
+  font-family: var(--body); font-weight: 700; font-size: 1.7rem; line-height: 1; color: var(--ink-soft); cursor: pointer; touch-action: manipulation;
+}
+.pc-minus:disabled { opacity: .35; cursor: default; }
+.pc-minus:not(:disabled):active { transform: translateY(2px); }
+@media (hover: hover) {
+  .pc-btns .pill:not(:disabled):hover { filter: brightness(1.06); }
+  .pc-minus:not(:disabled):hover { border-color: var(--rust); color: var(--rust); }
+}
+
+.hs-nav { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .7rem; margin-top: 1.2rem; }
+.say { min-height: 1.5em; margin-top: .8rem; font-family: var(--label); font-weight: 500; color: var(--ink-soft); }
+.hs-under { margin-top: 1.2rem; padding-top: 1.2rem; border-top: 1px dashed var(--line); }
+.hs-under .pill { font-size: .92rem; min-height: 2.75rem; }
+.basics-play { margin-top: .7rem; }
+
+/* ---------- 3. Finished ---------- */
+.win { --c: var(--creek); text-align: center; padding: 1.2rem 1rem 1.4rem; border-radius: 1.4rem; background: var(--card); border: 2px solid var(--sand-soft); box-shadow: 0 1.2rem 2.4rem -1.4rem rgba(43,34,30,.55); }
+.win-rosette { display: block; width: 5.4rem; height: 8.1rem; margin: 0 auto .4rem; color: var(--c); filter: drop-shadow(0 4px 3px rgba(0,0,0,.25)); }
+.win.shoe-white .win-rosette { color: var(--creek); }
+.win .eyebrow { color: var(--creek-deep); }
+.win h1 { font-size: clamp(2.6rem, 12vw, 3.8rem); }
+.standings { list-style: none; margin: 1.2rem 0 0; padding: 0; display: grid; gap: .6rem; }
+.st {
+  display: grid; grid-template-columns: 1.6rem auto minmax(0, 1fr) auto; gap: .7rem; align-items: center;
+  padding: .75rem 1rem .75rem .8rem; border-radius: 1.1rem; background: var(--card); border: 1px solid var(--line); border-left: 8px solid var(--c-edge);
+}
+.st.first { background: linear-gradient(90deg, #f8e7bb, var(--card) 75%); border-color: var(--sand); border-left-color: var(--c-edge); }
+.st .place { font-family: var(--display); font-size: 1.4rem; color: var(--ink-soft); text-align: center; }
+.st.first .place { color: var(--rust-deep); }
+.st .who b { display: block; font-family: var(--label); font-weight: 700; font-size: 1.2rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st .who span { display: block; font-size: .85rem; color: var(--ink-soft); }
+.st .tot { font-family: var(--display); font-size: 2rem; line-height: 1; text-align: right; color: var(--rust-deep); }
+.st .tot small { display: block; font-family: var(--label); font-weight: 700; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.hs-after { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.6rem; }
+.hs-after .btn { flex: 1 1 100%; }
+.hs-after .pill { flex: 1 1 0; white-space: nowrap; padding-left: .9rem; padding-right: .9rem; }
+.hs-after .pill-wide { flex: 1 1 100%; }
+
+.nojs { margin-top: 1rem; background: var(--card); border: 1px solid var(--line); border-radius: 1rem; padding: 1rem 1.2rem; }
+
+/* ---------- Motion ----------
+   A score that changes hops once: about .2s up, slowing to the top, then .2s down, speeding up, like
+   something tossed. Never floaty, never linear. Nothing moves with reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .hop { animation: hop .4s both; }
+  .win-rosette.hop { animation-duration: .44s; }
+}
+@keyframes hop {
+  0% { transform: translateY(0); animation-timing-function: var(--up); }
+  50% { transform: translateY(-.55rem); animation-timing-function: var(--down); }
+  100% { transform: translateY(0); }
+}
+.pc-total.hop, .board-num.hop { display: inline-block; }
+.board-num { will-change: transform; }
+
+@media (max-width: 22rem) {
+  .brand span { font-size: .95rem; }
+  .pc-btns { gap: .4rem; }
+  .pc-minus { width: 2.8rem; }
+}

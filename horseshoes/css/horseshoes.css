@@ -129,8 +129,13 @@ h1 { display: flex; flex-direction: column; align-items: flex-start; margin: 0 0
 
 /* Scene pieces. The at-rest picture is the ringer on the far stake. */
 .flyer { visibility: hidden; }
-.scene.throwing .flyer { visibility: visible; }
-.scene.throwing .landed, .scene.throwing .ripples { visibility: hidden; }
+.scene.throwing .flyer, .scene.off .flyer { visibility: visible; }
+.scene.throwing .landed, .scene.throwing .ripples, .scene.off .landed, .scene.off .ripples { visibility: hidden; }
+/* The score tag over the stake: a pill that hops in, holds, and fades. Only horseshoes.js ever shows it. */
+.tag { pointer-events: none; }
+.tag-in { opacity: 0; }
+.tag rect { fill: var(--rust); stroke: var(--sand-soft); stroke-width: 2.5; }
+.tag text { fill: var(--paper); font-family: var(--label); font-weight: 700; font-size: 19px; letter-spacing: .04em; }
 .ripples circle { opacity: 0; transform-box: fill-box; transform-origin: center; }
 .stake, .prize { transform-box: fill-box; }
 .stake { transform-origin: 50% 100%; }
@@ -147,6 +152,16 @@ h1 { display: flex; flex-direction: column; align-items: flex-start; margin: 0 0
   .scene.rang .stake { animation: wobble .7s ease-out; }
   .scene.rang .prize { animation: swing 1.6s ease-out; }
   .scene.rang .ding { animation: ding .6s ease-out; }
+  .scene.clang .stake { animation: wobble .7s ease-out; }
+  .scene.tagged .tag-in { animation: tagpop 1.9s both; }
+}
+/* About .2s up slowing to the top, .2s down speeding up, then it holds and fades. */
+@keyframes tagpop {
+  0% { opacity: 0; transform: translateY(10px); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
+  10.5% { opacity: 1; transform: translateY(-10px); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
+  21% { opacity: 1; transform: translateY(0); }
+  78% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(0); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes drift { from { transform: translateX(-40px); } to { transform: translateX(60px); } }
@@ -210,69 +225,16 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 .keep-grid { display: grid; gap: 1.6rem; align-items: start; }
 @media (min-width: 60rem) { .keep-grid { grid-template-columns: 1.35fr 1fr; gap: 2.2rem; } }
 
-.board { background: #3a302c; border: 2px solid #4d413c; border-radius: 1.4rem; padding: clamp(1rem, 3vw, 1.5rem); box-shadow: 0 1.5rem 3rem -1.5rem rgba(0,0,0,.7); }
-.board-top { display: flex; flex-wrap: wrap; gap: .8rem 1.4rem; margin-bottom: 1rem; }
-.seg { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-.seg-label { font-family: var(--label); font-weight: 700; font-size: .85rem; letter-spacing: .16em; text-transform: uppercase; color: var(--sand-soft); margin-right: .2rem; }
-.seg-btn { min-width: 3rem; min-height: 2.75rem; padding: .4rem .95rem; background: transparent; color: var(--paper); border-color: #6b5c55; font-size: 1.05rem; }
-.seg-btn[aria-pressed="true"] { background: var(--sand); color: var(--ink); border-color: var(--sand); }
-.seg-to { flex-direction: column; gap: 0; line-height: 1.05; padding: .35rem .9rem; }
-.seg-to small { font-family: var(--body); font-weight: 600; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
-/* Shoe colours. Each player picks one; the row, the bar and the scoring pills follow it. */
-.player.shoe-white, .swatch.shoe-white { --c: #f4f1ea; --c-ink: #2b221e; --c-edge: #b9ada0; --c-shadow: #cfc6b8; }
-.player.shoe-green, .swatch.shoe-green { --c: #2f7d4f; --c-ink: #fff; --c-edge: #2f7d4f; --c-shadow: #1f5a37; }
-.player.shoe-red, .swatch.shoe-red   { --c: #b8322a; --c-ink: #fff; --c-edge: #b8322a; --c-shadow: #86231d; }
-.player.shoe-blue, .swatch.shoe-blue  { --c: #2f6fb0; --c-ink: #fff; --c-edge: #2f6fb0; --c-shadow: #214f80; }
-.p-colors { grid-area: colors; display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; }
-.p-colors .lbl { font-family: var(--label); font-weight: 700; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-right: .1rem; }
-.swatch { width: 2.4rem; height: 2.4rem; min-height: 0; padding: 0; border-radius: 999px; background: var(--c); border: 2px solid var(--c-edge); box-shadow: inset 0 0 0 3px var(--paper); cursor: pointer; }
-.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--paper), 0 0 0 3px var(--ink); }
-.swatch:focus-visible { outline: 3px solid var(--sand); outline-offset: 3px; }
-.p-btns .btn-shoe { background: var(--c); color: var(--c-ink); border: 2px solid var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
-.p-btns .btn-shoe.btn-close { background: var(--paper); color: var(--ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
-.p-btns .btn-shoe.btn-close span { color: var(--c-shadow); }
-.shoe-white .p-btns .btn-shoe.btn-close span { color: var(--ink); }
-@media (hover: hover) { .p-btns .btn-shoe:hover { filter: brightness(1.06); } }
-@media (hover: hover) { .seg-btn[aria-pressed="false"]:hover { border-color: var(--sand); } }
-
-.players { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; }
-.player { --c: var(--creek); background: var(--paper); color: var(--ink); border-radius: 1.1rem; padding: .9rem 1rem 1rem; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "tag name score" "colors colors colors" "track track track" "btns btns btns"; gap: .55rem .7rem; align-items: center; border-left: 8px solid var(--c); }
-.player.leading { box-shadow: 0 0 0 3px var(--sand); }
-.p-tag { grid-area: tag; width: 1.9rem; height: 2.85rem; color: var(--c); display: block; }
-.p-name { grid-area: name; min-width: 0; width: 100%; min-height: 2.6rem; font-family: var(--label); font-weight: 700; font-size: 1.2rem; color: var(--ink); background: var(--paper-2); border: 2px dashed var(--line); padding: .3rem .9rem; border-radius: 999px; }
-.p-name::placeholder { color: #9b8b7e; }
-.p-score { grid-area: score; font-family: var(--display); font-size: 2.6rem; line-height: 1; color: var(--rust-deep); min-width: 2.2ch; text-align: right; }
-.p-score small { display: block; font-family: var(--label); font-weight: 500; font-size: .78rem; color: var(--ink-soft); letter-spacing: .04em; margin-top: .15rem; }
-.p-score.bump { animation: bump .35s ease-out; }
-@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.22); } 100% { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .p-score.bump { animation: none; } }
-.p-track { grid-area: track; position: relative; height: .7rem; border-radius: 999px; background: var(--paper-2); overflow: hidden; }
-.p-track span { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--c); border-radius: 999px; transition: width .3s ease; }
-.p-btns { grid-area: btns; display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
-.p-btns .pill { min-height: 3.4rem; font-size: 1.05rem; padding: .5rem .7rem; flex-direction: column; gap: 0; line-height: 1.05; }
-.p-btns .pill span { font-family: var(--display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0; line-height: 1; }
-.p-btns .pill small { font-family: var(--body); font-weight: 600; font-size: .72rem; letter-spacing: .06em; opacity: .85; }
-.btn-ringer { background: var(--rust); color: var(--paper); box-shadow: 0 3px 0 var(--rust-deep); }
-.btn-close { background: var(--sand); color: var(--ink); box-shadow: 0 3px 0 var(--sand-deep); }
-@media (hover: hover) { .btn-ringer:hover { background: var(--rust-bright); } .btn-close:hover { background: #e6bd68; } }
-.pill:disabled { opacity: .4; cursor: default; box-shadow: none; }
-
-.board-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
-.board-actions .pill { min-height: 3rem; font-size: .95rem; }
-#cancel { flex: 1 1 100%; }
-#undo, #new { flex: 1 1 0; white-space: nowrap; padding-left: 1rem; padding-right: 1rem; }
-#new.armed { background: var(--rust); color: var(--paper); border-color: var(--rust); }
-@media (min-width: 30rem) { #cancel { flex: 1 1 auto; } }
-.log { margin: .9rem 0 0; min-height: 1.5em; font-family: var(--label); font-weight: 500; color: var(--sand-soft); font-size: 1rem; }
-
-.winner { display: flex; align-items: center; gap: 1rem; background: var(--creek); color: #fff; border-radius: 1.1rem; padding: .8rem 1.1rem; margin-bottom: 1rem; }
-.winner svg { width: 3rem; height: 4.5rem; color: var(--sand); flex: none; }
-.winner p { margin: 0; display: flex; flex-direction: column; line-height: 1.2; }
-.winner-k { font-family: var(--label); font-weight: 700; font-size: .8rem; letter-spacing: .2em; text-transform: uppercase; color: var(--sand-soft); }
-.winner strong { font-family: var(--display); font-weight: 400; font-size: 1.6rem; margin: .15rem 0; overflow-wrap: anywhere; }
-@media (prefers-reduced-motion: no-preference) { .winner:not([hidden]) svg { animation: swing 1.6s ease-out; transform-origin: 50% 0; } }
-
-.nojs { background: #3a302c; border-radius: 1rem; padding: 1rem 1.2rem; color: var(--sand-soft); margin: 0; }
+/* The scorecard lives on its own page now (/horseshoes/score/, css/score.css). This is the way in. */
+.open { background: #3a302c; border: 2px solid #4d413c; border-radius: 1.4rem; padding: clamp(1.1rem, 3vw, 1.6rem); box-shadow: 0 1.5rem 3rem -1.5rem rgba(0,0,0,.7); }
+.open-steps { list-style: none; margin: 0 0 1.2rem; padding: 0; display: grid; gap: .8rem; }
+.open-steps li { display: flex; gap: .9rem; align-items: center; }
+.open-n { flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-size: 1.1rem; color: var(--ink); background: var(--sand); box-shadow: 0 0 0 3px rgba(239,216,160,.25); }
+.open-steps p { margin: 0; font-family: var(--label); font-weight: 500; font-size: 1.12rem; line-height: 1.3; color: var(--paper); }
+.open-steps b { color: var(--sand); }
+.pill-sand { background: var(--sand); color: var(--ink); box-shadow: 0 3px 0 var(--sand-deep); }
+@media (hover: hover) { .pill-sand:hover { background: #e6bd68; } }
+.open-btn { width: 100%; min-height: 3.6rem; font-size: 1.12rem; }
 
 /* The rules card: a fair entry tag, with a punched hole and string. */
 .rules { position: relative; background: var(--paper); color: var(--ink); border-radius: 1.2rem; padding: 2.4rem clamp(1.1rem, 3vw, 1.7rem) 1.4rem; box-shadow: 0 1.5rem 3rem -1.5rem rgba(0,0,0,.7); background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(63,127,163,.07) 27px 28px); }
@@ -331,7 +293,7 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 .good-list li { background: #fff8ea; border-radius: 1rem; padding: 1.1rem 1.2rem; border-top: 4px solid var(--sage); color: var(--ink-soft); }
 .good-list strong { display: block; font-family: var(--label); font-weight: 700; font-size: 1.15rem; color: var(--ink); margin-bottom: .2rem; }
 .good-list a { color: var(--rust); font-weight: 600; }
-@media (min-width: 52rem) { .good-list { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 52rem) { .good-list { grid-template-columns: repeat(2, 1fr); } }
 
 /* ---------- Stay ---------- */
 .stay { position: relative; padding: clamp(4rem, 10vw, 7rem) var(--gutter); isolation: isolate; }
@@ -359,12 +321,12 @@ figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; col
 @media (min-width: 52rem) { .foot-grid { grid-template-columns: 1.4fr 1fr 1fr; } }
 
 /* The basics: a pill on the scorecard that opens the rules. Plain <details>, so it works without JavaScript. */
-.basics { margin: .2rem 0 1rem; }
+.basics { margin: 1rem 0 0; }
 .basics-pill { list-style: none; display: inline-flex; cursor: pointer; background: transparent; color: var(--paper); border: 2px solid var(--sand); min-height: 2.75rem; padding: .45rem 1.2rem; }
 .basics-pill::-webkit-details-marker { display: none; }
 .basics-pill::before { content: "+"; margin-right: .45rem; font-weight: 700; color: var(--sand); }
 .basics[open] .basics-pill { background: var(--sand); color: var(--ink); }
-.basics[open] .basics-pill::before { content: "2"; color: var(--ink); }
+.basics[open] .basics-pill::before { content: "\2212"; color: var(--ink); }
 .basics-body { margin-top: .8rem; background: var(--paper); color: var(--ink); border-radius: 1.1rem; padding: 1.1rem 1.2rem .6rem; }
 .basics-body h3 { font-family: var(--display); font-size: 1.5rem; margin: 0 0 .6rem; color: var(--rust-deep); }
 .basics-body dl { margin: 0; }
