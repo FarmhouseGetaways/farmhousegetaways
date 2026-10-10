@@ -22,6 +22,7 @@
 
   --blush:      #C58891;
   --blush-pale: #F2DFE0;
+  --blush-deep: #A04E5C;  /* highlighted values on light bands: blush read too faint to look bold (Cory, 9 Oct 2026) */
   --brass:      #B18A50;
   --stone:      #93868A;
 
@@ -356,7 +357,7 @@ a { color: inherit; }
    headline off the right-hand edge. Caught on mobile 11 Aug 2026. Values wrap
    now; right alignment keeps the dotted-leader look. */
 .board-list .v { font-weight: 700; color: var(--plum); text-align: right; min-width: 0; }
-.board-list .v-hi { color: var(--blush); }
+.board-list .v-hi { color: var(--blush-deep); }
 
 /* On a phone there is not enough room for label, leader and a sentence on one
    line, so the value drops beneath its label and the leader dots go away. */
