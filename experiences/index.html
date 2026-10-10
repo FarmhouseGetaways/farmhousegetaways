@@ -49,7 +49,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
 <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/images/icon-512.png">
 <meta name="theme-color" content="#3F5548">
-<link rel="stylesheet" href="/css/site.css?v=a8da2308">
+<link rel="stylesheet" href="/css/site.css?v=2fa80024">
 <style>
   .xp-hero { text-align: center; padding-block: clamp(3.5rem, 9vw, 6rem); }
   .xp-hero .tag { justify-content: center; }
@@ -70,6 +70,9 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
   .xp-go { white-space: nowrap; }
   .xp-stay { margin: 2.2rem 0 0; text-align: center; }
   .xp-mr { background: var(--sage-pale); }
+  /* site.css hovers these to white, which is made for a dark band; these bands are light */
+  .xp-stay .btn-rbr:hover { background: var(--rbr); border-color: var(--rbr); color: #fff; }
+  .xp-stay .btn-mr:hover { background: var(--mr); border-color: var(--mr); color: #fff; }
   @media (hover: hover) {
     .xp-card:hover { transform: translateY(-4px); box-shadow: 0 1.6rem 3rem -1.4rem rgba(50,40,45,.55), 0 0 0 1px rgba(69,57,64,.1); }
     .xp-card:hover .xp-img img { transform: scale(1.04); }
@@ -91,6 +94,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
     <nav class="nav" aria-label="Main">
       <a href="/red-barn-ranch.html">Red Barn Ranch</a>
       <a href="/mountain-retreat.html">Mountain Retreat</a>
+      <a href="/experiences/" aria-current="page">Experiences</a>
       <a href="/wedding-groups.html">Groups &amp; Gatherings</a>
       <a href="/our-story.html">Our Story</a>
     </nav>
@@ -156,7 +160,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
           </div>
         </li>
       </ul>
-      <p class="xp-stay"><a class="btn btn-ghost" href="/red-barn-ranch.html">Stay at Red Barn Ranch</a></p>
+      <p class="xp-stay"><a class="btn btn-rbr" href="/red-barn-ranch.html">Stay at Red Barn Ranch</a></p>
     </div>
   </section>
   <section class="band xp-band xp-mr" aria-labelledby="xp-mr-h">
@@ -220,7 +224,7 @@ src="https://www.facebook.com/tr?id=1345625557334779&ev=PageView&noscript=1"
           </div>
         </li>
       </ul>
-      <p class="xp-stay"><a class="btn btn-ghost" href="/mountain-retreat.html">Stay at Mountain Retreat</a></p>
+      <p class="xp-stay"><a class="btn btn-mr" href="/mountain-retreat.html">Stay at Mountain Retreat</a></p>
     </div>
   </section>
 </main>

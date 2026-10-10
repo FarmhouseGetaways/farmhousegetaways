@@ -172,7 +172,7 @@ a { color: inherit; }
    and most of that traffic is on a phone — the width where the old value was
    worst. Re-measure if the masthead gains or loses a row. */
 [id] { scroll-margin-top: 11rem; }
-@media (max-width: 47rem) { [id] { scroll-margin-top: 14rem; } }
+@media (max-width: 47rem) { [id] { scroll-margin-top: 15rem; } }
 .masthead {
   position: sticky; top: 0; z-index: 40;
   background: rgba(252,248,246,.94);
@@ -212,6 +212,8 @@ a { color: inherit; }
 }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--plum); border-bottom-color: var(--blush); }
 @media (max-width: 47rem) { .masthead-inner { flex-direction: column; align-items: flex-start; gap: .85rem; } }
+/* Five menu items wrap to three rows on a phone; tight rows keep the masthead near its old height (scroll-margin above) */
+@media (max-width: 47rem) { .nav { row-gap: .15rem; column-gap: 1.1rem; } .nav a { padding-block: .3rem; } }
 
 /* ---------- hero ---------- */
 .hero {

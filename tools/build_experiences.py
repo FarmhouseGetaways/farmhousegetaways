@@ -56,7 +56,7 @@ for prop, items in SITES.items():
       <ul class="xp-grid">
 {chr(10).join(card(*i) for i in items)}
       </ul>
-      <p class="xp-stay"><a class="btn btn-ghost" href="{page}">Stay at {prop}</a></p>
+      <p class="xp-stay"><a class="btn btn-{slug}" href="{page}">Stay at {prop}</a></p>
     </div>
   </section>''')
 
@@ -92,6 +92,9 @@ STYLE = '''<style>
   .xp-go { white-space: nowrap; }
   .xp-stay { margin: 2.2rem 0 0; text-align: center; }
   .xp-mr { background: var(--sage-pale); }
+  /* site.css hovers these to white, which is made for a dark band; these bands are light */
+  .xp-stay .btn-rbr:hover { background: var(--rbr); border-color: var(--rbr); color: #fff; }
+  .xp-stay .btn-mr:hover { background: var(--mr); border-color: var(--mr); color: #fff; }
   @media (hover: hover) {
     .xp-card:hover { transform: translateY(-4px); box-shadow: 0 1.6rem 3rem -1.4rem rgba(50,40,45,.55), 0 0 0 1px rgba(69,57,64,.1); }
     .xp-card:hover .xp-img img { transform: scale(1.04); }
@@ -111,6 +114,7 @@ head = re.sub(r'<script type="application/ld\+json">.*?</script>\n?', "", head, 
 
 body_start = src.index("</head>")
 masthead = src[body_start:src.index('<main id="main">')]
+masthead = masthead.replace('<a href="/experiences/">', '<a href="/experiences/" aria-current="page">')
 footer = src[src.index("</main>") + len("</main>"):]
 footer = footer.replace('<script src="https://app.lodgify.com/book-now-box/stable/renderBookNowBox.js" defer></script>\n', "")
 
