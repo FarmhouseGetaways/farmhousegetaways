@@ -192,6 +192,7 @@ h1 { display: flex; flex-direction: column; align-items: flex-start; margin: 0 0
 .hillside-note svg { flex: none; width: 2.4rem; color: var(--sage-deep); margin-top: .2rem; }
 .intro-photo img, .kit-photo img, .sp img { border-radius: 1rem; box-shadow: 0 1.2rem 2.4rem -1.2rem rgba(43,34,30,.45); }
 .intro-photo { position: relative; }
+.intro-photo figcaption { text-align: center; }
 .intro-photo::after { content: ""; position: absolute; inset: .7rem -.7rem -.7rem .7rem; border: 2px dashed var(--sand); border-radius: 1.1rem; z-index: -1; }
 figcaption { font-family: var(--label); font-weight: 500; font-size: .95rem; color: var(--ink-soft); margin-top: .7rem; }
 @media (min-width: 60rem) { .intro { grid-template-columns: 1fr 1.25fr; gap: 3.5rem; } }
