@@ -1241,7 +1241,11 @@ a { color: inherit; }
 .bo-mark { width: 3.6rem; height: 3.6rem; flex: none; }
 .bo-word { margin: 0; font: 900 2rem/.9 var(--bo-display); text-transform: uppercase; letter-spacing: .02em; }
 .bo-word span { display: block; margin-top: .3rem; font-size: .95rem; letter-spacing: .32em; color: var(--bo-sun); }
-.bo-eyebrow { margin: 0 0 .9rem; font-size: .72rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--bo-sun); }
+/* A badge, not a whisper: guests should notice it and feel the course is theirs (Cory, 9 Oct 2026). */
+.bo-eyebrow { display: inline-flex; align-items: center; gap: .55rem; margin: 0 0 1.2rem; padding: .5rem 1.1rem .45rem;
+  border: 2px solid var(--bo-sun); border-radius: 999px; background: rgba(244,184,106,.12);
+  font: 800 clamp(.92rem, 3.4vw, 1.35rem)/1.1 var(--bo-display); letter-spacing: .07em; text-transform: uppercase; color: var(--bo-sun); }
+.bo-eyebrow span { font-size: .85em; }
 .bo-title { margin: 0 0 1.4rem; font: 800 clamp(2rem, 4.4vw, 3.4rem)/1 var(--bo-display); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
 .bo-prose { max-width: 36rem; }
 .bo-prose p { margin: 0 0 1.1rem; font-size: 1.08rem; line-height: 1.6; color: rgba(255,248,232,.86); }
