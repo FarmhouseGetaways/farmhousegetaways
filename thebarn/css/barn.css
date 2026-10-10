@@ -1,0 +1,235 @@
+/* The Barn at Red Barn Ranch
+   Barn red, cream, charcoal, and Edison-bulb amber. Ultra for the painted-sign
+   headings, Oswald for the ticket and scoreboard labels, Work Sans for reading. */
+
+@font-face { font-family: "Ultra"; src: url("/thebarn/fonts/ultra.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Oswald"; src: url("/thebarn/fonts/oswald.woff2") format("woff2"); font-weight: 200 700; font-display: swap; }
+@font-face { font-family: "Work Sans"; src: url("/thebarn/fonts/work-sans.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Work Sans"; src: url("/thebarn/fonts/work-sans-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+
+:root {
+  --red: #9e2b20;
+  --red-deep: #7a1f17;
+  --cream: #f6eedf;
+  --paper: #fbf6ec;
+  --ink: #231c17;
+  --ink-soft: #5a4f46;
+  --char: #1d1916;
+  --bulb: #f2b84b;
+  --bulb-soft: #ffd88a;
+  --felt: #2f5d46;
+  --line: #e4d8c3;
+  --display: "Ultra", "Rockwell Extra Bold", Georgia, serif;
+  --label: "Oswald", "Arial Narrow", sans-serif;
+  --body: "Work Sans", system-ui, sans-serif;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 1.0625rem; line-height: 1.6; overflow-x: hidden; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; font-weight: 400; }
+p { margin: 0 0 1rem; }
+figure { margin: 0; }
+
+.wrap { width: 100%; max-width: 72rem; margin: 0 auto; padding: 0 var(--gutter); }
+.skip { position: absolute; left: -999px; top: 0; background: var(--bulb); color: var(--ink); padding: .5rem 1rem; z-index: 50; }
+.skip:focus { left: 1rem; }
+
+.eyebrow { font-family: var(--label); font-weight: 600; font-size: .8rem; letter-spacing: .2em; text-transform: uppercase; margin: 0 0 .8rem; }
+.eyebrow-red { color: var(--red); }
+.eyebrow-bulb { color: var(--bulb); }
+
+/* Pills: every control is a pill. */
+.pill { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.9rem; padding: .7rem 1.35rem; border-radius: 999px; font-family: var(--label); font-weight: 600; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; border: 2px solid transparent; transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease; }
+.pill-bulb { background: var(--bulb); color: var(--ink); box-shadow: 0 0 0 0 rgba(242,184,75,.0); }
+.pill-ghost { border-color: rgba(246,238,223,.75); color: var(--cream); background: rgba(29,25,22,.25); }
+.pill-red { background: var(--red); color: var(--cream); }
+.pill-outline { border-color: var(--red); color: var(--red); }
+@media (hover: hover) {
+  .pill-bulb:hover { box-shadow: 0 0 1.4rem rgba(242,184,75,.7); transform: translateY(-1px); }
+  .pill-ghost:hover { background: var(--cream); color: var(--ink); }
+  .pill-red:hover { background: var(--red-deep); transform: translateY(-1px); }
+  .pill-outline:hover { background: var(--red); color: var(--cream); }
+}
+.pill:focus-visible, a:focus-visible { outline: 3px solid var(--bulb); outline-offset: 3px; }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; min-height: min(100svh, 56rem); display: flex; flex-direction: column; color: var(--cream); background: var(--char); overflow: hidden; isolation: isolate; }
+.hero-photo { position: absolute; inset: 0; z-index: -2; }
+.hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 55%; }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background:
+  linear-gradient(180deg, rgba(29,25,22,.78) 0%, rgba(29,25,22,.25) 28%, rgba(29,25,22,.35) 55%, rgba(29,25,22,.9) 100%); }
+
+.topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem var(--gutter); position: relative; z-index: 3; }
+.brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--display); font-size: 1.25rem; letter-spacing: .02em; }
+.mark { width: 2.1rem; height: 2.1rem; flex: none; }
+.navlinks { display: none; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 1.6rem; }
+.navlinks a { font-family: var(--label); font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-size: .85rem; text-decoration: none; opacity: .9; }
+@media (hover: hover) { .navlinks a:hover { color: var(--bulb); } }
+.navstay { margin-left: auto; min-height: 2.5rem; padding: .5rem 1.1rem; }
+@media (min-width: 48rem) {
+  .navlinks { display: flex; }
+  .navstay { margin-left: 1.4rem; }
+}
+
+.hero-inner { position: relative; z-index: 2; margin-top: auto; padding: 2rem var(--gutter) clamp(2.5rem, 7vw, 5rem); max-width: 60rem; }
+/* Only movement, never opacity: if the animation stalls the headline is still there. */
+.js .hero-inner { animation: rise 1.1s cubic-bezier(.2,.7,.2,1) .5s backwards; }
+@keyframes rise { from { transform: translateY(1.2rem); } to { transform: none; } }
+
+/* The marquee sign: a dark plate ringed with bulbs that chase. */
+.sign { position: relative; display: inline-block; padding: clamp(1rem, 3vw, 1.6rem) clamp(1.3rem, 4vw, 2.6rem) clamp(.9rem, 2.6vw, 1.4rem); margin: 0 0 1.2rem; background: rgba(122,31,23,.88); border-radius: .9rem; box-shadow: 0 1.2rem 3rem rgba(0,0,0,.45), inset 0 0 0 3px rgba(246,238,223,.85), inset 0 0 0 7px var(--red-deep); }
+.sign::before, .sign::after { content: ""; position: absolute; inset: -9px; border-radius: 1.3rem; pointer-events: none;
+  --dot: radial-gradient(circle, var(--bulb-soft) 0 3.2px, rgba(255,216,138,.0) 4.5px);
+  background: var(--dot) 0 0 / 22px 18px repeat-x, var(--dot) 0 100% / 22px 18px repeat-x, var(--dot) 0 0 / 18px 22px repeat-y, var(--dot) 100% 0 / 18px 22px repeat-y; }
+.sign::after { background-position: 11px 0, 11px 100%, 0 11px, 100% 11px; opacity: .25; }
+.sign::before { filter: drop-shadow(0 0 4px rgba(255,200,90,.9)); }
+.js .sign::before { animation: chaseA 1.1s steps(1) infinite; }
+.js .sign::after { animation: chaseB 1.1s steps(1) infinite; }
+@keyframes chaseA { 0% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes chaseB { 0% { opacity: .25; } 50% { opacity: 1; } }
+.sign h1 { font-family: var(--display); font-size: clamp(3.4rem, 13vw, 7.5rem); line-height: .95; letter-spacing: .01em; color: var(--cream); text-shadow: 0 3px 0 var(--red-deep); }
+.sign-the { display: block; font-family: var(--label); font-weight: 600; font-size: .2em; letter-spacing: .5em; text-transform: uppercase; color: var(--bulb); text-shadow: none; margin-bottom: .2em; }
+.hero .eyebrow { color: var(--bulb); text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 14px rgba(0,0,0,.75); }
+.lede { font-size: clamp(1.15rem, 2.4vw, 1.45rem); line-height: 1.45; max-width: 34rem; margin-bottom: 1.6rem; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+
+/* Barn doors that slide open on arrival. Shown only with JS and full motion;
+   site.js also removes them after a few seconds whatever happens. */
+.doors { display: none; position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.js .doors { display: flex; }
+.door { flex: 1; position: relative; background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.0) 0 calc(12.5% - 2px), rgba(0,0,0,.22) calc(12.5% - 2px) 12.5%), linear-gradient(180deg, #a8342a, #8b251c); transition: transform 1.5s cubic-bezier(.65,0,.25,1); }
+.door svg { position: absolute; inset: 4% 6%; width: 88%; height: 92%; }
+.door-l { box-shadow: inset -6px 0 10px rgba(0,0,0,.35); }
+.door-r { box-shadow: inset 6px 0 10px rgba(0,0,0,.35); }
+.doors.open .door-l { transform: translateX(-101%); }
+.doors.open .door-r { transform: translateX(101%); }
+.doors.gone { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .js .doors { display: none; }
+  .js .hero-inner, .js .sign::before, .js .sign::after { animation: none; }
+}
+
+/* ---------- Scoreboard ---------- */
+.scoreboard { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--char); color: var(--cream); border-top: 4px solid var(--red); }
+.score { padding: 1.3rem 1rem; text-align: center; border-right: 1px solid rgba(246,238,223,.12); border-bottom: 1px solid rgba(246,238,223,.12); }
+.num { display: block; font-family: var(--label); font-weight: 600; font-size: clamp(1.6rem, 4.5vw, 2.4rem); line-height: 1.1; color: var(--bulb); text-shadow: 0 0 14px rgba(242,184,75,.45); letter-spacing: .03em; }
+.cap { display: block; font-family: var(--label); font-size: .75rem; letter-spacing: .18em; text-transform: uppercase; opacity: .75; margin-top: .25rem; }
+@media (min-width: 48rem) { .scoreboard { grid-template-columns: repeat(4, 1fr); } .score { border-bottom: 0; } }
+
+/* ---------- Section heads ---------- */
+section { scroll-margin-top: 1rem; }
+.section-head { max-width: 44rem; margin-bottom: 2.2rem; }
+.section-head h2, .intro h2, .details h2, .stay h2, .movies h2 { font-family: var(--display); font-size: clamp(1.8rem, 4.6vw, 2.9rem); line-height: 1.1; color: var(--ink); margin-bottom: 1rem; }
+.section-head p:not(.eyebrow) { color: var(--ink-soft); font-size: 1.1rem; }
+
+/* ---------- Intro ---------- */
+.intro { display: grid; gap: 2rem; padding-top: clamp(3rem, 8vw, 6rem); padding-bottom: clamp(3rem, 8vw, 6rem); align-items: center; }
+.intro h2 { font-size: clamp(1.6rem, 3.8vw, 2.4rem); }
+.intro-text p:not(.eyebrow) { color: var(--ink-soft); }
+.intro-photo img { border-radius: .8rem; box-shadow: 0 1rem 2.5rem rgba(35,28,23,.18); }
+figcaption { font-family: var(--label); font-size: .78rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-top: .6rem; }
+@media (min-width: 60rem) { .intro { grid-template-columns: 1.1fr .9fr; gap: 4rem; } }
+
+/* ---------- Games: prize tickets ---------- */
+.games { background: var(--char); color: var(--cream); padding: clamp(3.5rem, 8vw, 6rem) 0; position: relative; }
+.games::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60rem 30rem at 50% 0%, rgba(242,184,75,.12), transparent 70%); pointer-events: none; }
+.games .section-head h2 { color: var(--cream); }
+.games .section-head p:not(.eyebrow) { color: rgba(246,238,223,.75); }
+.tickets { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: 1fr; position: relative; }
+@media (min-width: 36rem) { .tickets { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 60rem) { .tickets { grid-template-columns: repeat(3, 1fr); gap: 1.6rem; } }
+.ticket { background: var(--cream); color: var(--ink); border-radius: .7rem; overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: 0 .8rem 2rem rgba(0,0,0,.35); }
+.ticket > img, .type-face { aspect-ratio: 3 / 2; width: 100%; object-fit: cover; }
+.stub { position: relative; padding: 1.1rem 1.2rem 1.2rem; border-top: 2px dashed rgba(158,43,32,.45); flex: 1; }
+/* Punched notches where the stub tears off. */
+.stub::before, .stub::after { content: ""; position: absolute; top: -.75rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--char); }
+.stub::before { left: -.7rem; }
+.stub::after { right: -.7rem; }
+.no { font-family: var(--label); font-weight: 600; font-size: .75rem; letter-spacing: .2em; color: var(--red); }
+.stub h3 { font-family: var(--display); font-size: 1.45rem; line-height: 1.15; margin: .15rem 0 .35rem; }
+.stub p { margin: 0; color: var(--ink-soft); font-size: 1rem; }
+.stub a { color: var(--red); font-weight: 600; }
+.type-face { display: grid; place-items: center; background: repeating-linear-gradient(90deg, #8b251c 0 calc(12.5% - 2px), #7a1f17 calc(12.5% - 2px) 12.5%); }
+.type-face svg { width: 86%; height: auto; filter: drop-shadow(0 6px 8px rgba(0,0,0,.3)); }
+.type-face-screen { background: radial-gradient(circle at 40% 40%, #3a302a 0, #1d1916 75%); }
+/* The puck slides across once the card is on screen (site.js adds .seen). */
+.js .ticket-type .puck { transform: translateX(-70px); transition: transform 1.2s cubic-bezier(.2,.8,.2,1) .2s; }
+.js .ticket-type.seen .puck { transform: none; }
+@media (prefers-reduced-motion: reduce) { .js .ticket-type .puck { transform: none; transition: none; } }
+
+/* ---------- A look around ---------- */
+.look { padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(3rem, 6vw, 4.5rem); }
+.strip { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 var(--gutter) 1rem; scrollbar-width: thin; scrollbar-color: var(--red) transparent; }
+.strip figure { flex: 0 0 88vw; scroll-snap-align: center; }
+.strip img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: .7rem; }
+@media (min-width: 60rem) {
+  .strip { padding-left: max(var(--gutter), calc((100vw - 72rem) / 2 + var(--gutter))); }
+  .strip figure { flex-basis: 38rem; scroll-snap-align: start; }
+}
+
+/* ---------- Movie night ---------- */
+.movies { position: relative; color: var(--cream); background: var(--char); padding: clamp(4rem, 10vw, 8rem) 0; overflow: hidden; isolation: isolate; }
+.movies-photo { position: absolute; inset: 0; z-index: -2; }
+.movies-photo img { width: 100%; height: 100%; object-fit: cover; }
+.movies::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(29,25,22,.93) 0%, rgba(29,25,22,.8) 45%, rgba(29,25,22,.35) 100%); }
+.movies h2 { color: var(--cream); max-width: 30rem; }
+.movies p:not(.eyebrow) { max-width: 30rem; color: rgba(246,238,223,.85); }
+.movies-inset { margin-top: 2rem; max-width: 26rem; }
+.movies-inset img { aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 60%; width: 100%; border-radius: .7rem; border: 4px solid var(--cream); box-shadow: 0 1rem 2.5rem rgba(0,0,0,.5); }
+.movies-inset figcaption { color: rgba(246,238,223,.7); }
+
+/* ---------- A day in the barn ---------- */
+.day { padding-top: clamp(3.5rem, 8vw, 6rem); padding-bottom: clamp(3rem, 6vw, 4rem); }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; counter-reset: t; }
+.timeline li { background: #fff; border: 1px solid var(--line); border-left: 6px solid var(--red); border-radius: .6rem; padding: 1.1rem 1.25rem; }
+.when { display: block; font-family: var(--label); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; font-size: .85rem; color: var(--red); margin-bottom: .3rem; }
+.timeline p { margin: 0; color: var(--ink-soft); }
+@media (min-width: 48rem) { .timeline { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 64rem) { .timeline { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- Look closer ---------- */
+.details { padding: clamp(2rem, 5vw, 3rem) 0 clamp(3.5rem, 8vw, 6rem); }
+.details-grid { display: grid; gap: 1.4rem; }
+.details-text p:not(.eyebrow) { color: var(--ink-soft); }
+.details img { border-radius: .7rem; aspect-ratio: 4 / 3; object-fit: cover; width: 100%; }
+@media (min-width: 40rem) { .details-grid { grid-template-columns: repeat(3, 1fr); } .details-text { grid-column: 1 / -1; max-width: 44rem; } }
+@media (min-width: 64rem) { .details-grid { grid-template-columns: 1.3fr 1fr 1fr; grid-template-rows: auto auto; align-items: start; } .details-text { grid-column: 1; grid-row: 1 / 3; } .d1 { grid-column: 2; grid-row: 1; } .d2 { grid-column: 3; grid-row: 1; } .d3 { grid-column: 2 / 4; grid-row: 2; } .d3 img { aspect-ratio: 8 / 3; } }
+
+/* ---------- Good to know ---------- */
+.good { padding-bottom: clamp(3.5rem, 8vw, 6rem); }
+.good-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.good-list li { padding: 1.1rem 1.25rem; background: var(--cream); border-radius: .6rem; color: var(--ink-soft); }
+.good-list strong { display: block; color: var(--ink); font-family: var(--label); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: .95rem; margin-bottom: .2rem; }
+@media (min-width: 48rem) { .good-list { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- Stay ---------- */
+.stay { position: relative; padding: clamp(3rem, 10vw, 7rem) var(--gutter); isolation: isolate; overflow: hidden; }
+.stay-photo { position: absolute; inset: 0; z-index: -2; }
+/* Barn_Dusk: the barn sits left of centre, so on a tall phone band keep it in view. */
+.stay-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 30% 55%; }
+.stay::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(29,25,22,.35); }
+.stay-card { max-width: 36rem; margin: 0 auto; background: var(--paper); border-radius: 1rem; padding: clamp(1.5rem, 4vw, 2.5rem); box-shadow: 0 1.5rem 3.5rem rgba(0,0,0,.4); border-top: 8px solid var(--red); }
+.stay-card p:not(.eyebrow) { color: var(--ink-soft); }
+.facts { list-style: none; margin: 1.4rem 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.facts li { text-align: center; padding: .8rem .2rem; font-family: var(--label); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
+.facts span { display: block; font-family: var(--display); font-size: 1.7rem; color: var(--red); letter-spacing: 0; line-height: 1.2; }
+.stay-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.2rem; }
+.small { font-size: .85rem; margin: 0; }
+
+/* ---------- Footer ---------- */
+.foot { background: var(--char); color: rgba(246,238,223,.8); padding: 3rem 0 1.5rem; font-size: .95rem; }
+.foot-grid { display: grid; gap: 2rem; }
+.foot ul { list-style: none; margin: 0; padding: 0; }
+.foot li { margin-bottom: .4rem; }
+.foot a { text-decoration: none; }
+@media (hover: hover) { .foot a:hover { color: var(--bulb); } }
+.brand-foot { color: var(--cream); margin-bottom: .8rem; }
+.foot-h { font-family: var(--label); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; font-size: .78rem; color: var(--bulb); margin-bottom: .6rem; }
+.copy { margin-top: 2.5rem; font-size: .8rem; opacity: .6; }
+@media (min-width: 48rem) { .foot-grid { grid-template-columns: 2fr 1fr 1fr; } }

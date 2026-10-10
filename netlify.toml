@@ -164,10 +164,7 @@
 
 # Industrial Mini Mansion — the tiny home. It had a page of its own on the old
 # site; here it is a section of the Red Barn Ranch page.
-[[redirects]]
-  from = "/imm"
-  to = "/red-barn-ranch.html"
-  status = 301
+# /imm used to 301 to the ranch page; it is the Industrial Mini Mansion micro-site now (released 9 Oct 2026).
 
 [[redirects]]
   from = "/weddings"

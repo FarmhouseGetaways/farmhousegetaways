@@ -1,0 +1,279 @@
+/* The Bird Garden at Red Barn Ranch
+   A naturalist's field guide: botanical cream paper, blue-black ink, peacock
+   teal and jade, with a soft hen-brown and a yolk accent. Fraunces for the
+   headings, IM Fell English SC for plate labels, Mulish for reading. */
+
+@font-face { font-family: "Fraunces"; src: url("/birdgarden/fonts/fraunces.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("/birdgarden/fonts/fraunces-italic.woff2") format("woff2"); font-weight: 300 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "IM Fell English SC"; src: url("/birdgarden/fonts/im-fell-english-sc.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Mulish"; src: url("/birdgarden/fonts/mulish.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+
+:root {
+  --paper: #f4eedf;
+  --paper-hi: #fbf8f0;
+  --paper-deep: #ebe2cc;
+  --ink: #1e2b2c;
+  --ink-soft: #4f5d5b;
+  --teal: #0e5961;
+  --teal-deep: #0a3e45;
+  --teal-bright: #2a8a8a;
+  --jade: #3d7a52;
+  --sage: #a9c3a6;
+  --hen: #8f5530;
+  --hen-soft: #c58c5c;
+  --yolk: #e2a43a;
+  --rule: #cdbf9f;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --label: "IM Fell English SC", Georgia, serif;
+  --body: "Mulish", system-ui, sans-serif;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper) var(--grain); color: var(--ink); font-family: var(--body); font-size: 1.0625rem; line-height: 1.65; overflow-x: hidden; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; font-weight: 400; }
+p { margin: 0 0 1rem; }
+figure { margin: 0; }
+[hidden] { display: none !important; }
+
+.wrap { width: 100%; max-width: 72rem; margin: 0 auto; padding: 0 var(--gutter); }
+.skip { position: absolute; left: -999px; top: 0; background: var(--yolk); color: var(--ink); padding: .5rem 1rem; z-index: 50; }
+.skip:focus { left: 1rem; }
+
+.eyebrow { font-family: var(--label); font-size: 1.05rem; letter-spacing: .08em; color: var(--teal); margin: 0 0 .7rem; display: flex; align-items: center; gap: .6rem; }
+.eyebrow::before { content: ""; width: 1.8rem; height: 1px; background: currentColor; opacity: .6; flex: none; }
+
+/* Pills: every control is a pill. */
+.pill { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.9rem; padding: .7rem 1.4rem; border-radius: 999px; font-family: var(--body); font-weight: 700; font-size: .95rem; letter-spacing: .02em; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; transition: transform .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease; }
+.pill-teal { background: var(--teal); color: var(--paper-hi); }
+.pill-outline { border-color: var(--teal); color: var(--teal); background: transparent; }
+.pill-small { min-height: 2.4rem; padding: .45rem 1.1rem; font-size: .85rem; }
+@media (hover: hover) {
+  .pill-teal:hover { background: var(--teal-deep); transform: translateY(-1px); }
+  .pill-outline:hover { background: var(--teal); color: var(--paper-hi); }
+}
+.pill:focus-visible, a:focus-visible, .strip:focus-visible { outline: 3px solid var(--yolk); outline-offset: 3px; }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; overflow: hidden; isolation: isolate; border-bottom: 1px solid var(--rule); }
+.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background:
+  radial-gradient(40rem 30rem at 85% 30%, rgba(169,205,191,.35), transparent 70%),
+  radial-gradient(30rem 20rem at 0% 100%, rgba(197,140,92,.12), transparent 70%); }
+.topbar { display: flex; align-items: center; gap: 1rem; padding-top: 1rem; padding-bottom: 1rem; }
+.brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.2rem; color: var(--ink); }
+.mark { width: 2.2rem; height: 2.2rem; flex: none; }
+.navlinks { display: none; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 1.6rem; }
+.navlinks a { font-family: var(--label); font-size: 1.05rem; text-decoration: none; color: var(--ink-soft); }
+@media (hover: hover) { .navlinks a:hover { color: var(--teal); } }
+.navstay { margin-left: auto; min-height: 2.5rem; padding: .45rem 1.2rem; }
+@media (min-width: 48rem) { .navlinks { display: flex; } .navstay { margin-left: 1.4rem; } }
+
+.hero-grid { display: grid; gap: 1.5rem; padding-top: clamp(1rem, 4vw, 3rem); padding-bottom: clamp(2.5rem, 6vw, 4.5rem); align-items: center; }
+.hero h1 { font-family: var(--display); font-weight: 500; font-size: clamp(3.2rem, 11vw, 6.6rem); line-height: .92; letter-spacing: -.02em; color: var(--teal-deep); margin: .2rem 0 1.2rem; font-variation-settings: "SOFT" 100, "WONK" 1; }
+.h1-the { display: block; font-style: italic; font-weight: 400; font-size: .42em; letter-spacing: 0; color: var(--hen); margin-bottom: .05em; }
+.lede { font-size: clamp(1.1rem, 2.2vw, 1.3rem); line-height: 1.55; color: var(--ink-soft); max-width: 32rem; margin-bottom: 1.6rem; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.hero-note { font-family: var(--label); color: var(--ink-soft); margin: 1.6rem 0 0; font-size: 1rem; }
+@media (min-width: 60rem) { .hero-grid { grid-template-columns: 1fr 1.05fr; gap: 3rem; } }
+
+/* The plate: a framed page from a field guide. */
+.plate { position: relative; background: var(--paper-hi) var(--grain); padding: clamp(.9rem, 2.5vw, 1.6rem); border: 1px solid var(--ink); box-shadow: inset 0 0 0 5px var(--paper-hi), inset 0 0 0 6px rgba(30,43,44,.55), 0 1.4rem 3rem rgba(30,43,44,.14); display: flex; flex-direction: column; align-items: center; }
+.plate-hero { transform: rotate(.6deg); max-width: 36rem; width: 100%; justify-self: center; }
+.plate-no { font-family: var(--label); font-size: 1.05rem; letter-spacing: .14em; color: var(--ink-soft); margin: .3rem 0 0; width: 100%; display: flex; align-items: center; gap: .8rem; }
+.plate-no::before, .plate-no::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.peacock { width: 100%; height: auto; display: block; }
+.plate figcaption { text-align: center; margin-top: .2rem; }
+.plate-name { display: block; font-family: var(--display); font-style: italic; font-size: clamp(1.4rem, 3vw, 1.8rem); color: var(--teal-deep); line-height: 1.2; }
+.plate-sub { display: block; font-family: var(--label); color: var(--ink-soft); font-size: .98rem; }
+.fan-toggle { margin-top: .9rem; background: var(--paper); color: var(--teal); border-color: var(--teal); }
+@media (hover: hover) { .fan-toggle:hover { background: var(--teal); color: var(--paper-hi); } }
+
+/* The tail. Fanned is the resting state, so without JS (or if anything stalls)
+   the peacock is in full display. JS folds it first, then opens it; after a few
+   seconds .settled snaps it to its end state even if no transition ever ran. */
+.tail .f { transform: rotate(var(--a)) scale(var(--s)); transform-box: view-box; transform-origin: 0 0; transition: transform 1.5s cubic-bezier(.3,.75,.25,1) var(--d); }
+.js .plate:not(.fanned) .tail .f { transform: rotate(var(--f)) scale(var(--s)); transition-duration: .9s; }
+.plate.settled .tail .f { transition: none; }
+.js .plate .bird { animation: bob 5s ease-in-out 2s infinite; transform-box: view-box; transform-origin: 280px 545px; }
+@keyframes bob { 0%, 100% { transform: none; } 50% { transform: rotate(-.6deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .tail .f { transition: none !important; }
+  .js .plate .bird { animation: none; }
+}
+
+/* ---------- Field notes strip ---------- */
+.notes { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--teal-deep); color: var(--paper); }
+.note { padding: 1.4rem 1rem 1.3rem; text-align: center; border-right: 1px solid rgba(244,238,223,.14); border-bottom: 1px solid rgba(244,238,223,.14); }
+.note-ico { width: 2rem; height: 2rem; color: var(--sage); margin: 0 auto .4rem; display: block; }
+.num { display: block; font-family: var(--display); font-weight: 500; font-size: clamp(1.45rem, 4vw, 2.1rem); line-height: 1.1; color: var(--paper-hi); }
+.cap { display: block; font-family: var(--label); font-size: .95rem; color: rgba(244,238,223,.75); margin-top: .25rem; }
+@media (min-width: 48rem) { .notes { grid-template-columns: repeat(4, 1fr); } .note { border-bottom: 0; } }
+
+/* ---------- Section heads ---------- */
+section { scroll-margin-top: 1rem; }
+.section-head { max-width: 44rem; margin-bottom: 2.2rem; }
+.section-head h2, .intro h2, .garden h2, .pond h2, .hosts h2, .market h2, .stay h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.8rem, 4.4vw, 2.75rem); line-height: 1.12; letter-spacing: -.01em; color: var(--teal-deep); margin-bottom: 1rem; }
+.section-head p:not(.eyebrow) { color: var(--ink-soft); font-size: 1.1rem; }
+
+/* Photos sit in a thin ink frame, like a mounted print. */
+.framed img { border: 1px solid rgba(30,43,44,.6); padding: 6px; background: var(--paper-hi); box-shadow: 0 .9rem 2rem rgba(30,43,44,.14); }
+figcaption { font-family: var(--label); font-size: 1rem; color: var(--ink-soft); margin-top: .5rem; }
+
+/* ---------- Intro ---------- */
+.intro { display: grid; gap: 2rem; padding-top: clamp(3rem, 8vw, 6rem); padding-bottom: clamp(2rem, 5vw, 3.5rem); align-items: center; }
+.intro h2 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); }
+.intro-text p:not(.eyebrow) { color: var(--ink-soft); }
+.intro-photo { transform: rotate(-.8deg); }
+@media (min-width: 60rem) { .intro { grid-template-columns: 1fr 1fr; gap: 4rem; } }
+
+.divider { display: flex; align-items: center; gap: 1rem; max-width: 26rem; margin: 0 auto; padding: 1rem var(--gutter) 0; color: var(--jade); }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.divider svg { width: 7rem; height: 1.75rem; flex: none; }
+
+/* ---------- The field guide ---------- */
+.guide { padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3.5rem, 8vw, 6rem); }
+.specimens { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+@media (min-width: 40rem) { .specimens { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 64rem) { .specimens { grid-template-columns: repeat(4, 1fr); gap: 1.3rem; } }
+.specimen { background: var(--paper-hi) var(--grain); border: 1px solid rgba(30,43,44,.55); box-shadow: inset 0 0 0 4px var(--paper-hi), inset 0 0 0 5px var(--rule); display: flex; flex-direction: column; }
+.spec-plate { position: relative; aspect-ratio: 4 / 3; display: grid; place-items: center; border-bottom: 1px solid var(--rule); margin: 0 .9rem; padding: 1.2rem 0 .6rem;
+  background: radial-gradient(closest-side, rgba(169,205,191,.32), transparent); }
+.spec-plate svg { width: 78%; height: 100%; max-height: 11rem; }
+.specimen:first-child .spec-plate svg { width: 50%; }
+.fig { position: absolute; top: .7rem; left: 0; font-family: var(--label); font-size: .95rem; color: var(--ink-soft); }
+.spec-body { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; flex: 1; }
+.spec-body h3 { font-family: var(--display); font-style: italic; font-weight: 500; font-size: 1.6rem; color: var(--teal-deep); line-height: 1.2; margin-bottom: .4rem; }
+.spec-body p { color: var(--ink-soft); font-size: 1rem; }
+.spec-body figure { margin-top: auto; }
+.spec-body img { aspect-ratio: 4 / 3; object-fit: cover; width: 100%; border: 1px solid rgba(30,43,44,.4); }
+
+/* ---------- A morning: the egg carton ---------- */
+.morning { background: var(--teal-deep); color: var(--paper); padding: clamp(3.5rem, 8vw, 6rem) 0; position: relative; overflow: clip; }
+.morning::before { content: ""; position: absolute; inset: 0; background: radial-gradient(50rem 26rem at 20% 0%, rgba(42,138,138,.35), transparent 70%), var(--grain); pointer-events: none; }
+.morning .wrap { position: relative; }
+.morning .eyebrow { color: var(--yolk); }
+.morning .section-head h2 { color: var(--paper-hi); }
+.morning .section-head p:not(.eyebrow) { color: rgba(244,238,223,.78); }
+.morning-grid { display: grid; gap: 2rem; align-items: start; }
+.carton { position: relative; max-width: 30rem; width: 100%; justify-self: center; perspective: 1400px; filter: drop-shadow(0 1.2rem 1.6rem rgba(0,0,0,.35)); }
+.carton svg { width: 100%; height: auto; display: block; }
+/* The lid is decoration only: shown with JS and full motion, it swings open once
+   the carton is on screen and is then removed. It never covers any text. */
+.lid { display: none; position: absolute; inset: 0; border-radius: 6% / 9%; background: #d8caa9 var(--grain); border: 1.5px solid var(--ink); transform-origin: 50% 0; transition: transform 1.3s cubic-bezier(.5,0,.2,1), opacity .4s ease 1s; align-items: center; justify-content: center; }
+.js .lid { display: flex; }
+.carton.open .lid { transform: rotateX(-118deg); opacity: 0; }
+.carton.lid-gone .lid { display: none; }
+@media (prefers-reduced-motion: reduce) { .js .lid { display: none; } }
+.lid-label { background: var(--paper-hi); border: 1px solid var(--ink); box-shadow: inset 0 0 0 3px var(--paper-hi), inset 0 0 0 4px var(--rule); padding: .9rem 1.4rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .2rem; color: var(--ink); }
+.lid-label svg { width: 2.4rem; height: 2.4rem; }
+.lid-name { font-family: var(--display); font-style: italic; font-size: 1.5rem; color: var(--teal-deep); line-height: 1.1; }
+.lid-sub { font-family: var(--label); font-size: .95rem; color: var(--ink-soft); }
+
+.morning-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+.morning-list li { display: flex; gap: 1rem; align-items: flex-start; padding: .9rem 0; border-top: 1px solid rgba(244,238,223,.16); }
+.eggno { flex: none; width: 2.6rem; height: 3.2rem; border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%; background: #f1e3c8; color: var(--ink-soft); font-family: var(--label); font-size: 1.15rem; display: grid; place-items: center; box-shadow: inset -4px -6px 0 rgba(0,0,0,.08); }
+.morning-list h3 { font-family: var(--display); font-weight: 500; font-size: 1.3rem; color: var(--paper-hi); line-height: 1.25; margin: .15rem 0 .25rem; }
+.morning-list p { margin: 0; color: rgba(244,238,223,.8); font-size: 1rem; }
+@media (min-width: 60rem) {
+  .morning-grid { grid-template-columns: 1fr 1fr; column-gap: 4rem; }
+  .morning .section-head { grid-column: 1 / -1; margin-bottom: .5rem; }
+  .carton { position: sticky; top: 2rem; }
+}
+
+/* ---------- How the garden works ---------- */
+.garden { padding-top: clamp(3.5rem, 8vw, 6rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
+.garden-grid { display: grid; gap: 1.6rem; }
+.garden-text p { color: var(--ink-soft); }
+.field-list { list-style: none; margin: 1.4rem 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.field-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1rem; padding: .6rem 0; border-bottom: 1px dotted var(--rule); }
+.field-list .k { font-family: var(--label); font-size: 1.05rem; color: var(--ink); }
+.field-list .v { color: var(--ink-soft); font-size: .98rem; text-align: right; }
+.garden-grid img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+@media (min-width: 40rem) { .garden-grid { grid-template-columns: 1fr 1fr; } .garden-text, .g1 { grid-column: 1 / -1; } }
+@media (min-width: 60rem) {
+  .garden-grid { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2rem; align-items: start; }
+  .garden-text { grid-column: 1 / 3; grid-row: 1 / 3; }
+  .g1 { grid-column: 3 / 5; grid-row: 1; }
+  .g2 { grid-column: 3; grid-row: 2; }
+  .g3 { grid-column: 4; grid-row: 2; }
+}
+
+/* ---------- The seasonal pond ---------- */
+.pond { background: var(--teal); color: var(--paper); padding: clamp(2.5rem, 6vw, 4rem) 0; }
+.pond .eyebrow { color: var(--yolk); }
+.pond h2 { color: var(--paper-hi); font-size: clamp(1.5rem, 3.4vw, 2.1rem); }
+.pond p:not(.eyebrow) { color: rgba(244,238,223,.85); margin: 0; }
+.pond-inner { display: grid; gap: 1.6rem; align-items: center; }
+.pond-cal { width: 100%; height: auto; max-width: 24rem; justify-self: center; }
+@media (min-width: 60rem) { .pond-inner { grid-template-columns: 1fr 1.1fr; gap: 3rem; } }
+
+/* ---------- Hosts ---------- */
+.hosts { display: grid; gap: 2rem; padding-top: clamp(3.5rem, 8vw, 6rem); padding-bottom: clamp(3rem, 7vw, 5rem); align-items: center; }
+.hosts .eyebrow { color: var(--hen); }
+.hosts-text p:not(.eyebrow) { color: var(--ink-soft); }
+.hosts-photo { transform: rotate(.8deg); }
+@media (min-width: 60rem) { .hosts { grid-template-columns: .95fr 1.05fr; gap: 4rem; } }
+
+/* ---------- From the garden ---------- */
+.look { padding: clamp(2rem, 5vw, 3rem) 0 clamp(3rem, 6vw, 4.5rem); background: var(--paper-deep) var(--grain); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.look .section-head { margin-bottom: 1.6rem; padding-top: 1rem; }
+.strip { display: flex; gap: 1.1rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 var(--gutter) 1rem; scrollbar-width: thin; scrollbar-color: var(--teal) transparent; align-items: flex-start; }
+.strip figure { flex: 0 0 82vw; scroll-snap-align: center; background: var(--paper-hi); padding: .5rem .5rem .6rem; border: 1px solid rgba(30,43,44,.45); box-shadow: 0 .6rem 1.4rem rgba(30,43,44,.12); }
+.strip figure:nth-child(odd) { transform: rotate(-.6deg); }
+.strip figure:nth-child(even) { transform: rotate(.6deg); }
+.strip img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.strip img.tall { aspect-ratio: 3 / 4; }
+.strip figure:has(img.tall) { flex-basis: 60vw; }
+@media (min-width: 60rem) {
+  .strip { padding-left: max(var(--gutter), calc((100vw - 72rem) / 2 + var(--gutter))); scroll-padding-left: max(var(--gutter), calc((100vw - 72rem) / 2 + var(--gutter))); }
+  .strip figure { flex-basis: 30rem; scroll-snap-align: start; }
+  .strip figure:has(img.tall) { flex-basis: 17rem; }
+}
+
+/* ---------- The farm stand ---------- */
+.market { padding: clamp(3.5rem, 8vw, 6rem) 0; }
+.market-grid { display: grid; gap: 1.6rem; align-items: start; }
+.market-text p:not(.eyebrow) { color: var(--ink-soft); }
+.market-text .pill { margin-top: .4rem; }
+.market .eyebrow { color: var(--hen); }
+.m1 img { aspect-ratio: 4 / 3; object-fit: cover; width: 100%; }
+.m2 img { aspect-ratio: 3 / 4; object-fit: cover; width: 100%; }
+@media (min-width: 40rem) { .market-grid { grid-template-columns: 1.4fr 1fr; } .market-text { grid-column: 1 / -1; max-width: 40rem; } }
+@media (min-width: 60rem) { .market-grid { grid-template-columns: 1.2fr 1.1fr .8fr; gap: 2.4rem; } .market-text { grid-column: 1; } .m1 { transform: rotate(-.6deg); } .m2 { transform: rotate(.8deg); } }
+
+/* ---------- Good to know ---------- */
+.good { padding-bottom: clamp(3.5rem, 8vw, 6rem); }
+.good-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.good-list li { padding: 1.1rem 1.25rem; background: var(--paper-hi); border: 1px solid var(--rule); border-left: 4px solid var(--jade); color: var(--ink-soft); }
+.good-list strong { display: block; color: var(--teal-deep); font-family: var(--display); font-weight: 600; font-size: 1.12rem; margin-bottom: .2rem; }
+@media (min-width: 48rem) { .good-list { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- Stay ---------- */
+.stay { position: relative; padding: clamp(3rem, 10vw, 7rem) var(--gutter); isolation: isolate; overflow: hidden; }
+.stay-photo { position: absolute; inset: 0; z-index: -2; }
+.stay-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; }
+.stay::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(10,62,69,.45); }
+.stay-card { max-width: 36rem; margin: 0 auto; background: var(--paper-hi) var(--grain); padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid var(--ink); box-shadow: inset 0 0 0 6px var(--paper-hi), inset 0 0 0 7px var(--rule), 0 1.5rem 3.5rem rgba(0,0,0,.4); }
+.stay-card p:not(.eyebrow) { color: var(--ink-soft); }
+.facts { list-style: none; margin: 1.4rem 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.facts li { text-align: center; padding: .8rem .2rem; font-family: var(--label); font-size: .92rem; line-height: 1.2; color: var(--ink-soft); }
+.facts span { display: block; font-family: var(--display); font-weight: 500; font-size: 1.8rem; color: var(--teal); line-height: 1.2; }
+.stay-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.2rem; }
+.small { font-size: .85rem; margin: 0; }
+
+/* ---------- Footer ---------- */
+.foot { background: var(--teal-deep); color: rgba(244,238,223,.82); padding: 3rem 0 1.5rem; font-size: .95rem; }
+.foot-grid { display: grid; gap: 2rem; }
+.foot ul { list-style: none; margin: 0; padding: 0; }
+.foot li { margin-bottom: .4rem; }
+.foot a { text-decoration: none; }
+@media (hover: hover) { .foot a:hover { color: var(--yolk); } }
+.brand-foot { color: var(--paper-hi); margin-bottom: .8rem; }
+.foot-h { font-family: var(--label); font-size: 1.05rem; color: var(--yolk); margin-bottom: .6rem; }
+.copy { margin-top: 2.5rem; font-size: .8rem; opacity: .6; }
+@media (min-width: 48rem) { .foot-grid { grid-template-columns: 2fr 1fr 1fr; } }
