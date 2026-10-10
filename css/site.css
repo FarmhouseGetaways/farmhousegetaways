@@ -1305,3 +1305,17 @@ a { color: inherit; }
 .bo-cta { margin: 2.75rem 0 0; text-align: center; }
 .bo-btn { background: var(--bo-disc); color: #fff; }
 .bo-btn:hover { background: var(--bo-disc-deep); color: #fff; }
+
+/* Homepage taste of /experiences/ (the micro-sites page) */
+.xp-teaser { text-align: center; }
+.xp-teaser .tag { justify-content: center; }
+.xp-teaser .headline { margin-inline: auto; }
+.xp-teaser-lede { max-width: 36rem; margin: 0 auto 2.2rem; opacity: .9; }
+.xp-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.2rem; }
+.xp-tile { position: relative; display: block; border-radius: 1rem; overflow: hidden; aspect-ratio: 1200 / 630; box-shadow: 0 1rem 2rem -1rem rgba(0,0,0,.5); }
+.xp-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .45s ease; }
+.xp-tile span { position: absolute; inset: auto 0 0 0; padding: 1.6rem .8rem .6rem; text-align: left; font-weight: 700; font-size: .95rem; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.7)); }
+.xp-teaser .btn-row { justify-content: center; }
+@media (hover: hover) { .xp-tile:hover img { transform: scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .xp-tile img { transition: none; } }
+@media (max-width: 47rem) { .xp-tiles { grid-template-columns: repeat(2, 1fr); gap: .7rem; } .xp-tile span { font-size: .82rem; } }
