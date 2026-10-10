@@ -188,6 +188,7 @@ figcaption { font-size: .9rem; color: var(--muted); margin-top: .6rem; }
 .materials li:nth-child(3n+2) { color: var(--cyan); }
 .materials li:nth-child(3n) { color: var(--mag); }
 .materials span { color: var(--cream); }
+.materials .mat-note { display: block; margin-top: .3rem; font-size: .82rem; line-height: 1.35; color: var(--muted, #b9ab9b); font-style: italic; }
 @media (min-width: 48rem) { .materials { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 /* ---------- Seat map ---------- */
