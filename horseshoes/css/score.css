@@ -47,7 +47,7 @@ a { color: inherit; }
 [hidden] { display: none !important; }
 
 /* Shoe colours: the four sets at the pit. */
-.shoe-white { --c: #f4f1ea; --c-ink: #2b221e; --c-edge: #b9ada0; --c-shadow: #cfc6b8; --c-text: #5b4d45; }
+.shoe-white { --c: #ffffff; --c-ink: #2b221e; --c-edge: #b9ada0; --c-shadow: #cfc6b8; --c-text: #5b4d45; }
 .shoe-green { --c: #2f7d4f; --c-ink: #fff; --c-edge: #2f7d4f; --c-shadow: #1f5a37; --c-text: #2f7d4f; }
 .shoe-red   { --c: #b8322a; --c-ink: #fff; --c-edge: #b8322a; --c-shadow: #86231d; --c-text: #b8322a; }
 .shoe-blue  { --c: #2f6fb0; --c-ink: #fff; --c-edge: #2f6fb0; --c-shadow: #214f80; --c-text: #2f6fb0; }
@@ -173,8 +173,8 @@ a { color: inherit; }
 .pc-btns .pill b { font-family: var(--display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0; line-height: 1; }
 .pc-btns .pill small { font-family: var(--label); font-weight: 700; font-size: .85rem; letter-spacing: .1em; }
 .pc-ringer { background: var(--c); color: var(--c-ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
-.pc-close { background: var(--card); color: var(--ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
-.pc-close b { color: var(--c-text); }
+/* both score buttons wear the player's shoe colour (Cory, 9 Oct 2026: "both green, and both white") */
+.pc-close { background: var(--c); color: var(--c-ink); border-color: var(--c-edge); box-shadow: 0 3px 0 var(--c-shadow); }
 .pc-minus {
   width: 3.3rem; min-height: 4.2rem; border-radius: 999px; border: 2px solid var(--line); background: var(--paper);
   font-family: var(--body); font-weight: 700; font-size: 1.7rem; line-height: 1; color: var(--ink-soft); cursor: pointer; touch-action: manipulation;
