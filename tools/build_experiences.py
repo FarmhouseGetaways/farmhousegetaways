@@ -22,7 +22,7 @@ SITES = {
     "Mountain Retreat": [
         ("Boulder Oak Arcade", f"{G}/arcade/", f"{G}/arcade/images/og-arcade-card.jpg", "An arcade you can sit down in."),
         ("Boulder Oak Disc Golf", "https://boulderoakdiscgolf.com/", "https://boulderoakdiscgolf.com/images/og.png", "Our own three-hole course, with a leaderboard for your whole group."),
-        ("Hillside Horseshoes", f"{G}/horseshoes/", f"{G}/horseshoes/images/og-horseshoes-card.jpg", "A regulation pit across the stream, with its own scorecard."),
+        ("Hillside Horseshoes", f"{G}/horseshoes/", f"{G}/horseshoes/images/og-horseshoes-card.jpg", "A regulation pit across the stream, with its own scoring system."),
         ("Dos Picos County Park", f"{G}/dospicos/", f"{G}/dospicos/images/og-dospicos-card.jpg", "A five-minute walk from the house."),
         ("The Lodge", f"{G}/thelodge/", f"{G}/thelodge/images/og-thelodge-card.jpg", "A new farm stand, coming soon."),
     ],
