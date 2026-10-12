@@ -24,7 +24,8 @@ SITES = {
         ("Boulder Oak Disc Golf", "https://boulderoakdiscgolf.com/", "https://boulderoakdiscgolf.com/images/og.png", "Our own three-hole course, with a leaderboard for your whole group."),
         ("Hillside Horseshoes", f"{G}/horseshoes/", f"{G}/horseshoes/images/og-horseshoes-card.jpg", "A regulation pit across the stream, with its own scoring system."),
         ("Dos Picos County Park", f"{G}/dospicos/", f"{G}/dospicos/images/og-dospicos-card.jpg", "Bordering the property, just a short walk."),
-        ("The Lodge", f"{G}/thelodge/", f"{G}/thelodge/images/og-thelodge-card.jpg", "A new farm stand, coming soon."),
+        # The Lodge is off the list for now (Cory, 11 Oct 2026); the /thelodge/ page itself stays up.
+        # ("The Lodge", f"{G}/thelodge/", f"{G}/thelodge/images/og-thelodge-card.jpg", "A new farm stand, coming soon."),
     ],
 }
 
