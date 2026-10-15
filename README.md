@@ -98,3 +98,26 @@ A honeypot field catches most spam.
 Every `newsletter` submission carries a hidden `source` field telling you which
 placement it came from (`home-band`, `footer-rbr`, and so on). That is your only
 conversion attribution — keep it when editing.
+
+## Scroll line
+
+`js/scroll-progress.js` draws the thin line across the top of the window that fills as a long page is scrolled
+(Cory, 14 Oct 2026). It shows only on pages at least two screens tall, stays off inside Facebook's
+and Instagram's own browsers (they draw their own line), and picks dark or light from whatever is at
+the top of the window. Each page loads it with one `<script ... defer>` line before
+`</head>`. The file is a copy: the master and the installer that adds it to every site are in
+`reports/scroll-progress/` in the projects folder. Change it there and re-run `install.py`.
+
+## The Oasis drawings
+
+Both drawings on `/theoasis/`, the illustrated scene at the top and the sketch from above, are
+generated: `reports/microsites-notes/theoasis-generator/build.py` in the projects folder rebuilds the
+whole of `theoasis/index.html` from `index.src.html` there. Change the template, not only the page,
+or the next build undoes it.
+
+The pool and spa are traced from Cory's overhead photo (`reports/oasis-plan/`, `check_smooth.png`
+shows the outline on the photo). The edge follows the inner edge of the coping and ignores what sits
+on it, the floatie, the steps and the umbrella, and it is drawn as a smooth curve (Cory, 13-14 Oct
+2026). The top scene shows the pool the way the photo is framed, big end at the back and the spa at
+the front left, tilted evenly with no perspective stretch. The palms are Queen Palms, never King
+Palms, and every palm is inside the fence.
