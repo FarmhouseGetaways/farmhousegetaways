@@ -1,0 +1,62 @@
+/* The for-sale page. Everything else comes from /imm/css/imm.css; this file
+   only adds the price stamp, the three sale steps, the moving sheet and the
+   offer form. */
+
+/* ---------- The stamp: a rubber stamp on the drawing set ---------- */
+.stamp { display: inline-flex; flex-direction: column; align-items: center; gap: .1rem; margin: 0 0 1.4rem; padding: .7rem 1.3rem .8rem; border: 3px solid var(--amber); border-radius: 10px; outline: 1.5px solid var(--amber); outline-offset: 4px; color: var(--amber); transform: rotate(-6deg); text-align: center; line-height: 1; background: rgba(15, 51, 84, .35); }
+.stamp-k { font-family: var(--mono); font-weight: 600; font-size: .78rem; letter-spacing: .3em; text-transform: uppercase; padding-left: .3em; }
+.stamp-v { font-family: var(--display); font-weight: 850; font-stretch: 112%; font-size: clamp(2.2rem, 6vw, 3.4rem); letter-spacing: -.01em; color: #fff; margin: .2rem 0 .25rem; }
+/* Wide screens: the stamp sits beside the lede and buttons, below the title,
+   so it can never land on "Mansion". */
+@media (min-width: 48rem) {
+  .hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 2.5rem; align-items: start; }
+  .hero-inner > * { grid-column: 1 / -1; }
+  .hero-inner > .lede { grid-column: 1; grid-row: 3; }
+  .hero-inner > .hero-actions { grid-column: 1; grid-row: 4; }
+  .hero-inner > .stamp { grid-column: 2; grid-row: 3 / span 2; align-self: center; margin: 0 1rem 0 0; padding: 1rem 1.8rem 1.1rem; }
+  .stamp-k { font-size: .9rem; }
+}
+/* The stamp lands once, quickly, like a hand pressing it down. sale.js adds
+   .landing and a timer takes it off again, so a frozen timeline still ends
+   with the stamp showing. */
+@keyframes stamp-in { 0% { opacity: 0; transform: rotate(-6deg) scale(1.35); } 100% { opacity: 1; transform: rotate(-6deg) scale(1); } }
+@media (prefers-reduced-motion: no-preference) {
+  .js .stamp.landing { animation: stamp-in .22s cubic-bezier(.55, .05, .7, .2) 1.6s both; }
+}
+
+/* ---------- Inside note ---------- */
+.inside-note { font-family: var(--mono); font-size: .8rem; letter-spacing: .04em; color: var(--ink-soft); margin: 0; }
+
+/* ---------- The sale: three steps ---------- */
+.sale { padding: clamp(1rem, 3vw, 2rem) 0 clamp(3rem, 8vw, 5.5rem); }
+.sale .section-head p:not(.eyebrow) { color: var(--ink-soft); }
+.steps { display: grid; gap: 1.1rem; counter-reset: none; }
+.steps li { background: #fff; border: 1.5px solid var(--steel-light); border-top: 4px solid var(--rust); border-radius: 4px; padding: 1.4rem 1.5rem 1.1rem; }
+.steps h3 { margin-bottom: .5rem; }
+.steps p { color: var(--ink-soft); margin: 0; }
+@media (min-width: 48rem) { .steps { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---------- The moving sheet ---------- */
+.bp .road-dash { fill: none; stroke: var(--bp-line); stroke-width: 2; stroke-dasharray: 10 14; transform: translateY(14px); }
+/* Two drawings of the same sheet: wide for desktop, tall for a phone, so the
+   whole road always fits and "your place?" is never scrolled out of sight. */
+.bp-move-phone { display: none; }
+.bp-move-phone .hand { font-size: 19px; }
+.bp-move-phone .badges text { font-size: 15px; }
+@media (max-width: 40rem) {
+  .bp-move:not(.bp-move-phone) { display: none; }
+  .bp-move-phone { display: block; }
+}
+
+/* ---------- Offer form, on blueprint paper ---------- */
+.offer-form { display: grid; gap: 1rem; margin: 1.6rem 0 1.4rem; }
+.offer-form .hp { position: absolute; left: -9999px; }
+.field-pair { display: grid; gap: 1rem; }
+@media (min-width: 40rem) { .field-pair { grid-template-columns: 1fr 1fr; } }
+.field { display: grid; gap: .35rem; min-width: 0; }
+.field label { font-family: var(--mono); font-weight: 600; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--amber-glow); }
+.field input, .field textarea { width: 100%; font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 1.5px solid rgba(232, 241, 251, .6); border-radius: 10px; padding: .7rem .85rem; }
+.field textarea { resize: vertical; min-height: 6rem; }
+.field input:focus-visible, .field textarea:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.offer-form button { justify-self: start; cursor: pointer; font-size: .9rem; padding: .7rem 2.2rem; }
+.offer-form button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
