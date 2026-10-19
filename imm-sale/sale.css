@@ -2,6 +2,14 @@
    only adds the price stamp, the three sale steps, the moving sheet and the
    offer form. */
 
+/* Four links and a longer button do not fit a tablet-width bar, so the links
+   wait until there is room for them on one line. */
+.navlinks a { white-space: nowrap; }
+@media (min-width: 48rem) and (max-width: 64rem) {
+  .navlinks { display: none; }
+  .navask { margin-left: auto; }
+}
+
 /* ---------- The stamp: a rubber stamp on the drawing set ---------- */
 .stamp { display: inline-flex; flex-direction: column; align-items: center; gap: .1rem; margin: 0 0 1.4rem; padding: .7rem 1.3rem .8rem; border: 3px solid var(--amber); border-radius: 10px; outline: 1.5px solid var(--amber); outline-offset: 4px; color: var(--amber); transform: rotate(-6deg); text-align: center; line-height: 1; background: rgba(15, 51, 84, .35); }
 .stamp-k { font-family: var(--mono); font-weight: 600; font-size: .78rem; letter-spacing: .3em; text-transform: uppercase; padding-left: .3em; }
