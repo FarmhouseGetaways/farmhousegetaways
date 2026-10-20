@@ -1178,11 +1178,18 @@ Each alert also carries its own notification tag. The service worker replaces
 a notification sharing a tag — right for the Story watcher, wrong here, since
 two people submitting an hour apart are two different people.
 
-**Email notification is separate and lives only in the Netlify UI**: Project
-configuration → Notifications → **Emails and webhooks**, in the *Form submission
-notifications* panel at the bottom. (An earlier note here said Forms → Settings
-and usage, which is not where it is.) It is in no repository, so it survives no
-rebuild and has to be set per site, per form.
+**Email notification is separate and lives only in the Netlify UI**: the
+project's **Forms** page → **Submission notifications** tab
+(`/projects/<site>/forms?tab=notifications`). Netlify moved it there; it is no
+longer under Project configuration → Notifications. It is in no repository and
+has to be set per site, per form.
+
+As of 19 Oct 2026 the only email set up on this site is
+farmhousegetaways@gmail.com for the `imm-offer` form. Group inquiries and
+newsletter signups reach the phones as push alerts only. **Trap in the Edit
+dialog:** a mouse click on the *Form* dropdown shows the form you picked, but
+the save keeps "Any form". Open the dropdown and pick with the arrow keys and
+Enter, then reload and check that the row names the form.
 
 ### What an alert says
 
