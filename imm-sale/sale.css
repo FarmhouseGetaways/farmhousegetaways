@@ -32,6 +32,14 @@
   .js .stamp.landing { animation: stamp-in .22s cubic-bezier(.55, .05, .7, .2) 1.6s both; }
 }
 
+/* ---------- The video tour, framed like the intro photo ---------- */
+.tour { padding-bottom: clamp(3rem, 8vw, 6rem); }
+.tour-frame { max-width: 60rem; }
+.tour-video { position: relative; aspect-ratio: 16 / 9; background: var(--steel-dark); border-radius: 4px; overflow: hidden; }
+.tour-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tour-note { max-width: 60rem; margin: 1.6rem 0 0; padding: 1rem 1.2rem; background: #fff; border-left: 4px solid var(--amber); border-radius: 4px; color: var(--ink-soft); }
+.tour-note b { color: var(--ink); }
+
 /* ---------- Inside note ---------- */
 .inside-note { font-family: var(--mono); font-size: .8rem; letter-spacing: .04em; color: var(--ink-soft); margin: 0; }
 
