@@ -13,7 +13,7 @@ the map, so theirs still deliver it.
 | File | Goes to | Subject line |
 |---|---|---|
 | `welcome-farmhousegetaways.html` | tag `farmhousegetaways` | Welcome in — you will hear about open weekends first |
-| `welcome-minibarnmarket.html` | tag `minibarnmarket` | The barn is always open (and here is the map) |
+| `welcome-minibarnmarket.html` | tag `minibarnmarket` | Sunup to Sundown (and here is the map) |
 | `welcome-farmstandtv.html` | tag `farmstandtv` | The Ramona Farmstand Map |
 
 Each is in its own brand's colours, taken from that site's stylesheet. Every

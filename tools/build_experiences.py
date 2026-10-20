@@ -17,7 +17,7 @@ SITES = {
         ("The Barn", f"{G}/thebarn/", f"{G}/thebarn/images/og-thebarn-card.jpg", "Twenty-two hundred square feet where the whole family ends up."),
         ("The Oasis", f"{G}/theoasis/", f"{G}/theoasis/images/og-theoasis-card.jpg", "A pool and a spa together in one fully gated area."),
         ("The Bird Garden", f"{G}/birdgarden/", f"{G}/birdgarden/images/og-birdgarden-card.jpg", "Peacocks, ducks and hens, all of them used to visitors."),
-        ("Mini Barn Market", "https://minibarnmarket.com/", "https://minibarnmarket.com/images/og-mbm-card.jpg", "Our honor-system farm stand at the back gate, open 24 hours."),
+        ("Mini Barn Market", "https://minibarnmarket.com/", "https://minibarnmarket.com/images/og-mbm-card-v2.jpg", "Our honor-system farm stand at the back gate, open Sunup to Sundown."),
     ],
     "Mountain Retreat": [
         ("Boulder Oak Arcade", f"{G}/arcade/", f"{G}/arcade/images/og-arcade-card.jpg", "An arcade you can sit down in."),
@@ -106,7 +106,8 @@ STYLE = '''<style>
     .xp-card:hover .xp-img img { transform: scale(1.04); }
   }
   @media (prefers-reduced-motion: reduce) { .xp-card, .xp-img img { transition: none; } }
-</style>'''
+</style>
+<script src="/js/scroll-progress.js" defer></script>'''
 
 head_end = src.index("<style>")
 head = src[:head_end]
