@@ -40,6 +40,16 @@
 .tour-note { max-width: 60rem; margin: 1.6rem 0 0; padding: 1rem 1.2rem; background: #fff; border-left: 4px solid var(--amber); border-radius: 4px; color: var(--ink-soft); }
 .tour-note b { color: var(--ink); }
 
+/* ---------- Features, room by room, on concrete ---------- */
+.features { background: var(--concrete-light); background-image: radial-gradient(rgba(30, 35, 40, .05) 1px, transparent 1.2px), radial-gradient(rgba(255, 255, 255, .5) 1px, transparent 1.2px); background-size: 7px 7px, 11px 11px; background-position: 0 0, 3px 5px; padding: clamp(3rem, 8vw, 5.5rem) 0; margin-bottom: clamp(2rem, 5vw, 3rem); }
+.features .section-head p:not(.eyebrow) { color: var(--ink-soft); }
+.feat-grid { display: grid; gap: 1.1rem; }
+.feat-grid .col { border-top: 4px solid var(--rust); }
+.feat-grid h3 { font-size: 1.3rem; margin-bottom: .6rem; }
+.feat-grid li::before { background: var(--amber); height: .6rem; width: .6rem; border-radius: 999px; top: .95rem; }
+@media (min-width: 48rem) { .feat-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 72rem) { .feat-grid { grid-template-columns: repeat(4, 1fr); } }
+
 /* ---------- Inside note ---------- */
 .inside-note { font-family: var(--mono); font-size: .8rem; letter-spacing: .04em; color: var(--ink-soft); margin: 0; }
 
