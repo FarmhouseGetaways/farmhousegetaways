@@ -476,7 +476,10 @@ a { color: inherit; }
   .gallery { grid-template-columns: repeat(3,1fr); gap: 1.1rem; }
   .gallery .wide { grid-column: span 2; }
 }
-.gallery figure { margin: 0; }
+.gallery figure { margin: 0; min-width: 0; }
+@media (min-width: 55rem) {
+  .gallery.gallery-pair { grid-template-columns: 1fr 1fr; }
+}
 .gallery figcaption { font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--stone); margin-top: .6rem; }
 .band-dark .gallery figcaption { color: var(--sage-pale); }
 
@@ -1304,6 +1307,16 @@ a { color: inherit; }
   border-radius: 8px; box-shadow: 0 0 0 3px rgba(43,29,17,.55), 0 6px 14px -8px rgba(0,0,0,.7);
 }
 .bo-post { width: 1.1rem; height: 3.25rem; background: linear-gradient(90deg, #3b2716, #5a3d24 50%, #3b2716); border-radius: 0 0 3px 3px; }
+.bo-shot { margin: clamp(2rem, 4vw, 3rem) 0 0; }
+.bo-shot > a { display: block; }
+.bo-shot > a:focus-visible { outline: 2px solid var(--bo-sun); outline-offset: 3px; }
+.bo-shot .shot { border-radius: 12px; }
+.bo-shot figcaption {
+  margin-top: .75rem;
+  font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,248,232,.78);
+}
+.bo-shot figcaption a { color: var(--bo-sun); letter-spacing: 0; text-transform: none; }
 .bo-cta { margin: 2.75rem 0 0; text-align: center; }
 .bo-btn { background: var(--bo-disc); color: #fff; }
 .bo-btn:hover { background: var(--bo-disc-deep); color: #fff; }
