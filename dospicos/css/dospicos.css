@@ -73,6 +73,10 @@ h3 { font-family: var(--poster); font-weight: 700; font-size: 1.15rem; line-heig
 /* ---------- Hero: an illustrated park poster ---------- */
 .hero { position: relative; background: linear-gradient(180deg, #f3dfb0 0%, #f6e6c2 60%, #f8ecd0 100%); color: var(--ink); overflow: hidden; }
 .topbar { display: flex; align-items: center; gap: 1rem; padding: .9rem var(--gutter); position: relative; z-index: 3; }
+.fg-home { display: flex; align-items: center; position: relative; z-index: 5; flex: none; padding: .4rem clamp(1rem, 4vw, 2.5rem); background: #fff; text-decoration: none; }
+.fg-home img { height: 2.5rem; width: auto; display: block; }
+@media (min-width: 48rem) { .fg-home img { height: 3rem; } }
+.fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--poster); font-weight: 700; font-size: 1.15rem; letter-spacing: .08em; text-transform: uppercase; line-height: 1.05; }
 .brand small { display: block; font-family: var(--hand); font-weight: 400; font-size: .82rem; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
 .mark { width: 2.4rem; height: 2.4rem; flex: none; }

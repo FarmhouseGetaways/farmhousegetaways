@@ -92,6 +92,10 @@ figcaption { font-size: .9rem; color: var(--muted); margin-top: .6rem; }
 .hero::after { content: ""; position: absolute; inset: auto 0 0; height: 30%; z-index: -1; background: linear-gradient(180deg, rgba(13,8,6,0), rgba(13,8,6,.92)); }
 
 .topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem var(--gutter); position: relative; z-index: 3; }
+.fg-home { display: flex; align-items: center; position: relative; z-index: 5; flex: none; padding: .4rem clamp(1rem, 4vw, 2.5rem); background: #fff; text-decoration: none; }
+.fg-home img { height: 2.5rem; width: auto; display: block; }
+@media (min-width: 48rem) { .fg-home img { height: 3rem; } }
+.fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--display); font-size: 1.15rem; letter-spacing: .02em; }
 .mark { width: 2.2rem; height: 2.2rem; flex: none; }
 .navlinks { display: none; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 1.6rem; }

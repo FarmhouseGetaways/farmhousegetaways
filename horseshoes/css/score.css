@@ -79,6 +79,10 @@ a { color: inherit; }
   background: var(--iron); color: var(--paper);
   background-image: radial-gradient(rgba(239,216,160,.08) 1px, transparent 1.4px); background-size: 14px 14px;
 }
+.fg-home { display: flex; align-items: center; position: relative; z-index: 5; flex: none; padding: .4rem clamp(1rem, 4vw, 2.5rem); background: #fff; text-decoration: none; }
+.fg-home img { height: 2.5rem; width: auto; display: block; }
+@media (min-width: 48rem) { .fg-home img { height: 3rem; } }
+.fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .55rem; min-width: 0; text-decoration: none; font-family: var(--display); font-size: 1.08rem; line-height: 1.1; color: var(--paper); }
 .brand span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mark { width: 2.2rem; height: 2.2rem; flex: none; }

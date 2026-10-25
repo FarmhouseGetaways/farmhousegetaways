@@ -88,6 +88,10 @@ h2 { font-family: var(--display); font-size: clamp(1.75rem, 4.4vw, 2.75rem); lin
   background: radial-gradient(60rem 30rem at 85% 10%, rgba(242,207,124,.55), transparent 70%); }
 
 .topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem var(--gutter); position: relative; z-index: 4; }
+.fg-home { display: flex; align-items: center; position: relative; z-index: 5; flex: none; padding: .4rem clamp(1rem, 4vw, 2.5rem); background: #fff; text-decoration: none; }
+.fg-home img { height: 2.5rem; width: auto; display: block; }
+@media (min-width: 48rem) { .fg-home img { height: 3rem; } }
+.fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--display); font-size: 1.1rem; letter-spacing: .01em; color: var(--rust-deep); }
 .mark { width: 2.3rem; height: 2.3rem; flex: none; }
 .navlinks { display: none; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 1.6rem; }

@@ -65,6 +65,10 @@ figure { margin: 0; }
   radial-gradient(40rem 30rem at 85% 30%, rgba(169,205,191,.35), transparent 70%),
   radial-gradient(30rem 20rem at 0% 100%, rgba(197,140,92,.12), transparent 70%); }
 .topbar { display: flex; align-items: center; gap: 1rem; padding-top: 1rem; padding-bottom: 1rem; }
+.fg-home { display: flex; align-items: center; position: relative; z-index: 5; flex: none; padding: .4rem clamp(1rem, 4vw, 2.5rem); background: #fff; text-decoration: none; }
+.fg-home img { height: 2.5rem; width: auto; display: block; }
+@media (min-width: 48rem) { .fg-home img { height: 3rem; } }
+.fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.2rem; color: var(--ink); }
 .mark { width: 2.2rem; height: 2.2rem; flex: none; }
 .navlinks { display: none; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 1.6rem; }
