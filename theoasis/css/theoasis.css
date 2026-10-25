@@ -312,7 +312,7 @@ figcaption { font-size: .82rem; font-weight: 600; letter-spacing: .04em; color: 
 .season { position: relative; overflow: hidden; border-radius: 1.4rem; padding: 1.5rem 1.5rem 1.6rem; color: var(--ink); }
 .season h3 { font-family: var(--head); font-weight: 600; font-size: 1.45rem; line-height: 1.2; margin: .2rem 0 .5rem; }
 .season p { margin: 0; color: var(--ink-soft); }
-.s-when { font-weight: 700; font-size: .78rem; letter-spacing: .2em; text-transform: uppercase; }
+.s-when { font-weight: 700; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; line-height: 1.35; }
 .s-ico { width: 2.8rem; height: 2.8rem; margin-bottom: .6rem; }
 .s-summer { background: linear-gradient(160deg, #fde6b4, #f7cf8a); }
 .s-summer .s-ico, .s-summer .s-when { color: #a8601f; }
@@ -322,7 +322,8 @@ figcaption { font-size: .82rem; font-weight: 600; letter-spacing: .04em; color: 
 .s-spa .s-ico, .s-spa .s-when { color: var(--terra-deep); }
 .season > * { position: relative; z-index: 1; }
 .season::after { content: ""; position: absolute; right: -3.2rem; top: -3.2rem; width: 8rem; height: 8rem; border-radius: 50%; border: 14px solid rgba(255,255,255,.3); }
-@media (min-width: 52rem) { .seasons { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 47rem) { .seasons { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 69rem) { .seasons { grid-template-columns: repeat(3, 1fr); } }
 .phone-note { display: flex; gap: 1rem; align-items: flex-start; margin-top: 1.6rem; padding: 1.2rem 1.4rem; background: #fff; border: 1px solid var(--line); border-radius: 1.4rem; }
 .phone-note p { margin: 0; color: var(--ink-soft); }
 .phone-note a { color: var(--aqua-deep); font-weight: 700; white-space: nowrap; }
