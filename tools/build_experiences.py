@@ -15,7 +15,7 @@ G = "https://farmhousegetaways.com"
 SITES = {
     "Red Barn Ranch": [
         ("The Barn", f"{G}/thebarn/", f"{G}/thebarn/images/og-thebarn-card.jpg", "Twenty-two hundred square feet where the whole family ends up."),
-        ("The Oasis", f"{G}/theoasis/", f"{G}/theoasis/images/og-theoasis-card.jpg", "A pool and a spa together in one fully gated area."),
+        ("The Oasis", f"{G}/theoasis/", f"{G}/theoasis/images/og-theoasis-card-v2.jpg", "A pool and a spa together in one fully gated area."),
         ("The Bird Garden", f"{G}/birdgarden/", f"{G}/birdgarden/images/og-birdgarden-card.jpg", "Peacocks, ducks and hens, all of them used to visitors."),
         ("Mini Barn Market", "https://minibarnmarket.com/", "https://minibarnmarket.com/images/og-mbm-card-v2.jpg", "Our honor-system farm stand at the back gate, open Sunup to Sundown."),
     ],
