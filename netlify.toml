@@ -56,6 +56,27 @@
   status = 301
   force = true
 
+# Ring & Hook scorekeeper. The app is a separate Netlify site
+# (ring-and-hook) rebuilt to live at /ringtoss/. These rules proxy that
+# path onto this domain. They sit above every path rule so a later
+# catch-all cannot swallow them. The admin host rule above still wins
+# for admin.farmhousegetaways.com, because it is matched first.
+[[redirects]]
+  from = "/ringtoss"
+  to = "/ringtoss/"
+  status = 301
+
+[[redirects]]
+  from = "/ringtoss/*"
+  to = "https://ring-and-hook.netlify.app/ringtoss/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ringgame"
+  to = "/ringtoss/"
+  status = 301
+
 # friendly alias for the publish function
 [[redirects]]
   from = "/api/publish"
