@@ -61,10 +61,14 @@
 # path onto this domain. They sit above every path rule so a later
 # catch-all cannot swallow them. The admin host rule above still wins
 # for admin.farmhousegetaways.com, because it is matched first.
+#
+# /ringtoss is a proxy, not a slash redirect. Netlify treats /ringtoss
+# and /ringtoss/ as the same path, so a 301 from one to the other loops.
 [[redirects]]
   from = "/ringtoss"
-  to = "/ringtoss/"
-  status = 301
+  to = "https://ring-and-hook.netlify.app/ringtoss/"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/ringtoss/*"
