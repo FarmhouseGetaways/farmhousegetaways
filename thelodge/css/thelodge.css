@@ -85,9 +85,7 @@ figure, blockquote, dl, dd { margin: 0; }
 .fg-home:focus-visible { outline: 3px solid #c4673d; outline-offset: -3px; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; text-decoration: none; font-family: var(--poster); font-weight: 800; font-size: 1.2rem; letter-spacing: .12em; text-transform: uppercase; }
 .mark { width: 2.2rem; height: 2.2rem; flex: none; }
-/* Forest-green Outfitters mark. The hero is too dark for the green (or black)
-   to read on its own, so it sits on the page's cream. */
-.topbar .brand { flex: none; gap: 0; line-height: 0; background: var(--paper); border-radius: .4rem; padding: .28rem .42rem .2rem; }
+.topbar .brand { flex: none; gap: 0; line-height: 0; background: none; padding: 0; border: 0; border-radius: 0; }
 .topbar .brand img { height: 4.7rem; width: auto; display: block; }
 @media (min-width: 48rem) { .topbar .brand img { height: 3.7rem; } }
 @media (min-width: 75rem) { .topbar .brand img { height: 5.15rem; } }
